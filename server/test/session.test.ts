@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { beforeEach, describe, test } from 'node:test';
 import { DIR_KEYS, DIR_TO_SHEET, distinctFacings, parseHeightmap, pointToTile, sheetDirFor, tileCenter, turnFacing, type ClientMsg, type DirKey, type ServerMsg, type Session, type SessionAction } from '@croma/shared';
 import { Hotel } from '../src/hotel';
@@ -10,8 +13,9 @@ type Msg<T extends ServerMsg['t']> = Extract<ServerMsg, { t: T }>;
 class Peer {
   inbox: ServerMsg[] = [];
   readonly client;
-  constructor(private hotel: Hotel) {
-    this.client = hotel.attach((m) => this.inbox.push(JSON.parse(JSON.stringify(m)) as ServerMsg));
+  /** local = conexão do próprio computador do servidor */
+  constructor(private hotel: Hotel, local = false) {
+    this.client = hotel.attach((m) => this.inbox.push(JSON.parse(JSON.stringify(m)) as ServerMsg), undefined, local);
   }
   send(m: ClientMsg) {
     this.hotel.receive(this.client, m);
@@ -69,6 +73,24 @@ describe('papéis', () => {
     assert.equal(player.last('welcome')?.role, 'player');
     assert.equal(gm.session().me.role, 'gm');
     assert.equal(player.session().me.role, 'player');
+  });
+
+  test('o computador do servidor é o mestre, sem chave', () => {
+    const p = new Peer(hotel, true);
+    p.send({ t: 'login', name: 'Felipe', look });
+    assert.equal(p.last('welcome')?.role, 'gm');
+  });
+
+  test('a tela da mesa entra como jogador, mesmo neste computador ou com a chave', () => {
+    const local = new Peer(hotel, true);
+    local.send({ t: 'login', name: 'Mesa A1', look, mesa: true });
+    assert.equal(local.last('welcome')?.role, 'player');
+    const withKey = new Peer(hotel);
+    withKey.send({ t: 'login', name: 'Mesa B2', look, gmKey: hotel.gmKey, mesa: true });
+    assert.equal(withKey.last('welcome')?.role, 'player');
+    // e não muda a cena da sessão ao entrar
+    local.send({ t: 'join', roomId: scene('Jardim') });
+    assert.equal(local.last('roomEnter')?.room.id, scene('Escritório'));
   });
 
   test('chave errada entra como jogador', () => {
@@ -362,5 +384,29 @@ describe('girar a peça', () => {
     assert.equal(gm.session().tokens.find((t) => t.id === tepes.id)?.dir, 6);
     gm.act({ type: 'token.face', tokenId: tepes.id, dir: 9 });
     assert.match(gm.last('denied')?.reason ?? '', /Direção inválida/);
+  });
+});
+
+describe('folhas de sprite do repositório', () => {
+  const PUBLIC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../client/public');
+  test('os quatro investigadores usam as folhas de client/public/arte', () => {
+    const byName = new Map(hotel.db.characters.map((c) => [c.name, c]));
+    for (const name of ['D.Tepes', 'Catarina Albuquerque', 'Alosi Walker', 'Cora Falcão']) {
+      const def = byName.get(name);
+      assert.ok(def, `personagem ${name}`);
+      assert.match(def.sheet, /^\/arte\/personagens\/[a-z-]+\/folha\.webp$/);
+      assert.ok(fs.existsSync(path.join(PUBLIC, def.sheet)), `arquivo ${def.sheet}`);
+      assert.deepEqual(def.dirs, ['se', 'sw', 'nw', 'ne']);
+    }
+    const s = gm.session();
+    for (const ch of s.characters) assert.equal(ch.look.charId, byName.get(ch.name)?.id, `peça ${ch.name} usa a folha`);
+  });
+
+  test('o mestre ajusta um personagem do repositório', () => {
+    const def = hotel.db.characters.find((c) => c.name === 'D.Tepes')!;
+    gm.send({ t: 'charUpdate', id: def.id, patch: { height: 96 } });
+    assert.equal(hotel.db.characters.find((c) => c.id === def.id)?.height, 96);
+    player.send({ t: 'charUpdate', id: def.id, patch: { height: 50 } });
+    assert.equal(hotel.db.characters.find((c) => c.id === def.id)?.height, 96);
   });
 });

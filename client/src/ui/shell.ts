@@ -374,6 +374,8 @@ export class Shell {
   private tabsEl: HTMLElement;
   private thread: RedThread;
   private fxBtn: HTMLButtonElement;
+  /** último giro pedido de cada peça (para cliques seguidos) */
+  private turnGoal = new Map<number, { dir: number; at: number }>();
   private menu: HTMLElement;
   private soundItem: HTMLElement;
   private activeTab = 'MAPA';
@@ -1769,12 +1771,18 @@ export class Shell {
   /** Gira a peça parada para o próximo ângulo que a folha dela tem (cw = sentido horário na tela). */
   turnToken(viewId: number, cw: boolean) {
     const u = this.app.view.users.get(viewId);
-    if (!u || !this.gm) return;
+    if (!u) return;
+    if (!this.gm) return toast('Só o mestre gira os personagens. Abra o link do mestre (aparece no terminal do servidor).', 'error');
     const def = sprites.def(u.look.charId);
     // folha de 4 direções: só as 4 poses; de 8 ou avatar pixel: as 8
     const allowed = def ? distinctFacings((k) => def.dirs.some((d, i) => d === k && (def.anims?.[i] ?? 'idle') === 'idle')) : [];
-    const next = turnFacing(u.dir, cw, allowed);
-    if (next === u.dir) return;
+    // cliques seguidos contam a partir do último pedido, não do que o servidor já confirmou
+    const now = performance.now();
+    const goal = this.turnGoal.get(viewId);
+    const base = goal && now - goal.at < 800 ? goal.dir : u.dir;
+    const next = turnFacing(base, cw, allowed);
+    if (next === base) return;
+    this.turnGoal.set(viewId, { dir: next, at: now });
     sfx.click();
     this.app.session.faceToken(-viewId, next);
   }
@@ -1852,10 +1860,35 @@ export class Shell {
       away,
       h('i', { class: 'pc-glow', 'aria-hidden': 'true' }),
       h('i', { class: 'pc-glare', 'aria-hidden': 'true' }),
+      this.turnButton(id, false),
+      this.turnButton(id, true),
     );
     paperize(el, { seed: 60 + i * 3, tone: '#cfb99f', burn: 0.72, stripe: p.color, torn: 1.8, backs: [{ dx: 3, dy: 3, rot: 1.8 }, { dx: -3, dy: 5, rot: -1.3 }], pad: 22 });
     tilt(el);
     return { el, img, name, away, look: JSON.stringify(p.look), color: p.color };
+  }
+
+  /** Botãozinho de girar no canto da carta (a carta inteira continua comandando). */
+  private turnButton(id: number, cw: boolean) {
+    const run = (e: Event) => {
+      e.stopPropagation();
+      e.preventDefault();
+      this.turnToken(id, cw);
+    };
+    return h(
+      'span',
+      {
+        class: `pc-turn ${cw ? 'r' : 'l'}`,
+        role: 'button',
+        tabindex: '0',
+        title: cw ? 'Girar para a direita (E)' : 'Girar para a esquerda (Q)',
+        'aria-label': cw ? 'Girar para a direita' : 'Girar para a esquerda',
+        onclick: run,
+        onpointerdown: (e: Event) => e.stopPropagation(),
+        onkeydown: (e: KeyboardEvent) => (e.key === 'Enter' || e.key === ' ') && run(e),
+      },
+      cw ? '↻' : '↺',
+    );
   }
 
   private pickCard(id: number) {

@@ -1650,6 +1650,41 @@ html {
     transform: scale(1.22) translateY(-0.3rem) rotate(-1deg);
   }
 }
+.pc-turn {
+  position: absolute;
+  top: 0.3rem;
+  z-index: 4;
+  width: 2.6rem;
+  height: 2.6rem;
+  display: grid;
+  place-items: center;
+  border: 0.1rem solid rgba(255, 240, 220, 0.3);
+  border-radius: 50%;
+  background: rgba(16, 13, 11, 0.85);
+  color: #f2eadc;
+  font-size: 1.6rem;
+  line-height: 1;
+  box-shadow: 0 0.2rem 0.4rem rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s;
+}
+.pc-turn.l {
+  left: 0.3rem;
+}
+.pc-turn.r {
+  right: 0.3rem;
+}
+.pc-turn:hover {
+  background: #c8352b;
+  transform: scale(1.12);
+}
+.pc-turn:active {
+  transform: scale(0.94);
+}
+.pc-turn:focus-visible {
+  outline: 0.2rem solid #e0a64c;
+  outline-offset: 0.1rem;
+}
 .pcard.away .pc-photo {
   filter: grayscale(0.7) brightness(0.75);
 }

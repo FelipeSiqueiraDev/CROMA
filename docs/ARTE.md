@@ -126,12 +126,9 @@ Pasta: `client/public/arte/efeitos/`.
 
 ## 5. Cenários e móveis
 
-**Formato em decisão.** As duas opções:
+**Decidido:** os cenários são montados no jogo (planta, paredes e móveis na grade isométrica), e a arte dos móveis vem depois, para deixar cada cômodo parecido com a referência. Luz, névoa e fumaça são feitas pelo jogo.
 
-- **A. Cena pintada inteira:** uma imagem 1536×1024 por cômodo, com chão, paredes e móveis. É a mais próxima da referência. O jogo marca por cima onde dá para andar e onde estão os objetos clicáveis.
-- **B. Móveis separados:** cada móvel é uma imagem isométrica própria (casa de 64×32 px), e o jogo monta o cômodo. O mestre pode mudar os móveis de lugar.
-
-Até a decisão, não produza cenários nem móveis.
+O formato dos móveis (tamanho da casa, ângulo, rotações e ponto de apoio) será definido junto com a primeira leva. Até lá, não produza móveis.
 
 ## Como entregar
 

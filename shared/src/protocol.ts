@@ -185,8 +185,11 @@ export interface InvItem {
 export type ChatKind = 'say' | 'shout' | 'roll' | 'system';
 
 export type ClientMsg =
-  /** gmKey = chave do link do mestre; sem ela (ou errada) a pessoa entra como jogador */
-  | { t: 'login'; name: string; look: AvatarLook; gmKey?: string }
+  /**
+   * Mestre: o computador do servidor, ou quem manda a chave do link do mestre
+   * (gmKey). mesa = tela da mesa, que sempre entra como jogador.
+   */
+  | { t: 'login'; name: string; look: AvatarLook; gmKey?: string; mesa?: boolean }
   /** ações da sessão (contrato em session.ts); só o mestre */
   | { t: 'act'; a: SessionAction }
   | { t: 'rooms' }

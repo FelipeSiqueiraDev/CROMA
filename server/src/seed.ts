@@ -1,4 +1,4 @@
-import { getLayout, RoomMap, type AvatarLook, type Door, type FloorItem, type Hint, type Loot, type WallItem } from '@croma/shared';
+import { getLayout, RoomMap, type AvatarLook, type CharacterDef, type Door, type FloorItem, type Hint, type Loot, type WallItem } from '@croma/shared';
 import type { Database, RoomData, TokenData } from './db';
 
 export const SYSTEM_OWNER = 'CROMA';
@@ -56,7 +56,7 @@ function buildRoom(
   };
 }
 
-const SEED_VERSION = 9;
+const SEED_VERSION = 10;
 
 /** Os quatro investigadores da mesa. */
 const TEPES = 'D.Tepes';
@@ -65,6 +65,50 @@ const ALOSI = 'Alosi Walker';
 const FALCAO = 'Cora Falcão';
 /** Nomes da primeira demonstração → nomes reais (mesma aparência e cor). */
 const OLD_NAMES: Record<string, string> = { Arthur: TEPES, Cora: CATARINA, Miguel: ALOSI, Teps: FALCAO };
+
+/** Folhas de sprite dos investigadores, no repositório (client/public/arte/personagens/<pasta>/folha.webp). */
+const PARTY_SPRITES: [name: string, folder: string][] = [
+  [TEPES, 'tepes'],
+  [CATARINA, 'catarina'],
+  [ALOSI, 'alosi'],
+  [FALCAO, 'cora-falcao'],
+];
+
+/** Caminho servido da folha de um personagem do repositório. */
+export const partySheet = (folder: string) => `/arte/personagens/${folder}/folha.webp`;
+
+/**
+ * Personagens com as folhas do repositório, ligados às peças de mesmo nome.
+ * Se já existir um personagem com esse nome (enviado antes pela janela), ele
+ * passa a usar a folha do repositório e mantém os ajustes.
+ */
+function seedPartySprites(db: Database) {
+  for (const [name, folder] of PARTY_SPRITES) {
+    const sheet = partySheet(folder);
+    let def = db.characters.find((c) => c.sheet === sheet) ?? db.characters.find((c) => c.name.toLowerCase() === name.toLowerCase());
+    if (def) def.sheet = sheet;
+    else {
+      // linhas: frente-direita, frente-esquerda, costas-esquerda, costas-direita; coluna 3 = piscar
+      const created: CharacterDef = {
+        id: db.nextCharId++,
+        name,
+        owner: SYSTEM_OWNER,
+        sheet,
+        cols: 4,
+        rows: 4,
+        dirs: ['se', 'sw', 'nw', 'ne'],
+        anims: ['idle', 'idle', 'idle', 'idle'],
+        height: 104,
+        fps: 4,
+        sequence: [0, 1, 0, 1, 0, 1, 3, 1, 0, 2, 0, 1],
+        removeBg: false,
+      };
+      db.characters.push(created);
+      def = created;
+    }
+    for (const r of db.rooms) for (const t of r.tokens ?? []) if (t.name === name && !t.look.charId) t.look = { ...t.look, charId: def.id };
+  }
+}
 
 /** Últimas ações de exemplo (as mesmas da tela de referência). */
 function demoLog(now: number) {
@@ -578,6 +622,7 @@ export function upgradeDb(db: Database): boolean {
     const camp = ids.length ? db.campaigns?.[String(Math.min(...ids))] : undefined;
     if (camp) camp.log = demoLog(Date.now());
   }
+  if (v < 10) seedPartySprites(db);
   db.seedVersion = SEED_VERSION;
   return true;
 }

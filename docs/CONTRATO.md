@@ -89,12 +89,12 @@ Hoje a tela MAPA ainda usa as mensagens antigas (`roomEnter`, `status`, `campaig
 
 Toda ação vinda de jogador é recusada com "Só o mestre pode fazer isso.". As mensagens antigas que mudam o tabuleiro (`tokenWalk`, `lootGive`, `objToggle`, `place`...) também passaram a ser só do mestre.
 
-## Mestre e jogador
+## Mestre e mesa
 
-- **Mestre:** entra pelo link que o servidor imprime ao subir (`link do mestre: .../?mestre=CHAVE`). A chave fica no navegador e sai da barra de endereço. Ela é gerada no primeiro uso e guardada em `server/data/db.json` (`gmKey`); apagar `server/data` gera outra.
-- **Jogador:** qualquer outro link. `?jogador` força o papel de jogador mesmo num navegador que já tem a chave (útil para abrir a "tela da mesa" no mesmo computador).
-- O jogador **acompanha**: vai sempre para a cena que o mestre deixou aberta, não recebe pista oculta nem item ainda não revelado, e não consegue agir.
-- Quem entra com o nome de alguém já conectado assume a conexão dele, mas um jogador não consegue assumir a do mestre.
+- **Mestre:** a conexão que vem do próprio computador do servidor. Em outro aparelho, o mestre abre o link com `?mestre=CHAVE`, que o servidor imprime ao subir. A chave fica no navegador e sai da barra de endereço; ela é gerada no primeiro uso e guardada em `server/data/db.json` (`gmKey`).
+- **Mesa (papel `player`):** a tela do tablet, em `?mesa` (ou `?jogador`). Entra sozinha, com um nome como "Mesa 4K2Q", e manda `mesa: true` no login, o que força o papel de jogador mesmo neste computador ou com a chave.
+- A mesa **só assiste**: vai sempre para a cena que o mestre deixou aberta, não recebe pista oculta nem item ainda não revelado, e não consegue agir.
+- Quem entra com o nome de alguém já conectado assume a conexão dele, mas a mesa não consegue assumir a do mestre.
 
 ## Mensagens
 
@@ -102,7 +102,7 @@ Só para referência: o `SessionStore` já cuida disso.
 
 | Direção | Mensagem |
 |---|---|
-| cliente → servidor | `{ t: 'login', name, look, gmKey? }` |
+| cliente → servidor | `{ t: 'login', name, look, gmKey?, mesa? }` |
 | cliente → servidor | `{ t: 'act', a: SessionAction }` |
 | servidor → cliente | `{ t: 'welcome', ..., role }` |
 | servidor → cliente | `{ t: 'session', session }`, a cada mudança (no máximo a cada 1,5 s enquanto as peças andam) |
@@ -113,13 +113,13 @@ Só para referência: o `SessionStore` já cuida disso.
 
 ## Testar o marco com duas janelas
 
-1. `npm run dev` e copie o link do mestre que aparece no terminal.
-2. Janela do mestre: `http://localhost:5173/?auto=Mestre&mestre=CHAVE`.
-3. Janela do jogador: `http://localhost:5173/?auto=Mesa&jogador` (o `?auto` só existe em desenvolvimento).
-4. O mestre troca de cena, move uma peça e entrega um item; a janela do jogador acompanha sem recarregar.
+1. `npm run dev`.
+2. Janela do mestre: `http://localhost:5173`.
+3. Janela da mesa: `http://localhost:5173/?mesa`, ou no tablet, o link da mesa que aparece no terminal.
+4. O mestre troca de cena, move e gira uma peça; a mesa acompanha sem recarregar.
 
 ## Ainda não existe
 
-- Jogador movendo o próprio personagem.
+- Mesa com toque (hoje ela só mostra).
 - Imagem da cena (`Scene.image`); chega com o tabuleiro em imagem.
 - Escolher entre várias sessões (o servidor já separa, falta a tela).

@@ -63,6 +63,8 @@ export interface Client {
   lastSession?: string;
   /** mestre ou jogador (peças não têm) */
   role?: Role;
+  /** conexão do próprio computador do servidor */
+  local?: boolean;
   send(msg: ServerMsg): void;
   /** encerra esta conexão (sessão aberta em outra aba) */
   kick?(): void;

@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import http from 'node:http';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
@@ -141,15 +142,37 @@ function route(req: http.IncomingMessage, res: http.ServerResponse) {
   serveFile(res, file, file.includes(`${path.sep}assets${path.sep}`));
 }
 
+const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
+
+/**
+ * A conexão vem deste computador? Em desenvolvimento o Vite repassa as
+ * conexões e informa a origem em x-forwarded-for (a última entrada é a real).
+ */
+function isLocal(req: http.IncomingMessage) {
+  if (!LOOPBACK.has(req.socket.remoteAddress ?? '')) return false;
+  const fwd = req.headers['x-forwarded-for'];
+  const list = (Array.isArray(fwd) ? fwd.join(',') : (fwd ?? '')).split(',').map((s) => s.trim()).filter(Boolean);
+  return !list.length || LOOPBACK.has(list[list.length - 1]);
+}
+
+/** Endereço deste computador na rede (para o link do tablet). */
+function lanAddress() {
+  for (const list of Object.values(os.networkInterfaces()))
+    for (const a of list ?? []) if (a.family === 'IPv4' && !a.internal) return a.address;
+  return 'localhost';
+}
+
 const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 256 * 1024 });
-wss.on('connection', (ws) => hotel.connect(ws));
+wss.on('connection', (ws, req) => hotel.connect(ws, isLocal(req)));
 
 server.listen(PORT, () => {
   console.log(`[croma] servidor em http://localhost:${PORT}`);
   // em desenvolvimento a página vem do Vite (5173); em produção, deste servidor
-  const page = PROD ? `http://localhost:${PORT}` : 'http://localhost:5173';
-  console.log(`[croma] link do mestre:    ${page}/?mestre=${hotel.gmKey}`);
-  console.log(`[croma] link dos jogadores: ${page}/?jogador`);
+  const port = PROD ? PORT : 5173;
+  const lan = lanAddress();
+  console.log(`[croma] mestre (este computador): http://localhost:${port}`);
+  console.log(`[croma] mesa (tablet):            http://${lan}:${port}/?mesa`);
+  console.log(`[croma] mestre em outro aparelho: http://${lan}:${port}/?mestre=${hotel.gmKey}`);
 });
 
 function shutdown() {

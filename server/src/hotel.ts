@@ -605,8 +605,11 @@ export class Hotel implements HotelApi {
   }
 
   // ---------- conexões ----------
-  /** Nova conexão. `send` entrega uma mensagem; `close` encerra (sessão aberta em outro lugar). */
-  attach(send: (msg: ServerMsg) => void, close?: (code: number) => void): Client {
+  /**
+   * Nova conexão. `send` entrega uma mensagem; `close` encerra (sessão aberta
+   * em outro lugar); `local` = vem do próprio computador do servidor (é o mestre).
+   */
+  attach(send: (msg: ServerMsg) => void, close?: (code: number) => void, local = false): Client {
     const c: Client = {
       id: this.nextClientId++,
       name: null,
@@ -615,6 +618,7 @@ export class Hotel implements HotelApi {
       token: crypto.randomBytes(18).toString('base64url'),
       room: null,
       lastChat: 0,
+      local,
       send,
       kick: () => {
         c.room?.leave(c);
@@ -646,12 +650,13 @@ export class Hotel implements HotelApi {
     this.byToken.delete(c.token);
   }
 
-  connect(ws: WebSocket) {
+  connect(ws: WebSocket, local = false) {
     const c = this.attach(
       (msg) => {
         if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(msg));
       },
       (code) => ws.close(code, 'replaced'),
+      local,
     );
     ws.on('message', (data) => {
       let msg: unknown;
@@ -748,7 +753,9 @@ export class Hotel implements HotelApi {
       return c.send({ t: 'error', msg: `Nome inválido (2 a ${MAX_NAME} letras, números, espaço, _ - .).` });
     const key = name.toLowerCase();
     if (key === SYSTEM_OWNER.toLowerCase()) return c.send({ t: 'error', msg: 'Esse nome é reservado.' });
-    const role: Role = typeof m.gmKey === 'string' && m.gmKey && this.checkGmKey(m.gmKey) ? 'gm' : 'player';
+    // a tela da mesa é sempre jogador; mestre = o próprio computador do servidor ou quem tem a chave
+    const hasKey = typeof m.gmKey === 'string' && !!m.gmKey && this.checkGmKey(m.gmKey);
+    const role: Role = m.mesa === true ? 'player' : c.local || hasKey ? 'gm' : 'player';
     // mesma pessoa abrindo em outra aba: a conexão nova assume (jogador não derruba o mestre)
     for (const o of this.clients.values())
       if (o !== c && o.key === key && o.role === 'gm' && role !== 'gm') return c.send({ t: 'error', msg: 'Esse nome já está em uso na sessão.' });
@@ -817,14 +824,15 @@ export class Hotel implements HotelApi {
     return def;
   }
 
-  private canEditChar(c: Client, ch: CharacterDef) {
-    return ch.owner.toLowerCase() === c.key;
+  /** Quem controla a sessão (o mestre) ajusta qualquer personagem, inclusive os do repositório. */
+  private canEditChar(c: Client, _ch: CharacterDef) {
+    return c.role === 'gm';
   }
 
   private charUpdate(c: Client, m: Record<string, unknown>) {
     const ch = this.db.characters.find((x) => x.id === m.id);
     if (!ch) return;
-    if (!this.canEditChar(c, ch)) return c.send({ t: 'error', msg: 'Só quem enviou pode editar esse personagem.' });
+    if (!this.canEditChar(c, ch)) return c.send({ t: 'error', msg: 'Só o mestre edita personagens.' });
     Object.assign(ch, sanitizeCharPatch(m.patch));
     if (ch.dirs.length !== ch.rows) ch.dirs = Array.from({ length: ch.rows }, (_, i) => ch.dirs[i] ?? DIR_KEYS[i % DIR_KEYS.length]);
     const anims = ch.anims ?? [];
@@ -838,7 +846,7 @@ export class Hotel implements HotelApi {
   private charDelete(c: Client, m: Record<string, unknown>) {
     const i = this.db.characters.findIndex((x) => x.id === m.id);
     if (i < 0) return;
-    if (!this.canEditChar(c, this.db.characters[i])) return c.send({ t: 'error', msg: 'Só quem enviou pode apagar.' });
+    if (!this.canEditChar(c, this.db.characters[i])) return c.send({ t: 'error', msg: 'Só o mestre apaga personagens.' });
     const [removed] = this.db.characters.splice(i, 1);
     this.save();
     this.broadcastCharacters();

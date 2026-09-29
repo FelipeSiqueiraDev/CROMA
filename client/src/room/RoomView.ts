@@ -150,6 +150,11 @@ export class RoomView {
 
   /** tamanho fixo (render fora da tela) */
   private fixed: { w: number; h: number } | null = null;
+  /**
+   * Só assistir (tela da mesa): sem clique, arrasto ou zoom, sem ícones de
+   * pista, e o quarto sempre enquadrado.
+   */
+  watchOnly = false;
 
   constructor(canvas: HTMLCanvasElement, events: RoomEvents, live = true) {
     this.canvas = canvas;
@@ -419,6 +424,8 @@ export class RoomView {
       this.vw = w;
       this.vh = h;
       this.dpr = dpr;
+      // mudou o tamanho e ninguém mexeu na câmera: enquadra de novo
+      if (this.autoFit || this.watchOnly) this.needFit = true;
       this.canvas.width = Math.round(w * dpr);
       this.canvas.height = Math.round(h * dpr);
     }
@@ -460,6 +467,7 @@ export class RoomView {
     const c = this.canvas;
     c.addEventListener('contextmenu', (e) => e.preventDefault());
     c.addEventListener('pointerdown', (e) => {
+      if (this.watchOnly) return;
       this.mouse = { x: e.offsetX, y: e.offsetY, inside: true };
       this.updateHover();
       if (e.button === 2) {
@@ -471,6 +479,7 @@ export class RoomView {
       this.drag = { sx: e.offsetX, sy: e.offsetY, cx: this.cam.x, cy: this.cam.y, moved: false };
     });
     c.addEventListener('pointermove', (e) => {
+      if (this.watchOnly) return;
       this.mouse = { x: e.offsetX, y: e.offsetY, inside: true };
       const d = this.drag;
       if (d) {
@@ -505,6 +514,7 @@ export class RoomView {
       'wheel',
       (e) => {
         e.preventDefault();
+        if (this.watchOnly) return;
         this.zoomStep(e.deltaY < 0 ? 1 : -1, e.offsetX, e.offsetY);
       },
       { passive: false },
@@ -1026,7 +1036,8 @@ export class RoomView {
     // anel de destaque do objeto recém-selecionado
     this.drawPulses(ctx, now);
 
-    // ícones de pista
+    // ícones de pista (a tela da mesa não mostra)
+    if (this.watchOnly) hintTargets.length = 0;
     for (const h of hintTargets) {
       h.sx = Math.round(h.wx * z + this.cam.x);
       h.sy = Math.round(h.wy * z + this.cam.y + Math.sin(t / 450 + h.id) * 2);

@@ -2,7 +2,7 @@
 
 ## O que é
 
-Tabuleiro digital isométrico para sessões de **Ordem Paranormal RPG**. O mestre controla a sessão e os jogadores acompanham na mesma sessão; a tela principal (MAPA) segue a referência `docs/ref-mapa.webp` (1536×1024). O plano do MVP está em `docs/guia-mvp.html`; o contrato entre interface e servidor, em `docs/CONTRATO.md`.
+Tabuleiro digital isométrico para sessões de **Ordem Paranormal RPG**. São duas telas: a do **mestre** (a interface completa, só ele vê; a tela MAPA segue a referência `docs/ref-mapa.webp`, 1536×1024) e a da **mesa** (só o tabuleiro, num tablet que os jogadores olham, sem toque). O plano do MVP está em `docs/guia-mvp.html`; o contrato entre interface e servidor, em `docs/CONTRATO.md`.
 
 ## Rodar
 
@@ -15,8 +15,10 @@ npm run build
 npm start          # produção: tudo servido pela porta 3001 (ou PORT / CROMA_PORT)
 ```
 
-- Ao subir, o servidor imprime o **link do mestre** (`?mestre=CHAVE`) e o dos jogadores. Sem a chave, a pessoa entra como jogador e só acompanha. A chave fica em `server/data/db.json` (`gmKey`).
-- Em desenvolvimento, `?auto=Nome` entra direto: mestre em `http://localhost:5173/?auto=Mestre&mestre=CHAVE` (depois do primeiro uso a chave fica guardada no navegador) e jogador em `http://localhost:5173/?auto=Mesa&jogador`.
+- **Mestre:** o computador que roda o servidor. Abre direto a interface em `http://localhost:5173`, sem login.
+- **Mesa (tablet):** `http://IP-deste-computador:5173/?mesa`. O servidor imprime o link ao subir. Na primeira vez, o Windows pode pedir para liberar o Node no firewall.
+- **Mestre em outro aparelho:** link com `?mestre=CHAVE`, também impresso pelo servidor. A chave fica em `server/data/db.json` (`gmKey`).
+- Em desenvolvimento, `?auto=Nome` escolhe o nome do mestre.
 - O Vite faz proxy de `/ws`, `/api` e `/uploads` para o servidor.
 - Os dados ficam em `server/data/` (fora do git). Apagar a pasta recria a campanha de exemplo.
 - A pasta do projeto fica no OneDrive: o Vite usa polling para perceber mudanças.
@@ -54,10 +56,9 @@ npm start          # produção: tudo servido pela porta 3001 (ou PORT / CROMA_P
 
 - Tela MAPA completa com dados de exemplo: campanha "Sombras de Arvendal" e 7 cenas da Mansão Alvarez.
 - O tabuleiro ainda é desenhado por código. O plano é trocar por cenas em imagem (ver `docs/guia-mvp.html`).
-- Mestre e jogadores na mesma sessão: o jogador segue a cena que o mestre abrir e acompanha em tempo real as peças, as entregas, os objetivos e o registro. O servidor recusa qualquer ação de jogador. Abrir duas janelas com o mesmo nome derruba a mais antiga (jogador não derruba o mestre).
-- O contrato (`docs/CONTRATO.md`) e o `SessionStore` existem; a tela MAPA atual ainda usa as mensagens antigas.
-- Para o jogador, a tela ainda mostra o menu da engrenagem e textos de mestre ("clique no chão para ele andar"): o servidor recusa as ações, mas a interface deveria esconder.
-- Personagens da demonstração com os nomes reais: D.Tepes, Catarina Albuquerque, Alosi Walker e Cora Falcão. As folhas de sprite deles (4 direções) ainda não estão no repositório; o motor já aceita folhas de 8 direções (`docs/ARTE.md`).
-- O mestre gira o personagem parado com Q e E (ou os botões no painel dele).
+- Duas telas. A da mesa (`client/src/ui/table.ts`) só mostra o tabuleiro: sem painéis, sem ícones de pista e sem toque. Ela segue a cena que o mestre abrir e mostra o nome da cena ao trocar. O servidor recusa qualquer ação que venha da mesa.
+- O contrato (`docs/CONTRATO.md`) e o `SessionStore` existem; a tela MAPA ainda usa parte das mensagens antigas.
+- Personagens da demonstração com os nomes reais: D.Tepes, Catarina Albuquerque, Alosi Walker e Cora Falcão. As folhas de sprite (4 direções) estão em `client/public/arte/personagens/`; o motor já aceita folhas de 8 direções (`docs/ARTE.md`).
+- O mestre gira o personagem parado com os botões ↺ ↻ das cartas do grupo, os do painel dele, ou as teclas Q e E.
 - Os bilhetes de confirmação (`client/src/ui/note.ts`) e o carimbo SUCESSO/FALHA ainda não têm estilo.
 - Testes automáticos só das regras da sessão (`server/test/session.test.ts`).

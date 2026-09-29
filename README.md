@@ -28,9 +28,12 @@ Tudo passa a ser servido pelo servidor Node em http://localhost:3001 (ou na port
 
 Os dados ficam em `server/data/` (`db.json` e os PNGs enviados em `uploads/`). Apague a pasta para voltar ao quarto de exemplo.
 
-## Mestre e jogadores
+## Mestre e mesa
 
-Ao subir, o servidor mostra no terminal o **link do mestre** (`?mestre=CHAVE`) e o dos jogadores. Quem abre o link do mestre controla a sessão; os outros entram como jogadores e acompanham tudo em tempo real, sempre na cena que o mestre deixou aberta. O contrato entre a interface e o servidor está em [`docs/CONTRATO.md`](docs/CONTRATO.md).
+- **Mestre:** a interface completa, só para o mestre. Abra `http://localhost:5173` no computador que roda o servidor.
+- **Mesa:** só o tabuleiro, num tablet que os jogadores olham. Abra no tablet o link da mesa que o servidor mostra no terminal (`http://IP-deste-computador:5173/?mesa`). Ela acompanha em tempo real a cena que o mestre abrir e os personagens andando. Toque uma vez para a tela cheia.
+
+O contrato entre a interface e o servidor está em [`docs/CONTRATO.md`](docs/CONTRATO.md).
 
 ## Tela MAPA (tabuleiro)
 
@@ -47,7 +50,7 @@ Uma pessoa controla o tabuleiro. Os personagens são peças: clique numa peça (
 
 A campanha de exemplo **Sombras de Arvendal** (Mansão Alvarez: Hall de Entrada, Sala de Estar, Biblioteca, Escritório, Cozinha, Quarto Principal e Jardim) abre no Escritório com o grupo investigando a Escrivaninha, igual à tela de referência.
 
-Em desenvolvimento, `?auto=Nome` entra direto com esse nome (junte `&mestre=CHAVE` para o mestre ou `&jogador` para o jogador).
+Em desenvolvimento, `?auto=Nome` escolhe o nome do mestre.
 
 ## Como jogar (referência antiga)
 
