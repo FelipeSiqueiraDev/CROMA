@@ -1,4 +1,4 @@
-import { getLayout, RoomMap, type AvatarLook, type Door, type FloorItem, type Hint, type LogIcon, type Loot, type WallItem } from '@croma/shared';
+import { getLayout, RoomMap, type AvatarLook, type Door, type FloorItem, type Hint, type Loot, type WallItem } from '@croma/shared';
 import type { Database, RoomData, TokenData } from './db';
 
 export const SYSTEM_OWNER = 'CROMA';
@@ -56,7 +56,24 @@ function buildRoom(
   };
 }
 
-const SEED_VERSION = 8;
+const SEED_VERSION = 9;
+
+/** Os quatro investigadores da mesa. */
+const TEPES = 'D.Tepes';
+const CATARINA = 'Catarina Albuquerque';
+const ALOSI = 'Alosi Walker';
+const FALCAO = 'Cora Falcão';
+/** Nomes da primeira demonstração → nomes reais (mesma aparência e cor). */
+const OLD_NAMES: Record<string, string> = { Arthur: TEPES, Cora: CATARINA, Miguel: ALOSI, Teps: FALCAO };
+
+/** Últimas ações de exemplo (as mesmas da tela de referência). */
+function demoLog(now: number) {
+  return [
+    { at: now - 19 * 60000, icon: 'give' as const, text: `${TEPES} entregou a Chave da Escrivaninha.` },
+    { at: now - 3 * 60000, icon: 'user' as const, text: `${CATARINA} investigou a Escrivaninha (DT 15) — Sucesso (18).` },
+    { at: now, icon: 'user' as const, text: `${ALOSI} abriu a gaveta — encontrou Faca de Cozinha.` },
+  ];
+}
 
 /** Liga as Passagens de `a` (na ordem) aos quartos de `targets`. */
 function linkPortals(room: RoomData, targets: number[]) {
@@ -193,10 +210,10 @@ function seedTokens(db: Database) {
     look: { skin: '#e8b98f', hair: '#1a1412', hairStyle: 0, top: '#2b2a30', outfit: 0, extra: 0, ...base, ...look } as AvatarLook,
   });
   sala.tokens = [
-    mk('Arthur', 10, 6, 4, { hair: '#3b2618', hairStyle: 1, extra: 2, top: '#5c4632', outfit: 1 }),
-    mk('Cora', 9, 7, 6, { skin: '#f3d2b3', hair: '#a8321e', hairStyle: 3, top: '#2b2a30', outfit: 1 }),
-    mk('Miguel', 11, 5, 4, { hair: '#1a1412', extra: 1, top: '#d8d0c0', outfit: 2 }),
-    mk('Teps', 8, 7, 2, { hair: '#c9c4bc', hairStyle: 2, top: '#1c1b1f' }),
+    mk(TEPES, 10, 6, 4, { hair: '#3b2618', hairStyle: 1, extra: 2, top: '#5c4632', outfit: 1 }),
+    mk(CATARINA, 9, 7, 6, { skin: '#f3d2b3', hair: '#a8321e', hairStyle: 3, top: '#2b2a30', outfit: 1 }),
+    mk(ALOSI, 11, 5, 4, { hair: '#1a1412', extra: 1, top: '#d8d0c0', outfit: 2 }),
+    mk(FALCAO, 8, 7, 2, { hair: '#c9c4bc', hairStyle: 2, top: '#1c1b1f' }),
   ];
 }
 
@@ -435,8 +452,8 @@ function seedMansao(db: Database) {
     'desk_wood',
     [
       ['Faca de Cozinha', 2, 'weapon'],
-      ['Diário Rasgado', 1, 'document', 'Cora'],
-      ['Chave da Escrivaninha', 0.1, 'key', 'Arthur'],
+      ['Diário Rasgado', 1, 'document', CATARINA],
+      ['Chave da Escrivaninha', 0.1, 'key', TEPES],
     ],
     [
       ['Investigar', 15],
@@ -449,18 +466,18 @@ function seedMansao(db: Database) {
   loot(escr, 'shelf_metal', [['Fita Cassete', 0.2, 'tape']]);
   loot(escr, 'crate_wood', [['Caixa de Charutos', 0.5, 'box']], [['Abrir o caixote', 8]]);
   loot(hall, 'chest_military', [
-    ['Revólver .38', 2, 'weapon', 'Arthur'],
-    ['Lanterna', 1, 'misc', 'Arthur'],
-    ['Mochila de Campo', 2.9, 'box', 'Arthur'],
-    ['Pé de Cabra', 3, 'weapon', 'Cora'],
-    ['Kit de Primeiros Socorros', 2, 'box', 'Cora'],
-    ['Rádio Portátil', 3, 'misc', 'Cora'],
-    ['Câmera Fotográfica', 2, 'misc', 'Miguel'],
-    ['Caderno de Anotações', 1, 'document', 'Miguel'],
-    ['Lanterna', 1, 'misc', 'Miguel'],
-    ['Espingarda', 5, 'weapon', 'Teps'],
-    ['Munição', 2, 'box', 'Teps'],
-    ['Corda', 3, 'misc', 'Teps'],
+    ['Revólver .38', 2, 'weapon', TEPES],
+    ['Lanterna', 1, 'misc', TEPES],
+    ['Mochila de Campo', 2.9, 'box', TEPES],
+    ['Pé de Cabra', 3, 'weapon', CATARINA],
+    ['Kit de Primeiros Socorros', 2, 'box', CATARINA],
+    ['Rádio Portátil', 3, 'misc', CATARINA],
+    ['Câmera Fotográfica', 2, 'misc', ALOSI],
+    ['Caderno de Anotações', 1, 'document', ALOSI],
+    ['Lanterna', 1, 'misc', ALOSI],
+    ['Espingarda', 5, 'weapon', FALCAO],
+    ['Munição', 2, 'box', FALCAO],
+    ['Corda', 3, 'misc', FALCAO],
   ]);
 
   // o grupo no Escritório, como na referência
@@ -476,17 +493,16 @@ function seedMansao(db: Database) {
     look: { skin: '#e8b98f', hair: '#1a1412', hairStyle: 0, top: '#2b2a30', outfit: 0, extra: 0, ...base, ...look } as AvatarLook,
   });
   escr.tokens = [
-    tk('Arthur', 4, 3, 4, '#e3a94c', 10, { hair: '#3b2618', hairStyle: 1, extra: 2, top: '#5c4632', outfit: 1 }),
-    tk('Cora', 4, 6, 6, '#d83a2e', 10, { skin: '#f3d2b3', hair: '#a8321e', hairStyle: 3, top: '#2b2a30', outfit: 1 }),
-    tk('Miguel', 7, 6, 6, '#3f6fd8', 12, { hair: '#1a1412', extra: 1, top: '#d8d0c0', outfit: 2 }),
-    tk('Teps', 2, 4, 2, '#f2efe6', 10, { hair: '#c9c4bc', hairStyle: 2, top: '#1c1b1f' }),
+    tk(TEPES, 4, 3, 4, '#e3a94c', 10, { hair: '#3b2618', hairStyle: 1, extra: 2, top: '#5c4632', outfit: 1 }),
+    tk(CATARINA, 4, 6, 6, '#d83a2e', 10, { skin: '#f3d2b3', hair: '#a8321e', hairStyle: 3, top: '#2b2a30', outfit: 1 }),
+    tk(ALOSI, 7, 6, 6, '#3f6fd8', 12, { hair: '#1a1412', extra: 1, top: '#d8d0c0', outfit: 2 }),
+    tk(FALCAO, 2, 4, 2, '#f2efe6', 10, { hair: '#c9c4bc', hairStyle: 2, top: '#1c1b1f' }),
   ];
 
   db.rooms.push(hall, estar, biblio, escr, cozinha, quarto, jardim);
 
   // campanha: título, objetivos, planta do andar e últimas ações
   const now = Date.now();
-  const entry = (minAgo: number, icon: LogIcon, text: string) => ({ at: now - minAgo * 60000, icon, text });
   db.campaigns ??= {};
   db.campaigns[String(hall.id)] = {
     title: 'Sombras de Arvendal',
@@ -506,11 +522,7 @@ function seedMansao(db: Database) {
       [quarto.id]: { x: 19, y: 15 },
       [jardim.id]: { x: 8, y: 22 },
     },
-    log: [
-      entry(19, 'give', 'Arthur entregou a Chave da Escrivaninha.'),
-      entry(3, 'user', 'Cora investigou a Escrivaninha (DT 15) — Sucesso (18).'),
-      entry(0, 'user', 'Miguel abriu a gaveta — encontrou Faca de Cozinha.'),
-    ],
+    log: demoLog(now),
   };
   db.home = escr.id;
 }
@@ -528,7 +540,7 @@ export function upgradeDb(db: Database): boolean {
   if (v < 4) seedTokens(db);
   if (v < 5) {
     // cores e carga das peças de exemplo (como no layout de referência)
-    const meta: Record<string, [string, number]> = { Arthur: ['#e3a94c', 10], Cora: ['#d83a2e', 10], Miguel: ['#3f6fd8', 12], Teps: ['#f2efe6', 10] };
+    const meta: Record<string, [string, number]> = { [TEPES]: ['#e3a94c', 10], [CATARINA]: ['#d83a2e', 10], [ALOSI]: ['#3f6fd8', 12], [FALCAO]: ['#f2efe6', 10] };
     for (const r of db.rooms)
       for (const t of r.tokens ?? []) {
         const m = meta[t.name];
@@ -551,13 +563,20 @@ export function upgradeDb(db: Database): boolean {
     const camp = ids.length ? db.campaigns?.[String(Math.min(...ids))] : undefined;
     if (camp) {
       const now = Date.now();
-      camp.log = [
-        { at: now - 19 * 60000, icon: 'give', text: 'Arthur entregou a Chave da Escrivaninha.' },
-        { at: now - 3 * 60000, icon: 'user', text: 'Cora investigou a Escrivaninha (DT 15) — Sucesso (18).' },
-        { at: now, icon: 'user', text: 'Miguel abriu a gaveta — encontrou Faca de Cozinha.' },
-      ];
+      camp.log = demoLog(now);
       camp.objectives.forEach((o, i) => (o.done = i === 0));
     }
+  }
+  if (v < 9) {
+    // nomes reais dos investigadores: peças, itens com eles e o registro de exemplo
+    for (const r of db.rooms) {
+      for (const t of r.tokens ?? []) if (OLD_NAMES[t.name]) t.name = OLD_NAMES[t.name];
+      for (const it of [...r.items, ...r.wallItems])
+        for (const l of it.loot ?? []) if (l.holder && OLD_NAMES[l.holder]) l.holder = OLD_NAMES[l.holder];
+    }
+    const ids = db.rooms.filter((r) => r.name.startsWith('Mansão Alvarez · ')).map((r) => r.id);
+    const camp = ids.length ? db.campaigns?.[String(Math.min(...ids))] : undefined;
+    if (camp) camp.log = demoLog(Date.now());
   }
   db.seedVersion = SEED_VERSION;
   return true;

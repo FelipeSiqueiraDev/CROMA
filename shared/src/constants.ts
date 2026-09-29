@@ -6,6 +6,8 @@ export const MAX_STEP_UP = 1.5;
 export const MAX_STEP_DOWN = 3;
 export const MAX_CHAT = 140;
 export const MAX_NAME = 16;
+/** Nome de personagem (peça): cabe nome e sobrenome. */
+export const MAX_TOKEN_NAME = 24;
 /** Altura máxima de empilhamento de mobis. */
 export const STACK_LIMIT = 12;
 /** Altura das paredes (em unidades de altura) acima do piso mais alto. */

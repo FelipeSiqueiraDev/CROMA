@@ -46,7 +46,12 @@ export interface ClientUser {
   waveUntil: number;
   phase: number;
   color: string;
+  /** virou parado neste instante (efeito de giro) */
+  turnAt?: number;
 }
+
+/** Duração do efeito de giro da peça parada. */
+const TURN_MS = 240;
 
 export type Selection = { kind: 'floor' | 'wall' | 'user'; id: number } | null;
 export type FloorPlacement = { kind: 'floor'; defId: string; rot: number; invId?: number; moveId?: number };
@@ -300,6 +305,8 @@ export class RoomView {
       u.anim = { fx: f.x, fy: f.y, fz: f.z, tx: s.mv.x, ty: s.mv.y, tz: s.mv.z, start: now };
     } else if (u.anim && !(u.anim.tx === s.x && u.anim.ty === s.y)) u.anim = null;
     else if (u.anim) u.anim.tz = s.z;
+    // virou sem sair do lugar: efeito de giro
+    if (!s.mv && !u.anim && s.dir !== u.dir) u.turnAt = now;
     u.x = s.x;
     u.y = s.y;
     u.z = s.z;
@@ -889,6 +896,16 @@ export class RoomView {
             }
           }
           const dance = u.dance ? -Math.abs(Math.sin((now * Math.PI) / 320 + u.phase)) * 4 : 0;
+          // giro: afina de lado e volta, com um pulinho, a partir dos pés
+          const tt = u.turnAt ? (now - u.turnAt) / TURN_MS : 1;
+          const turning = tt < 1;
+          if (turning) {
+            const k = 0.35 + 0.65 * (1 - Math.pow(1 - tt, 3));
+            ctx.save();
+            ctx.translate(sx, fy - Math.sin(tt * Math.PI) * 4);
+            ctx.scale(k, 1 + (1 - k) * 0.08);
+            ctx.translate(-sx, -fy);
+          }
           if (sp) drawSprite(ctx, sp.def, sp.lc, u.dir, sx, fy + dance, now, u.phase, pose === 'sit' ? 'sit' : pose);
           else
             drawPixelAvatar(ctx, u.look, sx, fy, u.dir, u.headDir, {
@@ -898,6 +915,7 @@ export class RoomView {
               dance: u.dance,
               blink: (now + u.phase * 997) % 4300 < 140,
             });
+          if (turning) ctx.restore();
           if (wave && sp) this.drawEmote(sx, fy - H - 14, now);
           if (clip) ctx.restore();
         },

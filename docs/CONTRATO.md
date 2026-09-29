@@ -1,6 +1,6 @@
 # Contrato da sessão compartilhada
 
-É o combinado entre a interface (Codex) e o funcionamento (Claude). A interface **lê** a sessão e **pede** ações; o servidor confere a permissão, aplica e manda a sessão atualizada para todo mundo. A interface nunca decide sozinha se algo é permitido.
+É o combinado entre a interface e o servidor. A interface **lê** a sessão e **pede** ações; o servidor confere a permissão, aplica e manda a sessão atualizada para todo mundo. A interface nunca decide sozinha se algo é permitido.
 
 - Tipos: `shared/src/session.ts` (importe de `@croma/shared`).
 - No cliente: `app.session`, um `SessionStore` (`client/src/session/store.ts`).
@@ -24,6 +24,7 @@ store.onDenied((action, reason) => showError(reason));
 store.changeScene(sceneId);
 store.moveToken(tokenId, { x: 0.62, y: 0.72 });                 // anda até lá
 store.moveToken(tokenId, { tile: { x: 8, y: 4 } }, 'place');   // aparece direto
+store.faceToken(tokenId, 4);                                   // vira para ↙ (ver turnFacing)
 store.giveItem(itemId, characterId);                           // entrega
 store.giveItem(itemId, null);                                  // devolve ao objeto
 store.addObjective('Achar a saída');
@@ -71,7 +72,8 @@ Hoje a tela MAPA ainda usa as mensagens antigas (`roomEnter`, `status`, `campaig
   - `place`: a peça aparece direto lá.
 
   Enquanto isso, a peça arrastada volta para onde estava e segue o que o servidor mandar.
-- **Direção** (`dir`, de 0 a 7, na tela): 0 cima-direita, 1 direita, 2 baixo-direita, 3 baixo, 4 baixo-esquerda, 5 esquerda, 6 cima-esquerda, 7 cima. `SPRITE_POSE[dir]` dá a pose na folha de 8 direções (`docs/ref-sprite-8dir.webp`).
+- **Girar:** `turnFacing(dir, horário, permitidas)` dá a próxima direção. Use `distinctFacings(...)` da folha do personagem para girar só entre as poses que ela tem (4 ou 8).
+- **Direção** (`dir`, de 0 a 7, na tela): 0 cima-direita, 1 direita, 2 baixo-direita, 3 baixo, 4 baixo-esquerda, 5 esquerda, 6 cima-esquerda, 7 cima. `sheetDirFor(dir, temLinha)` dá a linha da folha de sprite: numa folha de 8 direções, a própria; numa de 4, a diagonal mais próxima (ver `DIR_TO_SHEET` em `shared/src/protocol.ts`).
 
 ## Ações e permissões
 
@@ -79,6 +81,7 @@ Hoje a tela MAPA ainda usa as mensagens antigas (`roomEnter`, `status`, `campaig
 |---|---|---|
 | `scene.change` | Troca a cena atual da sessão e leva os jogadores junto | cena não existe |
 | `token.move` | Leva a peça à casa livre mais perto do ponto (`walk` ou `place`) | peça não existe; ponto inválido; sem casa livre ou sem caminho |
+| `token.face` | Vira a peça parada para `dir` (0 a 7) e avisa todos na hora | peça não existe; direção inválida; peça andando |
 | `item.give` | Entrega o item ao personagem (`to` = id) ou devolve ao objeto (`to` = `null`); registra em "Últimas ações" | item ou personagem não existe |
 | `objective.add` | Cria o objetivo | texto vazio; mais de 20 |
 | `objective.set` | Marca feito ou não feito; ao concluir, registra | objetivo não existe |

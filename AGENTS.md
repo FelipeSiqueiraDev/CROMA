@@ -34,28 +34,30 @@ npm start          # produção: tudo servido pela porta 3001 (ou PORT / CROMA_P
 | `client/src/net.ts`, `client/src/ui/app.ts` | Conexão com o servidor e estado do cliente |
 | `server/test/` | Testes das regras (`npm test`) |
 | `client/src/main.ts` | Liga rede, estado e interface (trata as mensagens do servidor) |
-| `docs/` | Referências visuais e o guia do MVP |
+| `docs/` | Referências visuais, o guia do MVP, o contrato da sessão (`CONTRATO.md`) e o guia de arte (`ARTE.md`) |
+| `client/public/arte/` | Arte entregue pelo Codex (servida em `/arte/...`) |
 
 ## Divisão de trabalho
 
-- **Codex — visual e interação da tela:** `client/src/ui/**`, `client/src/room/**`, `client/src/render/**`, `client/src/style.css`, `client/index.html` e a arte.
-- **Claude — funcionamento:** `shared/**`, `server/**`, `client/src/session/**`, `client/src/net.ts` e `client/src/ui/app.ts` (sessão, permissões, persistência, sincronização, regras de inventário e registro).
-- `client/src/main.ts` e `shared/src/protocol.ts` são a fronteira entre os dois: mudança ali é descrita no pull request antes de o outro lado depender dela.
-- Ninguém reescreve do zero o que o outro fez; a mudança é proposta no pull request.
+- **Codex — artista:** só arte. Personagens (folhas de sprite e retratos), móveis, cenários, ícones de itens, peças da interface (papéis, abas, botões, fitas) e efeitos. Entrega **arquivos de imagem** em `client/public/arte/`, no formato de `docs/ARTE.md`, e **não mexe no código**.
+- **Claude — construtor:** todo o código. Servidor, tipos, interface, animações, tabuleiro e o encaixe da arte no jogo.
+- Pedido de arte novo: entra em `docs/ARTE.md` (formato, tamanho, nome e pasta) antes de ser feito.
 
 ## Como trabalhar
 
-- Cada um em sua branch (`claude/...` ou `codex/...`), com pull request para `main`. Nada de push direto na `main`.
+- Cada um em sua branch (`claude/...` para código, `codex/arte-...` para arte), com pull request para `main`. Nada de push direto na `main`.
 - Antes de começar, atualizar a branch com a `main`.
 - Antes de abrir o pull request: `npm run typecheck`, `npm test` e `npm run build` sem erros.
 - Textos da interface, comentários e mensagens de commit em português.
 
 ## Estado em 29/09/2026
 
-- Tela MAPA completa com dados de exemplo: campanha "Sombras de Arvendal", 7 cenas da Mansão Alvarez, Arthur, Cora, Miguel e Teps.
+- Tela MAPA completa com dados de exemplo: campanha "Sombras de Arvendal" e 7 cenas da Mansão Alvarez.
 - O tabuleiro ainda é desenhado por código. O plano é trocar por cenas em imagem (ver `docs/guia-mvp.html`).
 - Mestre e jogadores na mesma sessão: o jogador segue a cena que o mestre abrir e acompanha em tempo real as peças, as entregas, os objetivos e o registro. O servidor recusa qualquer ação de jogador. Abrir duas janelas com o mesmo nome derruba a mais antiga (jogador não derruba o mestre).
 - O contrato (`docs/CONTRATO.md`) e o `SessionStore` existem; a tela MAPA atual ainda usa as mensagens antigas.
 - Para o jogador, a tela ainda mostra o menu da engrenagem e textos de mestre ("clique no chão para ele andar"): o servidor recusa as ações, mas a interface deveria esconder.
+- Personagens da demonstração com os nomes reais: D.Tepes, Catarina Albuquerque, Alosi Walker e Cora Falcão. As folhas de sprite deles (4 direções) ainda não estão no repositório; o motor já aceita folhas de 8 direções (`docs/ARTE.md`).
+- O mestre gira o personagem parado com Q e E (ou os botões no painel dele).
 - Os bilhetes de confirmação (`client/src/ui/note.ts`) e o carimbo SUCESSO/FALHA ainda não têm estilo.
 - Testes automáticos só das regras da sessão (`server/test/session.test.ts`).

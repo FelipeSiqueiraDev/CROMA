@@ -115,6 +115,11 @@ export class SessionStore {
     this.act({ type: 'token.move', tokenId, to, mode });
   }
 
+  /** Vira a peça parada para a direção 0..7 (ver Token.dir e turnFacing). */
+  faceToken(tokenId: number, dir: number) {
+    this.act({ type: 'token.face', tokenId, dir });
+  }
+
   /** to = id do personagem, ou null para devolver o item ao objeto. */
   giveItem(itemId: number, to: number | null) {
     this.act({ type: 'item.give', itemId, to });

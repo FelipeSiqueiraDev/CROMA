@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { beforeEach, describe, test } from 'node:test';
-import { parseHeightmap, pointToTile, tileCenter, type ClientMsg, type ServerMsg, type Session, type SessionAction } from '@croma/shared';
+import { DIR_KEYS, DIR_TO_SHEET, distinctFacings, parseHeightmap, pointToTile, sheetDirFor, tileCenter, turnFacing, type ClientMsg, type DirKey, type ServerMsg, type Session, type SessionAction } from '@croma/shared';
 import { Hotel } from '../src/hotel';
 import { seedDb, upgradeDb } from '../src/seed';
 
@@ -88,8 +88,8 @@ describe('papéis', () => {
   test('jogador não consegue agir', () => {
     const s = player.session();
     const knife = s.items.find((i) => i.name === 'Faca de Cozinha')!;
-    const cora = s.characters.find((c) => c.name === 'Cora')!;
-    const arthur = s.characters.find((c) => c.name === 'Arthur')!;
+    const cora = s.characters.find((c) => c.name === 'Catarina Albuquerque')!;
+    const arthur = s.characters.find((c) => c.name === 'D.Tepes')!;
     player.act({ type: 'scene.change', sceneId: scene('Cozinha') });
     player.act({ type: 'token.move', tokenId: arthur.id, to: { x: 0.5, y: 0.5 } });
     player.act({ type: 'item.give', itemId: knife.id, to: cora.id });
@@ -145,7 +145,7 @@ describe('peças', () => {
   test('mover por ponto 0..1: anda até a casa livre mais perto, desviando dos móveis', () => {
     const s = gm.session();
     const desk = s.objects.find((o) => o.name === 'Escrivaninha')!;
-    const arthur = s.characters.find((c) => c.name === 'Arthur')!;
+    const arthur = s.characters.find((c) => c.name === 'D.Tepes')!;
     player.inbox = [];
     gm.act({ type: 'token.move', tokenId: arthur.id, to: desk.pos });
     assert.equal(gm.last('denied'), undefined);
@@ -166,7 +166,7 @@ describe('peças', () => {
 
   test('place: coloca direto na casa pedida', () => {
     const s = gm.session();
-    const miguel = s.characters.find((c) => c.name === 'Miguel')!;
+    const miguel = s.characters.find((c) => c.name === 'Alosi Walker')!;
     player.inbox = [];
     gm.act({ type: 'token.move', tokenId: miguel.id, to: { tile: { x: 8, y: 7 } }, mode: 'place' });
     const moved = player.last('tokens')?.tokens.find((x) => x.id === miguel.id);
@@ -175,7 +175,7 @@ describe('peças', () => {
 
   test('ponto fora do chão é recusado com o motivo', () => {
     const s = gm.session();
-    const teps = s.characters.find((c) => c.name === 'Teps')!;
+    const teps = s.characters.find((c) => c.name === 'Cora Falcão')!;
     gm.act({ type: 'token.move', tokenId: teps.id, to: { x: Number.NaN, y: 0.5 } });
     assert.equal(gm.last('denied')?.action, 'token.move');
   });
@@ -185,7 +185,7 @@ describe('itens', () => {
   test('entregar atualiza a carga e o registro para os dois; devolver desfaz', () => {
     const s = gm.session();
     const knife = s.items.find((i) => i.name === 'Faca de Cozinha')!;
-    const cora = s.characters.find((c) => c.name === 'Cora')!;
+    const cora = s.characters.find((c) => c.name === 'Catarina Albuquerque')!;
     assert.equal(knife.holderId, null);
     gm.act({ type: 'item.give', itemId: knife.id, to: cora.id });
     hotel.pushNow();
@@ -193,7 +193,7 @@ describe('itens', () => {
       const now = who.session();
       assert.equal(now.items.find((i) => i.id === knife.id)?.holderId, cora.id);
       assert.equal(now.characters.find((c) => c.id === cora.id)?.load, cora.load + 2);
-      assert.equal(now.events.at(-1)?.text, 'Mestre entregou Faca de Cozinha para Cora.');
+      assert.equal(now.events.at(-1)?.text, 'Mestre entregou Faca de Cozinha para Catarina Albuquerque.');
     }
     gm.act({ type: 'item.give', itemId: knife.id, to: null });
     hotel.pushNow();
@@ -263,5 +263,104 @@ describe('casas e quadro 0..1', () => {
       const c = tileCenter(sc.grid, t.tile, h);
       assert.ok(Math.abs(c.x - t.pos.x) < 1e-6 && Math.abs(c.y - t.pos.y) < 0.2, `${t.id}`);
     }
+  });
+});
+
+describe('personagens', () => {
+  test('a demonstração usa os nomes reais', () => {
+    const names = gm.session().characters.map((c) => c.name).sort();
+    assert.deepEqual(names, ['Alosi Walker', 'Catarina Albuquerque', 'Cora Falcão', 'D.Tepes']);
+    const s = gm.session();
+    const catarina = s.characters.find((c) => c.name === 'Catarina Albuquerque')!;
+    assert.equal(s.items.find((i) => i.name === 'Diário Rasgado')?.holderId, catarina.id);
+    assert.equal(catarina.load, 9);
+  });
+
+  test('renomear leva junto os itens que estão com o personagem', () => {
+    const s = gm.session();
+    const tepes = s.characters.find((c) => c.name === 'D.Tepes')!;
+    const before = s.items.filter((i) => i.holderId === tepes.id).map((i) => i.id).sort();
+    assert.ok(before.length > 0);
+    gm.send({ t: 'tokenEdit', tokenId: -tepes.id, name: 'Dimitri Tepes' });
+    hotel.pushNow();
+    const now = player.session();
+    const renamed = now.characters.find((c) => c.id === tepes.id)!;
+    assert.equal(renamed.name, 'Dimitri Tepes');
+    assert.equal(renamed.load, tepes.load);
+    assert.deepEqual(now.items.filter((i) => i.holderId === tepes.id).map((i) => i.id).sort(), before);
+    assert.ok(now.items.filter((i) => i.holderId === tepes.id).every((i) => i.holderName === 'Dimitri Tepes'));
+  });
+
+  test('nome repetido na sessão é recusado', () => {
+    const s = gm.session();
+    const alosi = s.characters.find((c) => c.name === 'Alosi Walker')!;
+    gm.send({ t: 'tokenEdit', tokenId: -alosi.id, name: 'cora falcão' });
+    assert.match(gm.last('error')?.msg ?? '', /Já existe/);
+    gm.send({ t: 'tokenAdd', name: 'D.Tepes', look });
+    assert.match(gm.last('error')?.msg ?? '', /Já existe/);
+    hotel.pushNow();
+    assert.equal(gm.session().characters.find((c) => c.id === alosi.id)?.name, 'Alosi Walker');
+    assert.equal(gm.session().characters.length, 4);
+  });
+
+  test('nome com até 24 letras', () => {
+    gm.send({ t: 'tokenAdd', name: 'Beatriz Figueiredo Lima', look });
+    hotel.pushNow();
+    assert.ok(gm.session().characters.some((c) => c.name === 'Beatriz Figueiredo Lima'));
+  });
+});
+
+describe('direções da folha de sprite', () => {
+  const four: DirKey[] = ['se', 'sw', 'nw', 'ne'];
+  test('folha de 4: as retas usam a diagonal vizinha (como antes)', () => {
+    const got = [0, 1, 2, 3, 4, 5, 6, 7].map((d) => sheetDirFor(d, (k) => four.includes(k)));
+    assert.deepEqual(got, ['ne', 'se', 'se', 'sw', 'sw', 'sw', 'nw', 'ne']);
+  });
+  test('folha de 8: cada direção tem a sua linha', () => {
+    const got = [0, 1, 2, 3, 4, 5, 6, 7].map((d) => sheetDirFor(d, () => true));
+    assert.deepEqual(got, DIR_TO_SHEET);
+    assert.equal(new Set(got).size, 8);
+    assert.deepEqual([...DIR_KEYS].sort(), [...got].sort());
+  });
+  test('folha só com as retas também funciona', () => {
+    const straight: DirKey[] = ['s', 'e', 'n', 'w'];
+    const got = [0, 1, 2, 3, 4, 5, 6, 7].map((d) => sheetDirFor(d, (k) => straight.includes(k)));
+    assert.ok(got.every((k) => k && straight.includes(k)));
+  });
+});
+
+describe('girar a peça', () => {
+  test('folha de 4 direções: gira entre as 4 poses, nos dois sentidos', () => {
+    const four: DirKey[] = ['se', 'sw', 'nw', 'ne'];
+    const allowed = distinctFacings((k) => four.includes(k));
+    assert.deepEqual(allowed, [0, 2, 4, 6]);
+    assert.equal(turnFacing(2, true, allowed), 4);
+    assert.equal(turnFacing(6, true, allowed), 0);
+    assert.equal(turnFacing(0, false, allowed), 6);
+    // parada numa direção reta (andou na diagonal da grade): vai para a pose seguinte
+    assert.equal(turnFacing(1, true, allowed), 2);
+    assert.equal(turnFacing(1, false, allowed), 0);
+  });
+
+  test('folha de 8 (ou avatar pixel): passa pelas 8', () => {
+    const all = distinctFacings(() => true);
+    assert.deepEqual(all, [0, 1, 2, 3, 4, 5, 6, 7]);
+    assert.equal(turnFacing(7, true, []), 0);
+    assert.equal(turnFacing(0, false, []), 7);
+  });
+
+  test('mestre vira a peça e todo mundo vê na hora; jogador não', () => {
+    const s = gm.session();
+    const tepes = s.characters.find((c) => c.name === 'D.Tepes')!;
+    player.inbox = [];
+    gm.act({ type: 'token.face', tokenId: tepes.id, dir: 6 });
+    assert.equal(gm.last('denied'), undefined);
+    assert.equal(player.last('tokens')?.tokens.find((t) => t.id === tepes.id)?.dir, 6);
+    player.act({ type: 'token.face', tokenId: tepes.id, dir: 2 });
+    assert.equal(player.last('denied')?.action, 'token.face');
+    hotel.pushNow();
+    assert.equal(gm.session().tokens.find((t) => t.id === tepes.id)?.dir, 6);
+    gm.act({ type: 'token.face', tokenId: tepes.id, dir: 9 });
+    assert.match(gm.last('denied')?.reason ?? '', /Direção inválida/);
   });
 });

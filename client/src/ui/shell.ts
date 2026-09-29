@@ -1,11 +1,14 @@
 import {
   anyFurniName,
+  distinctFacings,
   getFurni,
   getWallFurni,
   LOOT_KINDS,
   lootKindLabel,
+  MAX_TOKEN_NAME,
   nextRotation,
   parseHeightmap,
+  turnFacing,
   type AvatarLook,
   type CampaignState,
   type FloorItem,
@@ -17,6 +20,7 @@ import {
   type WallItem,
 } from '@croma/shared';
 import { portraitCanvas } from '../render/portrait';
+import { sprites } from '../render/sprites';
 import { thumbCopy } from '../render/thumbs';
 import { RoomView } from '../room/RoomView';
 import type { App } from './app';
@@ -267,7 +271,7 @@ class TokenWin {
       ? { ...edit.look }
       : { skin: '#e8b98f', hair: '#3b2618', hairStyle: 0, top: '#2b2a30', pants: '#1c1b1f', shoes: '#3d3a40', outfit: 1, extra: 0, charId: null };
     let color = edit?.color ?? COLORS[(this.app.view.users.size + 1) % COLORS.length];
-    const name = h('input', { class: 'input', maxlength: 16, placeholder: 'Nome do personagem', value: edit?.name ?? '' });
+    const name = h('input', { class: 'input', maxlength: MAX_TOKEN_NAME, placeholder: 'Nome do personagem', value: edit?.name ?? '' });
     const cap = h('input', { class: 'input small', type: 'number', min: '1', max: '99', value: String(edit?.capacity ?? 10) });
     const colors = h('div', { class: 'swatches' });
     for (const c of COLORS) {
@@ -1728,7 +1732,11 @@ export class Shell {
         'div',
         { class: 'insp-head' },
         this.polaroid(portraitCanvas(u.look, 262)),
-        this.headText(u.name.toUpperCase(), active ? 'Sob seu comando: clique no chão para andar.' : 'Clique em Comandar (ou no retrato dele) para mover este personagem.', load),
+        this.headText(
+          u.name.toUpperCase(),
+          (active ? 'Sob seu comando: clique no chão para andar.' : 'Clique em Comandar (ou no retrato dele) para mover este personagem.') + (this.gm ? ' Q e E giram.' : ''),
+          load,
+        ),
       ),
     );
     const tools = h('div', { class: 'tools' });
@@ -1737,6 +1745,8 @@ export class Shell {
     tools.append(tool('Centralizar', () => view.focusUser(id)));
     if (this.gm) {
       tools.append(
+        h('button', { class: 'tool', title: 'Girar para a esquerda (Q)', onclick: () => this.turnToken(id, false) }, '↺ Girar'),
+        h('button', { class: 'tool', title: 'Girar para a direita (E)', onclick: () => this.turnToken(id, true) }, 'Girar ↻'),
         tool('Editar', () => this.tokenWin.open({ id, name: u.name, look: u.look, color, capacity: p?.capacity ?? 10 })),
         tool('Remover', async () => (await askNote(`TIRAR ${u.name.toUpperCase()}?`, `${u.name} sai do tabuleiro. Os itens que carrega continuam registrados.`, 'Tirar do tabuleiro', true)) && net.send({ t: 'tokenRemove', tokenId: id })),
       );
@@ -1754,6 +1764,19 @@ export class Shell {
       pane.append(h('div', { class: 'icard' }, h('div', { class: 'ic-icon' }, lootIcon(l.kind, 52)), h('div', { class: 'ic-text' }, h('b', null, l.name), h('small', null, `Peso: ${fmt(l.weight)} | ${lootKindLabel(l.kind)} · ${from}`)))),
     );
     body.append(pane);
+  }
+
+  /** Gira a peça parada para o próximo ângulo que a folha dela tem (cw = sentido horário na tela). */
+  turnToken(viewId: number, cw: boolean) {
+    const u = this.app.view.users.get(viewId);
+    if (!u || !this.gm) return;
+    const def = sprites.def(u.look.charId);
+    // folha de 4 direções: só as 4 poses; de 8 ou avatar pixel: as 8
+    const allowed = def ? distinctFacings((k) => def.dirs.some((d, i) => d === k && (def.anims?.[i] ?? 'idle') === 'idle')) : [];
+    const next = turnFacing(u.dir, cw, allowed);
+    if (next === u.dir) return;
+    sfx.click();
+    this.app.session.faceToken(-viewId, next);
   }
 
   // ================= baixo =================

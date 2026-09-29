@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import type { WebSocket } from 'ws';
 import {
+  DIR_KEYS,
   getLayout,
   MAX_NAME,
   sanitizeCharPatch,
@@ -474,6 +475,12 @@ export class Hotel implements HotelApi {
         }
         break;
       }
+      case 'token.face': {
+        const room = isInt(a.tokenId) ? this.roomOfToken(a.tokenId) : null;
+        if (!room) return deny('Peça não encontrada.');
+        err = room.faceToken(a.tokenId as number, isInt(a.dir) ? a.dir : -1);
+        break;
+      }
       case 'item.give': {
         const room = isInt(a.itemId) ? this.roomOfLoot(a.itemId) : null;
         if (!room) return deny('Item não encontrado.');
@@ -565,6 +572,16 @@ export class Hotel implements HotelApi {
 
   roomExists(roomId: number) {
     return this.rooms.has(roomId);
+  }
+
+  tokenNameTaken(roomId: number, name: string, exceptTokenId?: number) {
+    const key = name.toLowerCase();
+    return this.sceneGroup(roomId).some((id) => this.rooms.get(id)?.tokenNames(exceptTokenId).includes(key));
+  }
+
+  renameHolder(roomId: number, oldName: string, newName: string) {
+    for (const id of this.sceneGroup(roomId)) this.rooms.get(id)?.renameHolder(oldName, newName);
+    this.touch();
   }
 
   moveToken(from: RoomInstance, tokenId: number, toRoomId: number) {
@@ -809,10 +826,7 @@ export class Hotel implements HotelApi {
     if (!ch) return;
     if (!this.canEditChar(c, ch)) return c.send({ t: 'error', msg: 'Só quem enviou pode editar esse personagem.' });
     Object.assign(ch, sanitizeCharPatch(m.patch));
-    if (ch.dirs.length !== ch.rows) {
-      const base = ['sw', 'se', 'nw', 'ne'] as const;
-      ch.dirs = Array.from({ length: ch.rows }, (_, i) => ch.dirs[i] ?? base[i % 4]);
-    }
+    if (ch.dirs.length !== ch.rows) ch.dirs = Array.from({ length: ch.rows }, (_, i) => ch.dirs[i] ?? DIR_KEYS[i % DIR_KEYS.length]);
     const anims = ch.anims ?? [];
     ch.anims = Array.from({ length: ch.rows }, (_, i) => anims[i] ?? 'idle');
     ch.sequence = ch.sequence.filter((n) => n < ch.cols);

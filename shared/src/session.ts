@@ -116,7 +116,7 @@ export interface Token {
   /**
    * Direção 0..7 na tela: 0 cima-direita, 1 direita, 2 baixo-direita, 3 baixo,
    * 4 baixo-esquerda, 5 esquerda, 6 cima-esquerda, 7 cima (na grade: 0 = −y,
-   * 2 = +x, 4 = +y, 6 = −x). Veja SPRITE_POSE para a pose da folha de 8 direções.
+   * 2 = +x, 4 = +y, 6 = −x). sheetDirFor(dir, ...) dá a linha da folha de sprite.
    */
   dir: number;
 }
@@ -165,6 +165,8 @@ export type SessionAction =
   | { type: 'scene.change'; sceneId: number }
   /** walk = anda desviando dos móveis; place = coloca direto na casa livre mais próxima */
   | { type: 'token.move'; tokenId: number; to: NormPoint | { tile: Tile }; mode?: 'walk' | 'place' }
+  /** vira a peça parada para a direção 0..7 (ver Token.dir) */
+  | { type: 'token.face'; tokenId: number; dir: number }
   /** to = id do personagem, ou null para devolver o item ao objeto */
   | { type: 'item.give'; itemId: number; to: number | null }
   | { type: 'objective.add'; text: string }
@@ -173,17 +175,11 @@ export type SessionAction =
 
 export type SessionActionType = SessionAction['type'];
 
-export const SESSION_ACTIONS: SessionActionType[] = ['scene.change', 'token.move', 'item.give', 'objective.add', 'objective.set', 'objective.remove'];
+export const SESSION_ACTIONS: SessionActionType[] = ['scene.change', 'token.move', 'token.face', 'item.give', 'objective.add', 'objective.set', 'objective.remove'];
 
 /** Duração de um passo da peça (igual ao ciclo do servidor). */
 export { TICK_MS as TOKEN_STEP_MS } from './constants';
 
-/**
- * Pose da folha de sprite de 8 direções (grade 4×2, docs/ref-sprite-8dir.webp)
- * para cada Token.dir. Índice = linha * 4 + coluna; ordem da folha:
- * CIMA, CIMA-DIREITA, DIREITA, BAIXO-DIREITA / BAIXO, BAIXO-ESQUERDA, ESQUERDA, CIMA-ESQUERDA.
- */
-export const SPRITE_POSE: Record<number, number> = { 0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 7, 7: 0 };
 
 // ------------------------------------------------------------------ casas ↔ quadro
 

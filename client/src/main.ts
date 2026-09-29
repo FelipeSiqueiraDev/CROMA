@@ -318,6 +318,12 @@ window.addEventListener('keydown', (e) => {
     net.send({ t: 'pickup', id: v.selection.id });
     return;
   }
+  // Q e E giram o personagem selecionado (ou o comandado)
+  if ((e.key === 'q' || e.key === 'Q' || e.key === 'e' || e.key === 'E') && !v.placement && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    const target = v.selection?.kind === 'user' ? v.selection.id : v.myId;
+    if (target) shell.turnToken(target, e.key.toLowerCase() === 'e');
+    return;
+  }
   // 1-9: comanda o personagem da barra
   if (/^[1-9]$/.test(e.key) && !v.placement) {
     const id = shell.partyIds()[Number(e.key) - 1];

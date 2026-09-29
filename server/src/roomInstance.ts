@@ -13,6 +13,7 @@ import {
   sanitizeLook,
   sanitizeLootInput,
   MAX_CHAT,
+  MAX_TOKEN_NAME,
   parseRoll,
   RoomMap,
   sceneGrid,
@@ -84,6 +85,10 @@ export interface HotelApi {
   log(roomId: number, icon: LogIcon, text: string): void;
   /** estado da campanha mudou: reenvia logo */
   touch(): void;
+  /** já existe outra peça com esse nome nesta sessão? */
+  tokenNameTaken(roomId: number, name: string, exceptTokenId?: number): boolean;
+  /** personagem renomeado: os itens com ele passam para o nome novo (em toda a sessão) */
+  renameHolder(roomId: number, oldName: string, newName: string): void;
 }
 
 interface RoomUser {
@@ -759,8 +764,9 @@ export class RoomInstance {
     if (!this.canBuild(c)) return this.err(c, 'Só quem controla o tabuleiro move as peças.');
     if (m.t === 'tokenAdd') {
       if (this.users.size >= 30) return this.err(c, 'Máximo de 30 peças por cena.');
-      const name = typeof m.name === 'string' ? clean(m.name, 16) : '';
+      const name = typeof m.name === 'string' ? clean(m.name, MAX_TOKEN_NAME) : '';
       if (name.length < 1) return this.err(c, 'Dê um nome à peça.');
+      if (this.hotel.tokenNameTaken(this.data.id, name)) return this.err(c, `Já existe um personagem chamado ${name}.`);
       const d = this.data.door;
       const color = typeof m.color === 'string' && /^#[0-9a-f]{6}$/i.test(m.color) ? m.color : undefined;
       const capacity = isInt(m.capacity) ? Math.max(1, Math.min(99, m.capacity)) : undefined;
@@ -774,14 +780,17 @@ export class RoomInstance {
         if (isInt(m.x) && isInt(m.y) && this.map.floorHeight(m.x, m.y) !== null) u.goal = { x: m.x, y: m.y };
         break;
       case 'tokenFace':
-        if (isInt(m.dir) && m.dir >= 0 && m.dir < 8 && !u.next) {
-          if (u.sit !== 1) u.dir = m.dir;
-          u.headDir = m.dir;
-          u.dirty = true;
-        }
+        if (isInt(m.dir)) this.faceToken(-u.client.id, m.dir);
         break;
       case 'tokenEdit': {
-        if (typeof m.name === 'string' && clean(m.name, 16)) u.client.name = clean(m.name, 16);
+        const name = typeof m.name === 'string' ? clean(m.name, MAX_TOKEN_NAME) : '';
+        const old = u.client.name ?? '';
+        if (name && name !== old) {
+          if (this.hotel.tokenNameTaken(this.data.id, name, -u.client.id)) return this.err(c, `Já existe um personagem chamado ${name}.`);
+          u.client.name = name;
+          // os itens que estavam com ele continuam com ele
+          if (name.toLowerCase() !== old.toLowerCase()) this.hotel.renameHolder(this.data.id, old, name);
+        }
         if (m.look) u.client.look = sanitizeLook(m.look);
         u.meta ??= {};
         if (typeof m.color === 'string' && /^#[0-9a-f]{6}$/i.test(m.color)) u.meta.color = m.color;
@@ -827,7 +836,7 @@ export class RoomInstance {
         break;
       case 'lootGive': {
         if (lootIdx < 0) return;
-        const to = typeof m.to === 'string' ? clean(m.to, 16) : '';
+        const to = typeof m.to === 'string' ? clean(m.to, MAX_TOKEN_NAME) : '';
         const l = { ...loot[lootIdx], revealed: true };
         if (to) l.holder = to;
         else delete l.holder;
@@ -856,7 +865,7 @@ export class RoomInstance {
       case 'actionLog': {
         // resultado do teste feito na mesa, registrado pelo mestre
         const a = actions.find((x) => x.id === m.actionId);
-        const player = typeof m.player === 'string' ? clean(m.player, 16) : '';
+        const player = typeof m.player === 'string' ? clean(m.player, MAX_TOKEN_NAME) : '';
         if (!a || !player) return;
         const value = isInt(m.value) ? ` (${m.value})` : '';
         this.hotel.log(this.data.id, 'user', `${player} — ${a.label} em ${objName} (DT ${a.dt}) — ${m.success === true ? 'Sucesso' : 'Falha'}${value}.`);
@@ -1115,6 +1124,53 @@ export class RoomInstance {
       }
     }
     return 'Não há caminho até esse ponto.';
+  }
+
+  /** Nomes das peças desta cena (minúsculas). */
+  tokenNames(exceptTokenId?: number) {
+    return [...this.users.values()].filter((u) => -u.client.id !== exceptTokenId).map((u) => (u.client.name ?? '').toLowerCase());
+  }
+
+  /** Itens com `oldName` passam para `newName`. */
+  renameHolder(oldName: string, newName: string) {
+    const key = oldName.toLowerCase();
+    let changed = false;
+    const fix = <T extends FloorItem | WallItem>(it: T): T | null => {
+      if (!it.loot?.some((l) => l.holder?.toLowerCase() === key)) return null;
+      return { ...it, loot: it.loot.map((l) => (l.holder?.toLowerCase() === key ? { ...l, holder: newName } : l)) };
+    };
+    for (const it of this.map.allItems()) {
+      const next = fix(it);
+      if (!next) continue;
+      this.map.updateItem(next);
+      this.broadcastFloor('itemUpdate', next);
+      changed = true;
+    }
+    for (const it of this.map.allWallItems()) {
+      const next = fix(it);
+      if (!next) continue;
+      this.map.setWallItem(next);
+      this.broadcastWall('wallUpdate', next);
+      changed = true;
+    }
+    if (changed) this.persist();
+  }
+
+  /** Vira a peça parada para `dir` (0..7) e avisa todos na hora. Devolve o motivo quando não dá. */
+  faceToken(tokenId: number, dir: number): string | null {
+    const u = this.users.get(-tokenId);
+    if (!u) return 'Essa peça não está nesta cena.';
+    if (!isInt(dir) || dir < 0 || dir > 7) return 'Direção inválida: use de 0 a 7.';
+    if (u.next || u.goal) return 'Espere a peça parar de andar.';
+    // sentada numa cadeira, o corpo segue a cadeira; só a cabeça vira
+    if (u.sit !== 1) u.dir = dir;
+    u.headDir = dir;
+    u.headResetAt = 0;
+    u.dirty = false;
+    this.broadcast({ t: 'status', updates: [this.status(u)] });
+    this.broadcast({ t: 'tokens', sceneId: this.data.id, tokens: [this.tokenState(u)] });
+    this.saveTokens();
+    return null;
   }
 
   /** Onde está o item (id do Loot). */
