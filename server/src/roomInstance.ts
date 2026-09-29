@@ -3,28 +3,44 @@ import {
   directionTo,
   evalRoll,
   findPath,
+  footprint,
   getFurni,
   getWallFurni,
   anyFurniName,
   HINT_ICONS,
   LIGHT_MODES,
+  lootKindLabel,
   sanitizeLook,
   sanitizeLootInput,
   MAX_CHAT,
   parseRoll,
   RoomMap,
+  sceneGrid,
+  sceneShortName,
   TICK_MS,
+  tileCenter,
+  tilesByDistance,
+  tileToPoint,
   validateHeightmap,
   type AvatarLook,
   type Door,
   type FloorItem,
   type Hint,
   type InvItem,
+  type Item,
   type LightMode,
   type LogIcon,
+  type Loot,
+  type NormPoint,
   type Point,
+  type Role,
   type RoomInfo,
+  type Scene,
+  type SceneGrid,
+  type SceneObject,
   type ServerMsg,
+  type Tile,
+  type Token,
   type UserInfo,
   type UserStatus,
   type WallItem,
@@ -42,12 +58,18 @@ export interface Client {
   lastChat: number;
   /** último minimapa enviado (evita reenviar igual) */
   lastScenes?: string;
+  /** última sessão enviada (evita reenviar igual) */
+  lastSession?: string;
+  /** mestre ou jogador (peças não têm) */
+  role?: Role;
   send(msg: ServerMsg): void;
   /** encerra esta conexão (sessão aberta em outra aba) */
   kick?(): void;
 }
 
 export interface HotelApi {
+  /** false nos testes: nada roda sozinho, o teste chama step() */
+  readonly timers: boolean;
   save(): void;
   nextItemId(): number;
   inventory(client: Client): InvItem[];
@@ -116,6 +138,8 @@ export class RoomInstance {
   private timer: NodeJS.Timeout | null = null;
   private hotel: HotelApi;
   private tokensDirty = false;
+  /** quadro da cena (casas → 0..1); refeito quando a planta muda */
+  private geo: { grid: SceneGrid; aspect: number } | null = null;
 
   constructor(data: RoomData, hotel: HotelApi) {
     this.data = data;
@@ -144,7 +168,8 @@ export class RoomInstance {
   }
 
   private ensureTimer() {
-    if (!this.timer && (this.viewers.size || this.users.size)) this.timer = setInterval(() => this.tick(), TICK_MS);
+    if (!this.hotel.timers) return;
+    if (!this.timer && (this.viewers.size || this.users.size)) this.timer = setInterval(() => this.step(), TICK_MS);
   }
 
   /** Cria a peça na cena (na passagem que liga a `fromRoomId`, ou na posição salva, ou na porta). */
@@ -210,13 +235,13 @@ export class RoomInstance {
     return out;
   }
 
+  /** Só o mestre controla a cena (o servidor decide pelo papel da conexão). */
   isOwner(c: Client) {
-    const n = (c.name ?? '').toLowerCase();
-    return n === this.data.owner.toLowerCase() || (this.data.owner === SYSTEM_OWNER && this.data.publicBuild);
+    return c.role === 'gm';
   }
 
   canBuild(c: Client) {
-    return this.data.publicBuild || this.isOwner(c);
+    return c.role === 'gm';
   }
 
   info(c: Client): RoomInfo {
@@ -353,7 +378,8 @@ export class RoomInstance {
     }
   }
 
-  private tick() {
+  /** Um passo do tabuleiro (a cada TICK_MS). Público para os testes. */
+  step() {
     const now = Date.now();
     const updates: UserStatus[] = [];
     for (const u of this.users.values()) {
@@ -392,7 +418,10 @@ export class RoomInstance {
         updates.push(this.status(u));
       }
     }
-    if (updates.length) this.broadcast({ t: 'status', updates });
+    if (updates.length) {
+      this.broadcast({ t: 'status', updates });
+      this.broadcast({ t: 'tokens', sceneId: this.data.id, tokens: updates.map((s) => this.tokenState(this.users.get(s.id)!)) });
+    }
     // guarda a posição das peças quando param de andar
     const moving = [...this.users.values()].some((u) => u.next || u.goal);
     if (updates.length) this.tokensDirty = true;
@@ -915,6 +944,7 @@ export class RoomInstance {
     this.data.heightmap = hmSrc.replace(/\r/g, '').split('\n').map((r) => r.trim()).filter(Boolean).join('\n');
     this.data.door = { x: d.x, y: d.y, dir: d.dir };
     this.map = next;
+    this.geo = null;
     this.persist();
     for (const o of this.users.values()) {
       o.x = d.x;
@@ -933,5 +963,174 @@ export class RoomInstance {
     this.data.items = this.map.allItems();
     this.data.wallItems = this.map.allWallItems();
     this.hotel.save();
+    this.hotel.touch();
+  }
+
+  // ---------- contrato da sessão (shared/src/session.ts) ----------
+  private geometry() {
+    return (this.geo ??= sceneGrid(this.map.hm, this.data.door));
+  }
+
+  /** A cena como a interface recebe. */
+  sceneInfo(): Scene {
+    const { grid, aspect } = this.geometry();
+    return {
+      id: this.data.id,
+      name: sceneShortName(this.data.name),
+      title: this.data.name,
+      description: this.data.description,
+      aspect,
+      grid,
+      cols: this.map.width,
+      rows: this.map.height,
+      heightmap: this.data.heightmap,
+      exits: this.portals().map((p) => ({ tile: { x: p.x, y: p.y }, pos: tileCenter(grid, p, this.map.floorHeight(p.x, p.y) ?? 0), to: p.link })),
+      lightMode: this.data.lightMode ?? 'normal',
+      fog: this.data.fog ?? 0,
+      darkness: this.data.darkness,
+    };
+  }
+
+  private tokenState(u: RoomUser): Token {
+    const { grid } = this.geometry();
+    const t: Token = { id: -u.client.id, sceneId: this.data.id, tile: { x: u.x, y: u.y }, pos: tileCenter(grid, u, u.z), dir: u.dir };
+    if (u.next) t.to = tileCenter(grid, u.next, this.map.standHeight(u.next.x, u.next.y));
+    return t;
+  }
+
+  /** Peças desta cena com os dados do personagem (ids positivos, como no contrato). */
+  tokensLive() {
+    return [...this.users.values()].map((u) => ({
+      token: this.tokenState(u),
+      name: u.client.name ?? '?',
+      look: u.client.look,
+      color: u.meta?.color,
+      capacity: u.meta?.capacity,
+    }));
+  }
+
+  hasToken(tokenId: number) {
+    return this.users.has(-tokenId);
+  }
+
+  /** Centro e topo do objeto no quadro da cena. */
+  private objectPos(it: FloorItem | WallItem, kind: 'floor' | 'wall'): { pos: NormPoint; top: NormPoint } {
+    const { grid } = this.geometry();
+    if (kind === 'floor') {
+      const f = it as FloorItem;
+      const def = getFurni(f.defId);
+      const fp = def ? footprint(def, f.rot) : { sx: 1, sy: 1 };
+      const cx = f.x + fp.sx / 2;
+      const cy = f.y + fp.sy / 2;
+      const h = def?.height ?? 1;
+      return { pos: tileToPoint(grid, cx, cy, f.z + h / 2), top: tileToPoint(grid, cx, cy, f.z + h) };
+    }
+    const w = it as WallItem;
+    const hz = (getWallFurni(w.defId)?.h ?? 32) / 32;
+    const at = (z: number) => (w.wall === 'l' ? tileToPoint(grid, w.plane, w.pos, z) : tileToPoint(grid, w.pos, w.plane, z));
+    return { pos: at(w.z + hz / 2), top: at(w.z + hz) };
+  }
+
+  /** Objetos que importam (pista, itens ou interações) e os itens deles, filtrados pelo papel. */
+  sessionObjects(role: Role): { objects: SceneObject[]; items: Item[] } {
+    const gm = role === 'gm';
+    const objects: SceneObject[] = [];
+    const items: Item[] = [];
+    const add = (it: FloorItem | WallItem, kind: 'floor' | 'wall') => {
+      const hint = it.hint && (it.hint.visible || gm) ? it.hint : undefined;
+      const loot = (it.loot ?? []).filter((l) => gm || l.revealed);
+      const actions = it.actions ?? [];
+      if (!hint && !loot.length && !actions.length) return;
+      const desc = kind === 'floor' ? getFurni(it.defId)?.desc : getWallFurni(it.defId)?.desc;
+      objects.push({
+        id: it.id,
+        sceneId: this.data.id,
+        kind,
+        defId: it.defId,
+        name: hint?.title || anyFurniName(it.defId),
+        description: hint?.text || desc || '',
+        hidden: gm && !!it.hint && !it.hint.visible,
+        ...this.objectPos(it, kind),
+        itemIds: loot.map((l) => l.id),
+        interactions: actions.map((a) => ({ id: a.id, label: a.label, dt: a.dt })),
+      });
+      for (const l of loot)
+        items.push({
+          id: l.id,
+          name: l.name,
+          weight: l.weight,
+          kind: l.kind,
+          kindLabel: lootKindLabel(l.kind),
+          sceneId: this.data.id,
+          objectId: it.id,
+          holderId: null,
+          holderName: l.holder ?? null,
+          revealed: !!l.revealed,
+        });
+    };
+    for (const it of this.map.allItems()) add(it, 'floor');
+    for (const it of this.map.allWallItems()) add(it, 'wall');
+    return { objects, items };
+  }
+
+  /**
+   * Leva a peça até o ponto: a casa livre mais próxima dele.
+   * walk = anda desviando dos móveis; place = aparece direto lá.
+   * Devolve o motivo quando não dá.
+   */
+  moveTokenTo(tokenId: number, to: NormPoint | Tile, isTile: boolean, mode: 'walk' | 'place'): string | null {
+    const u = this.users.get(-tokenId);
+    if (!u) return 'Essa peça não está nesta cena.';
+    const { grid } = this.geometry();
+    const p = isTile ? tileCenter(grid, to as Tile, this.map.floorHeight(to.x, to.y) ?? 0) : (to as NormPoint);
+    const free = (x: number, y: number) => this.map.walkState(x, y) !== 'blocked' && !this.occupied(x, y, u.client.id);
+    const near = tilesByDistance(grid, this.map.hm, p, free).slice(0, 24);
+    if (!near.length) return 'Não há casa livre perto desse ponto.';
+    if (mode === 'place') {
+      const t = near[0];
+      u.x = t.x;
+      u.y = t.y;
+      u.goal = u.next = null;
+      u.sit = 0;
+      u.z = this.map.standHeight(t.x, t.y);
+      // colocada em cima de uma passagem: só viaja depois de sair dela
+      u.arrivedAt = { x: t.x, y: t.y };
+      this.settle(u);
+      u.dirty = false;
+      this.broadcast({ t: 'status', updates: [this.status(u)] });
+      this.broadcast({ t: 'tokens', sceneId: this.data.id, tokens: [this.tokenState(u)] });
+      this.saveTokens();
+      return null;
+    }
+    for (const t of near) {
+      if (t.x === u.x && t.y === u.y) {
+        u.goal = null;
+        return null;
+      }
+      const path = findPath(this.map, u, t, (x, y) => this.occupied(x, y, u.client.id));
+      if (path && path.length) {
+        u.goal = t;
+        this.ensureTimer();
+        return null;
+      }
+    }
+    return 'Não há caminho até esse ponto.';
+  }
+
+  /** Onde está o item (id do Loot). */
+  findLoot(lootId: number): { it: FloorItem | WallItem; loot: Loot } | null {
+    for (const it of [...this.map.allItems(), ...this.map.allWallItems()]) {
+      const loot = it.loot?.find((l) => l.id === lootId);
+      if (loot) return { it, loot };
+    }
+    return null;
+  }
+
+  /** Entrega o item a alguém (ou devolve ao objeto, com toName = null). */
+  giveLoot(by: Client, lootId: number, toName: string | null) {
+    const found = this.findLoot(lootId);
+    if (!found) return 'Item não encontrado.';
+    this.editItemRpg({ client: by } as RoomUser, found.it.id, { t: 'lootGive', lootId, to: toName ?? '' });
+    return null;
   }
 }

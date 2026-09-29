@@ -359,10 +359,7 @@ function seedMansao(db: Database) {
       ['portal', 2, 0, 4],
       ['portal', 4, 5, 0],
     ],
-    [
-      ['window_barred', 'r', 0, 6.4, 2.2],
-      ['pipes', 'r', 0, 2.6, 4.4],
-    ],
+    [['window_barred', 'r', 0, 6.4, 2.2]],
     0.68,
   );
   const quarto = buildRoom(

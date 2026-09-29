@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch --clear-screen=false src/index.ts",
-    "start": "tsx src/index.ts --prod"
+    "start": "tsx src/index.ts --prod",
+    "test": "tsx --test test/*.test.ts"
   },
   "dependencies": {
     "@croma/shared": "*",

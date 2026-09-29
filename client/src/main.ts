@@ -16,11 +16,14 @@ import { Shell } from './ui/shell';
 import { LoginScreen } from './ui/login';
 import { NavigatorWin } from './ui/navigator';
 import { RoomSettingsWin } from './ui/roomSettings';
+import { forgetGmKey, readGmKey } from './session/access';
 
 const LAST_ROOM = 'croma.lastRoom';
 const HOME_SEEN = 'croma.homeSeen';
 const net = new Net();
 const app = new App(net);
+/** chave do link do mestre (?mestre=...); sem ela, entra como jogador */
+const gmKey = readGmKey();
 const root = document.getElementById('app')!;
 const canvas = h('canvas', { class: 'room-canvas', 'aria-label': 'Tabuleiro' });
 
@@ -46,6 +49,8 @@ function startPlace(defId: string, invId?: number) {
 
 const view = new RoomView(canvas, {
   walk: (x, y) => {
+    // jogador só acompanha
+    if (!app.isGm) return;
     const id = app.view.myId;
     if (id) net.send({ t: 'tokenWalk', tokenId: id, x, y });
     else toast('Clique num personagem para comandá-lo.');
@@ -118,7 +123,7 @@ app.on('placement', () => {
   if (p) shell.setPlacement(`Movendo ${anyFurniName(p.defId)}: clique no destino · R gira · Esc cancela`);
 });
 
-let login: LoginScreen | null = new LoginScreen(app, (name, look) => net.send({ t: 'login', name, look }));
+let login: LoginScreen | null = new LoginScreen(app, (name, look) => net.send({ t: 'login', name, look, gmKey }));
 root.append(login.el);
 if (import.meta.env.DEV && new URLSearchParams(location.search).has('auto')) setTimeout(() => login?.submit(new URLSearchParams(location.search).get('auto') || undefined), 300);
 
@@ -126,17 +131,27 @@ let reconnecting = false;
 let wantRoom: number | null = null;
 
 net.onMessage = (m: ServerMsg) => {
+  // sessão compartilhada: estado, passos das peças e recusas
+  if (app.session.receive(m)) {
+    if (m.t === 'denied') toast(m.reason, 'error');
+    return;
+  }
   const me = app.state.me;
   switch (m.t) {
     case 'hello':
       app.state.characters = m.characters;
       sprites.setDefs(m.characters);
       app.emit('characters');
-      if (me && reconnecting) net.send({ t: 'login', name: me.name, look: me.look });
+      if (me && reconnecting) net.send({ t: 'login', name: me.name, look: me.look, gmKey });
       break;
     case 'welcome': {
       app.state.me = { id: m.id, name: m.name, look: m.look, token: m.token };
       app.state.inventory = m.inventory;
+      app.state.role = m.role;
+      if (gmKey && m.role !== 'gm') {
+        forgetGmKey();
+        toast('A chave do mestre não vale mais. Abra o link do mestre que aparece no terminal do servidor.', 'error');
+      }
       if (login) {
         login.hide();
         login = null;

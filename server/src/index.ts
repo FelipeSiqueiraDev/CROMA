@@ -64,6 +64,7 @@ function imageExt(buf: Buffer): '.png' | '.jpg' | '.webp' | null {
 function handleUpload(req: http.IncomingMessage, res: http.ServerResponse, url: URL) {
   const client = hotel.clientByToken(url.searchParams.get('token') ?? '');
   if (!client?.name) return sendJson(res, 401, { error: 'Entre no hotel antes de enviar.' });
+  if (client.role !== 'gm') return sendJson(res, 403, { error: 'Só o mestre envia sprites.' });
   const chunks: Buffer[] = [];
   let size = 0;
   let aborted = false;
@@ -143,7 +144,13 @@ function route(req: http.IncomingMessage, res: http.ServerResponse) {
 const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 256 * 1024 });
 wss.on('connection', (ws) => hotel.connect(ws));
 
-server.listen(PORT, () => console.log(`[croma] servidor em http://localhost:${PORT}`));
+server.listen(PORT, () => {
+  console.log(`[croma] servidor em http://localhost:${PORT}`);
+  // em desenvolvimento a página vem do Vite (5173); em produção, deste servidor
+  const page = PROD ? `http://localhost:${PORT}` : 'http://localhost:5173';
+  console.log(`[croma] link do mestre:    ${page}/?mestre=${hotel.gmKey}`);
+  console.log(`[croma] link dos jogadores: ${page}/?jogador`);
+});
 
 function shutdown() {
   try {

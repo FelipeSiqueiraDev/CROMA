@@ -28,6 +28,10 @@ Tudo passa a ser servido pelo servidor Node em http://localhost:3001 (ou na port
 
 Os dados ficam em `server/data/` (`db.json` e os PNGs enviados em `uploads/`). Apague a pasta para voltar ao quarto de exemplo.
 
+## Mestre e jogadores
+
+Ao subir, o servidor mostra no terminal o **link do mestre** (`?mestre=CHAVE`) e o dos jogadores. Quem abre o link do mestre controla a sessão; os outros entram como jogadores e acompanham tudo em tempo real, sempre na cena que o mestre deixou aberta. O contrato entre a interface e o servidor está em [`docs/CONTRATO.md`](docs/CONTRATO.md).
+
 ## Tela MAPA (tabuleiro)
 
 A interface reproduz a tela de referência [`docs/ref-mapa.webp`](docs/ref-mapa.webp) (desenhada em 1536×1024; a tela inteira escala para caber em qualquer resolução). Os papéis são desenhados na hora em canvas (`client/src/ui/paperArt.ts`): borda rasgada, bordas encardidas, manchas, grão, canto dobrado e folhas por trás. Fonte: Ubuntu Mono.
@@ -43,7 +47,7 @@ Uma pessoa controla o tabuleiro. Os personagens são peças: clique numa peça (
 
 A campanha de exemplo **Sombras de Arvendal** (Mansão Alvarez: Hall de Entrada, Sala de Estar, Biblioteca, Escritório, Cozinha, Quarto Principal e Jardim) abre no Escritório com o grupo investigando a Escrivaninha, igual à tela de referência.
 
-Em desenvolvimento, `http://localhost:5173/?auto=Mestre` entra direto com esse nome.
+Em desenvolvimento, `?auto=Nome` entra direto com esse nome (junte `&mestre=CHAVE` para o mestre ou `&jogador` para o jogador).
 
 ## Como jogar (referência antiga)
 

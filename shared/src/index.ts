@@ -8,6 +8,7 @@ export * from './avatar';
 export * from './layouts';
 export * from './dice';
 export * from './protocol';
+export * from './session';
 export {
   LOOT_KINDS,
   lootKindLabel,

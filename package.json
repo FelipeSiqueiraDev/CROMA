@@ -15,7 +15,8 @@
     "dev:client": "npm run dev -w @croma/client",
     "build": "npm run build -w @croma/client",
     "start": "npm run start -w @croma/server",
-    "typecheck": "tsc -p shared && tsc -p server && tsc -p client"
+    "typecheck": "tsc -p shared && tsc -p server && tsc -p client",
+    "test": "npm run test -w @croma/server"
   },
   "devDependencies": {
     "concurrently": "^10.0.5",

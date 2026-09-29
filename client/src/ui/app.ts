@@ -1,6 +1,7 @@
-import type { AvatarLook, CharacterDef, InvItem, RoomInfo, RoomSummary } from '@croma/shared';
+import type { AvatarLook, CharacterDef, InvItem, Role, RoomInfo, RoomSummary } from '@croma/shared';
 import type { Net } from '../net';
 import type { RoomView } from '../room/RoomView';
+import { SessionStore } from '../session/store';
 
 export interface Me {
   id: number;
@@ -15,13 +16,17 @@ export interface AppState {
   characters: CharacterDef[];
   rooms: RoomSummary[];
   room: RoomInfo | null;
+  /** mestre controla; jogador só acompanha (vem do servidor no login) */
+  role: Role;
 }
 
 export type AppEvent = 'me' | 'inventory' | 'characters' | 'rooms' | 'room' | 'selection' | 'items' | 'placement';
 
 export class App {
-  state: AppState = { me: null, inventory: [], characters: [], rooms: [], room: null };
+  state: AppState = { me: null, inventory: [], characters: [], rooms: [], room: null, role: 'player' };
   net: Net;
+  /** sessão compartilhada (contrato novo, docs/CONTRATO.md) */
+  readonly session: SessionStore;
   view!: RoomView;
   /** peça a comandar assim que a cena carregar */
   pendingActive: number | null = null;
@@ -29,6 +34,7 @@ export class App {
 
   constructor(net: Net) {
     this.net = net;
+    this.session = new SessionStore((m) => net.send(m));
   }
 
   on(evt: AppEvent, fn: () => void) {
@@ -43,5 +49,9 @@ export class App {
 
   get canBuild() {
     return !!this.state.room?.canBuild;
+  }
+
+  get isGm() {
+    return this.state.role === 'gm';
   }
 }

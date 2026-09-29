@@ -2,6 +2,7 @@ import type { AvatarLook } from './avatar';
 import type { RollResult } from './dice';
 import type { FloorItem, Hint, WallItem } from './room';
 import type { CampaignState, LootKind } from './rpg';
+import type { Role, Session, SessionAction, Token } from './session';
 import type { Door } from './walls';
 
 export type DirKey = 'sw' | 'se' | 'nw' | 'ne';
@@ -131,7 +132,10 @@ export interface InvItem {
 export type ChatKind = 'say' | 'shout' | 'roll' | 'system';
 
 export type ClientMsg =
-  | { t: 'login'; name: string; look: AvatarLook }
+  /** gmKey = chave do link do mestre; sem ela (ou errada) a pessoa entra como jogador */
+  | { t: 'login'; name: string; look: AvatarLook; gmKey?: string }
+  /** ações da sessão (contrato em session.ts); só o mestre */
+  | { t: 'act'; a: SessionAction }
   | { t: 'rooms' }
   | { t: 'createRoom'; name: string; model: string }
   | { t: 'join'; roomId: number }
@@ -177,7 +181,7 @@ export type ClientMsg =
 
 export type ServerMsg =
   | { t: 'hello'; characters: CharacterDef[] }
-  | { t: 'welcome'; id: number; name: string; look: AvatarLook; token: string; inventory: InvItem[]; home?: number }
+  | { t: 'welcome'; id: number; name: string; look: AvatarLook; token: string; inventory: InvItem[]; home?: number; role: Role }
   | { t: 'error'; msg: string }
   | { t: 'notice'; msg: string }
   | { t: 'roomList'; rooms: RoomSummary[] }
@@ -201,4 +205,10 @@ export type ServerMsg =
   | { t: 'inventory'; items: InvItem[] }
   | { t: 'characters'; list: CharacterDef[] }
   | { t: 'scenes'; scenes: SceneInfo[] }
-  | { t: 'campaign'; state: CampaignState };
+  | { t: 'campaign'; state: CampaignState }
+  /** estado completo da sessão (reenviado quando muda) */
+  | { t: 'session'; session: Session }
+  /** peças que se mexeram neste passo (a cada TOKEN_STEP_MS) */
+  | { t: 'tokens'; sceneId: number; tokens: Token[] }
+  /** ação recusada pelo servidor */
+  | { t: 'denied'; action: string; reason: string };

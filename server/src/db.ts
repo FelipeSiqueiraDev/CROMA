@@ -52,6 +52,8 @@ export interface CampaignData {
   objectives: Objective[];
   layout: Record<number, { x: number; y: number }>;
   log: LogEntry[];
+  /** cena que todos estão vendo (a última que o mestre abriu) */
+  currentSceneId?: number;
 }
 
 export interface Database {
@@ -68,6 +70,8 @@ export interface Database {
   campaigns?: Record<string, CampaignData>;
   /** cena de abertura sugerida (a demonstração mais nova) */
   home?: number;
+  /** chave do link do mestre (quem entra com ela controla as sessões) */
+  gmKey?: string;
 }
 
 export function loadDb(): Database | null {
