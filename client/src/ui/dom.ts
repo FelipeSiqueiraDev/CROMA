@@ -1,0 +1,158 @@
+type Child = Node | string | number | null | undefined | false;
+type Props = Record<string, unknown> & { class?: string; style?: string };
+
+/** Criador de elementos: h('div', { class: 'x', onclick: fn }, filhos...) */
+export function h<K extends keyof HTMLElementTagNameMap>(tag: K, props?: Props | null, ...children: Child[]): HTMLElementTagNameMap[K] {
+  const el = document.createElement(tag);
+  if (props)
+    for (const [k, v] of Object.entries(props)) {
+      if (v === undefined || v === null || v === false) continue;
+      if (k === 'class') el.className = String(v);
+      else if (k === 'style') el.setAttribute('style', String(v));
+      else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2), v as EventListener);
+      else if (k === 'html') el.innerHTML = String(v);
+      else if (k in el && typeof v !== 'string') (el as unknown as Record<string, unknown>)[k] = v;
+      else el.setAttribute(k, v === true ? '' : String(v));
+    }
+  for (const c of children) if (c !== null && c !== undefined && c !== false) el.append(c instanceof Node ? c : String(c));
+  return el;
+}
+
+export function clear(el: HTMLElement) {
+  while (el.firstChild) el.removeChild(el.firstChild);
+  return el;
+}
+
+const PATHS: Record<string, string> = {
+  nav: '<path d="M3 21V5l9-3 9 3v16"/><path d="M9 21v-6h6v6"/><path d="M3 10h18"/>',
+  catalog: '<path d="M4 4h12a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4z"/><path d="M8 4v16"/><path d="M12 9h5M12 13h5"/>',
+  box: '<path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
+  gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>',
+  log: '<path d="M4 5h16M4 10h16M4 15h10M4 20h7"/>',
+  dice: '<path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M12 2v6M3 7l9 1 9-1M12 8l-6 9h12z"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  minus: '<path d="M5 12h14"/>',
+  target: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/>',
+  close: '<path d="M6 6l12 12M18 6L6 18"/>',
+  rotate: '<path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/>',
+  move: '<path d="M12 2v20M2 12h20M12 2l-3 3M12 2l3 3M12 22l-3-3M12 22l3-3M2 12l3-3M2 12l3 3M22 12l-3-3M22 12l-3 3"/>',
+  pickup: '<path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M12 7v8M9 12l3 3 3-3"/>',
+  power: '<path d="M12 3v9"/><path d="M6.3 7a8 8 0 1 0 11.4 0"/>',
+  clue: '<circle cx="10" cy="10" r="6"/><path d="M14.5 14.5L21 21"/>',
+  wave: '<path d="M7 11V6a2 2 0 0 1 4 0v5M11 10V4a2 2 0 0 1 4 0v6M15 10V6a2 2 0 0 1 4 0v8a7 7 0 0 1-14 0v-3a2 2 0 0 1 4 0"/>',
+  music: '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
+  sit: '<path d="M6 21v-6h12v6M6 15V4M6 11h12"/>',
+  upload: '<path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v4h16v-4"/>',
+  trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/>',
+  map: '<path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/>',
+  door: '<path d="M5 21V3h11v18"/><path d="M16 5l3 1v15h-3"/><circle cx="13" cy="12" r="1"/>',
+  eye: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  cloud: '<path d="M7 18h10a4 4 0 0 0 0-8 6 6 0 0 0-11.5 1.5A3.5 3.5 0 0 0 7 18z"/><path d="M4 21h16"/>',
+  help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6"/><path d="M12 17h.01"/>',
+};
+
+export function icon(name: keyof typeof PATHS | string, size = 18): SVGSVGElement {
+  const span = document.createElement('span');
+  span.innerHTML = `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${PATHS[name] ?? ''}</svg>`;
+  return span.firstElementChild as SVGSVGElement;
+}
+
+// ---------- avisos ----------
+let toastBox: HTMLElement | null = null;
+export function toast(msg: string, kind: 'error' | 'info' = 'info') {
+  if (!toastBox) {
+    toastBox = h('div', { class: 'toasts', role: 'status', 'aria-live': 'polite' });
+    document.body.append(toastBox);
+  }
+  const t = h('div', { class: `toast ${kind}` }, msg);
+  toastBox.append(t);
+  setTimeout(() => t.classList.add('out'), 3200);
+  setTimeout(() => t.remove(), 3700);
+}
+
+// ---------- janelas ----------
+let zTop = 20;
+const openWins: Win[] = [];
+
+export class Win {
+  readonly el: HTMLElement;
+  readonly body: HTMLElement;
+  private titleEl: HTMLElement;
+  onClose: (() => void) | null = null;
+
+  constructor(title: string, opts: { width?: number; x?: number; y?: number; cls?: string } = {}) {
+    this.titleEl = h('div', { class: 'win-title' }, title);
+    const closeBtn = h('button', { class: 'win-close', title: 'Fechar', 'aria-label': 'Fechar', onclick: () => this.close() }, icon('close', 14));
+    const head = h('div', { class: 'win-head' }, h('span', { class: 'win-mark' }), this.titleEl, closeBtn);
+    this.body = h('div', { class: 'win-body' });
+    this.el = h('section', { class: `win ${opts.cls ?? ''}`, style: `width:${opts.width ?? 360}px`, role: 'dialog', 'aria-label': title }, head, this.body);
+    this.el.style.display = 'none';
+    document.body.append(this.el);
+    const x = opts.x ?? Math.max(16, (innerWidth - (opts.width ?? 360)) / 2);
+    const y = opts.y ?? 80;
+    this.el.style.left = `${x}px`;
+    this.el.style.top = `${y}px`;
+    this.el.addEventListener('pointerdown', () => this.front());
+    let drag: { dx: number; dy: number } | null = null;
+    head.addEventListener('pointerdown', (e) => {
+      if ((e.target as HTMLElement).closest('button')) return;
+      drag = { dx: e.clientX - this.el.offsetLeft, dy: e.clientY - this.el.offsetTop };
+      head.setPointerCapture(e.pointerId);
+    });
+    head.addEventListener('pointermove', (e) => {
+      if (!drag) return;
+      const nx = Math.max(0, Math.min(innerWidth - 80, e.clientX - drag.dx));
+      const ny = Math.max(0, Math.min(innerHeight - 40, e.clientY - drag.dy));
+      this.el.style.left = `${nx}px`;
+      this.el.style.top = `${ny}px`;
+    });
+    head.addEventListener('pointerup', () => (drag = null));
+  }
+
+  setTitle(t: string) {
+    this.titleEl.textContent = t;
+  }
+
+  get isOpen() {
+    return this.el.style.display !== 'none';
+  }
+
+  front() {
+    this.el.style.zIndex = String(++zTop);
+    const i = openWins.indexOf(this);
+    if (i >= 0) openWins.splice(i, 1);
+    if (this.isOpen) openWins.push(this);
+  }
+
+  open() {
+    this.el.style.display = '';
+    const r = this.el.getBoundingClientRect();
+    if (r.right > innerWidth) this.el.style.left = `${Math.max(8, innerWidth - r.width - 8)}px`;
+    if (r.bottom > innerHeight - 70) this.el.style.top = `${Math.max(8, innerHeight - 70 - r.height)}px`;
+    if (this.el.offsetLeft < 8) this.el.style.left = '8px';
+    if (this.el.offsetTop < 8) this.el.style.top = '8px';
+    this.front();
+  }
+
+  close() {
+    if (!this.isOpen) return;
+    this.el.style.display = 'none';
+    const i = openWins.indexOf(this);
+    if (i >= 0) openWins.splice(i, 1);
+    this.onClose?.();
+  }
+
+  toggle() {
+    if (this.isOpen) this.close();
+    else this.open();
+  }
+}
+
+/** Fecha a janela do topo (Esc). Retorna true se fechou algo. */
+export function closeTopWindow(): boolean {
+  const w = openWins.pop();
+  if (!w) return false;
+  w.close();
+  return true;
+}

@@ -1,0 +1,937 @@
+import crypto from 'node:crypto';
+import {
+  directionTo,
+  evalRoll,
+  findPath,
+  getFurni,
+  getWallFurni,
+  anyFurniName,
+  HINT_ICONS,
+  LIGHT_MODES,
+  sanitizeLook,
+  sanitizeLootInput,
+  MAX_CHAT,
+  parseRoll,
+  RoomMap,
+  TICK_MS,
+  validateHeightmap,
+  type AvatarLook,
+  type Door,
+  type FloorItem,
+  type Hint,
+  type InvItem,
+  type LightMode,
+  type LogIcon,
+  type Point,
+  type RoomInfo,
+  type ServerMsg,
+  type UserInfo,
+  type UserStatus,
+  type WallItem,
+} from '@croma/shared';
+import type { RoomData, TokenData } from './db';
+import { SYSTEM_OWNER } from './seed';
+
+export interface Client {
+  id: number;
+  name: string | null;
+  key: string;
+  look: AvatarLook;
+  token: string;
+  room: RoomInstance | null;
+  lastChat: number;
+  /** último minimapa enviado (evita reenviar igual) */
+  lastScenes?: string;
+  send(msg: ServerMsg): void;
+  /** encerra esta conexão (sessão aberta em outra aba) */
+  kick?(): void;
+}
+
+export interface HotelApi {
+  save(): void;
+  nextItemId(): number;
+  inventory(client: Client): InvItem[];
+  sendInventory(client: Client): void;
+  roomChanged(): void;
+  /** leva o cliente para outro quarto (Passagem) */
+  teleport(client: Client, roomId: number, fromRoomId: number): void;
+  /** leva uma peça para outra cena */
+  moveToken(from: RoomInstance, tokenId: number, toRoomId: number): void;
+  roomExists(roomId: number): boolean;
+  /** registra em "Últimas ações" da campanha deste quarto */
+  log(roomId: number, icon: LogIcon, text: string): void;
+  /** estado da campanha mudou: reenvia logo */
+  touch(): void;
+}
+
+interface RoomUser {
+  client: Client;
+  x: number;
+  y: number;
+  z: number;
+  dir: number;
+  headDir: number;
+  goal: Point | null;
+  next: Point | null;
+  sit: 0 | 1 | 2;
+  dance: boolean;
+  dirty: boolean;
+  headResetAt: number;
+  /** chegou por esta passagem: não teleporta até sair do tile */
+  arrivedAt: Point | null;
+  /** cor e limite de carga da peça */
+  meta?: { color?: string; capacity?: number };
+}
+
+const isInt = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v);
+const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+const clean = (s: string, max: number) =>
+  s.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, max);
+
+export function sanitizeHint(h: unknown): Hint | null {
+  if (!h || typeof h !== 'object') return null;
+  const o = h as Record<string, unknown>;
+  if (!HINT_ICONS.includes(o.icon as Hint['icon'])) return null;
+  const title = typeof o.title === 'string' ? clean(o.title, 60) : '';
+  const text = typeof o.text === 'string' ? o.text.replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, '').trim().slice(0, 1200) : '';
+  return { icon: o.icon as Hint['icon'], title, text, visible: o.visible !== false };
+}
+
+/** Cliente "de mentira" que representa uma peça no tabuleiro (não recebe mensagens). */
+function tokenClient(t: TokenData, room: RoomInstance): Client {
+  return { id: -t.id, name: t.name, key: `token:${t.id}`, look: t.look, token: '', room, lastChat: 0, send: () => {} };
+}
+
+/**
+ * Uma cena do tabuleiro. As peças (tokens) andam aqui; quem está conectado só
+ * assiste e comanda (`viewers`) — uma pessoa controla o tabuleiro.
+ */
+export class RoomInstance {
+  data: RoomData;
+  map: RoomMap;
+  /** peças no tabuleiro */
+  private users = new Map<number, RoomUser>();
+  /** conexões olhando esta cena */
+  private viewers = new Map<number, Client>();
+  private timer: NodeJS.Timeout | null = null;
+  private hotel: HotelApi;
+  private tokensDirty = false;
+
+  constructor(data: RoomData, hotel: HotelApi) {
+    this.data = data;
+    this.hotel = hotel;
+    this.map = new RoomMap(data.heightmap, data.door, data.items, data.wallItems);
+    for (const t of data.tokens ?? []) this.spawnToken(t, null);
+  }
+
+  get userCount() {
+    return this.viewers.size;
+  }
+
+  /** Posições das peças (planta/minimapa). */
+  userPositions() {
+    return [...this.users.values()].map((u) => ({ id: u.client.id, name: u.client.name ?? '?', x: u.x, y: u.y }));
+  }
+
+  /** Conexões olhando a cena. */
+  clients() {
+    return [...this.viewers.values()];
+  }
+
+  /** Peças desta cena. */
+  tokenList() {
+    return [...this.users.values()].map((u) => ({ id: u.client.id, name: u.client.name ?? '?', look: u.client.look, color: u.meta?.color, capacity: u.meta?.capacity }));
+  }
+
+  private ensureTimer() {
+    if (!this.timer && (this.viewers.size || this.users.size)) this.timer = setInterval(() => this.tick(), TICK_MS);
+  }
+
+  /** Cria a peça na cena (na passagem que liga a `fromRoomId`, ou na posição salva, ou na porta). */
+  private spawnToken(t: TokenData, fromRoomId: number | null): RoomUser {
+    const d = this.data.door;
+    const back = fromRoomId ? this.map.allItems().find((it) => it.link === fromRoomId && getFurni(it.defId)?.portal) : undefined;
+    const valid = !back && this.map.floorHeight(t.x, t.y) !== null && fromRoomId === null;
+    const sx = back ? back.x : valid ? t.x : d.x;
+    const sy = back ? back.y : valid ? t.y : d.y;
+    const sdir = back ? (back.rot + 4) % 8 : valid ? t.dir : d.dir;
+    const u: RoomUser = {
+      client: tokenClient({ ...t, x: sx, y: sy, dir: sdir }, this),
+      x: sx,
+      y: sy,
+      z: this.map.standHeight(sx, sy),
+      dir: sdir,
+      headDir: sdir,
+      goal: null,
+      next: null,
+      sit: 0,
+      dance: false,
+      dirty: false,
+      headResetAt: 0,
+      arrivedAt: back ? { x: sx, y: sy } : null,
+      meta: { color: t.color, capacity: t.capacity },
+    };
+    this.users.set(u.client.id, u);
+    this.settle(u);
+    this.ensureTimer();
+    return u;
+  }
+
+  /** Coloca uma peça vinda de outra cena (ou nova). */
+  putToken(t: TokenData, fromRoomId: number | null) {
+    const u = this.spawnToken(t, fromRoomId);
+    this.broadcast({ t: 'userJoin', user: this.userInfo(u) });
+    this.saveTokens();
+  }
+
+  /** Tira a peça desta cena e devolve os dados dela. */
+  takeToken(tokenId: number): TokenData | null {
+    const u = this.users.get(tokenId);
+    if (!u) return null;
+    this.users.delete(tokenId);
+    this.broadcast({ t: 'userLeave', id: tokenId });
+    this.saveTokens();
+    return this.tokenData(u);
+  }
+
+  private tokenData(u: RoomUser): TokenData {
+    return { id: -u.client.id, name: u.client.name ?? '?', look: u.client.look, x: u.x, y: u.y, dir: u.dir, color: u.meta?.color, capacity: u.meta?.capacity };
+  }
+
+  private saveTokens() {
+    this.data.tokens = [...this.users.values()].map((u) => this.tokenData(u));
+    this.hotel.save();
+    this.hotel.touch();
+  }
+
+  portals() {
+    const out: { x: number; y: number; link: number }[] = [];
+    for (const it of this.map.allItems()) if (it.link && getFurni(it.defId)?.portal) out.push({ x: it.x, y: it.y, link: it.link });
+    return out;
+  }
+
+  isOwner(c: Client) {
+    const n = (c.name ?? '').toLowerCase();
+    return n === this.data.owner.toLowerCase() || (this.data.owner === SYSTEM_OWNER && this.data.publicBuild);
+  }
+
+  canBuild(c: Client) {
+    return this.data.publicBuild || this.isOwner(c);
+  }
+
+  info(c: Client): RoomInfo {
+    return {
+      id: this.data.id,
+      name: this.data.name,
+      description: this.data.description,
+      owner: this.data.owner,
+      heightmap: this.data.heightmap,
+      door: this.data.door,
+      darkness: this.data.darkness,
+      lightMode: this.data.lightMode ?? 'normal',
+      fog: this.data.fog ?? 0,
+      publicBuild: this.data.publicBuild,
+      canBuild: this.canBuild(c),
+      isOwner: this.isOwner(c),
+    };
+  }
+
+  // ---------- visibilidade de pistas e itens ----------
+  /** Jogador comum não recebe pista oculta nem item ainda não revelado (a não ser o que está com ele). */
+  private hide<T extends FloorItem | WallItem>(it: T, c: Client): T {
+    if (this.canBuild(c)) return it;
+    const out = { ...it };
+    if (out.hint && !out.hint.visible) delete out.hint;
+    if (out.loot) {
+      const me = (c.name ?? '').toLowerCase();
+      out.loot = out.loot.filter((l) => l.revealed || l.holder?.toLowerCase() === me);
+    }
+    return out;
+  }
+  private floorFor(it: FloorItem, c: Client): FloorItem {
+    return this.hide(it, c);
+  }
+  private wallFor(it: WallItem, c: Client): WallItem {
+    return this.hide(it, c);
+  }
+
+  private broadcast(msg: ServerMsg, exceptId?: number) {
+    for (const c of this.viewers.values()) if (c.id !== exceptId) c.send(msg);
+  }
+  private broadcastFloor(t: 'itemAdd' | 'itemUpdate', it: FloorItem) {
+    for (const c of this.viewers.values()) c.send({ t, item: this.floorFor(it, c) });
+  }
+  private broadcastWall(t: 'wallAdd' | 'wallUpdate', it: WallItem) {
+    for (const c of this.viewers.values()) c.send({ t, item: this.wallFor(it, c) });
+  }
+
+  private userInfo(u: RoomUser): UserInfo {
+    return { ...this.status(u), name: u.client.name ?? '?', look: u.client.look, color: u.meta?.color };
+  }
+
+  private status(u: RoomUser): UserStatus {
+    const s: UserStatus = {
+      id: u.client.id,
+      x: u.x,
+      y: u.y,
+      z: u.z,
+      dir: u.dir,
+      headDir: u.headDir,
+      sit: u.sit,
+      dance: u.dance,
+    };
+    if (u.next) s.mv = { x: u.next.x, y: u.next.y, z: this.map.standHeight(u.next.x, u.next.y) };
+    return s;
+  }
+
+  // ---------- entrada / saída ----------
+  /** Conexão passa a olhar/comandar esta cena. */
+  join(c: Client, _fromRoomId?: number) {
+    this.viewers.set(c.id, c);
+    c.room = this;
+    this.sendEnter(c);
+    this.ensureTimer();
+    this.hotel.roomChanged();
+  }
+
+  /** Conteúdo da cena para miniatura (mesma visibilidade de quem entra). */
+  peek(c: Client) {
+    c.send({
+      t: 'peek',
+      room: this.info(c),
+      items: this.map.allItems().map((it) => this.floorFor(it, c)),
+      wallItems: this.map.allWallItems().map((it) => this.wallFor(it, c)),
+    });
+  }
+
+  private sendEnter(c: Client) {
+    c.send({
+      t: 'roomEnter',
+      room: this.info(c),
+      items: this.map.allItems().map((it) => this.floorFor(it, c)),
+      wallItems: this.map.allWallItems().map((it) => this.wallFor(it, c)),
+      users: [...this.users.values()].map((o) => this.userInfo(o)),
+    });
+  }
+
+  leave(c: Client) {
+    if (!this.viewers.delete(c.id)) return;
+    c.room = null;
+    this.hotel.roomChanged();
+  }
+
+  updateLook(_c: Client) {
+    // quem assiste não tem avatar
+  }
+
+  // ---------- loop ----------
+  private occupied(x: number, y: number, exceptId: number) {
+    for (const o of this.users.values()) {
+      if (o.client.id === exceptId) continue;
+      if (o.x === x && o.y === y) return true;
+      if (o.next && o.next.x === x && o.next.y === y) return true;
+    }
+    return false;
+  }
+
+  private settle(u: RoomUser) {
+    const z = this.map.standHeight(u.x, u.y);
+    if (z !== u.z) {
+      u.z = z;
+      u.dirty = true;
+    }
+    const seat = this.map.sitItem(u.x, u.y);
+    if (seat) {
+      if (u.sit !== 1 || u.dir !== seat.rot) {
+        u.sit = 1;
+        u.dir = u.headDir = seat.rot;
+        u.dirty = true;
+      }
+    } else if (u.sit === 1) {
+      u.sit = 0;
+      u.dirty = true;
+    }
+  }
+
+  private tick() {
+    const now = Date.now();
+    const updates: UserStatus[] = [];
+    for (const u of this.users.values()) {
+      if (u.next) {
+        u.x = u.next.x;
+        u.y = u.next.y;
+        u.next = null;
+        u.dirty = true;
+      }
+      if (u.goal) {
+        if (u.goal.x === u.x && u.goal.y === u.y) u.goal = null;
+        else {
+          const path = findPath(this.map, u, u.goal, (x, y) => this.occupied(x, y, u.client.id));
+          if (!path || !path.length) u.goal = null;
+          else {
+            const step = path[0];
+            u.dir = u.headDir = directionTo(u, step);
+            u.next = step;
+            u.sit = 0;
+            u.headResetAt = 0;
+            u.dirty = true;
+          }
+        }
+      }
+      if (!u.next) this.settle(u);
+      else u.z = this.map.standHeight(u.x, u.y);
+      if (u.headResetAt && now >= u.headResetAt) {
+        u.headResetAt = 0;
+        if (u.headDir !== u.dir) {
+          u.headDir = u.dir;
+          u.dirty = true;
+        }
+      }
+      if (u.dirty) {
+        u.dirty = false;
+        updates.push(this.status(u));
+      }
+    }
+    if (updates.length) this.broadcast({ t: 'status', updates });
+    // guarda a posição das peças quando param de andar
+    const moving = [...this.users.values()].some((u) => u.next || u.goal);
+    if (updates.length) this.tokensDirty = true;
+    if (this.tokensDirty && !moving) {
+      this.tokensDirty = false;
+      this.saveTokens();
+    }
+
+    // Passagens: peça que parou em cima vai para a cena ligada.
+    const travel: [number, number][] = [];
+    for (const u of this.users.values()) {
+      if (u.arrivedAt && (u.arrivedAt.x !== u.x || u.arrivedAt.y !== u.y)) u.arrivedAt = null;
+      if (u.next || u.goal || u.arrivedAt) continue;
+      const portal = this.map.itemsAt(u.x, u.y).find((it) => it.link && getFurni(it.defId)?.portal);
+      if (portal?.link && this.hotel.roomExists(portal.link)) travel.push([u.client.id, portal.link]);
+    }
+    for (const [tokenId, roomId] of travel) this.hotel.moveToken(this, tokenId, roomId);
+    if (!this.viewers.size && !this.users.size && this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
+    }
+  }
+
+  private resettleAll() {
+    for (const u of this.users.values()) if (!u.next) this.settle(u);
+  }
+
+  private usersOn(tiles: Point[]) {
+    for (const u of this.users.values())
+      for (const t of tiles) {
+        if (u.x === t.x && u.y === t.y) return true;
+        if (u.next && u.next.x === t.x && u.next.y === t.y) return true;
+      }
+    return false;
+  }
+
+  // ---------- mensagens ----------
+  handle(c: Client, m: Record<string, unknown>) {
+    if (!this.viewers.has(c.id)) return;
+    // as operações de construção só usam `client`
+    const u = { client: c } as RoomUser;
+    switch (m.t) {
+      case 'tokenAdd':
+      case 'tokenEdit':
+      case 'tokenRemove':
+      case 'tokenWalk':
+      case 'tokenFace':
+      case 'tokenScene':
+        this.tokenCmd(c, m);
+        break;
+      case 'place':
+        this.place(u, m);
+        break;
+      case 'placeWall':
+        this.placeWall(u, m);
+        break;
+      case 'moveItem':
+        this.moveItem(u, m);
+        break;
+      case 'moveWallItem':
+        this.moveWallItem(u, m);
+        break;
+      case 'pickup':
+        if (isInt(m.id)) this.pickup(u, m.id);
+        break;
+      case 'use':
+        if (isInt(m.id)) this.use(u, m.id);
+        break;
+      case 'setHint':
+        if (isInt(m.id)) this.setHint(u, m.id, m.hint);
+        break;
+      case 'roomSettings':
+        this.settings(u, m);
+        break;
+      case 'roomFx':
+        this.fx(u, m);
+        break;
+      case 'setLink':
+        if (isInt(m.id)) this.setLink(u, m.id, m.roomId);
+        break;
+      case 'lootAdd':
+      case 'lootRemove':
+      case 'lootGive':
+      case 'lootReveal':
+      case 'actionAdd':
+      case 'actionRemove':
+      case 'actionLog':
+        if (isInt(m.itemId)) this.editItemRpg(u, m.itemId, m);
+        break;
+      case 'floorPlan':
+        this.floorPlan(u, m);
+        break;
+    }
+  }
+
+  private err(c: Client, msg: string) {
+    c.send({ t: 'error', msg });
+  }
+
+  private chat(u: RoomUser, raw: string, shout: boolean) {
+    const now = Date.now();
+    if (now - u.client.lastChat < 350) return;
+    u.client.lastChat = now;
+    const text = clean(raw, MAX_CHAT);
+    if (!text) return;
+    const name = u.client.name ?? '?';
+
+    const rollMatch = text.match(/^\/(?:r|rolar|roll)\s+(.+)$/i);
+    if (rollMatch) {
+      const spec = parseRoll(rollMatch[1]);
+      if (!spec) return this.err(u.client, 'Rolagem inválida. Ex: /r 2d20+3, /r 3d20kh');
+      const roll = evalRoll(spec, (s) => crypto.randomInt(1, s + 1));
+      this.broadcast({ t: 'chat', id: u.client.id, name, text: `rolou ${roll.expr}`, kind: 'roll', roll });
+      return;
+    }
+
+    this.broadcast({ t: 'chat', id: u.client.id, name, text, kind: shout ? 'shout' : 'say' });
+    // Os outros viram a cabeça para quem falou.
+    for (const o of this.users.values()) {
+      if (o === u || o.next || o.goal) continue;
+      const d = directionTo(o, u);
+      if (o.headDir !== d) {
+        o.headDir = d;
+        o.dirty = true;
+      }
+      o.headResetAt = now + 5000;
+    }
+  }
+
+  private action(u: RoomUser, a: unknown) {
+    if (a === 'wave') this.broadcast({ t: 'action', id: u.client.id, action: 'wave' });
+    else if (a === 'dance') {
+      u.dance = !u.dance;
+      u.dirty = true;
+    } else if (a === 'sit') {
+      if (!u.next && !u.goal && u.sit === 0) {
+        u.sit = 2;
+        if (u.dir % 2 === 1) u.dir = u.headDir = (u.dir + 7) % 8;
+        u.dirty = true;
+      }
+    } else if (a === 'stand') {
+      if (u.sit === 2) {
+        u.sit = 0;
+        u.dirty = true;
+      }
+    }
+  }
+
+  private takeFromInventory(c: Client, invId: unknown): InvItem | null | undefined {
+    if (invId === undefined || invId === null) return undefined;
+    if (!isInt(invId)) return null;
+    const inv = this.hotel.inventory(c);
+    const i = inv.findIndex((it) => it.id === invId);
+    if (i < 0) return null;
+    return inv[i];
+  }
+
+  private removeFromInventory(c: Client, id: number) {
+    const inv = this.hotel.inventory(c);
+    const i = inv.findIndex((it) => it.id === id);
+    if (i >= 0) inv.splice(i, 1);
+    this.hotel.sendInventory(c);
+  }
+
+  private place(u: RoomUser, m: Record<string, unknown>) {
+    const c = u.client;
+    if (!this.canBuild(c)) return this.err(c, 'Você não tem permissão para construir aqui.');
+    if (!isInt(m.x) || !isInt(m.y) || !isInt(m.rot)) return;
+    const inv = this.takeFromInventory(c, m.invId);
+    if (inv === null) return this.err(c, 'Item não está no inventário.');
+    const defId = inv ? inv.defId : typeof m.defId === 'string' ? m.defId : '';
+    const def = getFurni(defId);
+    if (!def) return this.err(c, 'Mobi inválido.');
+    const res = this.map.canPlace(defId, m.x, m.y, m.rot);
+    if (!res.ok) return this.err(c, res.reason ?? 'Não dá para colocar aí.');
+    if (!def.walkable && !def.sit && this.usersOn(this.map.tilesFor(defId, m.x, m.y, m.rot)))
+      return this.err(c, 'Tem alguém no caminho.');
+    const item: FloorItem = { id: inv ? inv.id : this.hotel.nextItemId(), defId, x: m.x, y: m.y, z: res.z, rot: m.rot, state: 0 };
+    if (inv) this.removeFromInventory(c, inv.id);
+    this.map.addItem(item);
+    this.persist();
+    this.broadcastFloor('itemAdd', item);
+    this.resettleAll();
+  }
+
+  private placeWall(u: RoomUser, m: Record<string, unknown>) {
+    const c = u.client;
+    if (!this.canBuild(c)) return this.err(c, 'Você não tem permissão para construir aqui.');
+    if ((m.wall !== 'l' && m.wall !== 'r') || !isInt(m.plane) || !isNum(m.pos) || !isNum(m.z)) return;
+    const inv = this.takeFromInventory(c, m.invId);
+    if (inv === null) return this.err(c, 'Item não está no inventário.');
+    const defId = inv ? inv.defId : typeof m.defId === 'string' ? m.defId : '';
+    if (!getWallFurni(defId)) return this.err(c, 'Mobi de parede inválido.');
+    const pos = Math.round(m.pos * 64) / 64;
+    const z = Math.round(m.z * 64) / 64;
+    const res = this.map.canPlaceWall(defId, m.wall, m.plane, pos, z);
+    if (!res.ok) return this.err(c, res.reason ?? 'Não dá para colocar aí.');
+    const item: WallItem = { id: inv ? inv.id : this.hotel.nextItemId(), defId, wall: m.wall, plane: m.plane, pos, z, state: 0 };
+    if (inv) this.removeFromInventory(c, inv.id);
+    this.map.setWallItem(item);
+    this.persist();
+    this.broadcastWall('wallAdd', item);
+  }
+
+  private moveItem(u: RoomUser, m: Record<string, unknown>) {
+    const c = u.client;
+    if (!this.canBuild(c)) return this.err(c, 'Sem permissão.');
+    if (!isInt(m.id) || !isInt(m.x) || !isInt(m.y) || !isInt(m.rot)) return;
+    const it = this.map.getItem(m.id);
+    if (!it) return;
+    const def = getFurni(it.defId)!;
+    const res = this.map.canPlace(it.defId, m.x, m.y, m.rot, it.id);
+    if (!res.ok) {
+      c.send({ t: 'itemUpdate', item: this.floorFor(it, c) });
+      return this.err(c, res.reason ?? 'Não dá para mover para aí.');
+    }
+    if (!def.walkable && !def.sit) {
+      const old = new Set(this.map.tilesFor(it.defId, it.x, it.y, it.rot).map((p) => `${p.x},${p.y}`));
+      const tiles = this.map.tilesFor(it.defId, m.x, m.y, m.rot).filter((p) => !old.has(`${p.x},${p.y}`));
+      if (this.usersOn(tiles)) {
+        c.send({ t: 'itemUpdate', item: this.floorFor(it, c) });
+        return this.err(c, 'Tem alguém no caminho.');
+      }
+    }
+    const moved: FloorItem = { ...it, x: m.x, y: m.y, rot: m.rot, z: res.z };
+    this.map.updateItem(moved);
+    this.persist();
+    this.broadcastFloor('itemUpdate', moved);
+    this.resettleAll();
+  }
+
+  private moveWallItem(u: RoomUser, m: Record<string, unknown>) {
+    const c = u.client;
+    if (!this.canBuild(c)) return this.err(c, 'Sem permissão.');
+    if (!isInt(m.id) || (m.wall !== 'l' && m.wall !== 'r') || !isInt(m.plane) || !isNum(m.pos) || !isNum(m.z)) return;
+    const it = this.map.getWallItem(m.id);
+    if (!it) return;
+    const pos = Math.round(m.pos * 64) / 64;
+    const z = Math.round(m.z * 64) / 64;
+    const res = this.map.canPlaceWall(it.defId, m.wall, m.plane, pos, z);
+    if (!res.ok) {
+      c.send({ t: 'wallUpdate', item: this.wallFor(it, c) });
+      return this.err(c, res.reason ?? 'Não dá para mover para aí.');
+    }
+    const moved: WallItem = { ...it, wall: m.wall, plane: m.plane, pos, z };
+    this.map.setWallItem(moved);
+    this.persist();
+    this.broadcastWall('wallUpdate', moved);
+  }
+
+  private pickup(u: RoomUser, id: number) {
+    const c = u.client;
+    if (!this.canBuild(c)) return this.err(c, 'Sem permissão.');
+    const floor = this.map.getItem(id);
+    const wall = floor ? undefined : this.map.getWallItem(id);
+    if (!floor && !wall) return;
+    if (floor) {
+      this.map.removeItem(id);
+      this.broadcast({ t: 'itemRemove', id });
+    } else {
+      this.map.removeWallItem(id);
+      this.broadcast({ t: 'wallRemove', id });
+    }
+    this.hotel.inventory(c).push({ id, defId: (floor ?? wall)!.defId });
+    this.hotel.sendInventory(c);
+    this.persist();
+    this.resettleAll();
+  }
+
+  private use(u: RoomUser, id: number) {
+    const floor = this.map.getItem(id);
+    if (floor) {
+      const def = getFurni(floor.defId);
+      if (!def?.states || def.states < 2) return;
+      const it = { ...floor, state: (floor.state + 1) % def.states };
+      this.map.updateItem(it);
+      this.persist();
+      this.broadcastFloor('itemUpdate', it);
+      return;
+    }
+    const wall = this.map.getWallItem(id);
+    if (wall) {
+      const def = getWallFurni(wall.defId);
+      if (!def?.states || def.states < 2) return;
+      const it = { ...wall, state: (wall.state + 1) % def.states };
+      this.map.setWallItem(it);
+      this.persist();
+      this.broadcastWall('wallUpdate', it);
+    }
+  }
+
+  private setHint(u: RoomUser, id: number, raw: unknown) {
+    const c = u.client;
+    if (!this.canBuild(c)) return this.err(c, 'Só o mestre pode editar pistas.');
+    const hint = raw === null ? null : sanitizeHint(raw);
+    if (raw !== null && !hint) return this.err(c, 'Pista inválida.');
+    const floor = this.map.getItem(id);
+    if (floor) {
+      const it: FloorItem = { ...floor };
+      if (hint) it.hint = hint;
+      else delete it.hint;
+      this.map.updateItem(it);
+      this.persist();
+      this.broadcastFloor('itemUpdate', it);
+      return;
+    }
+    const wall = this.map.getWallItem(id);
+    if (wall) {
+      const it: WallItem = { ...wall };
+      if (hint) it.hint = hint;
+      else delete it.hint;
+      this.map.setWallItem(it);
+      this.persist();
+      this.broadcastWall('wallUpdate', it);
+    }
+  }
+
+  private settings(u: RoomUser, m: Record<string, unknown>) {
+    const c = u.client;
+    if (!this.isOwner(c)) return this.err(c, 'Só o dono pode mudar as configurações.');
+    if (typeof m.name === 'string') {
+      const n = clean(m.name, 30);
+      if (n.length >= 3) this.data.name = n;
+    }
+    if (typeof m.description === 'string') this.data.description = clean(m.description, 140);
+    if (isNum(m.darkness)) this.data.darkness = Math.max(0, Math.min(0.9, m.darkness));
+    if (typeof m.publicBuild === 'boolean' && this.data.owner !== SYSTEM_OWNER) this.data.publicBuild = m.publicBuild;
+    this.hotel.save();
+    for (const o of this.viewers.values()) o.send({ t: 'roomUpdate', room: this.info(o) });
+    this.hotel.roomChanged();
+  }
+
+  /** Comandos das peças: só quem controla o tabuleiro. */
+  private tokenCmd(c: Client, m: Record<string, unknown>) {
+    if (!this.canBuild(c)) return this.err(c, 'Só quem controla o tabuleiro move as peças.');
+    if (m.t === 'tokenAdd') {
+      if (this.users.size >= 30) return this.err(c, 'Máximo de 30 peças por cena.');
+      const name = typeof m.name === 'string' ? clean(m.name, 16) : '';
+      if (name.length < 1) return this.err(c, 'Dê um nome à peça.');
+      const d = this.data.door;
+      const color = typeof m.color === 'string' && /^#[0-9a-f]{6}$/i.test(m.color) ? m.color : undefined;
+      const capacity = isInt(m.capacity) ? Math.max(1, Math.min(99, m.capacity)) : undefined;
+      this.putToken({ id: this.hotel.nextItemId(), name, look: sanitizeLook(m.look), x: d.x, y: d.y, dir: d.dir, color, capacity }, null);
+      return;
+    }
+    const u = isInt(m.tokenId) ? this.users.get(m.tokenId) : undefined;
+    if (!u) return;
+    switch (m.t) {
+      case 'tokenWalk':
+        if (isInt(m.x) && isInt(m.y) && this.map.floorHeight(m.x, m.y) !== null) u.goal = { x: m.x, y: m.y };
+        break;
+      case 'tokenFace':
+        if (isInt(m.dir) && m.dir >= 0 && m.dir < 8 && !u.next) {
+          if (u.sit !== 1) u.dir = m.dir;
+          u.headDir = m.dir;
+          u.dirty = true;
+        }
+        break;
+      case 'tokenEdit': {
+        if (typeof m.name === 'string' && clean(m.name, 16)) u.client.name = clean(m.name, 16);
+        if (m.look) u.client.look = sanitizeLook(m.look);
+        u.meta ??= {};
+        if (typeof m.color === 'string' && /^#[0-9a-f]{6}$/i.test(m.color)) u.meta.color = m.color;
+        if (isInt(m.capacity)) u.meta.capacity = Math.max(1, Math.min(99, m.capacity));
+        this.broadcast({ t: 'userLeave', id: u.client.id });
+        this.broadcast({ t: 'userJoin', user: this.userInfo(u) });
+        this.saveTokens();
+        break;
+      }
+      case 'tokenRemove':
+        this.takeToken(u.client.id);
+        break;
+      case 'tokenScene':
+        if (isInt(m.roomId) && m.roomId !== this.data.id && this.hotel.roomExists(m.roomId)) this.hotel.moveToken(this, u.client.id, m.roomId);
+        break;
+    }
+  }
+
+  /** Itens dentro do mobi e interações (só mestre/construtor). */
+  private editItemRpg(u: RoomUser, itemId: number, m: Record<string, unknown>) {
+    const c = u.client;
+    if (!this.canBuild(c)) return this.err(c, 'Só o mestre mexe nos itens do cenário.');
+    const floor = this.map.getItem(itemId);
+    const wall = floor ? undefined : this.map.getWallItem(itemId);
+    const it = floor ?? wall;
+    if (!it) return;
+    const objName = it.hint?.title || anyFurniName(it.defId);
+    const loot = [...(it.loot ?? [])];
+    const actions = [...(it.actions ?? [])];
+    const gm = c.name ?? 'Mestre';
+    const lootIdx = isInt(m.lootId) ? loot.findIndex((l) => l.id === m.lootId) : -1;
+    switch (m.t) {
+      case 'lootAdd': {
+        const inp = sanitizeLootInput(m);
+        if (!inp) return this.err(c, 'Dê um nome ao item.');
+        if (loot.length >= 30) return this.err(c, 'Máximo de 30 itens por mobi.');
+        loot.push({ id: this.hotel.nextItemId(), ...inp, revealed: false });
+        break;
+      }
+      case 'lootRemove':
+        if (lootIdx < 0) return;
+        loot.splice(lootIdx, 1);
+        break;
+      case 'lootGive': {
+        if (lootIdx < 0) return;
+        const to = typeof m.to === 'string' ? clean(m.to, 16) : '';
+        const l = { ...loot[lootIdx], revealed: true };
+        if (to) l.holder = to;
+        else delete l.holder;
+        loot[lootIdx] = l;
+        this.hotel.log(this.data.id, 'give', to ? `${gm} entregou ${l.name} para ${to}.` : `${l.name} voltou para ${objName}.`);
+        break;
+      }
+      case 'lootReveal':
+        if (lootIdx < 0) return;
+        loot[lootIdx] = { ...loot[lootIdx], revealed: m.revealed === true };
+        break;
+      case 'actionAdd': {
+        const label = typeof m.label === 'string' ? clean(m.label, 40) : '';
+        const dt = isInt(m.dt) ? Math.max(0, Math.min(60, m.dt)) : 10;
+        if (!label) return this.err(c, 'Dê um nome à interação.');
+        if (actions.length >= 12) return;
+        actions.push({ id: this.hotel.nextItemId(), label, dt });
+        break;
+      }
+      case 'actionRemove': {
+        const i = isInt(m.actionId) ? actions.findIndex((a) => a.id === m.actionId) : -1;
+        if (i < 0) return;
+        actions.splice(i, 1);
+        break;
+      }
+      case 'actionLog': {
+        // resultado do teste feito na mesa, registrado pelo mestre
+        const a = actions.find((x) => x.id === m.actionId);
+        const player = typeof m.player === 'string' ? clean(m.player, 16) : '';
+        if (!a || !player) return;
+        const value = isInt(m.value) ? ` (${m.value})` : '';
+        this.hotel.log(this.data.id, 'user', `${player} — ${a.label} em ${objName} (DT ${a.dt}) — ${m.success === true ? 'Sucesso' : 'Falha'}${value}.`);
+        return;
+      }
+      default:
+        return;
+    }
+    const next: FloorItem | WallItem = { ...it };
+    if (loot.length) next.loot = loot;
+    else delete next.loot;
+    if (actions.length) next.actions = actions;
+    else delete next.actions;
+    if (floor) {
+      this.map.updateItem(next as FloorItem);
+      this.broadcastFloor('itemUpdate', next as FloorItem);
+    } else {
+      this.map.setWallItem(next as WallItem);
+      this.broadcastWall('wallUpdate', next as WallItem);
+    }
+    this.persist();
+    this.hotel.touch();
+  }
+
+  /** Itens de RPG deste quarto com dono (para a carga dos jogadores). */
+  heldLoot() {
+    const out: { holder: string; weight: number }[] = [];
+    const all = [...this.map.allItems(), ...this.map.allWallItems()];
+    for (const it of all) for (const l of it.loot ?? []) if (l.holder) out.push({ holder: l.holder, weight: l.weight });
+    return out;
+  }
+
+  /** Clima ao vivo: luz (normal/piscando/apagão), névoa e escuridão. */
+  private fx(u: RoomUser, m: Record<string, unknown>) {
+    const c = u.client;
+    if (!this.isOwner(c)) return this.err(c, 'Só o mestre controla o clima.');
+    if (LIGHT_MODES.includes(m.lightMode as LightMode)) this.data.lightMode = m.lightMode as LightMode;
+    if (isNum(m.fog)) this.data.fog = Math.max(0, Math.min(1, m.fog));
+    if (isNum(m.darkness)) this.data.darkness = Math.max(0, Math.min(0.9, m.darkness));
+    this.hotel.save();
+    for (const o of this.viewers.values()) o.send({ t: 'roomUpdate', room: this.info(o) });
+  }
+
+  private setLink(u: RoomUser, id: number, roomId: unknown) {
+    const c = u.client;
+    if (!this.canBuild(c)) return this.err(c, 'Sem permissão.');
+    const it = this.map.getItem(id);
+    if (!it || !getFurni(it.defId)?.portal) return;
+    const next: FloorItem = { ...it };
+    if (roomId === null) delete next.link;
+    else if (isInt(roomId) && roomId !== this.data.id && this.hotel.roomExists(roomId)) next.link = roomId;
+    else return this.err(c, 'Quarto de destino inválido.');
+    this.map.updateItem(next);
+    this.persist();
+    this.broadcastFloor('itemUpdate', next);
+  }
+
+  private floorPlan(u: RoomUser, m: Record<string, unknown>) {
+    const c = u.client;
+    if (!this.isOwner(c)) return this.err(c, 'Só o dono pode editar a planta.');
+    const hmSrc = typeof m.heightmap === 'string' ? m.heightmap : '';
+    const e = validateHeightmap(hmSrc);
+    if (e) return this.err(c, e);
+    const d = m.door as Door | undefined;
+    if (!d || !isInt(d.x) || !isInt(d.y) || !isInt(d.dir) || d.dir < 0 || d.dir > 7) return this.err(c, 'Porta inválida.');
+    const probe = new RoomMap(hmSrc, d);
+    if (probe.floorHeight(d.x, d.y) === null) return this.err(c, 'A porta precisa estar num piso.');
+
+    // Reposiciona os mobis que ainda cabem; o resto volta para o inventário.
+    const next = new RoomMap(hmSrc, { x: d.x, y: d.y, dir: d.dir });
+    const returned: InvItem[] = [];
+    for (const it of [...this.map.allItems()].sort((a, b) => a.z - b.z)) {
+      const res = next.canPlace(it.defId, it.x, it.y, it.rot);
+      if (res.ok) next.addItem({ ...it, z: res.z });
+      else returned.push({ id: it.id, defId: it.defId });
+    }
+    for (const it of this.map.allWallItems()) {
+      if (next.canPlaceWall(it.defId, it.wall, it.plane, it.pos, it.z).ok) next.setWallItem(it);
+      else returned.push({ id: it.id, defId: it.defId });
+    }
+    if (returned.length) {
+      this.hotel.inventory(c).push(...returned);
+      this.hotel.sendInventory(c);
+    }
+    this.data.heightmap = hmSrc.replace(/\r/g, '').split('\n').map((r) => r.trim()).filter(Boolean).join('\n');
+    this.data.door = { x: d.x, y: d.y, dir: d.dir };
+    this.map = next;
+    this.persist();
+    for (const o of this.users.values()) {
+      o.x = d.x;
+      o.y = d.y;
+      o.z = this.map.standHeight(d.x, d.y);
+      o.dir = o.headDir = d.dir;
+      o.goal = o.next = null;
+      o.sit = 0;
+    }
+    this.saveTokens();
+    for (const o of this.viewers.values()) this.sendEnter(o);
+    if (returned.length) this.err(c, `${returned.length} mobi(s) não couberam e voltaram para o inventário.`);
+  }
+
+  private persist() {
+    this.data.items = this.map.allItems();
+    this.data.wallItems = this.map.allWallItems();
+    this.hotel.save();
+  }
+}

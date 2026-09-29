@@ -1,0 +1,573 @@
+<title>Guia do MVP CROMA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,400;0,500;0,700;1,400&family=Ubuntu+Mono:wght@400;700&display=swap">
+<style>
+  /* Layout: uma coluna de fichas de papel sobre a mesa escura, como os papéis da própria tela do jogo. Visual único (escuro), escolhido de propósito. */
+  :root {
+    color-scheme: dark;
+    --desk: #121110;
+    --desk-ink: #d9d0c3;
+    --desk-muted: #9a9186;
+    --paper: #d6c3aa;
+    --paper-deep: #c9b395;
+    --paper-soft: #e0d1bc;
+    --ink: #2a241f;
+    --ink-2: #54483d;
+    --line: rgba(64, 48, 34, 0.26);
+    --red: #b3261e;
+    --red-ink: #8f1c16;
+    --ok: #2f6f41;
+    --warn: #8a5d06;
+    --mono: 'Ubuntu Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    --sans: 'Ubuntu', system-ui, 'Segoe UI', Roboto, sans-serif;
+    --step--1: 0.875rem;
+    --step-0: 1rem;
+    --step-1: 1.2rem;
+    --step-2: 1.5rem;
+    --step-3: clamp(1.9rem, 1.4rem + 2.2vw, 2.8rem);
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--desk); }
+  body {
+    background:
+      radial-gradient(ellipse 70% 50% at 50% 0%, rgba(120, 90, 60, 0.12), transparent 70%),
+      var(--desk);
+    color: var(--desk-ink);
+    font-family: var(--sans);
+    font-size: var(--step-0);
+    line-height: 1.55;
+    padding-inline: 16px;
+    padding-block: 32px 64px;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; display: grid; gap: 28px; }
+
+  /* ---------- cabeçalho ---------- */
+  header.top { display: grid; gap: 14px; padding-block: 8px 4px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-family: var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--desk-muted); font-size: var(--step--1); }
+  .brand svg { width: 28px; height: 28px; flex: none; }
+  h1 { margin: 0; font-family: var(--mono); font-weight: 700; font-size: var(--step-3); line-height: 1.05; letter-spacing: 0.01em; text-wrap: balance; color: #efe7da; }
+  .lead { margin: 0; max-width: 62ch; font-size: var(--step-1); color: var(--desk-ink); }
+  .meta { margin: 0; font-family: var(--mono); color: var(--desk-muted); font-size: var(--step--1); }
+  nav.toc { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+  nav.toc a { font-family: var(--mono); font-size: var(--step--1); color: var(--desk-ink); text-decoration: none; padding: 5px 10px; border: 1px solid #3a342e; border-radius: 3px; background: #1a1816; }
+  nav.toc a:hover, nav.toc a:focus-visible { border-color: var(--red); color: #fff; outline: none; }
+
+  /* ---------- fichas de papel ---------- */
+  .sheet {
+    position: relative;
+    background:
+      radial-gradient(ellipse at 15% 10%, rgba(255, 250, 238, 0.35), transparent 45%),
+      radial-gradient(ellipse at 90% 95%, rgba(110, 76, 40, 0.22), transparent 50%),
+      var(--paper);
+    color: var(--ink);
+    padding: clamp(18px, 3.2vw, 38px);
+    border-radius: 3px;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.25) inset, 0 0 40px rgba(90, 60, 30, 0.25) inset, 0 14px 30px rgba(0, 0, 0, 0.55);
+    min-width: 0;
+  }
+  .sheet > * + * { margin-top: 16px; }
+  .tape {
+    position: absolute; top: -11px; left: 50%; width: 110px; height: 24px; transform: translateX(-50%) rotate(-2deg);
+    background: rgba(222, 212, 190, 0.78); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
+  h2 { margin: 0; font-family: var(--mono); font-weight: 700; font-size: var(--step-2); letter-spacing: 0.03em; text-transform: uppercase; text-wrap: balance; }
+  h2::after { content: ''; display: block; width: min(220px, 60%); height: 3px; margin-top: 8px; background: var(--ink); border-radius: 0 2px 2px 0; opacity: 0.85; }
+  h3 { margin: 0; font-family: var(--mono); font-size: var(--step-1); letter-spacing: 0.02em; }
+  p { margin: 0; max-width: 68ch; }
+  .muted { color: var(--ink-2); }
+  code, kbd { font-family: var(--mono); font-size: 0.95em; background: rgba(64, 48, 34, 0.1); padding: 0 4px; border-radius: 2px; }
+
+  /* ---------- a tela ---------- */
+  .shot { margin: 0; position: relative; border-radius: 3px; overflow: hidden; background: #0c0b0a; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45); }
+  .shot .stage { position: relative; }
+  .shot img { display: block; width: 100%; height: auto; }
+  .pin {
+    position: absolute; transform: translate(-50%, -50%);
+    width: clamp(20px, 2.6vw, 30px); height: clamp(20px, 2.6vw, 30px);
+    display: grid; place-items: center; border-radius: 50%;
+    background: var(--red); color: #fff; font-family: var(--mono); font-weight: 700; font-size: clamp(11px, 1.3vw, 15px);
+    border: 2px solid #f3e9dc; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.6);
+    text-decoration: none; transition: transform 0.15s;
+  }
+  .pin:hover, .pin.hot, .pin:focus-visible { transform: translate(-50%, -50%) scale(1.25); outline: none; }
+  .shot figcaption { padding: 8px 12px; font-family: var(--mono); font-size: var(--step--1); color: #bfb4a6; background: #0c0b0a; }
+  .zones { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 12px; }
+  .zone { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; align-content: start; padding: 14px; border: 1px solid var(--line); border-radius: 3px; background: rgba(255, 250, 240, 0.28); min-width: 0; transition: background 0.15s, box-shadow 0.15s; }
+  .zone.hot { background: rgba(255, 250, 240, 0.55); box-shadow: 0 0 0 2px rgba(179, 38, 30, 0.55); }
+  .zone .n { grid-row: span 3; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: var(--red); color: #fff; font-family: var(--mono); font-weight: 700; }
+  .zone h3 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .zone p { font-size: 0.95rem; }
+  .zone b { font-family: var(--mono); font-weight: 700; color: var(--ink-2); letter-spacing: 0.04em; text-transform: uppercase; font-size: 0.78rem; margin-right: 4px; }
+  .chip { font-family: var(--mono); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 1px 7px; border-radius: 2px; border: 1px solid; white-space: nowrap; }
+  .chip.ok { color: var(--ok); border-color: rgba(47, 111, 65, 0.55); background: rgba(47, 111, 65, 0.1); }
+  .chip.change { color: var(--warn); border-color: rgba(138, 93, 6, 0.55); background: rgba(138, 93, 6, 0.1); }
+  .chip.art { color: var(--red-ink); border-color: rgba(179, 38, 30, 0.5); background: rgba(179, 38, 30, 0.08); }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; font-size: var(--step--1); color: var(--ink-2); }
+
+  /* ---------- colunas simples ---------- */
+  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 18px; }
+  .cols > div { min-width: 0; }
+  ul.clean { margin: 8px 0 0; padding-left: 1.1em; display: grid; gap: 6px; }
+  ul.clean li::marker { color: var(--red); }
+
+  /* ---------- camadas do tabuleiro ---------- */
+  .layers { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; counter-reset: layer; }
+  .layers li { counter-increment: layer; display: grid; grid-template-columns: 2.4rem 1fr; gap: 12px; align-items: start; padding: 12px 14px; border-radius: 3px; background: rgba(42, 36, 31, calc(0.06 + var(--d) * 0.035)); border-left: 4px solid rgba(42, 36, 31, calc(0.25 + var(--d) * 0.1)); min-width: 0; }
+  .layers li::before { content: counter(layer); font-family: var(--mono); font-weight: 700; font-size: 1.3rem; color: var(--ink-2); line-height: 1.2; }
+  .layers strong { font-family: var(--mono); }
+
+  /* ---------- artes ---------- */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 3px; background: rgba(255, 250, 240, 0.25); }
+  table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 0.95rem; }
+  th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+  th { font-family: var(--mono); font-size: 0.8rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); background: rgba(64, 48, 34, 0.08); }
+  tr:last-child td { border-bottom: 0; }
+  td.file { font-family: var(--mono); font-size: 0.88rem; word-break: break-word; }
+  .tick { display: flex; align-items: flex-start; gap: 10px; }
+  .tick input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--red); flex: none; }
+  .tick input:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+  tr.done td { color: var(--ink-2); }
+  tr.done .tick span { text-decoration: line-through; text-decoration-color: var(--red); text-decoration-thickness: 2px; }
+  .note { padding: 12px 14px; border-left: 4px solid var(--red); background: rgba(179, 38, 30, 0.07); border-radius: 0 3px 3px 0; }
+  .ref-sprite { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 16px; align-items: center; }
+  .ref-sprite img { width: 100%; height: auto; border-radius: 3px; background: #000; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); }
+  @media (max-width: 640px) { .ref-sprite { grid-template-columns: 1fr; } }
+
+  /* ---------- textos-modelo ---------- */
+  .prompt { position: relative; border: 1px dashed rgba(64, 48, 34, 0.45); border-radius: 3px; background: var(--paper-soft); min-width: 0; }
+  .prompt pre { margin: 0; padding: 14px 14px 14px; white-space: pre-wrap; word-break: break-word; font-family: var(--mono); font-size: 0.95rem; line-height: 1.5; color: var(--ink); }
+  .prompt .slot { background: rgba(179, 38, 30, 0.14); color: var(--red-ink); border-radius: 2px; padding: 0 3px; }
+  .prompt-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px 0 14px; }
+  .prompt-head h3 { font-size: 1rem; }
+  button.copy {
+    font-family: var(--mono); font-size: 0.85rem; font-weight: 700; letter-spacing: 0.03em;
+    padding: 6px 12px; border-radius: 3px; border: 1px solid #101214; background: #262a2d; color: #f2eee7; cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+  }
+  button.copy:hover { background: #353a3e; }
+  button.copy:active { transform: translateY(1px); }
+  button.copy:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+  button.copy.done { background: var(--ok); border-color: var(--ok); }
+  .fill-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 10px; }
+  .fill { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 3px; background: rgba(255, 250, 240, 0.3); min-width: 0; }
+  .fill strong { font-family: var(--mono); }
+  .fill p { grid-column: 1 / -1; font-size: 0.9rem; color: var(--ink-2); }
+
+  /* ---------- etapas ---------- */
+  .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+  .step { display: grid; grid-template-columns: 3.2rem 1fr; gap: 4px 16px; padding: 16px; border-radius: 3px; background: rgba(255, 250, 240, 0.3); border: 1px solid var(--line); min-width: 0; }
+  .step .num { grid-row: span 4; font-family: var(--mono); font-weight: 700; font-size: 2.2rem; line-height: 1; color: var(--red); }
+  .step h3 { font-size: 1.1rem; }
+  .step .who { font-family: var(--mono); font-size: 0.85rem; color: var(--ink-2); }
+  .step .done-when { padding: 8px 10px; background: rgba(47, 111, 65, 0.09); border-left: 3px solid var(--ok); border-radius: 0 3px 3px 0; font-size: 0.95rem; }
+  .step .done-when b { font-family: var(--mono); color: var(--ok); text-transform: uppercase; font-size: 0.78rem; letter-spacing: 0.06em; margin-right: 4px; }
+
+  /* ---------- decisões ---------- */
+  .decisions { margin: 0; padding-left: 1.4em; display: grid; gap: 12px; }
+  .decisions li::marker { font-family: var(--mono); font-weight: 700; color: var(--red); }
+  .decisions p + p { margin-top: 2px; }
+  .decisions .sug { font-size: 0.95rem; color: var(--ink-2); }
+
+  footer.end { color: var(--desk-muted); font-family: var(--mono); font-size: var(--step--1); text-align: center; }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="#c4261d" stroke-width="2"><circle cx="32" cy="32" r="17"/><circle cx="32" cy="32" r="11"/></g><g fill="#c4261d"><circle cx="32" cy="32" r="3.5"/><path d="M32 2l2.4 14h-4.8zM32 62l-2.4-14h4.8zM2 32l14-2.4v4.8zM62 32l-14 2.4v-4.8z"/></g></svg>
+      CROMA · Sombras de Arvendal
+    </div>
+    <h1>Guia do MVP</h1>
+    <p class="lead">A tela da referência funcionando como tela de videogame: bonita, animada, com cada botão fazendo o que promete e o mapa da sessão no centro.</p>
+    <p class="meta">Versão 1 · 29 de setembro de 2026 · para você aprovar antes de voltarmos ao código</p>
+    <nav class="toc" aria-label="Seções do guia">
+      <a href="#tela">A tela</a>
+      <a href="#muda">O que muda</a>
+      <a href="#tabuleiro">Como o tabuleiro funciona</a>
+      <a href="#artes">Artes</a>
+      <a href="#textos">Textos para o ChatGPT</a>
+      <a href="#etapas">Etapas</a>
+      <a href="#decisoes">Decisões</a>
+    </nav>
+  </header>
+
+  <!-- ================= A TELA ================= -->
+  <section class="sheet" id="tela" aria-labelledby="t-tela">
+    <span class="tape" aria-hidden="true"></span>
+    <h2 id="t-tela">A tela do MVP</h2>
+    <p>O MVP é uma tela só: esta. Cada número abaixo é uma parte dela, com o que faz quando você clica e como se mexe. A referência é a imagem inteira, em 1536×1024.</p>
+    <figure class="shot">
+      <div class="stage">
+      <img src="ref-mapa.webp" width="1536" height="1024" alt="Tela de referência: barra do topo com abas, lista de cenários à esquerda, planta do 1º andar, objetivos, tabuleiro isométrico do escritório no centro, painel da escrivaninha à direita com itens e entrega, retratos do grupo, inventário rápido e últimas ações embaixo.">
+      <a class="pin" href="#z1" data-z="1" style="left:20.5%;top:3.8%" aria-label="Parte 1">1</a>
+      <a class="pin" href="#z2" data-z="2" style="left:12.5%;top:11.7%" aria-label="Parte 2">2</a>
+      <a class="pin" href="#z3" data-z="3" style="left:8.8%;top:58.6%" aria-label="Parte 3">3</a>
+      <a class="pin" href="#z4" data-z="4" style="left:26.8%;top:68%" aria-label="Parte 4">4</a>
+      <a class="pin" href="#z5" data-z="5" style="left:41%;top:14%" aria-label="Parte 5">5</a>
+      <a class="pin" href="#z6" data-z="6" style="left:92%;top:12.4%" aria-label="Parte 6">6</a>
+      <a class="pin" href="#z7" data-z="7" style="left:92%;top:55.8%" aria-label="Parte 7">7</a>
+      <a class="pin" href="#z8" data-z="8" style="left:1.8%;top:84.5%" aria-label="Parte 8">8</a>
+      <a class="pin" href="#z9" data-z="9" style="left:53.5%;top:86.8%" aria-label="Parte 9">9</a>
+      <a class="pin" href="#z10" data-z="10" style="left:84.5%;top:86%" aria-label="Parte 10">10</a>
+      </div>
+      <figcaption>Referência do MVP (docs/ref-mapa.webp). Passe o mouse num número ou num item da lista.</figcaption>
+    </figure>
+    <div class="legend" aria-label="Legenda do estado de cada parte">
+      <span><span class="chip ok">Pronto</span> já funciona no app</span>
+      <span><span class="chip change">Muda</span> passa a usar a imagem da cena</span>
+      <span><span class="chip art">Falta arte</span> depende das imagens da seção Artes</span>
+    </div>
+    <ol class="zones">
+      <li class="zone" id="z1" data-z="1">
+        <span class="n">1</span>
+        <h3>Barra do topo <span class="chip ok">Pronto</span></h3>
+        <p><b>Faz</b>Nome e subtítulo da campanha (o mestre renomeia clicando). Abas: MAPA é a tela do MVP; as outras mostram “em breve”. Botão de clima (luz normal, piscando ou apagão, e névoa). Engrenagem com o menu. Encerrar sessão pede confirmação num bilhete.</p>
+        <p><b>Mexe</b>Aba levanta ao passar o mouse; o fio vermelho corre até a aba escolhida; fita e sublinhado aparecem na aba ativa; nome datilografado; símbolo pulsando.</p>
+      </li>
+      <li class="zone" id="z2" data-z="2">
+        <span class="n">2</span>
+        <h3>Cenário atual <span class="chip ok">Pronto</span> <span class="chip change">Muda</span></h3>
+        <p><b>Faz</b>As 7 cenas da mansão com miniatura. Clicar troca a cena do tabuleiro. A miniatura passa a ser um recorte da própria imagem da cena.</p>
+        <p><b>Mexe</b>Um pincel vermelho pinta a cena atual e a tinta da anterior desbota; a miniatura acende; o tabuleiro dissolve para a cena nova.</p>
+      </li>
+      <li class="zone" id="z3" data-z="3">
+        <span class="n">3</span>
+        <h3>1º andar <span class="chip ok">Pronto</span> <span class="chip art">Falta arte</span></h3>
+        <p><b>Faz</b>Planta do andar com o cômodo atual em vermelho e um ponto colorido para cada personagem. Clicar num cômodo troca a cena. Para ficar igual à referência, a planta vira a imagem desenhada (sem o vermelho, que o app pinta por cima).</p>
+        <p><b>Mexe</b>Um lápis de cor hachura o cômodo novo; etiqueta com o nome ao passar o mouse.</p>
+      </li>
+      <li class="zone" id="z4" data-z="4">
+        <span class="n">4</span>
+        <h3>Objetivos <span class="chip ok">Pronto</span></h3>
+        <p><b>Faz</b>Lista com caixinhas. O mestre marca, desmarca, cria e apaga objetivos. Cada conclusão entra nas últimas ações.</p>
+        <p><b>Mexe</b>Um lápis risca o check; ao desmarcar, a borracha apaga e solta farelos.</p>
+      </li>
+      <li class="zone" id="z5" data-z="5">
+        <span class="n">5</span>
+        <h3>Tabuleiro <span class="chip change">Muda</span> <span class="chip art">Falta arte</span></h3>
+        <p><b>Faz</b>A cena pintada com os personagens. Clicar num personagem (ou no retrato dele) passa a comandá-lo; clicar no chão faz ele andar desviando dos móveis. A lupa marca objetos com pista ou itens; clicar abre o objeto no painel. Andar até uma porta leva à cena vizinha.</p>
+        <p><b>Mexe</b>Personagens respiram e andam com passo; anel colorido no pé; marca de destino no chão; anel âmbar no objeto clicado; velas e lamparinas tremulando; poeira e névoa leves; a câmera desliza.</p>
+      </li>
+      <li class="zone" id="z6" data-z="6">
+        <span class="n">6</span>
+        <h3>Painel do objeto <span class="chip ok">Pronto</span> <span class="chip change">Muda</span></h3>
+        <p><b>Faz</b>Foto (recorte da cena em volta do objeto), nome, descrição e as abas Descrição, Interações e Itens. Itens com peso e tipo, botão Entregar ou “Entregue para”. Interações com DT; o mestre registra quem tentou e o resultado.</p>
+        <p><b>Mexe</b>A foto revela como polaroid; o texto é datilografado; o contorno vermelho da aba é desenhado a lápis; um carimbo SUCESSO ou FALHA bate no cartão.</p>
+      </li>
+      <li class="zone" id="z7" data-z="7">
+        <span class="n">7</span>
+        <h3>Entregar para <span class="chip ok">Pronto</span> <span class="chip art">Falta arte</span></h3>
+        <p><b>Faz</b>Cada personagem com retrato, carga atual, barra verde, amarela ou vermelha, carga depois da entrega e o aviso quando passa do limite. Os números batem com a referência: 6/10 → 8/10, 9/10 → 11/10, 4/12 → 6/12, 10/10 → 12/10.</p>
+        <p><b>Mexe</b>A barra enche, os números contam, o item voa em arco até o retrato e um “+2” sobe; o aviso de excesso treme.</p>
+      </li>
+      <li class="zone" id="z8" data-z="8">
+        <span class="n">8</span>
+        <h3>Retratos do grupo <span class="chip art">Falta arte</span></h3>
+        <p><b>Faz</b>Arthur, Cora, Miguel e Teps com a faixa da cor de cada um. Clicar comanda o personagem e centraliza a câmera nele.</p>
+        <p><b>Mexe</b>O retrato respira e pisca; o cartão inclina seguindo o mouse; brilho na cor do personagem quando ativo; balança enquanto ele anda; pulinho ao receber um item.</p>
+      </li>
+      <li class="zone" id="z9" data-z="9">
+        <span class="n">9</span>
+        <h3>Inventário rápido <span class="chip ok">Pronto</span> <span class="chip art">Falta arte</span></h3>
+        <p><b>Faz</b>Os itens da cena que ainda não foram entregues (até 7). Clicar abre o objeto que guarda o item. Os ícones pintados saem da referência.</p>
+        <p><b>Mexe</b>Os ícones surgem um a um; ao passar o mouse, uma etiqueta pendurada mostra nome e peso.</p>
+      </li>
+      <li class="zone" id="z10" data-z="10">
+        <span class="n">10</span>
+        <h3>Últimas ações <span class="chip ok">Pronto</span></h3>
+        <p><b>Faz</b>O registro da sessão: hora, ícone e texto de cada entrega, teste e objetivo.</p>
+        <p><b>Mexe</b>A linha nova abre espaço, a hora é carimbada e o texto é datilografado.</p>
+      </li>
+    </ol>
+  </section>
+
+  <!-- ================= O QUE MUDA ================= -->
+  <section class="sheet" id="muda" aria-labelledby="t-muda">
+    <h2 id="t-muda">O que fica, o que muda e o que fica fora</h2>
+    <div class="cols">
+      <div>
+        <h3>Fica (já pronto)</h3>
+        <ul class="clean">
+          <li>A interface inteira em papel, no mesmo lugar da referência.</li>
+          <li>As animações de menu: pincel, lápis, borracha, fio vermelho, polaroid, datilografia, voo do item, barras.</li>
+          <li>O servidor: campanha, cenas ligadas, personagens com carga, itens, entregas, interações, objetivos e registro.</li>
+          <li>Personagens andando com colisão e caminho automático.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Muda</h3>
+        <ul class="clean">
+          <li>O tabuleiro: sai o quarto desenhado por código, entra a imagem pintada da cena.</li>
+          <li>Retratos e ícones: saem os desenhados por código, entram os pintados.</li>
+          <li>Personagens no tabuleiro: passam a usar os seus sprites de 8 direções.</li>
+          <li>Miniaturas e fotos do painel: recortes automáticos das imagens das cenas.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Fora do MVP</h3>
+        <ul class="clean">
+          <li>Abas Combate, Interlúdio, Personagens, Itens e Notas.</li>
+          <li>Tela da mesa para os jogadores (sem os controles do mestre).</li>
+          <li>Editor para você montar cenas novas sozinho.</li>
+          <li>Fichas e regras completas de Ordem Paranormal; os dados continuam fora do app.</li>
+          <li>Versão instalável, com ícone na área de trabalho.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= TABULEIRO ================= -->
+  <section class="sheet" id="tabuleiro" aria-labelledby="t-tab">
+    <h2 id="t-tab">Como o tabuleiro vai funcionar</h2>
+    <p>Cada cena é uma imagem pintada. O app coloca camadas por cima dela, de baixo para cima:</p>
+    <ol class="layers">
+      <li style="--d:0"><div><strong>Imagem da cena.</strong> A ilustração do cômodo, sem personagens, centralizada no tabuleiro como na referência.</div></li>
+      <li style="--d:1"><div><strong>Grade de chão invisível.</strong> Alinhada ao piso da imagem. Cada casa é “dá para andar” ou “bloqueada” (móveis, paredes). É ela que faz a colisão funcionar.</div></li>
+      <li style="--d:2"><div><strong>Objetos.</strong> Uma área clicável em cima do móvel pintado, com a lupa, a descrição, as interações e os itens.</div></li>
+      <li style="--d:3"><div><strong>Portas.</strong> Casas que levam a outra cena. O personagem anda até elas e aparece na porta de volta da cena vizinha.</div></li>
+      <li style="--d:4"><div><strong>Personagens.</strong> Os seus sprites andando pela grade, com o anel colorido no pé.</div></li>
+      <li style="--d:5"><div><strong>Recortes de frente.</strong> Pedaços da própria imagem (estantes, colunas) redesenhados por cima quando um personagem passa atrás deles.</div></li>
+      <li style="--d:6"><div><strong>Luz e névoa.</strong> Brilho tremulando nas velas e lamparinas, poeira e névoa, e a escuridão controlada pelo botão de clima.</div></li>
+    </ol>
+    <p class="note">No MVP eu configuro a grade, os objetos e as portas das 7 cenas. O editor para você montar cenas novas sozinho vem depois do MVP.</p>
+  </section>
+
+  <!-- ================= ARTES ================= -->
+  <section class="sheet" id="artes" aria-labelledby="t-artes">
+    <h2 id="t-artes">Artes necessárias</h2>
+    <p>É isto que separa o app da referência hoje. Coloque os arquivos na pasta <code>arte</code>, dentro da pasta do projeto, com os nomes da tabela. Marque aqui o que já estiver pronto (fica salvo neste navegador).</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th scope="col">Arte</th><th scope="col">Quem faz</th><th scope="col">Formato</th><th scope="col">Arquivos</th></tr></thead>
+        <tbody>
+          <tr data-row="cenas"><td><label class="tick"><input type="checkbox" id="art-cenas"><span>7 cenas da mansão</span></label></td><td>Você, no ChatGPT</td><td>1536×1024, PNG ou WebP, sem personagens, ícones, textos ou interface</td><td class="file">cena-hall, cena-sala-de-estar, cena-biblioteca, cena-escritorio, cena-cozinha, cena-quarto, cena-jardim</td></tr>
+          <tr data-row="retratos"><td><label class="tick"><input type="checkbox" id="art-retratos"><span>4 retratos, cada um com olhos abertos e fechados</span></label></td><td>Você, no ChatGPT</td><td>512×512, fundo escuro liso; a versão de olhos fechados idêntica à outra</td><td class="file">retrato-arthur, retrato-arthur-olhos-fechados (e o mesmo para cora, miguel e teps)</td></tr>
+          <tr data-row="sprites"><td><label class="tick"><input type="checkbox" id="art-sprites"><span>4 sprites para o tabuleiro</span></label></td><td>Você</td><td>8 poses numa grade 4×2, mesmo tamanho, pés alinhados, fundo preto ou transparente, sem textos</td><td class="file">sprite-arthur, sprite-cora, sprite-miguel, sprite-teps</td></tr>
+          <tr data-row="planta"><td><label class="tick"><input type="checkbox" id="art-planta"><span>Planta do 1º andar sem o destaque vermelho</span></label></td><td>Você, no ChatGPT (opcional)</td><td>Recorte da planta da referência, todos os cômodos cinza</td><td class="file">planta-1-andar</td></tr>
+          <tr data-row="icones"><td><label class="tick"><input type="checkbox" id="art-icones"><span>Ícones dos itens</span></label></td><td>Eu, recortando da referência</td><td>Faca, diário, chave, carta, frasco, fita e caixa</td><td class="file">(automático)</td></tr>
+          <tr data-row="auto"><td><label class="tick"><input type="checkbox" id="art-auto"><span>Miniaturas das cenas e fotos do painel</span></label></td><td>O app</td><td>Recortes das imagens das cenas</td><td class="file">(automático)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="ref-sprite">
+      <img src="ref-sprite-8dir.webp" width="1448" height="1086" alt="Folha de sprite de exemplo com 8 poses do mesmo personagem: cima, cima-direita, direita, baixo-direita, baixo, baixo-esquerda, esquerda e cima-esquerda.">
+      <div>
+        <h3>Formato da folha de sprite</h3>
+        <p>A sua folha de 8 direções já está no formato certo. Só falta tirar os textos das poses. A ordem é a mesma da imagem: na primeira linha CIMA, CIMA-DIREITA, DIREITA, BAIXO-DIREITA; na segunda BAIXO, BAIXO-ESQUERDA, ESQUERDA, CIMA-ESQUERDA.</p>
+        <p class="muted">Um quadro por pose basta. A respiração e o passo são animados pelo app. Se um dia quiser caminhada de verdade, é só mandar quadros extras.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= TEXTOS ================= -->
+  <section class="sheet" id="textos" aria-labelledby="t-textos">
+    <h2 id="t-textos">Textos para o ChatGPT</h2>
+    <p>Anexe sempre a imagem da referência (<code>docs/ref-mapa.webp</code>) na conversa. Gere algumas versões e escolha a melhor. Se o estilo fugir, anexe a referência de novo e peça “mais parecido com a referência”. O piso precisa ter o mesmo ângulo em losango da referência: é por ele que eu alinho a grade de caminhada.</p>
+
+    <div class="prompt">
+      <div class="prompt-head"><h3>Escritório (refazer a cena da referência)</h3><button class="copy" type="button" data-copy="p-escritorio">Copiar</button></div>
+      <pre id="p-escritorio">Use a imagem anexada. Refaça só o escritório do tabuleiro central, exatamente igual (mesma câmera, móveis e luz), mas sem os quatro personagens e sem o ícone da lupa. Complete as partes que estão cobertas pelos papéis da interface. Não desenhe textos nem interface. Imagem horizontal 1536×1024, com o cômodo centralizado na escuridão total.</pre>
+    </div>
+
+    <div class="prompt">
+      <div class="prompt-head"><h3>Outras cenas (texto-base)</h3><button class="copy" type="button" data-copy="p-cena">Copiar texto-base</button></div>
+      <pre id="p-cena">Use a imagem anexada como referência de estilo: pixel art pintada, vista isométrica, clima de investigação paranormal, luz quente de velas e lamparinas e sombras profundas.
+
+Desenhe o cômodo <span class="slot">[CÔMODO]</span> de uma mansão antiga abandonada, com a mesma câmera isométrica e o mesmo tamanho de piso do tabuleiro da referência. Mostre só as duas paredes do fundo (esquerda e direita) e o chão, com o cômodo flutuando na escuridão total.
+
+Detalhes: <span class="slot">[DETALHES]</span>
+
+Deixe o centro do chão livre para os personagens andarem. Não desenhe personagens, pessoas, ícones, textos nem interface. Imagem horizontal 1536×1024, com o cômodo centralizado ocupando cerca de 60% da largura.</pre>
+    </div>
+    <div class="fill-list" data-base="p-cena" data-keys="[CÔMODO]|[DETALHES]">
+      <div class="fill"><strong>Hall de Entrada</strong><button class="copy" type="button" data-fill="Hall de Entrada|porta de entrada dupla de madeira, escadaria ao fundo, cabideiro com casacos velhos, lustre apagado, tapete comprido e retratos antigos nas paredes.">Copiar</button><p>porta dupla, escadaria, cabideiro, lustre apagado, retratos</p></div>
+      <div class="fill"><strong>Sala de Estar</strong><button class="copy" type="button" data-fill="Sala de Estar|lareira de pedra com brasas, sofás e poltronas cobertos por lençóis (um lençol caído no chão), mesa de centro e um relógio de pêndulo parado.">Copiar</button><p>lareira, sofás cobertos por lençóis, relógio de pêndulo</p></div>
+      <div class="fill"><strong>Biblioteca</strong><button class="copy" type="button" data-fill="Biblioteca|estantes altas cheias de livros, escada de biblioteca, mesa de leitura com velas e livros abertos, globo antigo e um livro caído no chão.">Copiar</button><p>estantes altas, escada, mesa de leitura, globo</p></div>
+      <div class="fill"><strong>Cozinha</strong><button class="copy" type="button" data-fill="Cozinha|fogão a lenha, bancada com farinha espalhada, panelas no chão, mesa rústica com cadeiras e um cepo de facas com um espaço vazio.">Copiar</button><p>fogão a lenha, farinha espalhada, cepo sem a faca maior</p></div>
+      <div class="fill"><strong>Quarto Principal</strong><button class="copy" type="button" data-fill="Quarto Principal|cama de dossel arrumada, guarda-roupa grande, penteadeira com espelho rachado, baú aos pés da cama e janela com cortinas pesadas.">Copiar</button><p>cama de dossel, guarda-roupa, espelho rachado, baú</p></div>
+      <div class="fill"><strong>Jardim</strong><button class="copy" type="button" data-fill="Jardim|jardim noturno cercado por muro de pedra no lugar das paredes, canteiros revirados, estátua de anjo, banco de ferro, lanternas a óleo e névoa baixa, sem teto.">Copiar</button><p>muro de pedra, canteiros revirados, estátua, névoa</p></div>
+    </div>
+
+    <div class="prompt">
+      <div class="prompt-head"><h3>Retratos (texto-base)</h3><button class="copy" type="button" data-copy="p-retrato">Copiar texto-base</button></div>
+      <pre id="p-retrato">Use a imagem anexada como referência: os retratos da parte de baixo da tela. Desenhe o retrato de <span class="slot">[NOME]</span>: <span class="slot">[DESCRIÇÃO]</span>. Busto, de frente, olhando para a câmera, fundo escuro liso, no mesmo estilo de pixel art pintada. Imagem quadrada 512×512, sem texto.
+
+Depois, na mesma conversa: Agora a mesma imagem exatamente igual, só com os olhos fechados.</pre>
+    </div>
+    <div class="fill-list" data-base="p-retrato" data-keys="[NOME]|[DESCRIÇÃO]">
+      <div class="fill"><strong>Arthur</strong><button class="copy" type="button" data-fill="Arthur|homem adulto de cabelo escuro comprido e barba cheia, casaco marrom surrado">Copiar</button><p>cabelo comprido, barba, casaco marrom</p></div>
+      <div class="fill"><strong>Cora</strong><button class="copy" type="button" data-fill="Cora|jovem de cabelo vermelho comprido e ondulado, roupa escura">Copiar</button><p>cabelo vermelho comprido, roupa escura</p></div>
+      <div class="fill"><strong>Miguel</strong><button class="copy" type="button" data-fill="Miguel|jovem de cabelo preto e óculos redondos, moletom branco com capuz">Copiar</button><p>cabelo preto, óculos redondos, moletom branco</p></div>
+      <div class="fill"><strong>Teps</strong><button class="copy" type="button" data-fill="Teps|jovem de cabelo branco bagunçado, roupa escura">Copiar</button><p>cabelo branco bagunçado, roupa escura</p></div>
+    </div>
+
+    <div class="prompt">
+      <div class="prompt-head"><h3>Sprites (texto-base)</h3><button class="copy" type="button" data-copy="p-sprite">Copiar texto-base</button></div>
+      <pre id="p-sprite">Use as imagens anexadas como referência: os personagens pequenos do tabuleiro e a minha folha de 8 direções. Desenhe <span class="slot">[NOME]</span> (<span class="slot">[DESCRIÇÃO]</span>) em pixel art chibi, corpo inteiro, em 8 poses numa grade de 4 colunas por 2 linhas. Primeira linha: CIMA, CIMA-DIREITA, DIREITA, BAIXO-DIREITA. Segunda linha: BAIXO, BAIXO-ESQUERDA, ESQUERDA, CIMA-ESQUERDA. Todas do mesmo tamanho, com os pés na mesma altura, fundo preto liso e nenhum texto.</pre>
+    </div>
+    <div class="fill-list" data-base="p-sprite" data-keys="[NOME]|[DESCRIÇÃO]">
+      <div class="fill"><strong>Arthur</strong><button class="copy" type="button" data-fill="Arthur|cabelo escuro comprido, barba cheia, casaco marrom surrado">Copiar</button><p>anexe a referência e a folha de 8 direções</p></div>
+      <div class="fill"><strong>Cora</strong><button class="copy" type="button" data-fill="Cora|cabelo vermelho comprido e ondulado, roupa escura">Copiar</button><p>anexe a referência e a folha de 8 direções</p></div>
+      <div class="fill"><strong>Miguel</strong><button class="copy" type="button" data-fill="Miguel|cabelo preto, óculos redondos, moletom branco com capuz">Copiar</button><p>anexe a referência e a folha de 8 direções</p></div>
+      <div class="fill"><strong>Teps</strong><button class="copy" type="button" data-fill="Teps|cabelo branco bagunçado, roupa escura">Copiar</button><p>anexe a referência e a folha de 8 direções</p></div>
+    </div>
+
+    <div class="prompt">
+      <div class="prompt-head"><h3>Planta do 1º andar (opcional)</h3><button class="copy" type="button" data-copy="p-planta">Copiar</button></div>
+      <pre id="p-planta">Na imagem anexada (recorte da planta do 1º andar), deixe todos os cômodos cinza, removendo o destaque vermelho, sem mudar mais nada.</pre>
+    </div>
+  </section>
+
+  <!-- ================= ETAPAS ================= -->
+  <section class="sheet" id="etapas" aria-labelledby="t-etapas">
+    <h2 id="t-etapas">Etapas</h2>
+    <p>Na ordem. Cada etapa termina com algo que você pode ver e aprovar.</p>
+    <ol class="steps">
+      <li class="step">
+        <span class="num">0</span>
+        <h3>Artes</h3>
+        <p class="who">Quem: você</p>
+        <p>Gerar as imagens da seção Artes. A primeira que importa é a do Escritório: com ela eu já começo.</p>
+        <p class="done-when"><b>Pronto quando</b>os arquivos estão na pasta <code>arte</code>.</p>
+      </li>
+      <li class="step">
+        <span class="num">1</span>
+        <h3>Escritório de prova</h3>
+        <p class="who">Quem: eu</p>
+        <p>Tabuleiro por imagem com a cena do Escritório: grade alinhada ao piso, colisão, lupa na escrivaninha abrindo o painel e os 4 personagens andando. Enquanto os sprites não chegam, eles usam os bonecos atuais.</p>
+        <p class="done-when"><b>Pronto quando</b>a foto do app, ao lado da referência, mostra o mesmo tabuleiro.</p>
+      </li>
+      <li class="step">
+        <span class="num">2</span>
+        <h3>As 7 cenas</h3>
+        <p class="who">Quem: eu</p>
+        <p>Lista de cenários e planta trocando a cena, portas levando de uma cena a outra, miniaturas e fotos do painel recortadas das imagens.</p>
+        <p class="done-when"><b>Pronto quando</b>dá para andar do Hall de Entrada até o Jardim passando pelas portas.</p>
+      </li>
+      <li class="step">
+        <span class="num">3</span>
+        <h3>Vida</h3>
+        <p class="who">Quem: eu</p>
+        <p>Retratos respirando e piscando, sprites respirando e com passo, velas tremulando, poeira, recortes de frente e ícones pintados.</p>
+        <p class="done-when"><b>Pronto quando</b>a tela parada por 10 segundos continua viva, como tela de jogo.</p>
+      </li>
+      <li class="step">
+        <span class="num">4</span>
+        <h3>Acabamento</h3>
+        <p class="who">Quem: eu, com a sua revisão</p>
+        <p>Sons, bilhetes de confirmação, revisão lado a lado em 1536×1024, limpeza do código antigo e versão salva no GitHub.</p>
+        <p class="done-when"><b>Pronto quando</b>cada botão da tela faz o que promete e você aprova a comparação com a referência.</p>
+      </li>
+    </ol>
+  </section>
+
+  <!-- ================= DECISÕES ================= -->
+  <section class="sheet" id="decisoes" aria-labelledby="t-dec">
+    <h2 id="t-dec">Decisões para você confirmar</h2>
+    <p>Minha sugestão está em cada item. Se concordar com tudo, é só dizer “aprovado”.</p>
+    <ol class="decisions">
+      <li><p>As abas Combate, Interlúdio, Personagens, Itens e Notas mostram “em breve” no MVP.</p><p class="sug">Sugestão: sim. Cada uma vira um projeto depois.</p></li>
+      <li><p>Cenas, retratos, sprites e planta você gera no ChatGPT com os textos desta página; os ícones eu recorto da referência.</p><p class="sug">Sugestão: sim. Dá para trocar os ícones por versões maiores depois.</p></li>
+      <li><p>A tela é desenhada para 1536×1024. Em telas 16:9 (como 1920×1080), o tabuleiro fica mais largo e o resto igual.</p><p class="sug">Sugestão: sim. Use o Chrome em tela cheia (F11) para ficar com cara de jogo.</p></li>
+      <li><p>Sprites com 8 poses e um quadro por pose; respiração e passo animados pelo app.</p><p class="sug">Sugestão: sim. Quadros de caminhada entram depois, se você quiser.</p></li>
+      <li><p>Eu configuro a grade, os objetos e as portas das 7 cenas do MVP.</p><p class="sug">Sugestão: sim. O editor de cenas vem depois do MVP.</p></li>
+      <li><p>Personagens só passam atrás dos móveis que eu recortar (estantes, colunas). Atrás dos outros, as casas ficam bloqueadas.</p><p class="sug">Sugestão: sim. Evita personagem aparecendo por cima de móvel.</p></li>
+      <li><p>A campanha de exemplo continua sendo Sombras de Arvendal, na Mansão Alvarez, com Arthur, Cora, Miguel e Teps.</p><p class="sug">Sugestão: sim, porque é a referência. Nomes, cenas e itens podem mudar depois.</p></li>
+    </ol>
+  </section>
+
+  <footer class="end">Próximo passo: você aprova as decisões e gera a imagem do Escritório. Com ela, eu começo a Etapa 1.</footer>
+</div>
+
+<script>
+  (function () {
+    // ----- números da imagem ↔ itens da lista -----
+    const zones = document.querySelectorAll('.zone');
+    const pins = document.querySelectorAll('.pin');
+    const hot = (z, on) => {
+      document.querySelectorAll('[data-z="' + z + '"]').forEach((el) => el.classList.toggle('hot', on));
+    };
+    [...zones, ...pins].forEach((el) => {
+      el.addEventListener('mouseenter', () => hot(el.dataset.z, true));
+      el.addEventListener('mouseleave', () => hot(el.dataset.z, false));
+      el.addEventListener('focus', () => hot(el.dataset.z, true));
+      el.addEventListener('blur', () => hot(el.dataset.z, false));
+    });
+
+    // ----- checklist das artes (fica neste navegador) -----
+    const KEY = 'croma-guia-artes';
+    let saved = {};
+    try {
+      saved = JSON.parse(localStorage.getItem(KEY) || '{}') || {};
+    } catch (e) {
+      saved = {};
+    }
+    document.querySelectorAll('.tick input').forEach((box) => {
+      const row = box.closest('tr');
+      box.checked = !!saved[box.id];
+      row.classList.toggle('done', box.checked);
+      box.addEventListener('change', () => {
+        saved[box.id] = box.checked;
+        row.classList.toggle('done', box.checked);
+        try {
+          localStorage.setItem(KEY, JSON.stringify(saved));
+        } catch (e) {
+          /* sem armazenamento: a marca vale só até fechar a página */
+        }
+      });
+    });
+
+    // ----- copiar textos -----
+    const flash = (btn, ok) => {
+      const old = btn.dataset.label || btn.textContent;
+      btn.dataset.label = old;
+      btn.textContent = ok ? 'Copiado' : 'Selecionado: use Ctrl+C';
+      btn.classList.toggle('done', ok);
+      setTimeout(() => {
+        btn.textContent = old;
+        btn.classList.remove('done');
+      }, 1800);
+    };
+    const selectText = (el) => {
+      const r = document.createRange();
+      r.selectNodeContents(el);
+      const s = window.getSelection();
+      s.removeAllRanges();
+      s.addRange(r);
+    };
+    const copy = (btn, text, fallbackEl) => {
+      const done = () => flash(btn, true);
+      const fail = () => {
+        if (fallbackEl) selectText(fallbackEl);
+        flash(btn, false);
+      };
+      try {
+        navigator.clipboard.writeText(text).then(done, fail);
+      } catch (e) {
+        fail();
+      }
+    };
+    document.querySelectorAll('button[data-copy]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const el = document.getElementById(btn.dataset.copy);
+        copy(btn, el.textContent, el);
+      });
+    });
+    document.querySelectorAll('button[data-fill]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const list = btn.closest('.fill-list');
+        const base = document.getElementById(list.dataset.base);
+        const keys = list.dataset.keys.split('|');
+        const vals = btn.dataset.fill.split('|');
+        let text = base.textContent;
+        keys.forEach((k, i) => {
+          text = text.split(k).join(vals[i] || '');
+        });
+        copy(btn, text, base);
+      });
+    });
+  })();
+</script>

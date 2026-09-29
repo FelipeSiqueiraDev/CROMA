@@ -1,0 +1,24 @@
+{
+  "name": "croma",
+  "private": true,
+  "version": "0.1.0",
+  "description": "CROMA - tabuleiro digital isométrico multiplayer (quartos, personagens, mobis, chat)",
+  "type": "module",
+  "workspaces": [
+    "shared",
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n server,client -c blue,magenta \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:server": "npm run dev -w @croma/server",
+    "dev:client": "npm run dev -w @croma/client",
+    "build": "npm run build -w @croma/client",
+    "start": "npm run start -w @croma/server",
+    "typecheck": "tsc -p shared && tsc -p server && tsc -p client"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5",
+    "typescript": "^7.0.2"
+  }
+}

@@ -1,0 +1,360 @@
+import type { WallFurniDef } from '@croma/shared';
+import { rng, shade } from './color';
+import { drawBlood, drawSigil, type LightKind } from './furniFloor';
+import { drawFlame, OUTLINE } from './painter';
+
+/** Luz em coordenadas locais do item (px a partir do canto superior esquerdo). */
+export interface WallLight {
+  x: number;
+  y: number;
+  radius: number;
+  color: string;
+  intensity: number;
+  flicker?: number;
+  pulse?: number;
+  kind?: LightKind;
+}
+
+type Draw = (ctx: CanvasRenderingContext2D, d: WallFurniDef, state: number, seed: number, t: number) => void;
+
+function frameRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, fill: string) {
+  ctx.fillStyle = OUTLINE;
+  ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
+  ctx.fillStyle = fill;
+  ctx.fillRect(x, y, w, h);
+}
+
+function tornPaper(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, color: string, seed: number) {
+  const r = rng(seed);
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  for (let i = 1; i <= 6; i++) ctx.lineTo(x + (w * i) / 6, y + (r() - 0.5) * 2);
+  for (let i = 1; i <= 7; i++) ctx.lineTo(x + w + (r() - 0.5) * 2, y + (h * i) / 7);
+  for (let i = 5; i >= 0; i--) ctx.lineTo(x + (w * i) / 6, y + h + (r() - 0.5) * 3);
+  for (let i = 6; i >= 1; i--) ctx.lineTo(x + (r() - 0.5) * 2, y + (h * i) / 7);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.save();
+  ctx.translate(1.5, 1.5);
+  ctx.fill();
+  ctx.restore();
+  const g = ctx.createLinearGradient(x, y, x + w, y + h);
+  g.addColorStop(0, shade(color, 0.08));
+  g.addColorStop(1, shade(color, -0.22));
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.fillStyle = 'rgba(90,60,30,0.18)';
+  for (let i = 0; i < 4; i++) {
+    ctx.beginPath();
+    ctx.ellipse(x + r() * w, y + r() * h, 2 + r() * 5, 1 + r() * 4, r() * 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function pin(ctx: CanvasRenderingContext2D, x: number, y: number, c = '#b3261e') {
+  ctx.fillStyle = OUTLINE;
+  ctx.fillRect(x - 2, y - 2, 4, 4);
+  ctx.fillStyle = c;
+  ctx.fillRect(x - 1, y - 1, 2, 2);
+}
+
+function writing(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, lines: number, seed: number, color = 'rgba(40,30,25,0.6)') {
+  const r = rng(seed);
+  ctx.fillStyle = color;
+  for (let i = 0; i < lines; i++) ctx.fillRect(x, y + i * 3, w * (0.5 + r() * 0.5), 1);
+}
+
+const draws: Record<string, Draw> = {
+  poster_sigil(ctx, d, _s, seed) {
+    const [paper, red] = d.colors;
+    tornPaper(ctx, 2, 2, d.w - 4, d.h - 4, paper, seed);
+    drawSigil(ctx, d.w / 2, d.h / 2 + 2, 14, red, seed, false);
+    writing(ctx, 8, d.h - 9, d.w - 16, 2, seed + 1, 'rgba(120,20,20,0.6)');
+    pin(ctx, 5, 5);
+    pin(ctx, d.w - 5, 5);
+  },
+
+  notes(ctx, d, _s, seed) {
+    const r = rng(seed);
+    const sheets: [number, number, number, number, number][] = [
+      [2, 6, 16, 20, -0.08],
+      [15, 2, 18, 22, 0.06],
+      [8, 16, 20, 18, 0.03],
+    ];
+    for (const [x, y, w, h, a] of sheets) {
+      ctx.save();
+      ctx.translate(x + w / 2, y + h / 2);
+      ctx.rotate(a);
+      tornPaper(ctx, -w / 2, -h / 2, w, h, shade(d.colors[0], (r() - 0.5) * 0.2), seed + x);
+      writing(ctx, -w / 2 + 3, -h / 2 + 4, w - 6, Math.floor(h / 3.5), seed + y);
+      pin(ctx, 0, -h / 2 + 2, r() < 0.5 ? '#b3261e' : '#c9a54a');
+      ctx.restore();
+    }
+    // foto
+    frameRect(ctx, 26, 20, 11, 13, '#e8e0d0');
+    ctx.fillStyle = '#2a2a2e';
+    ctx.fillRect(27, 21, 9, 9);
+    ctx.fillStyle = '#6a6a70';
+    ctx.fillRect(30, 23, 3, 3);
+    ctx.fillRect(29, 26, 5, 4);
+  },
+
+  board(ctx, d, _s, seed) {
+    const [wood, red] = d.colors;
+    frameRect(ctx, 0, 0, d.w, d.h, shade(wood, -0.3));
+    ctx.fillStyle = '#8a6a42';
+    ctx.fillRect(3, 3, d.w - 6, d.h - 6);
+    const r = rng(seed);
+    ctx.fillStyle = 'rgba(60,40,20,0.35)';
+    for (let i = 0; i < 60; i++) ctx.fillRect(3 + r() * (d.w - 7), 3 + r() * (d.h - 7), 1, 1);
+    const pins: [number, number][] = [];
+    const items: [number, number, number, number, boolean][] = [
+      [7, 7, 12, 14, true],
+      [26, 6, 14, 11, false],
+      [48, 8, 11, 14, true],
+      [10, 28, 15, 12, false],
+      [34, 24, 12, 15, true],
+      [55, 28, 14, 12, false],
+    ];
+    for (const [x, y, w, h, photo] of items) {
+      if (photo) {
+        frameRect(ctx, x, y, w, h, '#e8e0d0');
+        ctx.fillStyle = '#2a2a30';
+        ctx.fillRect(x + 1, y + 1, w - 2, h - 4);
+        ctx.fillStyle = '#7a7a80';
+        ctx.fillRect(x + w / 2 - 2, y + 3, 4, 4);
+        ctx.fillRect(x + w / 2 - 3, y + 7, 6, h - 10);
+      } else {
+        tornPaper(ctx, x, y, w, h, '#d8cdb0', seed + x);
+        writing(ctx, x + 2, y + 3, w - 4, Math.floor(h / 3.5), seed + y);
+      }
+      pins.push([x + w / 2, y + 2]);
+    }
+    ctx.strokeStyle = red;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    const order = [0, 4, 2, 5, 3, 0, 1];
+    order.forEach((i, k) => (k ? ctx.lineTo(pins[i][0], pins[i][1]) : ctx.moveTo(pins[i][0], pins[i][1])));
+    ctx.stroke();
+    for (const [x, y] of pins) pin(ctx, x, y);
+  },
+
+  window(ctx, d, state) {
+    const [frame, glow] = d.colors;
+    const on = state === 0;
+    frameRect(ctx, 0, 0, d.w, d.h, shade(frame, -0.3));
+    const g = ctx.createLinearGradient(0, 3, 0, d.h - 3);
+    g.addColorStop(0, on ? shade(glow, -0.25) : '#0c1118');
+    g.addColorStop(1, on ? shade(glow, -0.7) : '#05070a');
+    ctx.fillStyle = g;
+    ctx.fillRect(3, 3, d.w - 6, d.h - 6);
+    if (on) {
+      const rg = ctx.createRadialGradient(d.w * 0.66, d.h * 0.3, 1, d.w * 0.66, d.h * 0.3, 14);
+      rg.addColorStop(0, 'rgba(230,240,255,0.85)');
+      rg.addColorStop(1, 'rgba(160,200,255,0)');
+      ctx.fillStyle = rg;
+      ctx.fillRect(3, 3, d.w - 6, d.h - 6);
+    }
+    ctx.fillStyle = '#16181c';
+    for (let i = 1; i < 4; i++) ctx.fillRect((d.w * i) / 4 - 1, 3, 2, d.h - 6);
+    ctx.fillRect(3, d.h / 2 - 1, d.w - 6, 2);
+    ctx.fillStyle = shade(frame, -0.1);
+    ctx.fillRect(-2, d.h - 3, d.w + 4, 4);
+  },
+
+  sconce(ctx, d, state, seed, t) {
+    const [metal, wax] = d.colors;
+    const on = state === 0;
+    frameRect(ctx, 5, 12, 6, 14, shade(metal, -0.2));
+    ctx.fillStyle = metal;
+    ctx.fillRect(7, 20, 2, 4);
+    frameRect(ctx, 3, 16, 10, 3, metal);
+    frameRect(ctx, 6, 7, 4, 9, wax);
+    if (on) drawFlame(ctx, 8, 7, 0.9, t / 1000 + seed);
+  },
+
+  door_sealed(ctx, d, _s, seed) {
+    const [paint, red] = d.colors;
+    frameRect(ctx, 0, 0, d.w, d.h, '#1c1a1a');
+    const g = ctx.createLinearGradient(0, 0, d.w, 0);
+    g.addColorStop(0, shade(paint, 0.12));
+    g.addColorStop(1, shade(paint, -0.35));
+    ctx.fillStyle = g;
+    ctx.fillRect(3, 3, d.w - 6, d.h - 3);
+    ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(6.5, 6.5, d.w - 13, d.h * 0.42);
+    ctx.strokeRect(6.5, d.h * 0.52, d.w - 13, d.h * 0.42);
+    drawSigil(ctx, d.w / 2, d.h * 0.3, 11, shade(red, -0.35), seed, false);
+    drawBlood(ctx, d.w / 2, d.h * 0.72, 8, '#3a0606', seed, 0.4);
+    frameRect(ctx, d.w - 11, d.h * 0.55, 5, 3, '#8a8f96');
+    ctx.strokeStyle = 'rgba(255,230,220,0.18)';
+    const r = rng(seed + 2);
+    for (let i = 0; i < 5; i++) {
+      const x = 8 + r() * (d.w - 16);
+      const y = 10 + r() * (d.h - 20);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + 4 + r() * 5, y + 8 + r() * 6);
+      ctx.stroke();
+    }
+  },
+
+  pipes(ctx, d) {
+    const [metal] = d.colors;
+    const pipe = (y: number, h: number, c: string) => {
+      const g = ctx.createLinearGradient(0, y, 0, y + h);
+      g.addColorStop(0, shade(c, 0.25));
+      g.addColorStop(1, shade(c, -0.4));
+      ctx.fillStyle = OUTLINE;
+      ctx.fillRect(0, y - 1, d.w, h + 2);
+      ctx.fillStyle = g;
+      ctx.fillRect(0, y, d.w, h);
+    };
+    pipe(3, 6, metal);
+    pipe(12, 5, shade(metal, -0.15));
+    for (const x of [10, 38, 58]) frameRect(ctx, x, 1, 4, 18, shade(metal, -0.3));
+    ctx.strokeStyle = '#8a1414';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(26, 6, 4, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = '#8a1414';
+    ctx.fillRect(25, 2, 2, 8);
+    ctx.fillRect(22, 5, 8, 2);
+  },
+
+  wall_shelf(ctx, d) {
+    const [wood] = d.colors;
+    const jars = [
+      [6, 9, '#6e1010'],
+      [17, 11, '#3a5a2a'],
+      [34, 8, '#8a6a2a'],
+    ] as const;
+    for (const [x, h, c] of jars) {
+      frameRect(ctx, x, 17 - h, 8, h, '#7a8a90');
+      ctx.fillStyle = c;
+      ctx.fillRect(x + 1, 17 - h * 0.6, 6, h * 0.6);
+      ctx.fillStyle = '#2a2622';
+      ctx.fillRect(x, 17 - h - 2, 8, 2);
+    }
+    frameRect(ctx, 26, 11, 5, 6, '#d8cfb8');
+    ctx.fillStyle = '#2a1a14';
+    ctx.fillRect(27, 13, 1, 1);
+    ctx.fillRect(29, 13, 1, 1);
+    frameRect(ctx, 0, 17, d.w, 4, wood);
+    frameRect(ctx, 6, 21, 3, 5, shade(wood, -0.3));
+    frameRect(ctx, d.w - 9, 21, 3, 5, shade(wood, -0.3));
+  },
+
+  antlers(ctx, d) {
+    const [bone] = d.colors;
+    const cx = d.w / 2;
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineCap = 'round';
+    const branch = (w: number, c: string) => {
+      ctx.strokeStyle = c;
+      ctx.lineWidth = w;
+      for (const s of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(cx + s * 4, 20);
+        ctx.quadraticCurveTo(cx + s * 12, 14, cx + s * 16, 3);
+        ctx.moveTo(cx + s * 9, 15);
+        ctx.lineTo(cx + s * 17, 13);
+        ctx.moveTo(cx + s * 13, 9);
+        ctx.lineTo(cx + s * 9, 2);
+        ctx.moveTo(cx + s * 15, 6);
+        ctx.lineTo(cx + s * 19, 4);
+        ctx.stroke();
+      }
+    };
+    branch(4, OUTLINE);
+    branch(2, bone);
+    frameRect(ctx, cx - 6, 16, 12, 8, bone);
+    frameRect(ctx, cx - 4, 24, 8, 8, bone);
+    ctx.fillStyle = '#2a1a14';
+    ctx.fillRect(cx - 4, 19, 3, 3);
+    ctx.fillRect(cx + 1, 19, 3, 3);
+    ctx.fillRect(cx - 1, 27, 2, 3);
+    frameRect(ctx, cx - 9, 30, 18, 3, '#3d2819');
+  },
+
+  emergency(ctx, d, state, _seed, t) {
+    const [body, red] = d.colors;
+    const on = state === 0;
+    frameRect(ctx, 1, 2, d.w - 2, d.h - 4, body);
+    const k = on ? 0.35 + 0.65 * Math.max(0, Math.sin(t / 260)) : 0;
+    ctx.fillStyle = on ? `rgba(255,${60 + k * 80},${40 + k * 40},${0.45 + k * 0.55})` : '#3a1a18';
+    ctx.beginPath();
+    ctx.ellipse(d.w / 2, d.h / 2 + 1, d.w / 2 - 4, d.h / 2 - 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    if (on) {
+      ctx.fillStyle = `rgba(255,255,255,${0.2 + k * 0.4})`;
+      ctx.fillRect(d.w / 2 - 4, d.h / 2 - 2, 3, 2);
+      ctx.strokeStyle = red;
+      ctx.lineWidth = 1;
+    }
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    for (let x = 5; x < d.w - 4; x += 3) ctx.fillRect(x, 4, 1, d.h - 8);
+  },
+
+  clock(ctx, d) {
+    const [frame, face] = d.colors;
+    const c = d.w / 2;
+    ctx.fillStyle = OUTLINE;
+    ctx.beginPath();
+    ctx.arc(c, c, c, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = frame;
+    ctx.beginPath();
+    ctx.arc(c, c, c - 1, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = face;
+    ctx.beginPath();
+    ctx.arc(c, c, c - 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#2a2420';
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
+      ctx.fillRect(c + Math.cos(a) * (c - 5) - 0.5, c + Math.sin(a) * (c - 5) - 0.5, 1, 1);
+    }
+    const now = new Date();
+    const hA = ((now.getHours() % 12) + now.getMinutes() / 60) / 12 * Math.PI * 2 - Math.PI / 2;
+    const mA = (now.getMinutes() / 60) * Math.PI * 2 - Math.PI / 2;
+    const sA = (now.getSeconds() / 60) * Math.PI * 2 - Math.PI / 2;
+    ctx.strokeStyle = '#1a1512';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(c, c);
+    ctx.lineTo(c + Math.cos(hA) * 4, c + Math.sin(hA) * 4);
+    ctx.moveTo(c, c);
+    ctx.lineTo(c + Math.cos(mA) * 6.5, c + Math.sin(mA) * 6.5);
+    ctx.stroke();
+    ctx.strokeStyle = '#8a1414';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(c, c);
+    ctx.lineTo(c + Math.cos(sA) * 7, c + Math.sin(sA) * 7);
+    ctx.stroke();
+  },
+};
+
+export function drawWallFurni(ctx: CanvasRenderingContext2D, def: WallFurniDef, state: number, seed: number, t: number) {
+  const f = draws[def.kind];
+  if (f) f(ctx, def, state, seed, t);
+  else frameRect(ctx, 0, 0, def.w, def.h, def.colors[0] ?? '#888');
+}
+
+export function wallLights(def: WallFurniDef, state: number): WallLight[] {
+  const on = state === 0;
+  switch (def.kind) {
+    case 'window':
+      return on ? [{ x: def.w / 2, y: def.h / 2, radius: 140, color: '#6fa8ff', intensity: 0.55, kind: 'natural' }] : [];
+    case 'sconce':
+      return on ? [{ x: 8, y: 6, radius: 120, color: '#ffb45a', intensity: 0.9, flicker: 0.12, kind: 'fire' }] : [];
+    case 'emergency':
+      return on ? [{ x: def.w / 2, y: def.h / 2 + 4, radius: 170, color: '#ff2a1a', intensity: 0.8, pulse: 260, kind: 'emergency' }] : [];
+    default:
+      return [];
+  }
+}
