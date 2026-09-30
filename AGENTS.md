@@ -42,7 +42,7 @@ npm run banco:parar
 | `client/src/net.ts`, `client/src/ui/app.ts` | Conexão com o servidor e estado do cliente |
 | `server/test/` | Testes das regras (`npm test`) |
 | `client/src/main.ts` | Liga rede, estado e interface (trata as mensagens do servidor) |
-| `docs/` | Referências visuais, o guia do MVP, o contrato da sessão (`CONTRATO.md`), o guia de arte (`ARTE.md`), o mapa das regras de Ordem Paranormal (`REGRAS.md`) e a mecânica do combate (`COMBATE.md`) |
+| `docs/` | Referências visuais, o guia do MVP, o contrato da sessão (`CONTRATO.md`), o guia de arte (`ARTE.md`) e a lista do que falta desenhar (`CHECKLIST-ARTE.md`), o mapa das regras de Ordem Paranormal (`REGRAS.md`) e a mecânica do combate (`COMBATE.md`) |
 | `client/public/arte/` | Arte entregue pelo Codex (servida em `/arte/...`) |
 | `.claude/agents/verissimo.md`, `.claude/skills/verissimo/`, `docs/verissimo/` | O Veríssimo (`/verissimo`): confere com os livros só o que mudou desde a última conferência (ver `docs/verissimo/README.md`) |
 
@@ -50,7 +50,7 @@ npm run banco:parar
 
 - **Codex — artista:** só arte. Personagens (folhas de sprite e retratos), móveis, cenários, ícones de itens, peças da interface (papéis, abas, botões, fitas) e efeitos. Entrega **arquivos de imagem** em `client/public/arte/`, no formato de `docs/ARTE.md`, e **não mexe no código**.
 - **Claude — construtor:** todo o código. Servidor, tipos, interface, animações, tabuleiro e o encaixe da arte no jogo.
-- Pedido de arte novo: entra em `docs/ARTE.md` (formato, tamanho, nome e pasta) antes de ser feito.
+- Pedido de arte novo: entra em `docs/ARTE.md` (formato, tamanho, nome e pasta) antes de ser feito. A lista do que falta desenhar, de todas as telas, é `docs/CHECKLIST-ARTE.md`: é ela que vai para o Codex.
 
 ## Como trabalhar
 

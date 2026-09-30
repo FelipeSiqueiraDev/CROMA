@@ -23,9 +23,12 @@ Os mesmos da FICHAS e do MAPA (`papel-painel.png`, `placa-escura.png`). Nada nov
 
 ## 3. Retratos e peças dos inimigos
 
-- [ ] **Você:** retrato de cada ameaça que for usar, `client/public/arte/ameacas/<id>/retrato.png`, 300×360, no estilo dos retratos dos agentes (ex.: `ocultista`, `acolito`)
-- [ ] **Você:** folha de sprite de cada ameaça, `client/public/arte/ameacas/<id>/folha.png`, no mesmo formato das folhas dos agentes (`docs/ARTE.md`, seção 1)
-- [ ] **Claude:** sem retrato, o jogo usa uma silhueta encapuzada; sem folha, a peça de um personagem genérico com a base vermelha
+Ameaças no **mesmo formato dos agentes**, na pasta `client/public/arte/personagens/<id>/` (a lista completa, para o Codex, está em [`CHECKLIST-ARTE.md`](CHECKLIST-ARTE.md), seção 8).
+
+- [ ] **Você:** folha de sprite de cada ameaça, `personagens/<id>/folha.png`, no formato das folhas dos agentes (`docs/ARTE.md`, seção 1) (ex.: `ocultista`, `acolito`)
+- [ ] **Você:** retrato de cada ameaça, `personagens/<id>/retrato-desarmado.png` (e, se quiser, `-machucado` e `-olhos-fechados`), no estilo dos retratos dos agentes
+- [ ] **Claude:** cadastrar cada ameaça que chegar (a folha e o retrato passam a valer para a peça)
+- [x] **Claude:** sem folha, a peça usa o avatar padrão, com a base vermelha do lado
 
 ## 4. Marcações do tabuleiro
 

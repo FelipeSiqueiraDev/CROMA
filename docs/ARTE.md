@@ -2,7 +2,8 @@
 
 Quem faz a arte entrega **só arquivos de imagem**. Todo o código (encaixar, animar, ligar aos botões) é feito por quem constrói o jogo. Este guia diz o formato, o tamanho, o nome e a pasta de cada arte.
 
-- A referência de estilo é `docs/ref-mapa.webp`: pixel art pintada, isométrica, investigação paranormal, luz quente de velas e lamparinas, sombras fundas, papel envelhecido.
+- **O que falta desenhar, para todas as telas, está numa lista só: [`CHECKLIST-ARTE.md`](CHECKLIST-ARTE.md).** Este guia diz o formato de cada tipo de arte.
+- A referência de estilo são as telas novas (`docs/ref-mapa-2.webp`, `docs/ref-fichas.webp`, `docs/ref-combate.webp`): pixel art pintada, isométrica, investigação paranormal, luz quente de velas e lamparinas, sombras fundas, papel envelhecido.
 - A interface é desenhada para uma tela de **1536×1024**. Entregue as peças da interface no **dobro** do tamanho listado (ex.: 266×453 → 532×906), para ficarem nítidas em telas grandes.
 
 ## Regras que valem para tudo
