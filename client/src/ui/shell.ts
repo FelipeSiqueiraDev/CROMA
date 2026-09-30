@@ -358,9 +358,10 @@ export class Shell {
       aoTrocar: (id) => this.setTab(id),
       aoClicarMarca: () => void this.renameCampaign(),
       botoes: [
-        { id: 'clima', icone: 'sol', titulo: 'Clima da cena', onclick: () => (sfx.click(), act.fx()) },
+        // no celular, só a engrenagem e o sair, como na referência
+        { id: 'clima', icone: 'sol', titulo: 'Clima da cena', soDesktop: true, onclick: () => (sfx.click(), act.fx()) },
         { id: 'config', icone: 'engrenagem', titulo: 'Configurações', cheio: true, onclick: (e) => (e.stopPropagation(), this.toggleMenu()) },
-        { id: 'registro', icone: 'documento', titulo: 'Registro da sessão', onclick: (e) => (e.stopPropagation(), this.toggleRegistro()) },
+        { id: 'registro', icone: 'documento', titulo: 'Registro da sessão', soDesktop: true, onclick: (e) => (e.stopPropagation(), this.toggleRegistro()) },
         {
           id: 'sair',
           icone: 'sair',
