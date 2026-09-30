@@ -1,5 +1,5 @@
 /**
- * Aba COMBATE (referência docs/ref-combate.webp; docs/TELA-COMBATE.md).
+ * Aba COMBATE (referência docs/referencias/combate.webp; docs/TELA-COMBATE.md).
  *
  * Só o mestre mexe: monta o combate, digita a Iniciativa, passa os turnos,
  * resolve os ataques e declara as outras ações. Os dados são físicos: o mestre

@@ -308,7 +308,7 @@ export class RoomView {
     }
   }
 
-  /** Tela MAPA: dentro da moldura, fundo azul-escuro com pontinhos (docs/ref-mapa-2.webp). */
+  /** Tela MAPA: dentro da moldura, fundo azul-escuro com pontinhos (docs/referencias/mapa.webp). */
   fundoPontos = false;
   private padraoPontos: CanvasPattern | null = null;
 

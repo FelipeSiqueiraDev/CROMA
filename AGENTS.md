@@ -2,7 +2,7 @@
 
 ## O que é
 
-Tabuleiro digital isométrico para sessões de **Ordem Paranormal RPG**. São duas telas: a do **mestre** (a interface completa, só ele vê; a tela MAPA segue a referência `docs/ref-mapa.webp`, 1536×1024) e a da **mesa** (só o tabuleiro, num tablet que os jogadores olham, sem toque). O plano do MVP está em `docs/guia-mvp.html`; o contrato entre interface e servidor, em `docs/CONTRATO.md`; as regras do jogo, em `docs/REGRAS.md`; a mecânica do combate, em `docs/COMBATE.md`.
+Tabuleiro digital isométrico para sessões de **Ordem Paranormal RPG**. São duas telas: a do **mestre** (a interface completa, só ele vê; as telas seguem as referências de `docs/referencias/`) e a da **mesa** (só o tabuleiro, num tablet que os jogadores olham, sem toque). O plano do MVP está em `docs/guia-mvp.html`; o contrato entre interface e servidor, em `docs/CONTRATO.md`; as regras do jogo, em `docs/REGRAS.md`; a mecânica do combate, em `docs/COMBATE.md`.
 
 ## Rodar
 
@@ -42,7 +42,7 @@ npm run banco:parar
 | `client/src/net.ts`, `client/src/ui/app.ts` | Conexão com o servidor e estado do cliente |
 | `server/test/` | Testes das regras (`npm test`) |
 | `client/src/main.ts` | Liga rede, estado e interface (trata as mensagens do servidor) |
-| `docs/` | Referências visuais, o guia do MVP, o contrato da sessão (`CONTRATO.md`), o guia de arte (`ARTE.md`) e a lista do que falta desenhar (`CHECKLIST-ARTE.md`), o mapa das regras de Ordem Paranormal (`REGRAS.md`) e a mecânica do combate (`COMBATE.md`) |
+| `docs/` | Referências das telas (`referencias/`, com o emblema oficial coberto), o guia do MVP, o contrato da sessão (`CONTRATO.md`), o guia de arte (`ARTE.md`) e a lista do que falta desenhar (`CHECKLIST-ARTE.md`), o mapa das regras de Ordem Paranormal (`REGRAS.md`) e a mecânica do combate (`COMBATE.md`) |
 | `client/public/arte/` | Arte entregue pelo Codex (servida em `/arte/...`) |
 | `.claude/agents/verissimo.md`, `.claude/skills/verissimo/`, `docs/verissimo/` | O Veríssimo (`/verissimo`): confere com os livros só o que mudou desde a última conferência (ver `docs/verissimo/README.md`) |
 
@@ -51,6 +51,18 @@ npm run banco:parar
 - **Codex — artista:** só arte. Personagens (folhas de sprite e retratos), móveis, cenários, ícones de itens, peças da interface (papéis, abas, botões, fitas) e efeitos. Entrega **arquivos de imagem** em `client/public/arte/`, no formato de `docs/ARTE.md`, e **não mexe no código**.
 - **Claude — construtor:** todo o código. Servidor, tipos, interface, animações, tabuleiro e o encaixe da arte no jogo.
 - Pedido de arte novo: entra em `docs/ARTE.md` (formato, tamanho, nome e pasta) antes de ser feito. A lista do que falta desenhar, de todas as telas, é `docs/CHECKLIST-ARTE.md`: é ela que vai para o Codex.
+
+## Para o Codex: comece aqui
+
+Pediram arte ("começa a arte", "faz os retratos", "faz os ícones da FICHAS")? O caminho é este:
+
+1. Atualize com a `main` e crie a branch `codex/arte-<assunto>` (por exemplo `codex/arte-retratos` ou `codex/arte-icones-fichas`). Um assunto por branch.
+2. A lista do que desenhar é [`docs/CHECKLIST-ARTE.md`](docs/CHECKLIST-ARTE.md): cada linha traz a peça, o nome do arquivo, a pasta e o tamanho. Comece pelos itens com ✱, os que mais mudam a tela.
+3. Para ver cada peça, abra a referência da tela em `docs/referencias/` (`mapa.webp`, `fichas.webp`, `fichas-celular.webp` e `combate.webp`). A caixa tracejada "emblema oficial (coberto)" e as manchas quadriculadas escondem o emblema e os símbolos oficiais de Ordem Paranormal: não reproduza, crie símbolos próprios.
+4. Os agentes: a folha de hoje de cada um (`client/public/arte/personagens/<nome>/folha.webp`) é a arte de referência dele (rosto, cabelo, roupa, cores). O retrato novo é o mesmo personagem.
+5. Entregue só imagens, em `client/public/arte/`, com o nome exato da lista e no formato de [`docs/ARTE.md`](docs/ARTE.md): PNG com fundo transparente de verdade, sem texto, sem números e sem sombra em volta. Não mexa no código.
+6. Marque `- [x]` na lista o que entregou, faça o commit em português e abra o pull request para `main`. O que "entra sozinho" aparece no jogo na hora; o resto o Claude encaixa.
+7. Não dá para gerar imagem aí? Escreva, para cada peça, o pedido pronto para o gerador de imagem (o que é, o estilo da lista, o tamanho e o fundo transparente) e entregue esses textos a quem pediu. Quando as imagens voltarem, ajuste recorte, tamanho, transparência e nome, e siga do passo 5.
 
 ## Como trabalhar
 
@@ -68,7 +80,7 @@ npm run banco:parar
 - **Andares:** cada cena tem um andar (Térreo, Subsolo). A planta à esquerda mostra um andar por vez, com abas, e é a navegação entre cenas (a lista de cenários saiu).
 - **Escala:** os mobis são medidos em metros (`Z_PER_M` = 1,8 unidade por metro): mesa 0,8 m, estante 2,2 m, porta 2,15 m, gente ~1,75 m.
 - **Clima de cada cômodo:** piso (`floorStyle`), cor do ambiente (`ambient`) e partículas (`particles`: poeira na luz, fumaça e brasas do fogo), tudo em Configurar cena. A quantidade de partículas (`particleLevel`) fica no ☀ Clima da cena, junto da névoa e da escuridão.
-- **Telas novas (29/09):** MAPA e FICHAS seguem `docs/ref-mapa-2.webp` e `docs/ref-fichas.webp` (16:9, desenhadas em 1672×941; 1rem = 10 px da referência). No celular (retrato), a FICHAS segue a disposição de `docs/ref-fichas-mobile.webp`, com o conteúdo completo. As três referências ficam fora do git (trazem o emblema oficial). Sem arte, tudo usa o desenho padrão; a arte que chega em `client/public/arte/` entra sozinha (o servidor lista o que existe em `/api/arte`).
+- **Telas novas (29/09):** MAPA e FICHAS seguem `docs/referencias/mapa.webp` e `docs/referencias/fichas.webp` (16:9, desenhadas em 1672×941; 1rem = 10 px da referência). No celular (retrato), a FICHAS segue a disposição de `docs/referencias/fichas-celular.webp`, com o conteúdo completo. No git, as referências estão com o emblema oficial coberto; as originais (`docs/ref-*.webp`) ficam só neste computador. Sem arte, tudo usa o desenho padrão; a arte que chega em `client/public/arte/` entra sozinha (o servidor lista o que existe em `/api/arte`).
 - **Tela do mestre (MAPA):** à esquerda a planta, o cartão da sala e o do objeto selecionado; no meio o tabuleiro, com moldura (em cômodo grande, a câmera acompanha as peças; quando a peça comandada atravessa uma porta, a tela vai junto para o cômodo novo); à direita PLAYERS com PV, PE e SAN (− e + nas três); embaixo as cartas do grupo, o inventário rápido e as AÇÕES (examinar, abrir, usar, entregar). No topo: MAPA, COMBATE e FICHAS; objetivos e registro no botão de documento.
 - **Aba FICHAS:** a ficha inteira de cada agente, calculada pelo motor. Dois modos: jogo (PV, PE, SAN, condições e anotações gravam na hora) e editar (rascunho: Salvar grava, Cancelar descarta). Cada pendência (Evolução) abre as opções do livro, liberadas ou travadas com o motivo. O personagem grande respira pela ficha; pisca quando houver `corpo-olhos-fechados.png`.
 - **Ficha:** PV, PE e SAN (atual e total) por personagem, com as condições do livro (machucado, perturbado, morrendo, enlouquecendo). As cartas mostram as barrinhas; o retrato respira conforme a ficha e usa a imagem do estado (`docs/ARTE.md`). Peça de agente sem PV, PE e SAN (nova, ou de antes da ficha) pega os da ficha quando o servidor sobe.
@@ -79,6 +91,6 @@ npm run banco:parar
 - Os bilhetes de confirmação (`client/src/ui/note.ts`) ainda não têm estilo.
 - **Motor de criação de personagem** em `shared/src/regras/` (exportado como `regras` em `@croma/shared`): catálogos do livro e do *Sobrevivendo ao Horror*, ficha NEX a NEX de 0% a 99%, requisitos com motivo, contas e opções. Ainda sem tela; as telas estão descritas em `docs/CRIACAO-DE-PERSONAGEM.md`.
 - **Regras conferidas com os livros em 29/09** (`docs/AUDITORIA-REGRAS.md`): catálogos inteiros, as fichas dos Marcados e as dúvidas para o mestre decidir.
-- **Combate (30/09):** a mecânica inteira, conferida com o livro de regras e o *Sobrevivendo ao Horror*, está em `docs/COMBATE.md`, com as decisões abertas (DC-1 a DC-23) e a ordem de construção. A tela segue `docs/ref-combate.webp` (fora do git), descrita em `docs/TELA-COMBATE.md`, com a arte em `docs/CHECKLIST-TELA-COMBATE.md`. Só o mestre mexe no combate, e os dados são sempre físicos: ele digita o que saiu na mesa; os jogadores assistem ao tabuleiro no tablet.
+- **Combate (30/09):** a mecânica inteira, conferida com o livro de regras e o *Sobrevivendo ao Horror*, está em `docs/COMBATE.md`, com as decisões abertas (DC-1 a DC-23) e a ordem de construção. A tela segue `docs/referencias/combate.webp`, descrita em `docs/TELA-COMBATE.md`, com a arte em `docs/CHECKLIST-TELA-COMBATE.md`. Só o mestre mexe no combate, e os dados são sempre físicos: ele digita o que saiu na mesa; os jogadores assistem ao tabuleiro no tablet.
 - **Aba COMBATE (30/09):** o combate fica na campanha (`combate` em `CampaignData`), e as regras dele em `shared/src/combate/` (turnos, `ataque.ts` com as contas do ataque e do dano, `ameaca.ts` com a ficha rápida). O mestre monta o combate, digita a Iniciativa e passa os turnos; no ataque, escolhe a arma e o alvo, confere a situação que o tabuleiro viu (`client/src/room/combateGeo.ts`: alcance, cobertura, flanquear, posição elevada, áreas), digita o d20, o d10 da camuflagem e a soma do dano, e confirma: o servidor aplica o dano na peça e o registro guarda tudo, com Desfazer (que devolve também os PV). Ritual e habilidade gastam PE com o limite do turno; ritual sustentado, condições, primeiros socorros e acalmar entram no combate. As ameaças têm ficha rápida (Defesa, resistências, RD, ataques), guardada na campanha (`ameacas`). As marcações do tabuleiro ficam em `client/src/render/combateMarcas.ts`, e a mesa mostra a vez, os caídos e o carimbo de cada ataque. A tela está descrita em `docs/TELA-COMBATE.md`; o que falta, lá e em `docs/CHECKLIST-TELA-COMBATE.md`.
 - Testes das regras em `server/test/` (sessão, Sede, passagem secreta, ficha, fichas no servidor, banco, proporção, retratos, motor de regras, combate).

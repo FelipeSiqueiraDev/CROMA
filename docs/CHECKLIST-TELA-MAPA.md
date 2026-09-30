@@ -1,6 +1,6 @@
 # Checklist: tela MAPA igual à referência
 
-Para a tela ficar como `docs/ref-mapa-2.webp`. Marque com `x` o que ficar pronto (`- [x]`).
+Para a tela ficar como `docs/referencias/mapa.webp`. Marque com `x` o que ficar pronto (`- [x]`).
 
 - **Você:** arte feita com o ChatGPT/Codex, ou um dado e uma decisão que só você tem.
 - **Claude:** código.
@@ -13,7 +13,7 @@ Tamanhos já no **dobro** (é o tamanho de entrega). PNG com fundo transparente,
 
 ## 1. Antes de tudo
 
-- [x] **Claude:** guardar a imagem de referência em `docs/ref-mapa-2.webp`
+- [x] **Claude:** guardar a imagem de referência em `docs/referencias/mapa.webp` (com o emblema oficial coberto; a original fica fora do git)
 - [x] **Claude:** guardar o logo em `client/public/arte/local/logo-ordem.png` (fora do git)
 - [x] **Claude:** tela em 16:9 (desenho em 1672×941, a medida da referência), escalando para qualquer monitor
 - [x] **Claude:** fontes no projeto: Cinzel, Courier Prime, Caveat, Special Elite (e Roboto Serif e Roboto Condensed na FICHAS)

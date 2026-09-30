@@ -1,6 +1,6 @@
 /**
- * Aba FICHAS (referência docs/ref-fichas.webp; no celular, a disposição de
- * docs/ref-fichas-mobile.webp). Mostra a ficha de cada agente com tudo que o
+ * Aba FICHAS (referência docs/referencias/fichas.webp; no celular, a disposição de
+ * docs/referencias/fichas-celular.webp). Mostra a ficha de cada agente com tudo que o
  * motor de regras calcula, e deixa editar com as escolhas amarradas às regras:
  * cada pendência abre as opções do livro, liberadas ou travadas com o motivo.
  *

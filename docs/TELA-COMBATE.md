@@ -1,6 +1,6 @@
 # Tela COMBATE
 
-Referência: `docs/ref-combate.webp` (1672×941, a mesma escala das telas MAPA e FICHAS: 1rem = 10 px). Fica fora do git porque traz o emblema oficial. A imagem é guia de **layout**: personagens e números vêm do motor e das nossas fichas.
+Referência: `docs/referencias/combate.webp` (1672×941, a mesma escala das telas MAPA e FICHAS: 1rem = 10 px). No git, com o emblema oficial coberto (a original fica só na máquina). A imagem é guia de **layout**: personagens e números vêm do motor e das nossas fichas.
 
 A regra de cada coisa está em [`COMBATE.md`](COMBATE.md). A arte que falta está em [`CHECKLIST-TELA-COMBATE.md`](CHECKLIST-TELA-COMBATE.md).
 

@@ -3,7 +3,7 @@
 Quem faz a arte entrega **só arquivos de imagem**. Todo o código (encaixar, animar, ligar aos botões) é feito por quem constrói o jogo. Este guia diz o formato, o tamanho, o nome e a pasta de cada arte.
 
 - **O que falta desenhar, para todas as telas, está numa lista só: [`CHECKLIST-ARTE.md`](CHECKLIST-ARTE.md).** Este guia diz o formato de cada tipo de arte.
-- A referência de estilo são as telas novas (`docs/ref-mapa-2.webp`, `docs/ref-fichas.webp`, `docs/ref-combate.webp`): pixel art pintada, isométrica, investigação paranormal, luz quente de velas e lamparinas, sombras fundas, papel envelhecido.
+- A referência de estilo são as telas novas (`docs/referencias/`: `mapa.webp`, `fichas.webp`, `fichas-celular.webp` e `combate.webp`, com o emblema oficial coberto): pixel art pintada, isométrica, investigação paranormal, luz quente de velas e lamparinas, sombras fundas, papel envelhecido.
 - A interface é desenhada para uma tela de **1536×1024**. Entregue as peças da interface no **dobro** do tamanho listado (ex.: 266×453 → 532×906), para ficarem nítidas em telas grandes.
 
 ## Regras que valem para tudo
@@ -69,7 +69,7 @@ Os ícones são objetos soltos, sem moldura e sem o quadrado do inventário (o j
 
 ## 3. Interface (a tela MAPA) — referência nova, 16:9
 
-A referência de 29/09 (`docs/ref-mapa-2.webp`) é **16:9**: a tela passa a ser desenhada em **1920×1080**. Os tamanhos abaixo são em 1920×1080; entregue no **dobro** as peças que ficam na frente (papéis, botões, molduras). Os números são aproximados, medidos na referência: o construtor ajusta no encaixe.
+A referência de 29/09 (`docs/referencias/mapa.webp`) é **16:9**: a tela passa a ser desenhada em **1920×1080**. Os tamanhos abaixo são em 1920×1080; entregue no **dobro** as peças que ficam na frente (papéis, botões, molduras). Os números são aproximados, medidos na referência: o construtor ajusta no encaixe.
 
 ### O que é código e o que é arte
 

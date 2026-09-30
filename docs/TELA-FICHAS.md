@@ -1,8 +1,8 @@
 # Tela FICHAS: o que tem, o que falta e o que melhorar
 
-> **Feito em 29/09:** a aba FICHAS com os ajustes abaixo (a lista do que é arte está em [`CHECKLIST-TELA-FICHAS.md`](CHECKLIST-TELA-FICHAS.md)). O vão do meio da referência virou o painel tático (COMBATE: iniciativa, reações, limite de PE, DT, proficiências; EVOLUÇÃO: a linha do tempo de NEX com as pendências). No celular, a referência `docs/ref-fichas-mobile.webp` vale pela disposição: agentes numa fila, personagem e identificação lado a lado, recursos e atributos lado a lado, condições, perícias (a tabela do computador), poderes e rituais, equipamentos, inventário, painel tático, companheiro e anotações; Cancelar, Editar e Salvar presos embaixo. A conferência das regras está em [`AUDITORIA-REGRAS.md`](AUDITORIA-REGRAS.md).
+> **Feito em 29/09:** a aba FICHAS com os ajustes abaixo (a lista do que é arte está em [`CHECKLIST-TELA-FICHAS.md`](CHECKLIST-TELA-FICHAS.md)). O vão do meio da referência virou o painel tático (COMBATE: iniciativa, reações, limite de PE, DT, proficiências; EVOLUÇÃO: a linha do tempo de NEX com as pendências). No celular, a referência `docs/referencias/fichas-celular.webp` vale pela disposição: agentes numa fila, personagem e identificação lado a lado, recursos e atributos lado a lado, condições, perícias (a tabela do computador), poderes e rituais, equipamentos, inventário, painel tático, companheiro e anotações; Cancelar, Editar e Salvar presos embaixo. A conferência das regras está em [`AUDITORIA-REGRAS.md`](AUDITORIA-REGRAS.md).
 
-Análise da referência `docs/ref-fichas.webp` contra a ficha do livro (p. 319) e o motor de regras (`shared/src/regras/`).
+Análise da referência `docs/referencias/fichas.webp` contra a ficha do livro (p. 319) e o motor de regras (`shared/src/regras/`).
 
 ## O que já está certo
 

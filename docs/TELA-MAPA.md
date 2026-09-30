@@ -1,6 +1,6 @@
 # Tela MAPA: o que é código e o que é arte
 
-Análise da referência de 29/09 (`docs/ref-mapa-2.webp`, 16:9), região por região. A lista para ir marcando está em [`CHECKLIST-TELA-MAPA.md`](CHECKLIST-TELA-MAPA.md). Para cada elemento: como o jogo faz e o que precisa vir de fora (arte, dado ou decisão). A tela é desenhada em **1920×1080**.
+Análise da referência de 29/09 (`docs/referencias/mapa.webp`, 16:9), região por região. A lista para ir marcando está em [`CHECKLIST-TELA-MAPA.md`](CHECKLIST-TELA-MAPA.md). Para cada elemento: como o jogo faz e o que precisa vir de fora (arte, dado ou decisão). A tela é desenhada em **1920×1080**.
 
 Resumo:
 - **Código (fica igual à referência):** barras, botões, abas, etiquetas, molduras, listas, ícones, a moldura do tabuleiro, as barras de PV/PE/SAN, as fontes, o carimbo e a luz.

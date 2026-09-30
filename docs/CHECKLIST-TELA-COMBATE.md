@@ -1,6 +1,6 @@
 # Checklist: tela COMBATE igual à referência
 
-Para a tela ficar como `docs/ref-combate.webp`. Marque com `x` o que ficar pronto (`- [x]`).
+Para a tela ficar como `docs/referencias/combate.webp`. Marque com `x` o que ficar pronto (`- [x]`).
 
 - **Você:** arte feita com o ChatGPT/Codex, ou um dado e uma decisão que só você tem.
 - **Claude:** código.
@@ -13,7 +13,7 @@ Enquanto a arte não chega, a tela funciona com o desenho padrão: papéis desen
 
 ## 1. Antes de tudo
 
-- [x] **Claude:** guardar a referência em `docs/ref-combate.webp` (fora do git: tem o emblema)
+- [x] **Claude:** guardar a referência em `docs/referencias/combate.webp` (com o emblema oficial coberto; a original fica fora do git)
 - [x] **Claude:** a tela na mesma escala das outras (desenho em 1672×941, 1rem = 10 px)
 - [x] **Você:** decidir quem mexe na tela: só o mestre; os jogadores assistem na mesa (30/09)
 

@@ -1,6 +1,6 @@
 # Checklist: tela FICHAS igual à referência
 
-Para a tela ficar como `docs/ref-fichas.webp` (computador) e seguir a disposição de `docs/ref-fichas-mobile.webp` (celular). Marque com `x` o que ficar pronto (`- [x]`).
+Para a tela ficar como `docs/referencias/fichas.webp` (computador) e seguir a disposição de `docs/referencias/fichas-celular.webp` (celular). Marque com `x` o que ficar pronto (`- [x]`).
 
 - **Você:** desenho (arte feita com o ChatGPT/Codex).
 - **Claude:** código.
@@ -85,6 +85,6 @@ Pasta: `client/public/arte/interface/`.
 - [ ] Modo "jogo" do jogador (acesso rápido na mesa: rolar perícia, ataque, ritual)
 - [ ] Criação passo a passo (`docs/CRIACAO-DE-PERSONAGEM.md`); hoje a criação é pela edição, com as pendências
 
-## 7. Celular (referência `docs/ref-fichas-mobile.webp`)
+## 7. Celular (referência `docs/referencias/fichas-celular.webp`)
 
 A referência do celular vale pela disposição (o conteúdo é o da ficha completa). Arte a mais só para o celular: nenhuma; ele usa a mesma do computador.

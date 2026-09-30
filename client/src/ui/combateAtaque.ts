@@ -1,5 +1,5 @@
 /**
- * Resolução do ataque na aba COMBATE (referência docs/ref-combate.webp; regras
+ * Resolução do ataque na aba COMBATE (referência docs/referencias/combate.webp; regras
  * em docs/COMBATE.md, seções 5.6 a 8): 1. Arma, 2. Situação, 3. Rolagem e
  * 4. Dano, com Desfazer e Confirmar ação. Os dados são físicos: o mestre digita
  * o d20 que ficou, o d10 da falha e a soma dos dados de dano. As contas saem de

@@ -1,6 +1,6 @@
 /**
- * Barra do topo das telas novas (referências docs/ref-mapa-2.webp e
- * docs/ref-fichas.webp): emblema e nome, abas MAPA / COMBATE / FICHAS,
+ * Barra do topo das telas novas (referências docs/referencias/mapa.webp e
+ * docs/referencias/fichas.webp): emblema e nome, abas MAPA / COMBATE / FICHAS,
  * operação, local e os botões quadrados. A mesma barra serve ao mestre e à
  * ficha do jogador no celular.
  */

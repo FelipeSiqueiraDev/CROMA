@@ -2,16 +2,29 @@
 
 As telas do CROMA foram montadas a partir das imagens de referência. A disposição, os textos, as barras, os botões, as molduras e a luz já estão no código. O que ainda deixa a tela diferente da referência é o que o código não desenha igual: **o retrato de um personagem, um ícone, o clipe, o papel manchado**. Esta é a lista dessas imagens, para produzir no GPT/Codex. Marque com `x` o que ficar pronto (`- [x]`).
 
-**Foco agora: a tela** (painéis, menus, botões, ícones e retratos). O tabuleiro (móveis, pisos, peças) fica para depois, no fim da lista.
+**Foco agora: a tela** (painéis, menus, botões, ícones e retratos). O tabuleiro (móveis, pisos, peças) fica para depois, no fim da lista. **✱ = o que mais muda a tela: comece por esses.**
 
-Comparação feita em 30/09 com `docs/ref-mapa-2.webp`, `docs/ref-fichas.webp`, `docs/ref-fichas-mobile.webp` e `docs/ref-combate.webp` (ficam fora do git: trazem o emblema oficial).
+**Codex:** o passo a passo está no [`AGENTS.md`](../AGENTS.md#para-o-codex-comece-aqui).
+
+## As referências
+
+Estão no repositório, em [`docs/referencias/`](referencias/): são as imagens com que as telas foram montadas, e a lista abaixo foi feita comparando cada uma com a tela de 30/09.
+
+| Tela | Arquivo | Tamanho |
+|---|---|---|
+| MAPA | [`referencias/mapa.webp`](referencias/mapa.webp) | 1672×941 |
+| FICHAS | [`referencias/fichas.webp`](referencias/fichas.webp) | 1672×941 |
+| FICHAS no celular | [`referencias/fichas-celular.webp`](referencias/fichas-celular.webp) | 941×1672 |
+| COMBATE | [`referencias/combate.webp`](referencias/combate.webp) | 1672×941 |
+
+Onde aparece a caixa tracejada **"emblema oficial (coberto)"**, ou uma mancha quadriculada, a imagem tinha o emblema ou um símbolo oficial de Ordem Paranormal. Ficou coberto porque o repositório é público: não tente reproduzir o que estava ali. Quando a lista pedir uma marca nesse lugar (a marca d'água do papel, o selo, o sigilo), crie uma própria no mesmo clima.
 
 ## Como entregar
 
 - Tudo em `client/public/arte/`, com **o nome exato** da lista (minúsculas, sem acento, hífen no lugar do espaço). "Entra sozinho" = o jogo já procura o arquivo e usa na hora; o resto o Claude encaixa quando chegar.
 - **PNG com fundo transparente de verdade** (sem xadrez pintado, sem fundo branco), **sem texto e sem números**, **sem sombra em volta** (o jogo faz a sombra). Tamanhos já no dobro.
 - **Ícones:** 128×128, traço branco (ou branco com a cor indicada), o mesmo peso de traço em todos, sem quadrado atrás (o jogo desenha o quadrado escuro).
-- Branch `codex/arte-<assunto>`, commit só das imagens, pull request para `main`. Formatos em [`ARTE.md`](ARTE.md).
+- Branch `codex/arte-<assunto>`, commit das imagens (e do `- [x]` nesta lista), pull request para `main`. Formatos em [`ARTE.md`](ARTE.md).
 - Símbolos: crie os seus. O emblema e os símbolos oficiais de Ordem Paranormal não entram (o repositório é público).
 
 **Estilo para pedir ao GPT, em tudo:** pixel art pintada de alta qualidade, clima de investigação paranormal, escuro, luz quente vinda de cima; papel envelhecido e rasgado; vermelho de destaque `#d8322f`; o mesmo traço das referências.
@@ -26,6 +39,7 @@ Comparação feita em 30/09 com `docs/ref-mapa-2.webp`, `docs/ref-fichas.webp`, 
   - `personagens/tepes/retrato-desarmado.png`, `personagens/catarina/retrato-desarmado.png`, `personagens/alosi/retrato-desarmado.png`, `personagens/cora-falcao/retrato-desarmado.png`
   - a mesma imagem de olhos fechados, `retrato-desarmado-olhos-fechados.png` (é o que faz piscar)
   - depois, se quiser: `retrato-armado.png`, `retrato-desarmado-machucado.png`, `retrato-armado-machucado.png` (e os de olhos fechados)
+  - **Atenção:** nas referências, os nomes embaixo dos retratos às vezes estão trocados (na MAPA, D. Tepes e Alosi). Vale a folha de cada um: **D. Tepes** tem cabelo castanho comprido, barba e sobretudo marrom; **Alosi**, óculos redondos, cabelo castanho curto e jaqueta clara de capuz com cruz dourada; **Catarina**, cabelo ruivo preso, casaco preto comprido e katana nas costas; **Cora Falcão**, cabelo branco arrepiado, roupa tática preta e fuzil nas costas.
 - [ ] ✱ **Papel dos painéis**: na referência tem manchas, rasgos, dobras e marca d'água; hoje é desenhado em código, mais liso. `interface/papel-painel.png`, 600×440, com 48 px de borda sem detalhe único (o jogo estica o meio). Serve para a FICHAS e o COMBATE.
 - [ ] **Ícones da barra do topo** (hoje ícones de linha parecidos): `icones/topo-mapa.png` (mapa dobrado), `topo-combate.png` (espadas cruzadas), `topo-fichas.png` (crachá), `topo-clima.png` (sol), `topo-config.png` (engrenagem), `topo-registro.png` (documento), `topo-sair.png` (porta com seta, vermelho) e `topo-operacao.png` (a pena apagada ao lado de "Operação")
 
@@ -73,7 +87,7 @@ Nada novo: usa os retratos, os ícones e as folhas da FICHAS. Os cartões de res
 - [ ] ✱ **Retrato das ameaças**: na referência o Ocultista é um retrato pintado, de capuz; hoje é o avatar padrão. `personagens/<id>/retrato-desarmado.png`, no estilo dos retratos dos agentes (o Claude cadastra cada ameaça que chegar)
   - `ocultista`: encapuzado, rosto pálido e marcado
   - `acolito`: encapuzado mais jovem, capa escura
-  - e as outras ameaças da Operação Fulgor (o Felipe diz quais)
+  - e as outras ameaças da Operação Fulgor (Felipe diz quais)
 - [ ] ✱ **Carimbo do resultado**: na referência é um carimbo de borracha de verdade, com a tinta falhada e um selo redondo atrás; hoje é uma borda desenhada. `combate/carimbo.png`, 520×280, moldura vermelha **sem texto** (o jogo escreve ERROU, ACERTO ou ACERTO CRÍTICO ×3), e `combate/selo.png`, 200×200, o selo redondo de tinta (símbolo próprio)
 
 Ícones (pasta `icones/`):
