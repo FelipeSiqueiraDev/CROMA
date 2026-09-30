@@ -28,9 +28,16 @@ import {
   type SessionActionType,
   type Tile,
   type Token,
+  type VitalKey,
+  type Vitals,
+  VITAL_LABEL,
+  regras,
+  sanitizarFicha,
+  type FichaSalva,
 } from '@croma/shared';
 import { loadDb, saveDbNow, scheduleSave, type CampaignData, type Database, type RoomData, type UserData } from './db';
 import { RoomInstance, type Client, type HotelApi } from './roomInstance';
+import { refreshPortraits } from './portraits';
 import { seedDb, SYSTEM_OWNER, upgradeDb } from './seed';
 
 const NAME_RE = /^[\p{L}\p{N}_\-. ]+$/u;
@@ -54,6 +61,9 @@ const GM_ONLY = new Set([
   'tokenWalk',
   'tokenFace',
   'tokenScene',
+  'vitals',
+  'fichaApagar',
+  'fichaLink',
   'place',
   'placeWall',
   'moveItem',
@@ -64,6 +74,8 @@ const GM_ONLY = new Set([
   'roomSettings',
   'roomFx',
   'setLink',
+  'unlock',
+  'relock',
   'lootAdd',
   'lootRemove',
   'lootGive',
@@ -108,10 +120,22 @@ export class Hotel implements HotelApi {
       this.db.gmKey = crypto.randomBytes(9).toString('base64url');
       dirty = true;
     }
+    if (refreshPortraits(this.db.characters)) dirty = true;
     if (dirty && this.persist) saveDbNow(this.db);
     for (const r of this.db.rooms) this.rooms.set(r.id, new RoomInstance(r, this));
     if (this.persist) console.log(`[hotel] ${this.rooms.size} quarto(s), ${this.db.characters.length} personagem(ns)`);
-    if (this.timers) setInterval(() => this.pushScenes(), 1500);
+    if (this.timers) {
+      setInterval(() => this.pushScenes(), 1500);
+      // retratos novos na pasta do personagem aparecem sem reiniciar o servidor
+      setInterval(() => this.checkPortraits(), 5000);
+    }
+  }
+
+  /** Procura retratos novos (ou removidos) nas pastas dos personagens. */
+  checkPortraits() {
+    if (!refreshPortraits(this.db.characters)) return;
+    this.save();
+    this.broadcastCharacters();
   }
 
   /** Chave do link do mestre. */
@@ -165,6 +189,133 @@ export class Hotel implements HotelApi {
     this.touch();
   }
 
+  /** Mudanças de PV/PE/SAN esperando para ir ao registro (cliques seguidos viram uma linha). */
+  private vitalLog = new Map<string, { roomId: number; name: string; key: VitalKey; from: number; to: number; max: number; timer: NodeJS.Timeout | null }>();
+
+  // ---------- fichas ----------
+  private fichasTimer: NodeJS.Timeout | null = null;
+
+  /** Manda a lista de fichas para quem é mestre (ou só para um cliente). */
+  private enviarFichas(so?: Client, nova?: number) {
+    const todas = this.db.fichas ?? [];
+    const para = (c: Client) => {
+      if (c.role === 'gm') return c.send({ t: 'fichas', fichas: todas, nova });
+      if (!c.fichaId) return;
+      const minha = todas.find((f) => f.id === c.fichaId);
+      c.send({ t: 'fichas', fichas: minha ? [{ ...minha, chave: undefined }] : [] });
+    };
+    if (so) return para(so);
+    for (const c of this.clients.values()) para(c);
+  }
+
+  private fichaSalvar(c: Client, m: Record<string, unknown>) {
+    const f = sanitizarFicha(m.ficha);
+    if (!f) return c.send({ t: 'error', msg: 'Ficha inválida.' });
+    const lista = (this.db.fichas ??= []);
+    const antiga = f.id ? lista.find((x) => x.id === f.id) : undefined;
+    if (c.role !== 'gm') {
+      // o jogador mexe só na própria ficha; NEX, patente, ligação e link são do mestre
+      if (!c.fichaId || !antiga || antiga.id !== c.fichaId) return c.send({ t: 'error', msg: 'Você só pode mexer na sua ficha.' });
+      f.ficha.nex = antiga.ficha.nex;
+      f.ficha.pp = antiga.ficha.pp;
+      f.ficha.regras = antiga.ficha.regras;
+      f.personagem = antiga.personagem;
+      f.campanha = antiga.campanha;
+    }
+    if (antiga) f.chave = antiga.chave;
+    else delete f.chave;
+    let nova: number | undefined;
+    if (antiga) {
+      f.criadaEm = antiga.criadaEm;
+      lista[lista.indexOf(antiga)] = f;
+    } else {
+      f.id = this.db.nextFichaId = Math.max(this.db.nextFichaId ?? 1, ...lista.map((x) => x.id + 1));
+      this.db.nextFichaId = f.id + 1;
+      lista.push(f);
+      nova = f.id;
+    }
+    // uma folha de sprite tem uma ficha só
+    if (f.personagem) for (const o of lista) if (o !== f && o.personagem === f.personagem) delete o.personagem;
+    if (f.personagem) this.fichaParaPecas(f);
+    this.save();
+    this.enviarFichas(undefined, nova);
+  }
+
+  private fichaApagar(c: Client, m: Record<string, unknown>) {
+    const id = typeof m.id === 'number' ? m.id : 0;
+    const lista = this.db.fichas ?? [];
+    const i = lista.findIndex((x) => x.id === id);
+    if (i < 0) return;
+    lista.splice(i, 1);
+    this.save();
+    this.enviarFichas();
+    void c;
+  }
+
+  private fichaLink(m: Record<string, unknown>) {
+    const f = (this.db.fichas ?? []).find((x) => x.id === m.id);
+    if (!f) return;
+    f.chave = crypto.randomBytes(9).toString('base64url');
+    this.save();
+    this.enviarFichas();
+  }
+
+  /** Link de jogador válido? Devolve a ficha. */
+  private fichaPelaChave(chave: string): FichaSalva | undefined {
+    const b = Buffer.from(chave);
+    return (this.db.fichas ?? []).find((f) => {
+      if (!f.chave) return false;
+      const a = Buffer.from(f.chave);
+      return a.length === b.length && crypto.timingSafeEqual(a, b);
+    });
+  }
+
+  /** PV/PE/SAN da ficha (máximos pelo motor de regras) para as peças do personagem ligado. */
+  private fichaParaPecas(f: FichaSalva) {
+    const calc = regras.calcular(f.ficha);
+    const a = f.atual ?? { pv: calc.pv, pe: calc.pe, san: calc.san };
+    const v: Vitals = { pv: Math.min(a.pv, calc.pv), pvMax: calc.pv, pe: Math.min(a.pe, calc.pe), peMax: calc.pe, san: Math.min(a.san, calc.san), sanMax: calc.san };
+    let mudou = false;
+    for (const r of this.rooms.values()) mudou = r.definirVitais(f.personagem!, v) || mudou;
+    if (mudou) this.touch();
+  }
+
+  /** PV/PE/SAN de uma peça mudou no tabuleiro: a ficha ligada ao personagem acompanha. */
+  vitaisDaPeca(personagem: number | null | undefined, v: Vitals) {
+    if (!personagem) return;
+    const f = (this.db.fichas ?? []).find((x) => x.personagem === personagem);
+    if (!f) return;
+    f.atual = { ...f.atual, pv: v.pv, pe: v.pe, san: v.san };
+    this.save();
+    if (!this.timers) return this.enviarFichas();
+    if (this.fichasTimer) return;
+    this.fichasTimer = setTimeout(() => {
+      this.fichasTimer = null;
+      this.enviarFichas();
+    }, 300);
+  }
+
+  vitalChanged(roomId: number, tokenId: number, name: string, key: VitalKey, from: number, to: number, max: number) {
+    const k = `${tokenId}:${key}`;
+    const cur = this.vitalLog.get(k);
+    const entry = cur ?? { roomId, name, key, from, to, max, timer: null };
+    entry.to = to;
+    entry.max = max;
+    entry.name = name;
+    if (entry.timer) clearTimeout(entry.timer);
+    this.vitalLog.set(k, entry);
+    const flush = () => {
+      this.vitalLog.delete(k);
+      if (entry.to === entry.from) return;
+      const d = entry.to - entry.from;
+      const label = VITAL_LABEL[entry.key];
+      const what = d < 0 ? `perdeu ${-d} ${label}` : `recuperou ${d} ${label}`;
+      this.log(entry.roomId, 'user', `${entry.name} ${what} (${entry.to}/${entry.max}).`);
+    };
+    if (this.timers) entry.timer = setTimeout(flush, 2500);
+    else flush();
+  }
+
   touch() {
     if (!this.timers || this.touchTimer) return;
     this.touchTimer = setTimeout(() => {
@@ -180,6 +331,7 @@ export class Hotel implements HotelApi {
     const scenes: SceneInfo[] = rooms.map((r) => ({
       id: r.data.id,
       name: r.data.name,
+      floor: r.data.floor,
       heightmap: r.data.heightmap,
       door: r.data.door,
       portals: r.portals(),
@@ -200,11 +352,15 @@ export class Hotel implements HotelApi {
           capacity: t.capacity ?? DEFAULT_CAPACITY,
           roomId: r.data.id,
           color: t.color ?? playerColorFor(t.name),
+          armed: t.armed,
+          hurt: t.hurt,
+          vitals: t.vitals,
         });
     return {
       key,
       title: camp.title,
       subtitle: camp.subtitle,
+      operacao: camp.operacao,
       objectives: camp.objectives,
       layout: camp.layout,
       log: camp.log.slice(-30),
@@ -259,6 +415,9 @@ export class Hotel implements HotelApi {
           load: round1(load.get(t.name.toLowerCase()) ?? 0),
           look: t.look,
           sceneId: r.data.id,
+          armed: !!t.armed,
+          hurt: !!t.hurt,
+          vitals: t.vitals,
         });
       }
     characters.sort((a, b) => a.id - b.id);
@@ -349,10 +508,11 @@ export class Hotel implements HotelApi {
       case 'campaignSet':
         camp.title = txt(m.title, 40) || camp.title;
         camp.subtitle = txt(m.subtitle, 40);
+        if (typeof m.operacao === 'string') camp.operacao = txt(m.operacao, 40) || undefined;
         break;
       case 'layoutSet': {
         if (typeof m.roomId !== 'number' || typeof m.x !== 'number' || typeof m.y !== 'number') return;
-        camp.layout[m.roomId] = { x: Math.max(-40, Math.min(120, Math.round(m.x))), y: Math.max(-40, Math.min(120, Math.round(m.y))) };
+        camp.layout[m.roomId] = { ...camp.layout[m.roomId], x: Math.max(-40, Math.min(120, Math.round(m.x))), y: Math.max(-40, Math.min(120, Math.round(m.y))) };
         break;
       }
       case 'capacitySet': {
@@ -405,7 +565,8 @@ export class Hotel implements HotelApi {
    */
   private enter(c: Client, room: RoomInstance) {
     if (c.role !== 'gm') {
-      const target = this.currentSceneOf(room.data.id) ?? room;
+      const live = this.db.liveScene !== undefined ? this.rooms.get(this.db.liveScene) : undefined;
+      const target = live ?? this.currentSceneOf(room.data.id) ?? room;
       if (c.room === target) return c.send({ t: 'notice', msg: 'Quem escolhe a cena é o mestre.' });
       c.room?.leave(c);
       target.join(c);
@@ -423,9 +584,10 @@ export class Hotel implements HotelApi {
     const camp = this.campaignFor(Math.min(...group));
     const changed = camp.currentSceneId !== room.data.id;
     camp.currentSceneId = room.data.id;
+    this.db.liveScene = room.data.id;
+    // a mesa vai junto, mesmo que estivesse em outra campanha
     for (const o of this.clients.values()) {
       if (o.role === 'gm' || !o.name || !o.room || o.room === room) continue;
-      if (!group.includes(o.room.data.id)) continue;
       o.room.leave(o);
       room.join(o);
     }
@@ -743,6 +905,15 @@ export class Hotel implements HotelApi {
       case 'capacitySet':
         this.campaignEdit(c, m);
         return;
+      case 'fichaSalvar':
+        this.fichaSalvar(c, m);
+        return;
+      case 'fichaApagar':
+        this.fichaApagar(c, m);
+        return;
+      case 'fichaLink':
+        this.fichaLink(m);
+        return;
     }
     c.room?.handle(c, m);
   }
@@ -755,7 +926,10 @@ export class Hotel implements HotelApi {
     if (key === SYSTEM_OWNER.toLowerCase()) return c.send({ t: 'error', msg: 'Esse nome é reservado.' });
     // a tela da mesa é sempre jogador; mestre = o próprio computador do servidor ou quem tem a chave
     const hasKey = typeof m.gmKey === 'string' && !!m.gmKey && this.checkGmKey(m.gmKey);
-    const role: Role = m.mesa === true ? 'player' : c.local || hasKey ? 'gm' : 'player';
+    const daFicha = typeof m.fichaKey === 'string' && m.fichaKey ? this.fichaPelaChave(m.fichaKey) : undefined;
+    if (typeof m.fichaKey === 'string' && m.fichaKey && !daFicha) return c.send({ t: 'error', msg: 'Link de ficha inválido. Peça um novo ao mestre.' });
+    const role: Role = m.mesa === true || daFicha ? 'player' : c.local || hasKey ? 'gm' : 'player';
+    c.fichaId = daFicha?.id;
     // mesma pessoa abrindo em outra aba: a conexão nova assume (jogador não derruba o mestre)
     for (const o of this.clients.values())
       if (o !== c && o.key === key && o.role === 'gm' && role !== 'gm') return c.send({ t: 'error', msg: 'Esse nome já está em uso na sessão.' });
@@ -773,6 +947,7 @@ export class Hotel implements HotelApi {
     this.save();
     c.send({ t: 'welcome', id: c.id, name, look: c.look, token: c.token, inventory: ud.inventory, home: this.db.home, role });
     c.send({ t: 'roomList', rooms: this.roomList() });
+    if (role === 'gm' || c.fichaId) this.enviarFichas(c);
     if (this.persist) console.log(`[hotel] ${name} entrou (${role === 'gm' ? 'mestre' : 'jogador'})`);
   }
 

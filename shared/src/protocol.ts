@@ -1,8 +1,10 @@
 import type { AvatarLook } from './avatar';
 import type { RollResult } from './dice';
-import type { FloorItem, Hint, WallItem } from './room';
+import type { FloorItem, FloorStyle, Hint, ParticleKind, WallItem } from './room';
 import type { CampaignState, LootKind } from './rpg';
 import type { Role, Session, SessionAction, Token } from './session';
+import type { FichaSalva } from './fichas';
+import type { VitalKey } from './vitals';
 import type { Door } from './walls';
 
 /**
@@ -65,6 +67,24 @@ export function turnFacing(dir: number, cw: boolean, allowed: number[]): number 
 export type AnimKey = 'idle' | 'walk' | 'sit';
 export const ANIM_KEYS: AnimKey[] = ['idle', 'walk', 'sit'];
 
+/**
+ * Estado do retrato do personagem (cartas do grupo, na tela do mestre): com ou
+ * sem arma, machucado ou não. Cada estado é uma imagem própria, na pasta do
+ * personagem: retrato-<estado>.png (e retrato-<estado>-olhos-fechados.png para piscar).
+ */
+export type PortraitState = 'desarmado' | 'armado' | 'desarmado-machucado' | 'armado-machucado';
+export const PORTRAIT_STATES: PortraitState[] = ['desarmado', 'armado', 'desarmado-machucado', 'armado-machucado'];
+
+export function portraitState(armed: boolean, hurt: boolean): PortraitState {
+  return `${armed ? 'armado' : 'desarmado'}${hurt ? '-machucado' : ''}` as PortraitState;
+}
+
+/** Imagens de um estado do retrato: olhos abertos e (se houver) fechados. */
+export interface PortraitArt {
+  open: string;
+  closed?: string;
+}
+
 /** Clima de luz do quarto (controlado pelo mestre). */
 export type LightMode = 'normal' | 'flicker' | 'blackout';
 export const LIGHT_MODES: LightMode[] = ['normal', 'flicker', 'blackout'];
@@ -88,6 +108,11 @@ export interface CharacterDef {
   /** ordem dos quadros de idle */
   sequence: number[];
   removeBg: boolean;
+  /**
+   * Retratos por estado, achados pelo servidor na pasta do personagem
+   * (client/public/arte/personagens/<nome>/). Sem eles, o retrato é recortado da folha.
+   */
+  portraits?: Partial<Record<PortraitState, PortraitArt>>;
 }
 
 export type CharacterPatch = Partial<Pick<CharacterDef, 'name' | 'cols' | 'rows' | 'dirs' | 'anims' | 'height' | 'fps' | 'sequence' | 'removeBg'>>;
@@ -161,6 +186,16 @@ export interface RoomInfo {
   /** densidade da névoa 0..1 */
   fog: number;
   publicBuild: boolean;
+  /** andar do cômodo ("Térreo", "Subsolo"); sem nome = o único andar */
+  floor?: string;
+  /** piso do cômodo */
+  floorStyle?: FloorStyle;
+  /** cor do ambiente (#rrggbb): tinge a escuridão e o ar do cômodo */
+  ambient?: string;
+  /** partículas do cômodo */
+  particles?: ParticleKind[];
+  /** quantidade de partículas 0..1 (clima da cena; sem valor = DEFAULT_PARTICLE_LEVEL) */
+  particleLevel?: number;
   /** o cliente atual pode construir/editar */
   canBuild: boolean;
   /** o cliente atual é o dono (mestre) */
@@ -171,6 +206,8 @@ export interface RoomInfo {
 export interface SceneInfo {
   id: number;
   name: string;
+  /** andar ("Térreo", "Subsolo"): a planta mostra um andar por vez */
+  floor?: string;
   heightmap: string;
   door: Door;
   portals: { x: number; y: number; link: number }[];
@@ -189,7 +226,7 @@ export type ClientMsg =
    * Mestre: o computador do servidor, ou quem manda a chave do link do mestre
    * (gmKey). mesa = tela da mesa, que sempre entra como jogador.
    */
-  | { t: 'login'; name: string; look: AvatarLook; gmKey?: string; mesa?: boolean }
+  | { t: 'login'; name: string; look: AvatarLook; gmKey?: string; mesa?: boolean; fichaKey?: string }
   /** ações da sessão (contrato em session.ts); só o mestre */
   | { t: 'act'; a: SessionAction }
   | { t: 'rooms' }
@@ -208,15 +245,27 @@ export type ClientMsg =
   | { t: 'pickup'; id: number }
   | { t: 'use'; id: number }
   | { t: 'setHint'; id: number; hint: Hint | null }
-  | { t: 'roomSettings'; name: string; description: string; darkness: number; publicBuild: boolean }
-  | { t: 'roomFx'; lightMode?: LightMode; fog?: number; darkness?: number }
+  | { t: 'roomSettings'; name: string; description: string; darkness: number; publicBuild: boolean; floor?: string; floorStyle?: FloorStyle; ambient?: string | null; particles?: ParticleKind[] }
+  /** senha de um mobi com fechadura: certa = ele desliza e abre a passagem */
+  | { t: 'unlock'; id: number; code: string }
+  /** fecha a passagem de novo (o mobi volta para o lugar) */
+  | { t: 'relock'; id: number }
+  /** cria (id 0) ou atualiza uma ficha (só o mestre) */
+  | { t: 'fichaSalvar'; ficha: FichaSalva }
+  | { t: 'fichaApagar'; id: number }
+  /** gera (ou troca) o link do jogador para a ficha (só o mestre) */
+  | { t: 'fichaLink'; id: number }
+  | { t: 'roomFx'; lightMode?: LightMode; fog?: number; darkness?: number; particleLevel?: number }
   | { t: 'setLink'; id: number; roomId: number | null }
   | { t: 'sendTo'; userId: number | 'all'; roomId: number }
   | { t: 'tokenAdd'; name: string; look: AvatarLook; color?: string; capacity?: number }
-  | { t: 'tokenEdit'; tokenId: number; name?: string; look?: AvatarLook; color?: string; capacity?: number }
+  /** armed/hurt = estado do retrato (com arma, machucado) */
+  | { t: 'tokenEdit'; tokenId: number; name?: string; look?: AvatarLook; color?: string; capacity?: number; armed?: boolean; hurt?: boolean }
   | { t: 'tokenRemove'; tokenId: number }
   | { t: 'tokenWalk'; tokenId: number; x: number; y: number }
   | { t: 'tokenFace'; tokenId: number; dir: number }
+  /** PV/PE/SAN da peça: delta soma ao atual, value troca o atual, max troca o total */
+  | { t: 'vitals'; tokenId: number; key: VitalKey; delta?: number; value?: number; max?: number }
   | { t: 'tokenScene'; tokenId: number; roomId: number }
   | { t: 'lootAdd'; itemId: number; name: string; weight: number; kind: LootKind }
   | { t: 'lootRemove'; itemId: number; lootId: number }
@@ -228,7 +277,7 @@ export type ClientMsg =
   | { t: 'objAdd'; text: string }
   | { t: 'objToggle'; id: number }
   | { t: 'objRemove'; id: number }
-  | { t: 'campaignSet'; title: string; subtitle: string }
+  | { t: 'campaignSet'; title: string; subtitle: string; operacao?: string }
   | { t: 'layoutSet'; roomId: number; x: number; y: number }
   | { t: 'capacitySet'; name: string; capacity: number }
   | { t: 'floorPlan'; heightmap: string; door: Door }
@@ -248,6 +297,8 @@ export type ServerMsg =
   | { t: 'roomUpdate'; room: RoomInfo }
   | { t: 'userJoin'; user: UserInfo }
   | { t: 'userLeave'; id: number }
+  /** a peça atravessou uma passagem para outra cena (quem a comanda vai junto) */
+  | { t: 'tokenTravel'; tokenId: number; roomId: number }
   | { t: 'userLook'; id: number; look: AvatarLook }
   | { t: 'status'; updates: UserStatus[] }
   | { t: 'chat'; id: number; name: string; text: string; kind: ChatKind; roll?: RollResult }
@@ -267,4 +318,8 @@ export type ServerMsg =
   /** peças que se mexeram neste passo (a cada TOKEN_STEP_MS) */
   | { t: 'tokens'; sceneId: number; tokens: Token[] }
   /** ação recusada pelo servidor */
-  | { t: 'denied'; action: string; reason: string };
+  | { t: 'denied'; action: string; reason: string }
+  /** resposta à senha digitada (só para quem digitou) */
+  | { t: 'lockResult'; id: number; ok: boolean; reason?: string }
+  /** todas as fichas (só para o mestre); `nova` = id da ficha que acabou de ser criada */
+  | { t: 'fichas'; fichas: FichaSalva[]; nova?: number };

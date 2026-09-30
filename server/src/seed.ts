@@ -1,14 +1,32 @@
-import { getLayout, RoomMap, type AvatarLook, type CharacterDef, type Door, type FloorItem, type Hint, type Loot, type WallItem } from '@croma/shared';
+import {
+  footprint,
+  getFurni,
+  getLayout,
+  getWallFurni,
+  parseHeightmap,
+  RoomMap,
+  WALL_HEIGHT,
+  Z_PER_M,
+  Z_PX,
+  type AvatarLook,
+  type CharacterDef,
+  type Door,
+  type FloorItem,
+  type Hint,
+  type Loot,
+  type WallItem,
+} from '@croma/shared';
 import type { Database, RoomData, TokenData } from './db';
+import { rebuildSede, seedSede } from './seedSede';
 
 export const SYSTEM_OWNER = 'CROMA';
 
-type FloorSeed = [defId: string, x: number, y: number, rot: number, hint?: Hint, state?: number];
-type WallSeed = [defId: string, wall: 'l' | 'r', plane: number, pos: number, z: number, hint?: Hint];
+export type FloorSeed = [defId: string, x: number, y: number, rot: number, hint?: Hint, state?: number];
+export type WallSeed = [defId: string, wall: 'l' | 'r', plane: number, pos: number, z: number, hint?: Hint];
 
 const hint = (icon: Hint['icon'], title: string, text: string): Hint => ({ icon, title, text, visible: true });
 
-function buildRoom(
+export function buildRoom(
   db: Database,
   name: string,
   description: string,
@@ -56,7 +74,7 @@ function buildRoom(
   };
 }
 
-const SEED_VERSION = 10;
+const SEED_VERSION = 14;
 
 /** Os quatro investigadores da mesa. */
 const TEPES = 'D.Tepes';
@@ -262,7 +280,7 @@ function seedTokens(db: Database) {
 }
 
 /** Planta retangular com a porta na parede esquerda. */
-function plan(w: number, h: number, doorY: number): { heightmap: string; door: Door } {
+export function plan(w: number, h: number, doorY: number): { heightmap: string; door: Door } {
   const rows: string[] = [];
   for (let y = 0; y < h; y++) rows.push((y === doorY ? '0' : 'x') + '0'.repeat(w));
   return { heightmap: rows.join('\n'), door: { x: 0, y: doorY, dir: 2 } };
@@ -571,10 +589,61 @@ function seedMansao(db: Database) {
   db.home = escr.id;
 }
 
+/**
+ * Escala nova (móveis em metros, Z_PER_M): refaz a altura dos mobis
+ * empilhados (o que estava em cima da mesa continua em cima da mesa, agora
+ * mais alta). O que está no chão fica no chão.
+ */
+export function restackRoom(r: RoomData) {
+  const hm = parseHeightmap(r.heightmap);
+  const floorAt = (x: number, y: number) => hm.tiles[y]?.[x] ?? 0;
+  const oldZ = new Map(r.items.map((it) => [it.id, it.z]));
+  // altura antiga = a medida em metros (a escala antiga era 1 unidade = 1 m)
+  const oldTop = (it: FloorItem) => (oldZ.get(it.id) ?? it.z) + (getFurni(it.defId)?.height ?? 0) / Z_PER_M;
+  const tiles = (it: FloorItem) => {
+    const def = getFurni(it.defId);
+    const fp = def ? footprint(def, it.rot) : { sx: 1, sy: 1 };
+    const out: string[] = [];
+    for (let dy = 0; dy < fp.sy; dy++) for (let dx = 0; dx < fp.sx; dx++) out.push(`${it.x + dx},${it.y + dy}`);
+    return out;
+  };
+  const placed: FloorItem[] = [];
+  for (const it of [...r.items].sort((a, b) => a.z - b.z || a.id - b.id)) {
+    const z0 = oldZ.get(it.id) ?? it.z;
+    const floor = floorAt(it.x, it.y);
+    if (z0 > floor + 0.05) {
+      const mine = new Set(tiles(it));
+      let top = floor;
+      for (const o of placed) {
+        if (oldTop(o) > z0 + 0.01 || !tiles(o).some((t) => mine.has(t))) continue;
+        top = Math.max(top, o.z + (getFurni(o.defId)?.height ?? 0));
+      }
+      it.z = Math.round(top * 1000) / 1000;
+    } else it.z = floor;
+    placed.push(it);
+  }
+}
+
+/** Itens de parede que estavam baixos demais para gente de 1,75 m: sobem (em unidades). */
+const WALL_LIFT: Record<string, number> = { sconce: 0.9, poster_sigil: 0.6, notes_wall: 0.5, board_investigation: 0.5, antlers: 0.3 };
+
+function liftWallItems(r: RoomData) {
+  let maxH = 0;
+  for (const row of parseHeightmap(r.heightmap).tiles) for (const t of row) if (t !== null && t > maxH) maxH = t;
+  const top = maxH + WALL_HEIGHT;
+  for (const it of r.wallItems) {
+    const lift = WALL_LIFT[it.defId];
+    const def = getWallFurni(it.defId);
+    if (!lift || !def) continue;
+    it.z = Math.round(Math.min(it.z + lift, top - def.h / Z_PX - 0.05) * 100) / 100;
+  }
+}
+
 /** Aplica conteúdo novo em bancos antigos sem apagar nada. */
 export function upgradeDb(db: Database): boolean {
   const v = db.seedVersion ?? 1;
-  if (v >= SEED_VERSION) return false;
+  // a Sede muda de montagem sem esperar versão nova do banco
+  if (v >= SEED_VERSION) return rebuildSede(db);
   for (const r of db.rooms) {
     r.lightMode ??= 'normal';
     r.fog ??= r.id === 1 ? 0.2 : 0;
@@ -623,6 +692,16 @@ export function upgradeDb(db: Database): boolean {
     if (camp) camp.log = demoLog(Date.now());
   }
   if (v < 10) seedPartySprites(db);
+  if (v < 11) {
+    // proporção: móveis em metros na escala do personagem
+    for (const r of db.rooms) {
+      restackRoom(r);
+      liftWallItems(r);
+    }
+  }
+  // Sede da Ordem: bar no térreo e a sede no subsolo
+  if (v < 12) seedSede(db);
+  rebuildSede(db);
   db.seedVersion = SEED_VERSION;
   return true;
 }

@@ -8,6 +8,7 @@ import { Z_PX } from './constants';
 import type { Heightmap } from './heightmap';
 import type { LightMode } from './protocol';
 import type { LogEntry, LootKind, Objective } from './rpg';
+import type { Vitals } from './vitals';
 import { computeWalls, type Door } from './walls';
 
 /** Mestre controla a sessão; jogador só acompanha. */
@@ -54,6 +55,8 @@ export interface Scene {
   name: string;
   /** nome completo ("Mansão Alvarez · Escritório") */
   title: string;
+  /** andar ("Térreo", "Subsolo") */
+  floor?: string;
   description: string;
   /** largura ÷ altura do quadro da cena */
   aspect: number;
@@ -101,6 +104,11 @@ export interface Character {
   /** aparência; look.charId aponta para uma folha de sprite (CharacterDef) */
   look: AvatarLook;
   sceneId: number;
+  /** com a arma e machucado: escolhem o retrato (ver PortraitState) */
+  armed: boolean;
+  hurt: boolean;
+  /** PV, PE e SAN (atual e total); machucado = menos da metade dos PV */
+  vitals?: Vitals;
 }
 
 export interface Token {

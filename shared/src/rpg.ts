@@ -1,5 +1,6 @@
 import type { AvatarLook } from './avatar';
 import type { SceneInfo } from './protocol';
+import type { Vitals } from './vitals';
 
 /** Tipos de item de RPG (ícone e rótulo). */
 export type LootKind = 'weapon' | 'document' | 'key' | 'letter' | 'potion' | 'tape' | 'box' | 'misc';
@@ -61,6 +62,12 @@ export interface PartyMember {
   capacity: number;
   roomId: number | null;
   color: string;
+  /** está com a arma (retrato armado) */
+  armed?: boolean;
+  /** está machucado (retrato machucado, respiração irregular) */
+  hurt?: boolean;
+  /** PV, PE e SAN (atual e total) */
+  vitals?: Vitals;
 }
 
 /** Tudo que a tela MAPA precisa sobre a campanha (cenas ligadas por Passagens). */
@@ -68,9 +75,11 @@ export interface CampaignState {
   key: number;
   title: string;
   subtitle: string;
+  /** nome da operação em andamento ("Fulgor"), no topo da tela */
+  operacao?: string;
   objectives: Objective[];
-  /** posição de cada cena na planta (em células) */
-  layout: Record<number, { x: number; y: number }>;
+  /** posição de cada cena na planta (em células); r = giro em quartos de volta */
+  layout: Record<number, { x: number; y: number; r?: number }>;
   log: LogEntry[];
   party: PartyMember[];
   scenes: SceneInfo[];

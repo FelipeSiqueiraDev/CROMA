@@ -7,8 +7,13 @@ import {
   getFurni,
   getWallFurni,
   anyFurniName,
+  applyVital,
+  DEFAULT_VITALS,
   HINT_ICONS,
+  isFloorStyle,
+  isHexColor,
   LIGHT_MODES,
+  sanitizeParticles,
   lootKindLabel,
   sanitizeLook,
   sanitizeLootInput,
@@ -23,6 +28,8 @@ import {
   tilesByDistance,
   tileToPoint,
   validateHeightmap,
+  sanitizeVitals,
+  VITAL_KEYS,
   type AvatarLook,
   type Door,
   type FloorItem,
@@ -44,6 +51,8 @@ import {
   type Token,
   type UserInfo,
   type UserStatus,
+  type VitalKey,
+  type Vitals,
   type WallItem,
 } from '@croma/shared';
 import type { RoomData, TokenData } from './db';
@@ -65,6 +74,8 @@ export interface Client {
   role?: Role;
   /** conexão do próprio computador do servidor */
   local?: boolean;
+  /** jogador que entrou pelo link da própria ficha (`?ficha=CHAVE`) */
+  fichaId?: number;
   send(msg: ServerMsg): void;
   /** encerra esta conexão (sessão aberta em outra aba) */
   kick?(): void;
@@ -91,6 +102,10 @@ export interface HotelApi {
   tokenNameTaken(roomId: number, name: string, exceptTokenId?: number): boolean;
   /** personagem renomeado: os itens com ele passam para o nome novo (em toda a sessão) */
   renameHolder(roomId: number, oldName: string, newName: string): void;
+  /** PV/PE/SAN mudou: vai para "Últimas ações" (juntando cliques seguidos) */
+  vitalChanged(roomId: number, tokenId: number, name: string, key: VitalKey, from: number, to: number, max: number): void;
+  /** PV/PE/SAN de uma peça mudou: a ficha ligada ao personagem acompanha */
+  vitaisDaPeca(personagem: number | null | undefined, v: Vitals): void;
 }
 
 interface RoomUser {
@@ -108,8 +123,8 @@ interface RoomUser {
   headResetAt: number;
   /** chegou por esta passagem: não teleporta até sair do tile */
   arrivedAt: Point | null;
-  /** cor e limite de carga da peça */
-  meta?: { color?: string; capacity?: number };
+  /** cor, limite de carga, estado do retrato e ficha (PV/PE/SAN) da peça */
+  meta?: { color?: string; capacity?: number; armed?: boolean; hurt?: boolean; vitals?: Vitals };
 }
 
 const isInt = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v);
@@ -171,7 +186,16 @@ export class RoomInstance {
 
   /** Peças desta cena. */
   tokenList() {
-    return [...this.users.values()].map((u) => ({ id: u.client.id, name: u.client.name ?? '?', look: u.client.look, color: u.meta?.color, capacity: u.meta?.capacity }));
+    return [...this.users.values()].map((u) => ({
+      id: u.client.id,
+      name: u.client.name ?? '?',
+      look: u.client.look,
+      color: u.meta?.color,
+      capacity: u.meta?.capacity,
+      armed: !!u.meta?.armed,
+      hurt: !!u.meta?.hurt,
+      vitals: u.meta?.vitals,
+    }));
   }
 
   private ensureTimer() {
@@ -184,8 +208,13 @@ export class RoomInstance {
     const d = this.data.door;
     const back = fromRoomId ? this.map.allItems().find((it) => it.link === fromRoomId && getFurni(it.defId)?.portal) : undefined;
     const valid = !back && this.map.floorHeight(t.x, t.y) !== null && fromRoomId === null;
-    const sx = back ? back.x : valid ? t.x : d.x;
-    const sy = back ? back.y : valid ? t.y : d.y;
+    let sx = back ? back.x : valid ? t.x : d.x;
+    let sy = back ? back.y : valid ? t.y : d.y;
+    // chegando por uma passagem ocupada: vai para a casa livre mais perto dela
+    if (back && this.occupied(sx, sy, -t.id)) {
+      const free = this.freeNear(sx, sy, -t.id);
+      if (free) [sx, sy] = [free.x, free.y];
+    }
     const sdir = back ? (back.rot + 4) % 8 : valid ? t.dir : d.dir;
     const u: RoomUser = {
       client: tokenClient({ ...t, x: sx, y: sy, dir: sdir }, this),
@@ -200,8 +229,10 @@ export class RoomInstance {
       dance: false,
       dirty: false,
       headResetAt: 0,
-      arrivedAt: back ? { x: sx, y: sy } : null,
-      meta: { color: t.color, capacity: t.capacity },
+      // nasce "chegando": em cima de uma passagem, só atravessa depois de sair dela e voltar
+      // (sem isso, a peça salva em cima de uma porta trocava de cena a cada reinício)
+      arrivedAt: { x: sx, y: sy },
+      meta: { color: t.color, capacity: t.capacity, armed: t.armed, hurt: t.hurt, vitals: sanitizeVitals(t.vitals) },
     };
     this.users.set(u.client.id, u);
     this.settle(u);
@@ -209,11 +240,41 @@ export class RoomInstance {
     return u;
   }
 
+  /** Casa livre (andável e sem peça) mais perto de (x, y), em anéis. */
+  private freeNear(x: number, y: number, selfId: number): Point | null {
+    for (let r = 1; r <= 4; r++)
+      for (let dy = -r; dy <= r; dy++)
+        for (let dx = -r; dx <= r; dx++) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+          const nx = x + dx;
+          const ny = y + dy;
+          if (this.map.walkState(nx, ny) !== 'walk' || this.occupied(nx, ny, selfId)) continue;
+          if (getFurni(this.map.topItem(nx, ny)?.defId ?? '')?.portal) continue;
+          return { x: nx, y: ny };
+        }
+    return null;
+  }
+
   /** Coloca uma peça vinda de outra cena (ou nova). */
   putToken(t: TokenData, fromRoomId: number | null) {
+    if (fromRoomId) this.openFromInside(fromRoomId);
     const u = this.spawnToken(t, fromRoomId);
     this.broadcast({ t: 'userJoin', user: this.userInfo(u) });
     this.saveTokens();
+  }
+
+  /** PV/PE/SAN vindos da ficha para as peças deste personagem (folha). Devolve se mudou algo. */
+  definirVitais(personagem: number, v: Vitals): boolean {
+    let mudou = false;
+    for (const u of this.users.values()) {
+      if (u.client.look?.charId !== personagem) continue;
+      if (JSON.stringify(u.meta?.vitals) === JSON.stringify(v)) continue;
+      u.meta ??= {};
+      u.meta.vitals = { ...v };
+      mudou = true;
+    }
+    if (mudou) this.saveTokens();
+    return mudou;
   }
 
   /** Tira a peça desta cena e devolve os dados dela. */
@@ -223,11 +284,24 @@ export class RoomInstance {
     this.users.delete(tokenId);
     this.broadcast({ t: 'userLeave', id: tokenId });
     this.saveTokens();
+    if (!this.users.size) this.closeWhenEmpty();
     return this.tokenData(u);
   }
 
+  /** Sem ninguém na sala, a passagem secreta se fecha sozinha: o mobi volta para o lugar. */
+  private closeWhenEmpty() {
+    for (const it of this.map.allItems()) {
+      if (!it.lock?.open) continue;
+      if (!this.slideLock(it, false)) this.hotel.log(this.data.id, 'scene', `Sem ninguém na sala, a passagem se fechou: ${anyFurniName(it.defId)} voltou para o lugar.`);
+    }
+  }
+
   private tokenData(u: RoomUser): TokenData {
-    return { id: -u.client.id, name: u.client.name ?? '?', look: u.client.look, x: u.x, y: u.y, dir: u.dir, color: u.meta?.color, capacity: u.meta?.capacity };
+    const t: TokenData = { id: -u.client.id, name: u.client.name ?? '?', look: u.client.look, x: u.x, y: u.y, dir: u.dir, color: u.meta?.color, capacity: u.meta?.capacity };
+    if (u.meta?.armed) t.armed = true;
+    if (u.meta?.hurt) t.hurt = true;
+    if (u.meta?.vitals) t.vitals = u.meta.vitals;
+    return t;
   }
 
   private saveTokens() {
@@ -263,6 +337,11 @@ export class RoomInstance {
       lightMode: this.data.lightMode ?? 'normal',
       fog: this.data.fog ?? 0,
       publicBuild: this.data.publicBuild,
+      floor: this.data.floor,
+      floorStyle: this.data.floorStyle,
+      ambient: this.data.ambient,
+      particles: this.data.particles,
+      particleLevel: this.data.particleLevel,
       canBuild: this.canBuild(c),
       isOwner: this.isOwner(c),
     };
@@ -274,6 +353,9 @@ export class RoomInstance {
     if (this.canBuild(c)) return it;
     const out = { ...it };
     if (out.hint && !out.hint.visible) delete out.hint;
+    // a senha só vai para o mestre
+    const fl = out as FloorItem;
+    if (fl.lock) fl.lock = { open: fl.lock.open, slide: fl.lock.slide };
     if (out.loot) {
       const me = (c.name ?? '').toLowerCase();
       out.loot = out.loot.filter((l) => l.revealed || l.holder?.toLowerCase() === me);
@@ -445,7 +527,11 @@ export class RoomInstance {
       const portal = this.map.itemsAt(u.x, u.y).find((it) => it.link && getFurni(it.defId)?.portal);
       if (portal?.link && this.hotel.roomExists(portal.link)) travel.push([u.client.id, portal.link]);
     }
-    for (const [tokenId, roomId] of travel) this.hotel.moveToken(this, tokenId, roomId);
+    for (const [tokenId, roomId] of travel) {
+      // avisa antes de tirar a peça: quem a comanda troca de cena junto
+      this.broadcast({ t: 'tokenTravel', tokenId, roomId });
+      this.hotel.moveToken(this, tokenId, roomId);
+    }
     if (!this.viewers.size && !this.users.size && this.timer) {
       clearInterval(this.timer);
       this.timer = null;
@@ -477,6 +563,7 @@ export class RoomInstance {
       case 'tokenWalk':
       case 'tokenFace':
       case 'tokenScene':
+      case 'vitals':
         this.tokenCmd(c, m);
         break;
       case 'place':
@@ -496,6 +583,12 @@ export class RoomInstance {
         break;
       case 'use':
         if (isInt(m.id)) this.use(u, m.id);
+        break;
+      case 'unlock':
+        if (isInt(m.id)) this.unlock(c, m.id, m.code);
+        break;
+      case 'relock':
+        if (isInt(m.id)) this.relock(c, m.id);
         break;
       case 'setHint':
         if (isInt(m.id)) this.setHint(u, m.id, m.hint);
@@ -704,6 +797,9 @@ export class RoomInstance {
       const def = getFurni(floor.defId);
       if (!def?.states || def.states < 2) return;
       const it = { ...floor, state: (floor.state + 1) % def.states };
+      // porta: não fecha com alguém no vão
+      if (def.openState !== undefined && it.state !== def.openState && this.usersOn(this.map.tilesFor(floor.defId, floor.x, floor.y, floor.rot)))
+        return this.err(u.client, 'Tem alguém na porta.');
       this.map.updateItem(it);
       this.persist();
       this.broadcastFloor('itemUpdate', it);
@@ -718,6 +814,70 @@ export class RoomInstance {
       this.persist();
       this.broadcastWall('wallUpdate', it);
     }
+  }
+
+  // ---------- passagem secreta ----------
+  /**
+   * Abre (ou fecha) a fechadura: o mobi desliza `slide` casas e a passagem
+   * escondida que ficava embaixo dele aparece (ou some). Devolve o motivo quando não dá.
+   */
+  private slideLock(it: FloorItem, open: boolean): string | null {
+    const lock = it.lock;
+    if (!lock) return 'Esse mobi não tem senha.';
+    if (lock.open === open) return null;
+    const dx = open ? lock.slide.dx : -lock.slide.dx;
+    const dy = open ? lock.slide.dy : -lock.slide.dy;
+    const nx = it.x + dx;
+    const ny = it.y + dy;
+    const res = this.map.canPlace(it.defId, nx, ny, it.rot, it.id);
+    if (!res.ok) return 'Tem algo no caminho: não dá para arrastar.';
+    const dest = this.map.tilesFor(it.defId, nx, ny, it.rot);
+    if (this.usersOn(dest)) return 'Tem alguém no caminho.';
+    // casas que ficam livres ao abrir (ou que voltam a ser cobertas ao fechar)
+    const spot = open ? this.map.tilesFor(it.defId, it.x, it.y, it.rot) : dest;
+    const next: FloorItem = { ...it, x: nx, y: ny, z: res.z, lock: { ...lock, open } };
+    this.map.updateItem(next);
+    this.broadcastFloor('itemUpdate', next);
+    for (const t of spot)
+      for (const o of this.map.itemsAt(t.x, t.y)) {
+        if (!getFurni(o.defId)?.hidden || o.state === (open ? 1 : 0)) continue;
+        const shown: FloorItem = { ...o, state: open ? 1 : 0 };
+        this.map.updateItem(shown);
+        this.broadcastFloor('itemUpdate', shown);
+      }
+    this.persist();
+    return null;
+  }
+
+  /** Senha digitada pelo mestre (os jogadores dizem, o mestre digita). */
+  private unlock(c: Client, id: number, raw: unknown) {
+    if (!this.canBuild(c)) return this.err(c, 'Só o mestre digita a senha.');
+    const it = this.map.getItem(id);
+    if (!it?.lock) return;
+    if (it.lock.open) return c.send({ t: 'lockResult', id, ok: true });
+    const code = typeof raw === 'string' ? raw.replace(/\D/g, '').slice(0, 12) : '';
+    if (!code || code !== it.lock.code) return c.send({ t: 'lockResult', id, ok: false });
+    const why = this.slideLock(it, true);
+    if (why) return c.send({ t: 'lockResult', id, ok: false, reason: why });
+    c.send({ t: 'lockResult', id, ok: true });
+    this.hotel.log(this.data.id, 'scene', `Senha certa: ${anyFurniName(it.defId)} deslizou e revelou uma passagem.`);
+  }
+
+  private relock(c: Client, id: number) {
+    if (!this.canBuild(c)) return this.err(c, 'Só o mestre fecha a passagem.');
+    const it = this.map.getItem(id);
+    if (!it?.lock?.open) return;
+    const why = this.slideLock(it, false);
+    if (why) return this.err(c, why);
+    this.hotel.log(this.data.id, 'scene', `A passagem secreta foi fechada: ${anyFurniName(it.defId)} voltou para o lugar.`);
+  }
+
+  /** Chegando por uma passagem escondida que está fechada: abre por dentro, sem senha. */
+  private openFromInside(fromRoomId: number) {
+    const back = this.map.allItems().find((it) => it.link === fromRoomId && getFurni(it.defId)?.portal);
+    if (!back) return;
+    const cover = this.map.itemsAt(back.x, back.y).find((o) => o.lock && !o.lock.open);
+    if (cover && !this.slideLock(cover, true)) this.hotel.log(this.data.id, 'scene', `Alguém abriu a passagem por dentro: ${anyFurniName(cover.defId)} deslizou.`);
   }
 
   private setHint(u: RoomUser, id: number, raw: unknown) {
@@ -756,6 +916,15 @@ export class RoomInstance {
     if (typeof m.description === 'string') this.data.description = clean(m.description, 140);
     if (isNum(m.darkness)) this.data.darkness = Math.max(0, Math.min(0.9, m.darkness));
     if (typeof m.publicBuild === 'boolean' && this.data.owner !== SYSTEM_OWNER) this.data.publicBuild = m.publicBuild;
+    if (typeof m.floor === 'string') {
+      const f = clean(m.floor, 20);
+      if (f) this.data.floor = f;
+      else delete this.data.floor;
+    }
+    if (isFloorStyle(m.floorStyle)) this.data.floorStyle = m.floorStyle;
+    if (m.ambient === null) delete this.data.ambient;
+    else if (isHexColor(m.ambient)) this.data.ambient = m.ambient;
+    if (Array.isArray(m.particles)) this.data.particles = sanitizeParticles(m.particles);
     this.hotel.save();
     for (const o of this.viewers.values()) o.send({ t: 'roomUpdate', room: this.info(o) });
     this.hotel.roomChanged();
@@ -797,6 +966,13 @@ export class RoomInstance {
         u.meta ??= {};
         if (typeof m.color === 'string' && /^#[0-9a-f]{6}$/i.test(m.color)) u.meta.color = m.color;
         if (isInt(m.capacity)) u.meta.capacity = Math.max(1, Math.min(99, m.capacity));
+        if (typeof m.armed === 'boolean') u.meta.armed = m.armed;
+        if (typeof m.hurt === 'boolean') u.meta.hurt = m.hurt;
+        // só o estado do retrato mudou: o tabuleiro não precisa redesenhar a peça
+        if (!name && !m.look && m.color === undefined && m.capacity === undefined) {
+          this.saveTokens();
+          break;
+        }
         this.broadcast({ t: 'userLeave', id: u.client.id });
         this.broadcast({ t: 'userJoin', user: this.userInfo(u) });
         this.saveTokens();
@@ -808,6 +984,19 @@ export class RoomInstance {
       case 'tokenScene':
         if (isInt(m.roomId) && m.roomId !== this.data.id && this.hotel.roomExists(m.roomId)) this.hotel.moveToken(this, u.client.id, m.roomId);
         break;
+      case 'vitals': {
+        if (!VITAL_KEYS.includes(m.key as VitalKey)) return;
+        const key = m.key as VitalKey;
+        u.meta ??= {};
+        const before = u.meta.vitals ?? DEFAULT_VITALS;
+        const change = { delta: isNum(m.delta) ? m.delta : undefined, value: isNum(m.value) ? m.value : undefined, max: isNum(m.max) ? m.max : undefined };
+        const after = applyVital(before, key, change);
+        u.meta.vitals = after;
+        if (after[key] !== before[key]) this.hotel.vitalChanged(this.data.id, -u.client.id, u.client.name ?? '?', key, before[key], after[key], after[`${key}Max`]);
+        this.hotel.vitaisDaPeca(u.client.look?.charId, after);
+        this.saveTokens();
+        break;
+      }
     }
   }
 
@@ -907,6 +1096,7 @@ export class RoomInstance {
     if (LIGHT_MODES.includes(m.lightMode as LightMode)) this.data.lightMode = m.lightMode as LightMode;
     if (isNum(m.fog)) this.data.fog = Math.max(0, Math.min(1, m.fog));
     if (isNum(m.darkness)) this.data.darkness = Math.max(0, Math.min(0.9, m.darkness));
+    if (isNum(m.particleLevel)) this.data.particleLevel = Math.round(Math.max(0, Math.min(1, m.particleLevel)) * 100) / 100;
     this.hotel.save();
     for (const o of this.viewers.values()) o.send({ t: 'roomUpdate', room: this.info(o) });
   }
@@ -989,6 +1179,7 @@ export class RoomInstance {
       id: this.data.id,
       name: sceneShortName(this.data.name),
       title: this.data.name,
+      floor: this.data.floor,
       description: this.data.description,
       aspect,
       grid,
@@ -1017,6 +1208,9 @@ export class RoomInstance {
       look: u.client.look,
       color: u.meta?.color,
       capacity: u.meta?.capacity,
+      armed: !!u.meta?.armed,
+      hurt: !!u.meta?.hurt,
+      vitals: u.meta?.vitals,
     }));
   }
 

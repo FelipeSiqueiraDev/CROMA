@@ -12,6 +12,50 @@ export interface Point {
 export type HintIcon = 'inspect' | 'interact' | 'document' | 'gear' | 'alert';
 export const HINT_ICONS: HintIcon[] = ['inspect', 'interact', 'document', 'gear', 'alert'];
 
+/**
+ * Fechadura com senha (passagem secreta): o mestre digita a senha e o mobi
+ * desliza para o lado, revelando a passagem escondida que estava embaixo.
+ */
+export interface ItemLock {
+  /** senha, só números (só o mestre recebe) */
+  code?: string;
+  open: boolean;
+  /** quanto o mobi anda ao abrir, em casas */
+  slide: { dx: number; dy: number };
+}
+
+/** Piso do cômodo (cor e desenho do chão). */
+export const FLOOR_STYLES = [
+  { id: 'pedra', name: 'Pedra' },
+  { id: 'concreto', name: 'Concreto' },
+  { id: 'madeira', name: 'Madeira escura' },
+  { id: 'taco', name: 'Madeira clara' },
+  { id: 'ladrilho', name: 'Ladrilho branco' },
+  { id: 'xadrez', name: 'Xadrez' },
+  { id: 'azulejo', name: 'Azulejo azul' },
+  { id: 'carpete', name: 'Carpete roxo' },
+  { id: 'musgo', name: 'Pedra verde' },
+  { id: 'metal', name: 'Chapa de metal' },
+  { id: 'terra', name: 'Terra' },
+] as const;
+export type FloorStyle = (typeof FLOOR_STYLES)[number]['id'];
+export const isFloorStyle = (s: unknown): s is FloorStyle => FLOOR_STYLES.some((f) => f.id === s);
+
+/** Partículas do cômodo (enfeite): poeira que brilha na luz, fumaça e brasas do fogo. */
+export const PARTICLE_KINDS = [
+  { id: 'dust', name: 'Poeira na luz' },
+  { id: 'smoke', name: 'Fumaça das velas' },
+  { id: 'embers', name: 'Brasas do fogo' },
+] as const;
+export type ParticleKind = (typeof PARTICLE_KINDS)[number]['id'];
+export const sanitizeParticles = (v: unknown): ParticleKind[] =>
+  Array.isArray(v) ? PARTICLE_KINDS.map((p) => p.id).filter((id) => v.includes(id)) : [];
+/** Quantidade de partículas quando a cena ainda não tem uma (0..1). */
+export const DEFAULT_PARTICLE_LEVEL = 0.35;
+
+/** Cor do ambiente: #rrggbb (tinge a escuridão do cômodo). */
+export const isHexColor = (s: unknown): s is string => typeof s === 'string' && /^#[0-9a-f]{6}$/i.test(s);
+
 /** Pista/interação que o mestre anexa a um mobi. */
 export interface Hint {
   icon: HintIcon;
@@ -36,6 +80,8 @@ export interface FloorItem {
   loot?: Loot[];
   /** interações com teste (DT) */
   actions?: ItemAction[];
+  /** fechadura com senha (passagem secreta) */
+  lock?: ItemLock;
 }
 
 export interface WallItem {
@@ -172,7 +218,8 @@ export class RoomMap {
       const def = getFurni(it.defId);
       if (!def) continue;
       if (def.sit) sit = true;
-      else if (!def.walkable) return 'blocked';
+      // porta aberta deixa passar; fechada, bloqueia
+      else if (!def.walkable && !(def.openState !== undefined && it.state === def.openState)) return 'blocked';
     }
     return sit ? 'sit' : 'walk';
   }

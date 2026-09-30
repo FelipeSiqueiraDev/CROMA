@@ -16,4 +16,10 @@ export const WALL_HEIGHT = 5;
 export const WALL_PX_PER_TILE = 32;
 /** Pixels de tela por unidade de altura. */
 export const Z_PX = 32;
+/**
+ * Escala do mundo: unidades de altura por metro. O personagem (~1,75 m) tem
+ * ~104 px na tela e a parede (5 unidades) ~2,8 m; os mobis são medidos em
+ * metros e convertidos com isto (mesa 0,8 m, estante 2,2 m, porta 2,15 m).
+ */
+export const Z_PER_M = 1.8;
 export const MAX_ROOM_SIZE = 40;

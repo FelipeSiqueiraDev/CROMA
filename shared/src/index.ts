@@ -9,6 +9,10 @@ export * from './layouts';
 export * from './dice';
 export * from './protocol';
 export * from './session';
+export * from './vitals';
+export * from './fichas';
+/** Regras de Ordem Paranormal: catálogos, ficha, criação de NEX 0% a 99% (ver docs/REGRAS.md). */
+export * as regras from './regras';
 export {
   LOOT_KINDS,
   lootKindLabel,

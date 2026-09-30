@@ -123,3 +123,36 @@ Só para referência: o `SessionStore` já cuida disso.
 - Mesa com toque (hoje ela só mostra).
 - Imagem da cena (`Scene.image`); chega com o tabuleiro em imagem.
 - Escolher entre várias sessões (o servidor já separa, falta a tela).
+
+## Mensagens novas (29/09/2026)
+
+| Direção | Mensagem | Para quê |
+|---|---|---|
+| cliente → servidor | `{ t: 'unlock', id, code }` | Senha de um mobi com fechadura (`FloorItem.lock`). Certa: o mobi desliza `lock.slide` casas e a passagem escondida embaixo dele (`FurniDef.hidden`) aparece |
+| servidor → cliente | `{ t: 'lockResult', id, ok, reason? }` | Resposta à senha, só para quem digitou |
+| cliente → servidor | `{ t: 'relock', id }` | Fecha a passagem (o mobi volta) |
+| cliente → servidor | `{ t: 'vitals', tokenId, key: 'pv'\|'pe'\|'san', delta?, value?, max? }` | Muda a ficha: `delta` soma, `value` troca o atual, `max` troca o total |
+| cliente → servidor | `{ t: 'tokenEdit', tokenId, armed? }` | Retrato armado ou não |
+| cliente → servidor | `roomSettings` com `floor`, `floorStyle`, `ambient`, `particles` | Andar, piso, cor do ambiente e partículas da cena |
+| servidor → cliente | `{ t: 'tokenTravel', tokenId, roomId }` | A peça atravessou uma passagem para outra cena; quem a comanda troca de cena junto (a mesa segue o mestre) |
+| cliente → servidor | `roomFx` com `particleLevel` (0..1) | Quantidade de partículas da cena, ao vivo (sem valor: `DEFAULT_PARTICLE_LEVEL`, 0,35) |
+
+- A mesa nunca recebe a senha (`lock.code`), só se a passagem está aberta.
+- `PartyMember.vitals` e `Character.vitals` trazem PV, PE e SAN; as condições saem de `vitalConditions()` (`shared/src/vitals.ts`), com os limites do livro de regras.
+- `CharacterDef.portraits` lista os retratos por estado que o servidor achou na pasta do personagem.
+
+## Fichas (29/09/2026)
+
+A ficha de cada agente (`FichaSalva`, em `shared/src/fichas.ts`) guarda só as escolhas (o motor de regras calcula o resto) e o estado em jogo (PV, PE e SAN atuais, condições, anotações, companheiro).
+
+| Direção | Mensagem | Para quê |
+|---|---|---|
+| cliente → servidor | `login` com `fichaKey` | Link do jogador (`?ficha=CHAVE`): entra como jogador e só recebe a própria ficha, sem a chave |
+| servidor → cliente | `{ t: 'fichas', fichas, nova? }` | Lista das fichas: todas para o mestre, só a dele para o jogador. `nova` = id da ficha que acabou de ser criada |
+| cliente → servidor | `{ t: 'fichaSalvar', ficha }` | Cria (id 0) ou grava. O jogador só grava a própria; NEX, pontos de prestígio, regras, personagem e campanha ficam como estavam |
+| cliente → servidor | `{ t: 'fichaApagar', id }` | Só o mestre |
+| cliente → servidor | `{ t: 'fichaLink', id }` | Só o mestre: gera (ou troca) a chave do link do jogador |
+| cliente → servidor | `campaignSet` com `operacao` | Nome da operação em andamento, no topo da tela |
+
+- Ficha ligada a um personagem do tabuleiro (`personagem` = id da folha): os máximos de PV, PE e SAN vão para a peça, e o PV da peça volta para a ficha.
+- `GET /api/arte`: lista da arte que existe em `client/public/arte`. A tela só pede a imagem que está na lista; sem ela, fica o desenho padrão.
