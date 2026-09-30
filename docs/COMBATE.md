@@ -595,10 +595,10 @@ O livro não diz em que ordem as coisas do começo do turno acontecem. Proposta 
 - Objeto a 0 PV quebra, e só volta a funcionar depois de consertado no interlúdio.
 
 **No CROMA:**
-- empurrão e derrubada mexem na peça sozinhos; o mestre ajusta se a casa estiver ocupada;
+- empurrão e derrubada mexem na peça sozinhos, em linha reta, até a primeira casa bloqueada ou ocupada; o mestre ajusta o resto;
 - caído deita a peça;
-- o item desarmado vira item no chão da cena;
-- portas e mobis podem ter Defesa, RD e PV para serem quebrados.
+- o item desarmado vai para o registro (onde caiu); o mestre tira da mão na ficha. Item no chão da cena fica para depois;
+- quebrar usa a Tab. 4.5 (o mestre escolhe o objeto). Defesa, RD e PV nos mobis do tabuleiro ficam para depois.
 
 ## 10. PV, morrendo e morte
 
@@ -938,7 +938,8 @@ Poderes que mexem direto no combate (só nome e página): Ataque Especial (p. 24
 As estatísticas já trazem os modificadores de tamanho e equipamento.
 
 **No CROMA:**
-- catálogo de fichas de ameaça (nome, números e página, sem o texto) e ficha avulsa, criada pelo mestre;
+- catálogo de fichas de ameaça (nome, números e página, sem o texto: as 74 do livro de regras, em `shared/src/combate/ameacasLivro.ts`) e ficha avulsa, criada pelo mestre;
+- "imune a dano" na ficha do livro vale para todo dano; nas criaturas de Medo, cai quando o enigma é resolvido (o mestre tira na ficha);
 - cada ameaça no combate é uma instância, com PV, condições e usos gastos.
 
 ### 17.2 Regras das ameaças
@@ -1337,6 +1338,8 @@ Casa com a ordem do REGRAS.md: as etapas A a F são o item 6 (combate), G é o 7
 | H. Ameaças e aliados | fichas, turno do mestre, ataques múltiplos, presença perturbadora, habilidades comuns, medidor de VD, aliados |
 | I. Itens e perigos | granadas, mina, cicatrizante e outros itens, munição, perigos da cena |
 | J. Opções | medo em jogo, ferimentos debilitantes, conjuração complexa, perseguição, furtividade, modo rápido, lesões, inspiração resoluta, loucura não letal, contagem de munição, idade |
+
+**Estado em 30/09:** A, C e E prontas, e parte de B (sem casas contadas nem terreno difícil) e de D. F pronta. G pronta sem a conjuração complexa (J) e o desastre paranormal. H com o catálogo do livro, os ataques ×N e a presença perturbadora; faltam as habilidades comuns no automático, o medidor de VD e os aliados.
 
 ## 26. Exemplo de duas rodadas
 
