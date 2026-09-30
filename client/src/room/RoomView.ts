@@ -10,6 +10,7 @@ import {
   type ChatKind,
   type FloorItem,
   type Hint,
+  type PortraitState,
   type RollResult,
   type RoomInfo,
   type UserInfo,
@@ -32,7 +33,7 @@ import { Particles } from '../render/particles';
 import { boxSilhouette, Mapper, Painter, pointInPoly, type WBox } from '../render/painter';
 import { buildStatic, doorClipPath, roomBounds, type StaticLayer } from '../render/roomStatic';
 import { cmp, sortDrawables, type Drawable } from '../render/sort';
-import { drawSprite, framesFor, sprites } from '../render/sprites';
+import { drawPose, drawSprite, framesFor, poseFor, sprites } from '../render/sprites';
 import { sfx } from '../ui/sfx';
 
 export interface ClientUser {
@@ -171,6 +172,8 @@ export class RoomView {
   watchOnly = false;
   /** marcações do combate (a tela COMBATE e a mesa preenchem; null = nenhuma) */
   combate: MarcasCombate | null = null;
+  /** estado de cada peça (com a arma, machucada): escolhe a pose do tabuleiro, quando o personagem tem (null = desarmado) */
+  estadoDe: ((id: number) => PortraitState | null) | null = null;
   /** clique numa peça: devolve true quando a tela usou o clique (escolher o alvo sem trocar a peça comandada) */
   aoClicarPeca: ((id: number) => boolean) | null = null;
   /** clique numa casa para uma ferramenta (medir, área): devolve true quando usou o clique */
@@ -1017,13 +1020,17 @@ export class RoomView {
       const cx = p.x + 0.5;
       const cy = p.y + 0.5;
       const sp = u.look.charId ? sprites.get(u.look.charId) : null;
+      // pose do tabuleiro (arte em 32 bits) no estado da peça; sem ela, a folha
+      const cdef = sprites.def(u.look.charId);
+      const lp = cdef ? sprites.poses(cdef) : null;
+      const pf = lp ? poseFor(lp, this.estadoDe?.(u.id) ?? 'desarmado', u.dir) : null;
       // folha sem pose de sentar: fica de pé no chão, junto do assento (não em cima dele)
       const standBy = !!sp && u.sit === 1 && !p.moving && !framesFor(sp.lc, u.dir, 'sit');
       const seated = u.sit === 1 && !standBy;
       const baseZ = standBy ? (map.floorHeight(u.x, u.y) ?? p.z) : p.z;
       const half = seated ? 0.25 : 0.3;
       const [sx, sy] = iso(cx, cy, baseZ);
-      const H = sp ? sp.def.height : PIXEL_AVATAR_HEIGHT;
+      const H = sp ? sp.def.height : pf ? pf.h : PIXEL_AVATAR_HEIGHT;
       const isSel = sel?.kind === 'user' && sel.id === u.id;
       const pose: Pose = p.moving ? 'walk' : seated || u.sit === 2 ? 'sit' : 'stand';
       const wave = u.waveUntil > now;
@@ -1085,7 +1092,8 @@ export class RoomView {
             ctx.scale(0.92, 1);
             ctx.translate(-sx, -fy);
           }
-          if (sp) drawSprite(ctx, sp.def, sp.lc, u.dir, sx, fy + dance, now, u.phase, pose === 'sit' ? 'sit' : pose);
+          if (pf) drawPose(ctx, pf, sx, fy + dance, now, pose === 'sit' ? 'sit' : pose);
+          else if (sp) drawSprite(ctx, sp.def, sp.lc, u.dir, sx, fy + dance, now, u.phase, pose === 'sit' ? 'sit' : pose);
           else
             drawPixelAvatar(ctx, u.look, sx, fy, u.dir, u.headDir, {
               pose,

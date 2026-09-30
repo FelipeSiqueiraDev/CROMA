@@ -141,12 +141,12 @@ export class Hotel implements HotelApi {
     if (this.persist) console.log(`[hotel] ${this.rooms.size} quarto(s), ${this.db.characters.length} personagem(ns)`);
     if (this.timers) {
       setInterval(() => this.pushScenes(), 1500);
-      // retratos novos na pasta do personagem aparecem sem reiniciar o servidor
+      // retratos e poses do tabuleiro novos na pasta do personagem aparecem sem reiniciar o servidor
       setInterval(() => this.checkPortraits(), 5000);
     }
   }
 
-  /** Procura retratos novos (ou removidos) nas pastas dos personagens. */
+  /** Procura retratos e poses do tabuleiro novos (ou removidos) nas pastas dos personagens. */
   checkPortraits() {
     if (!refreshPortraits(this.db.characters)) return;
     this.save();

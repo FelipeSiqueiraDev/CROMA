@@ -6,7 +6,7 @@ import { beforeEach, describe, test } from 'node:test';
 import { applyVital, DEFAULT_VITALS, findPath, getFurni, vitalConditions, Z_PER_M, type ClientMsg, type FloorItem, type ServerMsg } from '@croma/shared';
 import type { RoomData } from '../src/db';
 import { Hotel } from '../src/hotel';
-import { findPortraits } from '../src/portraits';
+import { findPortraits, findPoses, refreshPortraits } from '../src/portraits';
 import { restackRoom, seedDb, upgradeDb } from '../src/seed';
 import { rebuildSede, SEDE, SEDE_CODE } from '../src/seedSede';
 
@@ -325,6 +325,35 @@ describe('retratos por estado', () => {
       'armado-machucado': { open: '/arte/personagens/tepes/retrato-armado-machucado.webp' },
     });
     assert.equal(findPortraits('/uploads/abc.png', dir), undefined);
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+describe('poses do tabuleiro (32 bits)', () => {
+  test('acha as poses por estado e direção; sem a direção no nome, é a frente para a direita (se)', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'croma-'));
+    const pasta = path.join(dir, 'tepes', 'tabuleiro-32bits');
+    fs.mkdirSync(pasta, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'tepes', 'folha.webp'), '');
+    for (const f of ['idle-desarmado.png', 'idle-desarmado-ne.png', 'idle-armado-machucado.webp', 'idle-armado-machucado-sw.png', 'leia.txt']) fs.writeFileSync(path.join(pasta, f), '');
+    const url = (f: string) => `/arte/personagens/tepes/tabuleiro-32bits/${f}`;
+    assert.deepEqual(findPoses('/arte/personagens/tepes/folha.webp', dir), {
+      desarmado: { se: url('idle-desarmado.png'), ne: url('idle-desarmado-ne.png') },
+      'armado-machucado': { sw: url('idle-armado-machucado-sw.png'), se: url('idle-armado-machucado.webp') },
+    });
+    // a imagem com a direção no nome vale mais que a sem direção
+    fs.writeFileSync(path.join(pasta, 'idle-desarmado-se.png'), '');
+    assert.equal(findPoses('/arte/personagens/tepes/folha.webp', dir)?.desarmado?.se, url('idle-desarmado-se.png'));
+    assert.equal(findPoses('/uploads/abc.png', dir), undefined);
+    assert.equal(findPoses('/arte/personagens/alosi/folha.webp', dir), undefined, 'sem a pasta, sem poses');
+    // o personagem ganha as poses (e perde quando a pasta some)
+    const def = { id: 1, name: 'D.Tepes', owner: '', sheet: '/arte/personagens/tepes/folha.webp', cols: 4, rows: 4, dirs: [], height: 104, fps: 4, sequence: [], removeBg: false } as Parameters<typeof refreshPortraits>[0][number];
+    assert.equal(refreshPortraits([def], dir), true);
+    assert.equal(def.poses?.desarmado?.ne, url('idle-desarmado-ne.png'));
+    assert.equal(refreshPortraits([def], dir), false, 'nada mudou');
+    fs.rmSync(pasta, { recursive: true, force: true });
+    assert.equal(refreshPortraits([def], dir), true);
+    assert.equal(def.poses, undefined);
     fs.rmSync(dir, { recursive: true, force: true });
   });
 });

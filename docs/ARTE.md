@@ -36,7 +36,32 @@ Formato: PNG RGBA, 1024×1536, corpo inteiro, frente em três quartos voltada pa
 
 Armado: corrente sem acessório na ponta, enrolada no antebraço e com trecho solto até o início da bota; escudo pequeno, redondo, de madeira, abaixado junto ao corpo. Machucado: cortes, hematoma e roupa rasgada/manchada, preservando a identidade.
 
-São poses de referência para visualizar e baixar, ainda sem direções adicionais, quadros de piscar ou caminhada. Não substituem `folha.webp` nem os `retrato-*.png`; o construtor fará o encaixe no tabuleiro depois de definir a folha final.
+Não substituem `folha.webp` nem os `retrato-*.png`. **Desde 30/09 elas já estão no tabuleiro** (na tela do mestre e na mesa): a peça do Tepes usa a pose do estado dela e muda na hora. Ainda sem as outras direções, quadros de piscar ou caminhada: virado para outro lado, ele mostra a mesma pose; andando, ela desliza com um balanço.
+
+### Poses do tabuleiro: uma imagem por estado e direção
+
+É o formato das próximas entregas (as outras direções do Tepes e, depois, os outros agentes). Cada imagem é o personagem parado, numa direção e num estado.
+
+- **Pasta:** `client/public/arte/personagens/<nome>/tabuleiro-32bits/`.
+- **Nome:** `idle-<estado>-<direção>.png`, com `<estado>` = `desarmado`, `armado`, `desarmado-machucado` ou `armado-machucado`. As quatro imagens sem direção no nome (as entregues) valem como `se`.
+- **Direções** (na tela), as 4 primeiro:
+
+| Direção | Pose |
+|---|---|
+| `se` | frente virada para a direita ↘ (a entregue) |
+| `sw` | frente virada para a esquerda ↙ |
+| `nw` | costas viradas para a esquerda ↖ |
+| `ne` | costas viradas para a direita ↗ |
+| `s` | de frente ↓ (só com 8 direções) |
+| `e` | de lado, olhando para a direita → (só com 8) |
+| `n` | de costas ↑ (só com 8) |
+| `w` | de lado, olhando para a esquerda ← (só com 8) |
+
+- **A mesma tela das quatro entregues:** PNG RGBA de 1024×1536, corpo inteiro, **na mesma escala e com os pés no mesmo ponto** em todas as direções e estados. O jogo mede a altura das poses sem machucado e usa essa escala em todas; a âncora é o meio da faixa de baixo do corpo (entre os pés).
+- **Fundo transparente de verdade, sem chão, sem sombra, sem anel e sem texto.** Luz neutra, como nas quatro.
+- **Como o jogo escolhe:** o estado vem do botão **Armado** (no painel da peça) e dos PV (**menos da metade = machucado**, como no livro); a direção vem da peça (↺ ↻, Q e E). Faltando uma direção, usa a vizinha; faltando um estado, o mais parecido. No carregamento, o quase transparente em volta some e o corpo fica totalmente opaco.
+- **Tamanho na tela:** no zoom normal a peça tem 104 px de altura. A arte de hoje tem uns 210 "pixels" de altura (cada pixel da arte ≈ 7 px da imagem), então aparece reduzida pela metade: o pixel grosso só aparece de perto (zoom 2× ou 3×).
+- **Peso:** cada PNG de 1024×1536 tem ~1,5 MB; com 4 estados × 4 direções são ~24 MB por agente, pesado para o tablet. Com o conjunto completo, o construtor reduz as imagens (por exemplo, 512×768 em WebP), mantendo os nomes (só a extensão pode virar `.webp`).
 
 ### Folha de sprite: `folha.png`
 

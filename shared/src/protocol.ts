@@ -72,6 +72,7 @@ export const ANIM_KEYS: AnimKey[] = ['idle', 'walk', 'sit'];
  * Estado do retrato do personagem (cartas do grupo, na tela do mestre): com ou
  * sem arma, machucado ou não. Cada estado é uma imagem própria, na pasta do
  * personagem: retrato-<estado>.png (e retrato-<estado>-olhos-fechados.png para piscar).
+ * O mesmo estado escolhe a pose do personagem no tabuleiro (CharacterDef.poses).
  */
 export type PortraitState = 'desarmado' | 'armado' | 'desarmado-machucado' | 'armado-machucado';
 export const PORTRAIT_STATES: PortraitState[] = ['desarmado', 'armado', 'desarmado-machucado', 'armado-machucado'];
@@ -114,6 +115,12 @@ export interface CharacterDef {
    * (client/public/arte/personagens/<nome>/). Sem eles, o retrato é recortado da folha.
    */
   portraits?: Partial<Record<PortraitState, PortraitArt>>;
+  /**
+   * Poses do tabuleiro (arte em 32 bits, uma imagem por pose), por estado e
+   * direção, achadas pelo servidor em tabuleiro-32bits/ na pasta do personagem:
+   * idle-<estado>-<direção>.png (sem a direção, é `se`). Sem elas, o tabuleiro usa a folha.
+   */
+  poses?: Partial<Record<PortraitState, Partial<Record<DirKey, string>>>>;
 }
 
 export type CharacterPatch = Partial<Pick<CharacterDef, 'name' | 'cols' | 'rows' | 'dirs' | 'anims' | 'height' | 'fps' | 'sequence' | 'removeBg'>>;

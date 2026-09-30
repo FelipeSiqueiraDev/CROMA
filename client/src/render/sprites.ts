@@ -1,4 +1,4 @@
-import { sheetDirFor, type AnimKey, type CharacterDef } from '@croma/shared';
+import { PORTRAIT_STATES, portraitState, sheetDirFor, type AnimKey, type CharacterDef, type PortraitState } from '@croma/shared';
 
 /** Quadro pronto para desenhar. w/h/ax/ay em pixels de mundo (zoom 1). */
 export interface SpriteFrame {
@@ -17,8 +17,15 @@ export interface LoadedChar {
   sheet: HTMLCanvasElement;
 }
 
+/** Poses do tabuleiro prontas: um quadro por "estado:direção" (ex.: "armado:se"). */
+export interface LoadedPoses {
+  frames: Record<string, SpriteFrame>;
+}
+
 /** Superamostragem para ficar nítido no zoom 2 / telas retina. */
 const RES = 2.5;
+/** Nas poses: a arte em 32 bits tem mais detalhe que a folha. */
+const RES_POSE = 4;
 
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -151,68 +158,127 @@ async function processCharacter(def: CharacterDef): Promise<LoadedChar> {
   const d = data.data;
   const cw = W / def.cols;
   const ch = H / def.rows;
-  interface Cell {
-    row: number;
-    col: number;
-    x0: number;
-    y0: number;
-    x1: number;
-    y1: number;
-    fx: number;
-  }
-  const cells: Cell[] = [];
+  const cells: (Caixa & { row: number; col: number })[] = [];
   for (let row = 0; row < def.rows; row++)
     for (let col = 0; col < def.cols; col++) {
-      const X0 = Math.floor(col * cw);
-      const X1 = Math.floor((col + 1) * cw);
-      const Y0 = Math.floor(row * ch);
-      const Y1 = Math.floor((row + 1) * ch);
-      let x0 = Infinity;
-      let y0 = Infinity;
-      let x1 = -1;
-      let y1 = -1;
-      for (let y = Y0; y < Y1; y++)
-        for (let x = X0; x < X1; x++)
-          if (d[(y * W + x) * 4 + 3] > 96) {
-            if (x < x0) x0 = x;
-            if (x > x1) x1 = x;
-            if (y < y0) y0 = y;
-            if (y > y1) y1 = y;
-          }
-      if (x1 < 0) continue;
-      // pés: média dos pixels opacos na faixa de baixo
-      const band = Math.max(2, Math.round((y1 - y0) * 0.08));
-      let sum = 0;
-      let n = 0;
-      for (let y = y1 - band; y <= y1; y++)
-        for (let x = x0; x <= x1; x++)
-          if (d[(y * W + x) * 4 + 3] > 96) {
-            sum += x;
-            n++;
-          }
-      cells.push({ row, col, x0, y0, x1, y1, fx: n ? sum / n : (x0 + x1) / 2 });
+      const b = caixa(d, W, Math.floor(col * cw), Math.floor(row * ch), Math.floor((col + 1) * cw), Math.floor((row + 1) * ch));
+      if (b) cells.push({ row, col, ...b });
     }
   if (!cells.length) throw new Error('Folha vazia');
   // a escala vem só das linhas de idle (sentado é mais baixo)
   const idleCells = cells.filter((c) => (def.anims?.[c.row] ?? 'idle') === 'idle');
-  const heights = (idleCells.length ? idleCells : cells).map((c) => c.y1 - c.y0 + 1).sort((a, b) => a - b);
-  const median = heights[Math.floor(heights.length / 2)];
-  const s = def.height / median;
+  const s = def.height / mediana((idleCells.length ? idleCells : cells).map((c) => c.y1 - c.y0 + 1));
   const frames: Record<string, SpriteFrame[]> = {};
   for (let row = 0; row < def.rows; row++) {
     const dir = def.dirs[row];
     const key = `${def.anims?.[row] ?? 'idle'}:${dir}`;
     if (!dir || frames[key]) continue;
-    const list: SpriteFrame[] = [];
-    for (const c of cells.filter((q) => q.row === row).sort((a, b) => a.col - b.col)) {
-      const bw = c.x1 - c.x0 + 1;
-      const bh = c.y1 - c.y0 + 1;
-      const canvas = scaleCanvas(sheet, c.x0, c.y0, bw, bh, bw * s * RES, bh * s * RES);
-      list.push({ canvas, w: bw * s, h: bh * s, ax: (c.fx - c.x0 + 0.5) * s, ay: bh * s });
-    }
+    const list = cells
+      .filter((q) => q.row === row)
+      .sort((a, b) => a.col - b.col)
+      .map((c) => quadro(sheet, c, s, RES));
     if (list.length) frames[key] = list;
   }
   return { frames, sheet };
+}
+
+/** Caixa dos pixels opacos de uma área da imagem e o x dos pés. */
+interface Caixa {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+  fx: number;
+}
+
+/** Caixa dos pixels opacos entre (X0, Y0) e (X1, Y1), sem incluir estes. null = área vazia. */
+function caixa(d: Uint8ClampedArray, W: number, X0: number, Y0: number, X1: number, Y1: number): Caixa | null {
+  let x0 = Infinity;
+  let y0 = Infinity;
+  let x1 = -1;
+  let y1 = -1;
+  for (let y = Y0; y < Y1; y++)
+    for (let x = X0; x < X1; x++)
+      if (d[(y * W + x) * 4 + 3] > 96) {
+        if (x < x0) x0 = x;
+        if (x > x1) x1 = x;
+        if (y < y0) y0 = y;
+        if (y > y1) y1 = y;
+      }
+  if (x1 < 0) return null;
+  // pés: média dos pixels opacos na faixa de baixo
+  const band = Math.max(2, Math.round((y1 - y0) * 0.08));
+  let sum = 0;
+  let n = 0;
+  for (let y = y1 - band; y <= y1; y++)
+    for (let x = x0; x <= x1; x++)
+      if (d[(y * W + x) * 4 + 3] > 96) {
+        sum += x;
+        n++;
+      }
+  return { x0, y0, x1, y1, fx: n ? sum / n : (x0 + x1) / 2 };
+}
+
+function mediana(v: number[]) {
+  const o = [...v].sort((a, b) => a - b);
+  return o[Math.floor(o.length / 2)];
+}
+
+/** Recorta a caixa de `src` na escala `s` (superamostrada em `res`), com a âncora nos pés. */
+function quadro(src: HTMLCanvasElement, b: Caixa, s: number, res: number): SpriteFrame {
+  const bw = b.x1 - b.x0 + 1;
+  const bh = b.y1 - b.y0 + 1;
+  const canvas = scaleCanvas(src, b.x0, b.y0, bw, bh, bw * s * res, bh * s * res);
+  return { canvas, w: bw * s, h: bh * s, ax: (b.fx - b.x0 + 0.5) * s, ay: bh * s };
+}
+
+/**
+ * Arruma o alfa da pose: o quase transparente (halo em volta) some e o quase
+ * opaco (corpo com alfa 253) fica opaco, para o chão não aparecer através dele.
+ */
+function limparAlfa(d: Uint8ClampedArray) {
+  for (let i = 3; i < d.length; i += 4) {
+    if (d[i] <= 8) d[i] = 0;
+    else if (d[i] >= 240) d[i] = 255;
+  }
+}
+
+/**
+ * Poses do tabuleiro (CharacterDef.poses): uma imagem por estado e direção,
+ * todas desenhadas na mesma escala e com os pés no mesmo ponto. A escala vem
+ * das poses sem machucado (a machucada pode curvar o corpo) e vale para todas.
+ */
+async function processPoses(def: CharacterDef): Promise<LoadedPoses> {
+  const pedidos: { key: string; url: string; machucado: boolean }[] = [];
+  for (const [estado, dirs] of Object.entries(def.poses ?? {}))
+    for (const [dir, url] of Object.entries(dirs ?? {})) if (url) pedidos.push({ key: `${estado}:${dir}`, url, machucado: estado.endsWith('machucado') });
+  const lidas = await Promise.allSettled(
+    pedidos.map(async (p) => {
+      const img = await loadImage(p.url);
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const x = canvas.getContext('2d', { willReadFrequently: true })!;
+      x.drawImage(img, 0, 0);
+      const data = x.getImageData(0, 0, canvas.width, canvas.height);
+      limparAlfa(data.data);
+      x.putImageData(data, 0, 0);
+      const b = caixa(data.data, canvas.width, 0, 0, canvas.width, canvas.height);
+      if (!b) throw new Error('Pose vazia: ' + p.url);
+      return { ...p, canvas, b };
+    }),
+  );
+  const poses: { key: string; machucado: boolean; canvas: HTMLCanvasElement; b: Caixa }[] = [];
+  for (const r of lidas) {
+    if (r.status === 'fulfilled') poses.push(r.value);
+    else console.warn('[sprites]', r.reason);
+  }
+  if (!poses.length) throw new Error('Nenhuma pose carregou');
+  const inteiras = poses.filter((p) => !p.machucado);
+  const s = def.height / mediana((inteiras.length ? inteiras : poses).map((p) => p.b.y1 - p.b.y0 + 1));
+  const frames: Record<string, SpriteFrame> = {};
+  for (const p of poses) frames[p.key] = quadro(p.canvas, p.b, s, RES_POSE);
+  return { frames };
 }
 
 export function spriteKey(def: CharacterDef) {
@@ -226,6 +292,8 @@ class SpriteStore {
 
   setDefs(list: CharacterDef[]) {
     this.defs = new Map(list.map((d) => [d.id, d]));
+    // as poses do tabuleiro são grandes: começam a carregar antes de a cena pedir
+    for (const d of list) this.poses(d);
   }
 
   def(id: number | null | undefined) {
@@ -252,6 +320,29 @@ class SpriteStore {
         .catch((e) => {
           console.warn('[sprites]', e);
           this.cache.set(key, 'error');
+        });
+    }
+    return null;
+  }
+
+  private poseCache = new Map<string, LoadedPoses | 'loading' | 'error'>();
+
+  /** Poses do tabuleiro do personagem; null enquanto carregam (ou se ele não tem). */
+  poses(def: CharacterDef): LoadedPoses | null {
+    if (!def.poses) return null;
+    const key = JSON.stringify([def.poses, def.height]);
+    const c = this.poseCache.get(key);
+    if (c && c !== 'loading' && c !== 'error') return c;
+    if (!c) {
+      this.poseCache.set(key, 'loading');
+      processPoses(def)
+        .then((lp) => {
+          this.poseCache.set(key, lp);
+          this.onLoad?.();
+        })
+        .catch((e) => {
+          console.warn('[sprites]', e);
+          this.poseCache.set(key, 'error');
         });
     }
     return null;
@@ -314,21 +405,46 @@ export function drawSprite(
     const idx = seq[Math.floor((t / 1000 + phase) * fps) % seq.length] % frames.length;
     f = frames[idx] ?? frames[0];
   }
-  const bob = pose === 'walk' && !own ? -Math.abs(Math.sin((t * Math.PI) / 250)) * 3 : 0;
+  const bob = pose === 'walk' && !own ? balanco(t) : 0;
+  paint(ctx, f, x, y + bob, pose === 'sit' && !own, alpha);
+  return f.h;
+}
+
+/**
+ * Quadro da pose do tabuleiro para o estado e a direção da peça. Sem a imagem
+ * do estado, a mais parecida (como no retrato); sem a direção, a vizinha (ver sheetDirFor).
+ */
+export function poseFor(lp: LoadedPoses, estado: PortraitState, dir: number): SpriteFrame | null {
+  const armado = estado.startsWith('armado');
+  const machucado = estado.endsWith('machucado');
+  for (const e of [estado, portraitState(armado, false), portraitState(!armado, machucado), ...PORTRAIT_STATES]) {
+    const k = sheetDirFor(dir, (d) => !!lp.frames[`${e}:${d}`]);
+    if (k) return lp.frames[`${e}:${k}`];
+  }
+  return null;
+}
+
+/** Desenha a pose do tabuleiro com os pés em (x, y). Parada; andando, balança como a folha sem quadros de andar. */
+export function drawPose(ctx: CanvasRenderingContext2D, f: SpriteFrame, x: number, y: number, t: number, pose: SpritePose, alpha = 1): number {
+  paint(ctx, f, x, y + (pose === 'walk' ? balanco(t) : 0), pose === 'sit', alpha);
+  return f.h;
+}
+
+/** Sobe e desce do passo, sem quadros de andar. */
+const balanco = (t: number) => -Math.abs(Math.sin((t * Math.PI) / 250)) * 3;
+
+/** Pinta o quadro com os pés em (x, y). sit = sem quadro de sentado: abaixa o corpo e esconde as pernas atrás do assento. */
+function paint(ctx: CanvasRenderingContext2D, f: SpriteFrame, x: number, y: number, sit: boolean, alpha: number) {
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
-  if (pose === 'sit' && !own) {
-    // sem quadro de sentado: abaixa o corpo e esconde as pernas atrás do assento
+  if (sit) {
     const drop = f.h * 0.22;
     ctx.beginPath();
     ctx.rect(x - f.w * 2, y - f.h * 2, f.w * 4, f.h * 2 + 4);
     ctx.clip();
     ctx.drawImage(f.canvas, x - f.ax, y - f.ay + drop, f.w, f.h);
-  } else {
-    ctx.drawImage(f.canvas, x - f.ax, y - f.ay + bob, f.w, f.h);
-  }
+  } else ctx.drawImage(f.canvas, x - f.ax, y - f.ay, f.w, f.h);
   ctx.restore();
-  return f.h;
 }

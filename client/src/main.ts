@@ -5,7 +5,7 @@ import './ui/tema.css';
 import './ui/mapa.css';
 import './ui/fichas.css';
 import './ui/combate.css';
-import { anyFurniName, getFurni, getWallFurni, type ServerMsg } from '@croma/shared';
+import { anyFurniName, getFurni, getWallFurni, portraitState, vitalConditions, type ServerMsg } from '@croma/shared';
 import { Net } from './net';
 import { clearIconCache } from './render/bubbles';
 import { sprites } from './render/sprites';
@@ -108,6 +108,11 @@ const view = new RoomView(canvas, {
   openHint: (kind, id) => hintViewer.open(kind, id),
 });
 app.view = view;
+// pose de cada peça no tabuleiro: Armado (no painel da peça) e machucado (menos da metade dos PV)
+view.estadoDe = (id) => {
+  const ch = app.session.session?.characters.find((c) => c.id === -id);
+  return ch ? portraitState(ch.armed, vitalConditions(ch.vitals).machucado) : null;
+};
 if (import.meta.env.DEV) (window as unknown as { __croma: App }).__croma = app;
 
 const navigator = new NavigatorWin(app);
