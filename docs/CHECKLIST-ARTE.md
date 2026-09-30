@@ -104,6 +104,8 @@ Nada novo: usa os retratos, os ícones e as folhas da FICHAS. Os cartões de res
 
 ## Para depois: o tabuleiro
 
+- [x] **Tepes — quatro poses idle de referência em estilo 32 bits, com luz neutra:** `personagens/tepes/tabuleiro-32bits/idle-desarmado.png`, `idle-armado.png`, `idle-armado-machucado.png`, `idle-desarmado-machucado.png` (PNG RGBA, 1024×1536). Imagens estáticas escolhidas por Felipe, para visualizar e baixar; formato e pendências em [ARTE.md](ARTE.md). A folha final com direções e animações permanece pendente.
+
 - **Folha nova de cada agente para o tabuleiro:** estilo 32 bits, mais pixelada, com todos os ângulos e as animações de andar (e as poses de caído e atacando que a referência do COMBATE mostra). O formato entra no [`ARTE.md`](ARTE.md) antes de ser feito. As folhas de hoje continuam como a arte de referência da FICHAS e da Hand do jogador.
 - **Folha das ameaças para o tabuleiro** (`ocultista`, `acolito`...), no mesmo formato novo.
 - **A Sala de Tecnologia** (o cômodo das referências), pasta `moveis/`, isométrico 2:1, casa de 128×64, 1 m = 115 px, frente e `_costas`: `console` (e desligado), `chair_office`, `fluorescent` (e aceso), `portal`; e as texturas `pisos/carpete.png` (128×64) e `paredes/tijolo-escuro.png` (256×256). Formato em [`SEDE-DA-ORDEM.md`](SEDE-DA-ORDEM.md).
