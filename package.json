@@ -16,7 +16,11 @@
     "build": "npm run build -w @croma/client",
     "start": "npm run start -w @croma/server",
     "typecheck": "tsc -p shared && tsc -p server && tsc -p client",
-    "test": "npm run test -w @croma/server"
+    "test": "npm run test -w @croma/server",
+    "banco": "docker compose up -d --wait banco",
+    "banco:parar": "docker compose stop banco",
+    "banco:backup": "node scripts/banco.mjs backup",
+    "banco:restaurar": "node scripts/banco.mjs restaurar"
   },
   "devDependencies": {
     "concurrently": "^10.0.5",

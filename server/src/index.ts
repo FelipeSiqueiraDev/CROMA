@@ -5,14 +5,23 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
-import { UPLOAD_DIR } from './db';
+import { abrirBanco } from './banco';
+import { fecharBanco, UPLOAD_DIR } from './db';
 import { Hotel } from './hotel';
+
+// server/.env (fora do git): CROMA_DB_URL e afins. Ver server/.env.example.
+try {
+  process.loadEnvFile(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../.env'));
+} catch {
+  /* sem .env: usa server/data/db.json */
+}
 
 // Em desenvolvimento o Vite usa PORT; o servidor fica na 3001 (ou CROMA_PORT).
 // Com --prod (npm start) respeita PORT, como a maioria das hospedagens espera.
 const PROD = process.argv.includes('--prod');
 const PORT = Number(process.env.CROMA_PORT ?? (PROD ? process.env.PORT : undefined) ?? 3001);
 const CLIENT_DIST = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../client/dist');
+const ARTE_FONTE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../client/public/arte');
 const MAX_UPLOAD = 12 * 1024 * 1024;
 
 const MIME: Record<string, string> = {
@@ -28,6 +37,7 @@ const MIME: Record<string, string> = {
   '.woff2': 'font/woff2',
 };
 
+await abrirBanco();
 const hotel = new Hotel();
 
 function sendJson(res: http.ServerResponse, status: number, body: unknown) {
@@ -98,6 +108,35 @@ function handleUpload(req: http.IncomingMessage, res: http.ServerResponse, url: 
   });
 }
 
+/**
+ * Lista da arte que existe (client/public/arte, ou a cópia do build). A tela
+ * só pede uma imagem que está na lista: sem arte, fica o desenho padrão, sem
+ * pedido perdido no console.
+ */
+let arteCache: { em: number; lista: string[] } | null = null;
+function listarArte(): string[] {
+  if (arteCache && Date.now() - arteCache.em < 5000) return arteCache.lista;
+  const raiz = fs.existsSync(ARTE_FONTE) ? ARTE_FONTE : path.join(CLIENT_DIST, 'arte');
+  const lista: string[] = [];
+  const andar = (dir: string, rel: string, fundo: number) => {
+    if (fundo > 5) return;
+    let itens: fs.Dirent[];
+    try {
+      itens = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const it of itens) {
+      if (it.name.startsWith('.')) continue;
+      if (it.isDirectory()) andar(path.join(dir, it.name), `${rel}/${it.name}`, fundo + 1);
+      else if (/\.(png|webp|jpe?g|svg)$/i.test(it.name)) lista.push(`/arte${rel}/${it.name}`);
+    }
+  };
+  andar(raiz, '', 0);
+  arteCache = { em: Date.now(), lista };
+  return lista;
+}
+
 const server = http.createServer((req, res) => {
   try {
     route(req, res);
@@ -116,6 +155,7 @@ function route(req: http.IncomingMessage, res: http.ServerResponse) {
     return serveFile(res, file, true);
   }
   if (url.pathname === '/api/health') return sendJson(res, 200, { ok: true });
+  if (url.pathname === '/api/arte') return sendJson(res, 200, { arquivos: listarArte() });
 
   // Cliente compilado (npm run build). Em desenvolvimento o Vite serve o cliente.
   if (!fs.existsSync(CLIENT_DIST)) {
@@ -175,9 +215,12 @@ server.listen(PORT, () => {
   console.log(`[croma] mestre em outro aparelho: http://${lan}:${port}/?mestre=${hotel.gmKey}`);
 });
 
-function shutdown() {
+let desligando = false;
+async function shutdown() {
+  if (desligando) return;
+  desligando = true;
   try {
-    hotel.flush();
+    await fecharBanco(hotel.db);
   } catch (e) {
     console.error(e);
   }

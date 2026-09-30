@@ -4,3 +4,14 @@ server/data/
 *.log
 .DS_Store
 .vite/
+
+# arte que não vai para o repositório público (símbolos oficiais de Ordem Paranormal)
+client/public/arte/local/
+
+# configuração local do servidor (senha do banco)
+server/.env
+
+# referências de tela com o emblema oficial (repositório público): ficam só na máquina
+docs/ref-fichas.webp
+docs/ref-fichas-mobile.webp
+docs/ref-mapa-2.webp
