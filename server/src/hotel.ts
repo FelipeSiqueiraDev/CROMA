@@ -55,6 +55,7 @@ const GM_ONLY = new Set([
   'objRemove',
   'campaignSet',
   'layoutSet',
+  'planNota',
   'capacitySet',
   'tokenAdd',
   'tokenEdit',
@@ -478,6 +479,7 @@ export class Hotel implements HotelApi {
       log: camp.log.slice(-30),
       party: [...party.values()].sort((a, b) => (a.id ?? 0) > (b.id ?? 0) ? -1 : 1),
       scenes,
+      notas: camp.notas ?? [],
     };
   }
 
@@ -641,6 +643,27 @@ export class Hotel implements HotelApi {
       case 'layoutSet': {
         if (typeof m.roomId !== 'number' || typeof m.x !== 'number' || typeof m.y !== 'number') return;
         camp.layout[m.roomId] = { ...camp.layout[m.roomId], x: Math.max(-40, Math.min(120, Math.round(m.x))), y: Math.max(-40, Math.min(120, Math.round(m.y))) };
+        break;
+      }
+      case 'planNota': {
+        camp.notas ??= [];
+        const pos = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? Math.max(-60, Math.min(200, Math.round(v * 10) / 10)) : null);
+        if (typeof m.id === 'number') {
+          const n = camp.notas.find((x) => x.id === m.id);
+          if (!n) return;
+          const texto = typeof m.texto === 'string' ? txt(m.texto, 40) : null;
+          if (m.apagar === true || texto === '') {
+            camp.notas = camp.notas.filter((x) => x !== n);
+            break;
+          }
+          if (texto) n.texto = texto;
+          n.x = pos(m.x) ?? n.x;
+          n.y = pos(m.y) ?? n.y;
+        } else {
+          const texto = txt(m.texto, 40);
+          if (!texto || camp.notas.length >= 60) return;
+          camp.notas.push({ id: this.nextItemId(), andar: txt(m.andar, 20), texto, x: pos(m.x) ?? 0, y: pos(m.y) ?? 0 });
+        }
         break;
       }
       case 'capacitySet': {
@@ -1030,6 +1053,7 @@ export class Hotel implements HotelApi {
       case 'objRemove':
       case 'campaignSet':
       case 'layoutSet':
+      case 'planNota':
       case 'capacitySet':
         this.campaignEdit(c, m);
         return;

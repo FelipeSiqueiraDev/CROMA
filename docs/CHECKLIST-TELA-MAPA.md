@@ -59,9 +59,9 @@ Planta:
 - [x] **Claude:** título do andar e as etiquetas TÉRREO / SUBSOLO
 - [x] **Claude:** salas em cinza com textura de pedra, contorno grosso e portas
 - [x] **Claude:** sala atual em vermelho; nome das salas
-- [ ] **Claude:** alfinete na sala atual e o nome das salas em plaquinhas
+- [x] **Claude:** alfinete na sala atual e o nome das salas em plaquinhas (o alfinete troca pela arte `interface/alfinete.png` quando ela chegar)
 - [x] **Claude:** rosa dos ventos (desenho padrão)
-- [ ] **Claude:** anotações à mão na planta (Caveat, inclinadas), que o mestre escreve
+- [x] **Claude:** anotações à mão na planta (Caveat, inclinadas), que o mestre escreve: o lápis no canto da planta anota; arrastar move; dois cliques mudam ou apagam
 - [ ] **Você:** as anotações de cada andar (ex.: "Instalações Técnicas", "Acesso Restrito")
 
 Cartão da sala:
@@ -69,15 +69,15 @@ Cartão da sala:
 - [ ] **Claude:** fitas nos cantos da polaroid (esperando `fita-*.png`)
 - [x] **Claude:** traço vermelho, título e descrição
 - [x] **Claude:** plaquinhas com ícones (andar; hoje a segunda mostra quantos cômodos)
-- [ ] **Claude:** campo "área" em cada cena (a segunda plaquinha passa a mostrar a área)
+- [x] **Claude:** campo "área" em cada cena, em Configurar cena (a segunda plaquinha mostra a área)
 - [ ] **Você:** a área de cada cômodo (ex.: "Área técnica")
 
 Objeto selecionado:
 - [x] **Claude:** título vermelho com o traço ("OBJETO SELECIONADO"; sem seleção, "NESTA CENA")
 - [x] **Claude:** foto do objeto (o próprio móvel desenhado) na moldura
 - [x] **Claude:** nome e descrição
-- [ ] **Claude:** lista "Contém" no estilo da referência (hoje: as abas Descrição, Interações e Itens)
-- [ ] **Claude:** carimbo da Ordem bem apagado (desenhado com o logo)
+- [x] **Claude:** lista "Contém" no estilo da referência: a aba dos itens virou CONTÉM, primeira e em linhas (Descrição e Interações continuam ao lado)
+- [x] **Claude:** carimbo da Ordem bem apagado (o anel com o nome; o emblema no meio vem do logo local)
 
 Cartas do grupo (embaixo):
 - [x] **Claude:** moldura, retrato e faixa escura com o nome (girar: ↺ ↻ ao passar o mouse, ou Q e E)

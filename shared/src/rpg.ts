@@ -71,6 +71,15 @@ export interface PartyMember {
 }
 
 /** Tudo que a tela MAPA precisa sobre a campanha (cenas ligadas por Passagens). */
+/** Anotação à mão do mestre na planta de um andar ("Acesso Restrito"), em células da planta. */
+export interface NotaPlanta {
+  id: number;
+  andar: string;
+  texto: string;
+  x: number;
+  y: number;
+}
+
 export interface CampaignState {
   key: number;
   title: string;
@@ -83,6 +92,8 @@ export interface CampaignState {
   log: LogEntry[];
   party: PartyMember[];
   scenes: SceneInfo[];
+  /** anotações do mestre na planta, por andar */
+  notas?: NotaPlanta[];
 }
 
 export const DEFAULT_CAPACITY = 10;

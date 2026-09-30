@@ -362,6 +362,7 @@ export class RoomInstance {
       fog: this.data.fog ?? 0,
       publicBuild: this.data.publicBuild,
       floor: this.data.floor,
+      area: this.data.area,
       floorStyle: this.data.floorStyle,
       ambient: this.data.ambient,
       particles: this.data.particles,
@@ -944,6 +945,11 @@ export class RoomInstance {
       const f = clean(m.floor, 20);
       if (f) this.data.floor = f;
       else delete this.data.floor;
+    }
+    if (typeof m.area === 'string') {
+      const a = clean(m.area, 24);
+      if (a) this.data.area = a;
+      else delete this.data.area;
     }
     if (isFloorStyle(m.floorStyle)) this.data.floorStyle = m.floorStyle;
     if (m.ambient === null) delete this.data.ambient;

@@ -1,4 +1,4 @@
-import type { AvatarLook, CharacterDef, combate, Door, FichaSalva, FloorItem, FloorStyle, InvItem, LightMode, LogEntry, Objective, ParticleKind, Vitals, WallItem } from '@croma/shared';
+import type { AvatarLook, CharacterDef, combate, Door, FichaSalva, FloorItem, FloorStyle, InvItem, LightMode, LogEntry, NotaPlanta, Objective, ParticleKind, Vitals, WallItem } from '@croma/shared';
 import type { Banco } from './banco';
 import { BancoJson } from './banco/json';
 
@@ -21,6 +21,8 @@ export interface RoomData {
   tokens?: TokenData[];
   /** andar ("Térreo", "Subsolo") */
   floor?: string;
+  /** área do cômodo ("Área técnica") */
+  area?: string;
   /** piso do cômodo */
   floorStyle?: FloorStyle;
   /** cor do ambiente (#rrggbb) */
@@ -72,6 +74,8 @@ export interface CampaignData {
   combate?: combate.Combate;
   /** fichas rápidas das ameaças, pelo id da peça (docs/COMBATE.md, seção 17) */
   ameacas?: Record<string, combate.FichaAmeaca>;
+  /** anotações do mestre na planta, por andar */
+  notas?: NotaPlanta[];
 }
 
 export interface Database {

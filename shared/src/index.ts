@@ -29,4 +29,5 @@ export {
   type LogEntry,
   type PartyMember,
   type CampaignState,
+  type NotaPlanta,
 } from './rpg';

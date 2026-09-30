@@ -44,7 +44,7 @@ import { sfx } from './sfx';
 import { CombateScreen } from './combate';
 import { FichasScreen } from './fichas';
 import { TopBar } from './topbar';
-import { ic } from './icons';
+import { existeArte, ic } from './icons';
 
 export interface ShellActions {
   fx(): void;
@@ -281,6 +281,13 @@ export class Shell {
   private activeScene: number | null = null;
   private peeked = new Set<number>();
   private planCanvas: HTMLCanvasElement;
+  /** anotações do mestre por cima da planta (Caveat, inclinadas) */
+  private planNotas!: HTMLElement;
+  private planNotasSig = '';
+  /** andar que a planta está mostrando agora */
+  private planShown = '';
+  /** a arte do alfinete (interface/alfinete.png), quando existe */
+  private alfineteImg: HTMLImageElement | null = null;
   private planRects: { id: number; x: number; y: number; w: number; h: number; name: string }[] = [];
   private planDrag: { id: number; sx: number; sy: number; ox: number; oy: number; moved: boolean } | null = null;
   private planScale = 6;
@@ -412,7 +419,15 @@ export class Shell {
       <circle cx="32" cy="34" r="17" stroke-width="1.2"/><circle cx="32" cy="34" r="12.5" stroke-width="0.7" stroke-dasharray="1.6 1.6"/>
       <path d="M32 11 36 30 32 34 28 30Z" fill="#2a241f"/><path d="M32 57 36 38 32 34 28 38Z" fill="#fff8" /><path d="M9 34 28 30 32 34 28 38Z" fill="#fff8"/><path d="M55 34 36 30 32 34 36 38Z" fill="#2a241f"/>
       <path d="M32 11 32 57M9 34 55 34" stroke-width="0.6"/><text x="32" y="8" text-anchor="middle" font-size="8" font-family="Courier Prime, monospace" font-weight="700" fill="#2a241f" stroke="none">N</text></svg>`);
-    const plan = h('section', { class: 'sheet p-plan wide' }, h('h3', { class: 'p-title' }, this.planTitle), this.planTabs, this.planCanvas, rosa, this.planTip);
+    this.planNotas = h('div', { class: 'plan-notas' });
+    const anotar = h('button', { class: 'plan-anotar', type: 'button', title: 'Anotar na planta (à mão, neste andar)', 'aria-label': 'Anotar na planta', onclick: () => (sfx.click(), void this.novaNota()) }, ic('lapis'));
+    const plan = h('section', { class: 'sheet p-plan wide' }, h('h3', { class: 'p-title' }, this.planTitle), this.planTabs, this.planCanvas, this.planNotas, rosa, this.planTip, anotar);
+    void existeArte('/arte/interface/alfinete.png').then((ok) => {
+      if (!ok) return;
+      const im = new Image();
+      im.onload = () => ((this.alfineteImg = im), this.drawPlan());
+      im.src = '/arte/interface/alfinete.png';
+    });
     paperize(plan, { seed: 12, tone: '#c3b09a', burn: 0.85, grid: 11, backs: [{ dx: -10, dy: 5, rot: -1.4 }] });
     this.bindPlan();
     // a lista de cenários saiu: a planta interativa é a navegação (a lista fica pronta, fora da tela)
@@ -1057,6 +1072,7 @@ export class Shell {
     const floorOf = (id: number | undefined) => camp.scenes.find((s) => s.id === id)?.floor ?? '';
     const floors = [...new Set(camp.scenes.map((s) => s.floor ?? ''))];
     const shown = this.planFloor !== null && floors.includes(this.planFloor) ? this.planFloor : floorOf(cur);
+    this.planShown = shown;
     this.renderPlanTabs(floors, shown);
     const parsed = camp.scenes
       .filter((s) => (s.floor ?? '') === shown)
@@ -1175,20 +1191,30 @@ export class Shell {
         ctx.fillStyle = s.id === cur ? '#d66a5e' : '#8e8a84';
         ctx.fillRect(ox + px * S + S * 0.15, oy + py * S + S * 0.2, S * 0.7, S * 0.6);
       }
-      // nome do cômodo dentro dele, quando cabe
-      const fs = Math.min(11, rect.h * 0.3, (rect.w / Math.max(4, rect.name.length)) * 1.7);
-      if (fs >= 6) {
+      // o cômodo atual ganha o alfinete; o nome vai numa plaquinha, quando cabe (a referência)
+      const atual = s.id === cur;
+      const alto = rect.h >= 34;
+      if (atual) this.alfinete(ctx, rect.x + rect.w / 2, rect.y + rect.h / 2 - (alto ? rect.h * 0.16 : 0), Math.max(4, Math.min(8, Math.min(rect.w, rect.h) * 0.2)));
+      const fs = Math.min(10, rect.h * 0.26, (rect.w / Math.max(4, rect.name.length)) * 1.55);
+      if (fs >= 5.5 && (!atual || alto)) {
         ctx.save();
-        ctx.font = `${fs.toFixed(1)}px "Ubuntu Mono", monospace`;
+        ctx.font = `600 ${fs.toFixed(1)}px "Ubuntu Mono", monospace`;
+        const tw = ctx.measureText(rect.name).width;
+        const pw = tw + fs * 1.1;
+        const ph = fs * 1.75;
+        const tx = rect.x + rect.w / 2;
+        const ty = rect.y + rect.h / 2 + (atual ? rect.h * 0.2 : 0);
+        ctx.fillStyle = 'rgba(238,231,216,0.95)';
+        ctx.strokeStyle = atual ? '#7a1b14' : '#2a211b';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(tx - pw / 2, ty - ph / 2, pw, ph, 1.6);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = atual ? '#7a1b14' : '#2a211b';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.lineWidth = 2.4;
-        ctx.strokeStyle = 'rgba(214,204,188,0.85)';
-        ctx.fillStyle = s.id === cur ? '#5a1510' : '#2a211b';
-        const tx = rect.x + rect.w / 2;
-        const ty = rect.y + rect.h / 2;
-        ctx.strokeText(rect.name, tx, ty);
-        ctx.fillText(rect.name, tx, ty);
+        ctx.fillText(rect.name, tx, ty + 0.5);
         ctx.restore();
       }
       for (const u of s.users) {
@@ -1204,6 +1230,106 @@ export class Shell {
       }
       this.planRects.push(rect);
     }
+    this.renderNotas();
+  }
+
+  /** O alfinete da sala atual: a arte (alfinete.png) ou o marcador de mapa desenhado. */
+  private alfinete(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
+    if (this.alfineteImg) {
+      const w = r * 2.4;
+      const hh = w * 1.4;
+      ctx.drawImage(this.alfineteImg, cx - w / 2, cy - hh * 0.8, w, hh);
+      return;
+    }
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(cx, cy + r * 1.7);
+    ctx.bezierCurveTo(cx - r * 0.45, cy + r * 0.9, cx - r, cy + r * 0.3, cx - r, cy - r * 0.15);
+    ctx.arc(cx, cy - r * 0.15, r, Math.PI, 0);
+    ctx.bezierCurveTo(cx + r, cy + r * 0.3, cx + r * 0.45, cy + r * 0.9, cx, cy + r * 1.7);
+    ctx.closePath();
+    ctx.fillStyle = '#f6efe3';
+    ctx.fill();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#4a120d';
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(cx, cy - r * 0.15, r * 0.4, 0, Math.PI * 2);
+    ctx.fillStyle = '#b3261e';
+    ctx.fill();
+    ctx.restore();
+  }
+
+  /** Anotações do mestre no andar mostrado, por cima da planta (em células, andam com a planta). */
+  private renderNotas() {
+    const notas = (this.campaign?.notas ?? []).filter((n) => n.andar === this.planShown);
+    const c = this.planCanvas;
+    const S = this.planScale;
+    const O = this.planOrigin;
+    const ox = c.offsetLeft;
+    const oy = c.offsetTop;
+    const sig = JSON.stringify([notas, S, O, ox, oy, this.owner]);
+    if (sig === this.planNotasSig) return;
+    this.planNotasSig = sig;
+    clear(this.planNotas);
+    const fs = Math.max(12, Math.min(18, S * 1.6));
+    for (const n of notas) {
+      const el = h(
+        'span',
+        {
+          class: `plan-nota${this.owner ? ' mexe' : ''}`,
+          style: `left:${(ox + O.x + n.x * S).toFixed(1)}px;top:${(oy + O.y + n.y * S).toFixed(1)}px;font-size:${fs.toFixed(1)}px;--rot:${(n.id * 37) % 11 - 5}deg`,
+          title: this.owner ? 'Arraste para mover · dois cliques para mudar ou apagar' : '',
+        },
+        n.texto,
+      );
+      if (this.owner) this.notaInterativa(el, n.id, n.texto);
+      this.planNotas.append(el);
+    }
+  }
+
+  /** Arrastar move a anotação; dois cliques mudam o texto (vazio apaga). */
+  private notaInterativa(el: HTMLElement, id: number, texto: string) {
+    let ini: { x: number; y: number; l: number; t: number; mexeu: boolean } | null = null;
+    el.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      el.setPointerCapture(e.pointerId);
+      ini = { x: e.clientX, y: e.clientY, l: el.offsetLeft, t: el.offsetTop, mexeu: false };
+    });
+    el.addEventListener('pointermove', (e) => {
+      if (!ini) return;
+      const dx = e.clientX - ini.x;
+      const dy = e.clientY - ini.y;
+      if (Math.abs(dx) + Math.abs(dy) > 3) ini.mexeu = true;
+      el.style.left = `${ini.l + dx}px`;
+      el.style.top = `${ini.t + dy}px`;
+    });
+    el.addEventListener('pointerup', () => {
+      const d = ini;
+      ini = null;
+      if (!d?.mexeu) return;
+      const c = this.planCanvas;
+      const x = (el.offsetLeft - c.offsetLeft - this.planOrigin.x) / this.planScale;
+      const y = (el.offsetTop - c.offsetTop - this.planOrigin.y) / this.planScale;
+      this.app.net.send({ t: 'planNota', id, x, y });
+    });
+    el.addEventListener('dblclick', async (e) => {
+      e.stopPropagation();
+      const r = await promptNote('ANOTAÇÃO NA PLANTA', [{ label: 'Texto (vazio apaga)', value: texto, max: 40 }]);
+      if (r) this.app.net.send({ t: 'planNota', id, texto: r[0].trim() });
+    });
+  }
+
+  /** Nova anotação no meio da planta do andar mostrado. */
+  private async novaNota() {
+    if (!this.owner) return;
+    const r = await promptNote('ANOTAR NA PLANTA', [{ label: 'Texto (ex.: Acesso Restrito)', value: '', max: 40 }]);
+    const texto = r?.[0].trim();
+    if (!texto) return;
+    const c = this.planCanvas;
+    const x = ((c.clientWidth || 220) / 2 - this.planOrigin.x) / this.planScale;
+    const y = ((c.clientHeight || 170) / 2 - this.planOrigin.y) / this.planScale;
+    this.app.net.send({ t: 'planNota', andar: this.planShown, texto, x, y });
   }
 
   // ================= objetivos =================
@@ -1465,9 +1591,9 @@ export class Shell {
         on ? tabRing() : null,
       );
     };
-    body.append(h('div', { class: 'itabs', role: 'tablist' }, tab('desc', 'DESCRIÇÃO'), tab('inter', 'INTERAÇÕES'), tab('items', `ITENS (${loot.length})`)));
+    body.append(h('div', { class: 'itabs', role: 'tablist' }, tab('items', `CONTÉM (${loot.length})`), tab('desc', 'DESCRIÇÃO'), tab('inter', 'INTERAÇÕES')));
     const pane = h('div', { class: `ipane ${this.inspTab}` });
-    body.append(pane);
+    body.append(pane, selo());
     if (this.inspTab === 'desc') this.paneDesc(pane, s);
     else if (this.inspTab === 'inter') this.paneInter(pane, s, actions);
     else this.paneItems(pane, s, loot);
@@ -2020,7 +2146,7 @@ export class Shell {
     const cena = this.campaign?.scenes.find((x) => x.id === r?.id);
     const url = r ? loadThumb(r.id) : null;
     const nome = (r?.name.split('·').pop()?.trim() ?? 'Cena').toUpperCase();
-    const sig = JSON.stringify([r?.id, r?.name, r?.description, cena?.floor, !!url]);
+    const sig = JSON.stringify([r?.id, r?.name, r?.description, cena?.floor, r?.area, !!url, this.campaign?.scenes.length]);
     if (sig === this.salaSig) return;
     this.salaSig = sig;
     clear(this.salaCorpo).append(
@@ -2030,7 +2156,7 @@ export class Shell {
         { class: 'sala-txt' },
         h('h3', { class: 'marca' }, nome),
         h('p', null, r?.description || 'Clique num objeto do cenário para ver descrição, interações e itens.'),
-        h('div', { class: 'sala-chips' }, h('span', null, ic('pino'), (cena?.floor ?? 'Andar único').toUpperCase()), h('span', null, ic('camadas'), `${(this.campaign?.scenes.length ?? 1)} CÔMODOS`)),
+        h('div', { class: 'sala-chips' }, h('span', null, ic('pino'), (cena?.floor ?? 'Andar único').toUpperCase()), h('span', null, ic('camadas'), r?.area ? r.area.toUpperCase() : `${this.campaign?.scenes.length ?? 1} CÔMODOS`)),
       ),
     );
   }
@@ -2361,6 +2487,17 @@ export class Shell {
     const s = this.sceneList().find((x) => x.id === id);
     return s ? s.name.split('·').pop()!.trim() : '';
   }
+}
+
+/**
+ * Carimbo da Ordem bem apagado no painel do objeto (a referência): o anel com
+ * o nome e o emblema no meio, que vem do logo local (fora do git); sem o logo,
+ * fica só o anel.
+ */
+function selo(): HTMLElement {
+  const el = h('span', { class: 'insp-selo', 'aria-hidden': 'true' });
+  el.innerHTML = `<svg viewBox="0 0 100 100"><defs><path id="selo-arco" d="M50,50 m-37,0 a37,37 0 1,1 74,0 a37,37 0 1,1 -74,0"/></defs><circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="50" cy="50" r="29" fill="none" stroke="currentColor" stroke-width="1"/><text font-size="8.6" letter-spacing="1.6" fill="currentColor" font-family="Courier Prime, monospace" font-weight="700"><textPath href="#selo-arco">ORDO REALITAS · SEDE DA ORDEM ·</textPath></text></svg><i></i>`;
+  return el;
 }
 
 /** Planta girada em quartos de volta (r) no sentido horário, para encaixar o cômodo na planta. */

@@ -930,3 +930,40 @@ describe('ataque no servidor', () => {
     assert.equal(gm.last('combate')!.ameacas?.[String(b.id)], undefined);
   });
 });
+
+describe('MAPA: anotações na planta e área da cena', () => {
+  test('o mestre cria, move, muda e apaga a anotação; a mesa não mexe; a área vai para o cartão da sala', () => {
+    const db = seedDb();
+    upgradeDb(db);
+    const hotel = new Hotel({ db, persist: false, timers: false });
+    const sala = hotel.db.rooms.find((x) => x.name === 'Mansão Alvarez · Escritório')!.id;
+    const gm = new Peer(hotel);
+    gm.send({ t: 'login', name: 'Mestre', look, gmKey: hotel.gmKey });
+    gm.send({ t: 'join', roomId: sala });
+    const mesa = new Peer(hotel);
+    mesa.send({ t: 'login', name: 'Mesa', look, mesa: true });
+    mesa.send({ t: 'join', roomId: sala });
+    const notas = () => {
+      hotel.pushNow();
+      return gm.last('campaign')!.state.notas ?? [];
+    };
+    gm.send({ t: 'planNota', andar: '', texto: '  Acesso Restrito  ', x: 3.25, y: 4 });
+    let n = notas();
+    assert.equal(n.length, 1);
+    assert.deepEqual({ ...n[0], id: 0 }, { id: 0, andar: '', texto: 'Acesso Restrito', x: 3.3, y: 4 });
+    gm.send({ t: 'planNota', id: n[0].id, x: 10, y: 11 });
+    gm.send({ t: 'planNota', id: n[0].id, texto: 'Instalações Técnicas' });
+    n = notas();
+    assert.deepEqual([n[0].texto, n[0].x, n[0].y], ['Instalações Técnicas', 10, 11]);
+    mesa.send({ t: 'planNota', id: n[0].id, apagar: true });
+    assert.equal(notas().length, 1, 'a mesa não mexe');
+    gm.send({ t: 'planNota', id: n[0].id, texto: '' });
+    assert.equal(notas().length, 0, 'texto vazio apaga');
+    // a área da cena, pela configuração
+    const r = hotel.db.rooms.find((x) => x.id === sala)!;
+    gm.send({ t: 'roomSettings', name: r.name, description: r.description, darkness: r.darkness, publicBuild: r.publicBuild, area: 'Área técnica' });
+    assert.equal(gm.last('roomUpdate')?.room.area, 'Área técnica');
+    gm.send({ t: 'roomSettings', name: r.name, description: r.description, darkness: r.darkness, publicBuild: r.publicBuild, area: '' });
+    assert.equal(gm.last('roomUpdate')?.room.area, undefined);
+  });
+});

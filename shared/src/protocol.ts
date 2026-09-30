@@ -189,6 +189,8 @@ export interface RoomInfo {
   publicBuild: boolean;
   /** andar do cômodo ("Térreo", "Subsolo"); sem nome = o único andar */
   floor?: string;
+  /** área do cômodo ("Área técnica"), na plaquinha do cartão da sala */
+  area?: string;
   /** piso do cômodo */
   floorStyle?: FloorStyle;
   /** cor do ambiente (#rrggbb): tinge a escuridão e o ar do cômodo */
@@ -246,7 +248,7 @@ export type ClientMsg =
   | { t: 'pickup'; id: number }
   | { t: 'use'; id: number }
   | { t: 'setHint'; id: number; hint: Hint | null }
-  | { t: 'roomSettings'; name: string; description: string; darkness: number; publicBuild: boolean; floor?: string; floorStyle?: FloorStyle; ambient?: string | null; particles?: ParticleKind[] }
+  | { t: 'roomSettings'; name: string; description: string; darkness: number; publicBuild: boolean; floor?: string; area?: string; floorStyle?: FloorStyle; ambient?: string | null; particles?: ParticleKind[] }
   /** senha de um mobi com fechadura: certa = ele desliza e abre a passagem */
   | { t: 'unlock'; id: number; code: string }
   /** fecha a passagem de novo (o mobi volta para o lugar) */
@@ -284,6 +286,8 @@ export type ClientMsg =
   | { t: 'objRemove'; id: number }
   | { t: 'campaignSet'; title: string; subtitle: string; operacao?: string }
   | { t: 'layoutSet'; roomId: number; x: number; y: number }
+  /** anotação na planta: sem id cria; com id muda o texto ou a posição; apagar (ou texto vazio) tira */
+  | { t: 'planNota'; id?: number; andar?: string; texto?: string; x?: number; y?: number; apagar?: boolean }
   | { t: 'capacitySet'; name: string; capacity: number }
   | { t: 'floorPlan'; heightmap: string; door: Door }
   | { t: 'charUpdate'; id: number; patch: CharacterPatch }
