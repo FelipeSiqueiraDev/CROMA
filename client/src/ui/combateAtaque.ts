@@ -121,6 +121,32 @@ const numero = (s: string): number | null => {
 
 export const PASSOS_ATAQUE = ['Ação', 'Arma', 'Alvo', 'Reação do alvo', 'Rolagem', 'Dano', 'Confirmar'];
 
+/** Caixinha de um número rolado na mesa (d20, d10, soma do dano). */
+export function campoDado(rotulo: string, valor: number | null, max: number, fn: (n: number | null) => void, foco: string, grande = false): HTMLElement {
+  const inp = h('input', {
+    class: `cb-dado${grande ? ' grande' : ''}`,
+    type: 'text',
+    inputmode: 'numeric',
+    maxlength: String(max).length,
+    value: valor === null ? '' : String(valor),
+    placeholder: '—',
+    'data-foco': foco,
+    'aria-label': rotulo,
+  });
+  const enviar = () => {
+    const n = numero(inp.value);
+    fn(n === null ? null : Math.max(0, Math.min(max, n)));
+  };
+  inp.addEventListener('change', enviar);
+  inp.addEventListener('keydown', (ev) => ev.key === 'Enter' && inp.blur());
+  return h('label', { class: 'cb-caixa-dado' }, h('small', null, rotulo), inp);
+}
+
+/** Linha de aviso (sem chave) nas colunas da resolução. */
+export function linhaInfo(icone: NomeIcone, texto: string, cls: string): HTMLElement {
+  return h('div', { class: `cb-sit info ${cls}` }, h('span', { class: 'cb-sit-ic' }, ic(icone)), h('span', { class: 'cb-sit-txt' }, texto));
+}
+
 /** Junta sem espaço: a linha não quebra no meio do crítico ("20/×2"). */
 const JUNTA = String.fromCodePoint(0x2060);
 
@@ -343,27 +369,11 @@ export class ResolucaoAtaque {
   }
 
   private info(icone: NomeIcone, texto: string, cls: string) {
-    return h('div', { class: `cb-sit info ${cls}` }, h('span', { class: 'cb-sit-ic' }, ic(icone)), h('span', { class: 'cb-sit-txt' }, texto));
+    return linhaInfo(icone, texto, cls);
   }
 
   private campo(rotulo: string, valor: number | null, max: number, fn: (n: number | null) => void, foco: string, grande = false): HTMLElement {
-    const inp = h('input', {
-      class: `cb-dado${grande ? ' grande' : ''}`,
-      type: 'text',
-      inputmode: 'numeric',
-      maxlength: String(max).length,
-      value: valor === null ? '' : String(valor),
-      placeholder: '—',
-      'data-foco': foco,
-      'aria-label': rotulo,
-    });
-    const enviar = () => {
-      const n = numero(inp.value);
-      fn(n === null ? null : Math.max(0, Math.min(max, n)));
-    };
-    inp.addEventListener('change', enviar);
-    inp.addEventListener('keydown', (ev) => ev.key === 'Enter' && inp.blur());
-    return h('label', { class: 'cb-caixa-dado' }, h('small', null, rotulo), inp);
+    return campoDado(rotulo, valor, max, fn, foco, grande);
   }
 
   private colRolagem(x: CtxAtaque, k: ReturnType<ResolucaoAtaque['conta']>): HTMLElement {

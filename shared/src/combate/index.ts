@@ -3,3 +3,4 @@ export * from './tipos';
 export * from './turnos';
 export * from './ataque';
 export * from './ameaca';
+export * from './manobra';

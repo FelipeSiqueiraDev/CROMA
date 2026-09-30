@@ -8,7 +8,8 @@
  * sustentado e o registro. Só o mestre mexe; os dados são físicos (o mestre
  * digita os resultados).
  */
-import type { TipoDano } from '../regras/tipos';
+import type { Elemento, TipoDano } from '../regras/tipos';
+import type { ManobraId, Tamanho } from './manobra';
 
 /** Lado de cada ser: os agentes têm turno próprio; inimigos e neutros agem no turno do mestre. */
 export type Lado = 'agente' | 'inimigo' | 'neutro';
@@ -43,6 +44,8 @@ export interface Participante {
   condicoes?: string[];
   /** ritual que o ser sustenta: paga 1 PE no começo de cada turno (LR p. 120) */
   sustenta?: string;
+  /** quem este ser está agarrando (id da peça; LR p. 85) */
+  agarra?: number;
 }
 
 /** Ação preparada: acontece como reação até o próximo turno de quem preparou (LR p. 86). */
@@ -144,11 +147,53 @@ export interface AtaqueConfirmado {
   resultado: ResultadoAtaque;
   multiplicador?: number;
   /** o dano: a fórmula rolada, a soma dos dados, o total e o que ficou depois de resistência e RD */
-  dano?: { formula: string; soma: number; total: number; tipo: string; conta: string; final: number; naoLetal?: boolean };
+  dano?: DanoConfirmado;
   /** defesa especial que o alvo usou */
   reacao?: 'esquiva' | 'bloqueio';
   /** errou um golpe corpo a corpo e o alvo pode contra-atacar (lembrete no registro) */
   contraAtaque?: boolean;
+}
+
+/** Um lado do teste oposto: dados, bônus, o d20 que ficou e o total. */
+export interface LadoOposto {
+  dados: number;
+  bonus: number;
+  d20: number;
+  total: number;
+}
+
+/** Dano já contado na tela (ataque, esmagar, quebrar): a fórmula, a soma dos dados, o total e o que ficou. */
+export interface DanoConfirmado {
+  formula: string;
+  soma: number;
+  total: number;
+  tipo: string;
+  conta: string;
+  final: number;
+  naoLetal?: boolean;
+}
+
+/** Uma manobra que o mestre confirmou na tela (LR p. 85–86; COMBATE.md, seção 9). */
+export interface ManobraConfirmada {
+  quem: number;
+  alvo: number;
+  manobra: ManobraId;
+  /** ação gasta: padrão; atropelar durante a investida é livre (LR p. 86) */
+  qual: 'padrao' | 'livre';
+  /** arma do teste de manobra */
+  arma?: string;
+  teste: { quem: LadoOposto; alvo: LadoOposto };
+  /** quem faz a manobra venceu o teste oposto (no empate, rola de novo e não chega aqui) */
+  venceu: boolean;
+  diferenca: number;
+  /** o que pesou nos testes (nomes curtos, para o registro) */
+  modificadores: string[];
+  /** casas que o alvo foi empurrado (a tela move a peça) */
+  empurrao?: number;
+  /** esmagar e quebrar */
+  dano?: DanoConfirmado;
+  /** quebrar: o objeto, os PV dele e se quebrou */
+  objeto?: { nome: string; pv: number; quebrou: boolean };
 }
 
 /** O que a tela do mestre pede (o servidor confere e aplica). */
@@ -178,6 +223,10 @@ export type AcaoCombate =
   | { tipo: 'nota'; texto: string }
   /** ataque resolvido na tela: aplica o dano no alvo e escreve no registro */
   | { tipo: 'ataque'; ataque: AtaqueConfirmado }
+  /** manobra resolvida na tela: teste oposto, condição no alvo e o dano de esmagar */
+  | { tipo: 'manobra'; manobra: ManobraConfirmada }
+  /** quem agarra solta o alvo (ação livre, LR p. 85) */
+  | { tipo: 'soltar'; id: number }
   /** marca ou tira uma condição de um ser do combate */
   | { tipo: 'condicao'; id: number; condicao: string; ativa: boolean }
   /** gasta PE de quem age (habilidade, ritual): conta no limite do turno */
@@ -261,5 +310,11 @@ export interface FichaAmeaca {
   imunidades: TipoDano[];
   vulnerabilidades: TipoDano[];
   ataques: AtaqueAmeaca[];
+  /** tamanho (Tab. 7.1, LR p. 179): muda os testes de manobra; sem nada, Médio */
+  tamanho?: Tamanho;
+  /** Luta para o teste oposto das manobras; sem nada, vale o primeiro ataque corpo a corpo */
+  luta?: TesteAmeaca;
+  /** elemento da criatura (rituais: o elemento que vence o dela, LR p. 118); pessoa não tem */
+  elemento?: Elemento;
   notas?: string;
 }

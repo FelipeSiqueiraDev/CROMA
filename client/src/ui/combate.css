@@ -2252,3 +2252,215 @@ button.cb-barra {
     text-align: center;
   }
 }
+
+/* ---------- manobra (combateManobra.ts): teste oposto ---------- */
+.cb-man-lado {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  margin-top: 0.3rem;
+  padding-top: 0.35rem;
+  border-top: 0.12rem solid rgba(84, 66, 44, 0.22);
+}
+.cb-man-lado:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+.cb-man-lado b {
+  font-weight: 700;
+  font-size: 1.5rem;
+  line-height: 1.25;
+}
+.cb-man-lado small {
+  font-size: 1.3rem;
+  line-height: 1.3;
+  color: var(--tinta-2);
+}
+.cb-man-extra {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  flex: none;
+  margin-top: 0.5rem;
+}
+.cb-man-arma {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.cb-man-arma small {
+  font-size: 1.25rem;
+  color: var(--tinta-2);
+}
+.cb-man-arma select {
+  max-width: 100%;
+  font-size: 1.35rem;
+}
+.cb-man-check {
+  font-size: 1.32rem;
+}
+.cb-man-soltar {
+  height: 3.6rem;
+  justify-content: center;
+}
+.cb-caixa-dado.mini {
+  flex-direction: row;
+  gap: 0.6rem;
+  padding: 0.1rem 0.7rem;
+}
+.cb-dado.cb-mais {
+  width: 4.6rem;
+  font-size: 1.8rem;
+}
+/* manobras em duas colunas, só o ícone e o nome (o efeito fica no título e no 4.) */
+.cb-man .cb-col-arma .cb-col-lista {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-content: start;
+  gap: 0.4rem;
+}
+.cb-man .cb-col-arma .cb-arma {
+  min-height: 3.3rem;
+  padding: 0.2rem 0.5rem 0.2rem 0.3rem;
+  gap: 0.5rem;
+}
+.cb-man .cb-col-arma .cb-arma-ic {
+  width: 2.4rem;
+  height: 2.6rem;
+  border-right: 0;
+}
+.cb-man .cb-col-arma .cb-arma-ic .ic {
+  width: 2.2rem;
+  height: 2.2rem;
+}
+.cb-man .cb-col-arma .cb-arma-txt b {
+  font-size: 1.42rem;
+}
+.cb-man .cb-col-arma .cb-arma-txt small {
+  display: none;
+}
+/* rolagem: cada lado com o seu d20; embaixo, o carimbo e o total */
+.cb-man-rol {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  flex: none;
+}
+.cb-man-rol .cb-instrucao {
+  min-width: 0;
+  font-size: 1.32rem;
+  line-height: 1.25;
+}
+.cb-man-rol .cb-instrucao b {
+  font-weight: 700;
+}
+.cb-man-rol .cb-caixa-dado {
+  flex-direction: row;
+  gap: 0.5rem;
+  padding: 0.1rem 0.6rem;
+}
+.cb-man-rol .cb-dado {
+  width: 4.8rem;
+}
+.cb-man-res {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: none;
+}
+.cb-man-res .cb-carimbo {
+  position: static;
+  flex: none;
+  padding: 0.15rem 0.7rem 0.25rem;
+  border-width: 0.3rem;
+  font-size: 1.6rem;
+}
+.cb-man-res .cb-total {
+  font-size: 1.36rem;
+}
+.cb-man .cb-dano-corpo .cb-man-arma {
+  max-width: 24rem;
+}
+
+/* manobra: a coluna do teste oposto é mais larga, com os dois lados lado a lado */
+.cb-atk.cb-man {
+  grid-template-columns: 24.5rem minmax(0, 1.3fr) minmax(0, 1fr);
+}
+.cb-man-lados {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem;
+}
+.cb-man-col {
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.cb-man-col .cb-sit {
+  grid-template-columns: 2rem minmax(0, 1fr) 1.3rem auto;
+  gap: 0.4rem;
+  min-height: 2.4rem;
+  padding: 0.1rem 0;
+  font-size: 1.24rem;
+}
+.cb-man-col .cb-sit-ic .ic {
+  width: 1.8rem;
+  height: 1.8rem;
+}
+.cb-man-col .cb-caixa-dado.mini {
+  align-self: flex-start;
+}
+.cb-man-sel {
+  width: 100%;
+  height: 2.6rem;
+  padding: 0 0.3rem;
+  font-size: 1.28rem;
+}
+.cb-col-pe.alerta {
+  color: #9d221d;
+}
+.cb-man-cab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.cb-man-cab b {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cb-man-cab .cb-caixa-dado.mini {
+  padding: 0 0.5rem;
+}
+.cb-man-cab .cb-dado.cb-mais {
+  width: 3.8rem;
+  font-size: 1.5rem;
+}
+.cb-man-luta {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.cb-man-luta > small {
+  font-size: 1.28rem;
+  color: var(--tinta-2);
+}
+.cb-man-luta .cb-caixa-dado {
+  flex-direction: row;
+  gap: 0.35rem;
+  padding: 0 0.45rem;
+}
+.cb-man-luta .cb-dado {
+  width: 3.4rem;
+  font-size: 1.6rem;
+}

@@ -580,6 +580,121 @@ describe('combate: ataque, PE, condições e ritual', () => {
   });
 });
 
+describe('manobras: regras puras', () => {
+  test('teste oposto: o maior vence; empate repete; só um 20 natural vence (LR p. 75)', () => {
+    assert.deepEqual(combate.resolverOposto({ d20: 12, bonus: 5 }, { d20: 9, bonus: 4 }), { totalA: 17, totalB: 13, vencedor: 'a', diferenca: 4 });
+    assert.equal(combate.resolverOposto({ d20: 10, bonus: 2 }, { d20: 8, bonus: 4 }).vencedor, 'empate');
+    // 20 natural contra total maior
+    assert.equal(combate.resolverOposto({ d20: 20, bonus: 0 }, { d20: 15, bonus: 10 }).vencedor, 'a');
+    assert.equal(combate.resolverOposto({ d20: 20, bonus: 0 }, { d20: 20, bonus: 3 }).vencedor, 'b');
+  });
+
+  test('empurrão em casas (1,5 m + 1,5 m a cada 5); tamanho; dano no objeto (LR p. 85, 90, 179)', () => {
+    assert.deepEqual([0, 4, 5, 9, 12].map(combate.casasEmpurrao), [2, 2, 4, 4, 6]);
+    assert.equal(combate.empurraUmQuadrado(4), false);
+    assert.equal(combate.empurraUmQuadrado(5), true);
+    assert.equal(combate.MOD_TAMANHO.grande, 2);
+    assert.equal(combate.MOD_TAMANHO.minusculo, -5);
+    const porta = combate.objeto('porta-madeira')!;
+    assert.deepEqual(combate.danoNoObjeto(12, porta), { final: 7, quebrou: false, conta: '12 − RD 5 = 7 contra 20 PV' });
+    assert.equal(combate.danoNoObjeto(30, porta).quebrou, true);
+  });
+});
+
+describe('combate: manobras', () => {
+  const man = (quem: number, alvo: number, manobra: combate.ManobraId, extra: Partial<combate.ManobraConfirmada> = {}): Acao => ({
+    tipo: 'manobra',
+    manobra: {
+      quem,
+      alvo,
+      manobra,
+      qual: 'padrao',
+      teste: { quem: { dados: 2, bonus: 5, d20: 15, total: 20 }, alvo: { dados: 1, bonus: 2, d20: 10, total: 12 } },
+      venceu: true,
+      diferenca: 8,
+      modificadores: [],
+      ...extra,
+    },
+  });
+  /** passa a vez até chegar em quem (nome) */
+  const ate = (c: Combate, nome: string) => {
+    for (let i = 0; i < 10 && vez(c) !== nome; i++) c = aplicar(c, { tipo: 'passar' });
+    return c;
+  };
+
+  test('agarrar: gasta a padrão, o alvo fica agarrado e o turno lembra; soltar-se desfaz (LR p. 85)', () => {
+    let c = aplicar(montado(), { tipo: 'comecar' });
+    c = aplicar(c, man(1, 10, 'agarrar'));
+    assert.equal(combate.acoesDe(c, 1).padrao, true);
+    assert.equal(combate.participante(c, 1)?.agarra, 10);
+    assert.deepEqual(combate.participante(c, 10)?.condicoes, ['agarrado']);
+    const [teste, efeito] = c.registro.slice(-2);
+    assert.equal(teste.texto, 'Cora tenta agarrar Ocultista: teste de manobra d20 15, total 20 contra d20 10, total 12 — venceu por 8.');
+    assert.deepEqual(teste.destaque, ['venceu por 8']);
+    assert.match(efeito.texto, /^Ocultista fica agarrado por Cora: desprevenido e imóvel/);
+    assert.equal(recusa(c, man(1, 11, 'derrubar')), 'A ação padrão já foi usada neste turno.');
+    c = ate(c, 'Turno do mestre');
+    assert.ok(c.registro.some((l) => l.texto === 'Ocultista está agarrado por Cora: soltar-se é ação padrão com teste de manobra (LR p. 85).'));
+    assert.match(recusa(c, man(11, 1, 'soltarse')), /Cora não está agarrando Acólito/);
+    c = aplicar(c, man(10, 1, 'soltarse'));
+    assert.equal(combate.participante(c, 1)?.agarra, undefined);
+    assert.equal(combate.participante(c, 10)?.condicoes, undefined);
+    assert.equal(c.registro.at(-1)?.texto, 'Ocultista se solta de Cora.');
+  });
+
+  test('esmagar só com o alvo agarrado: dano de impacto do desarmado; soltar é ação livre', () => {
+    let c = aplicar(montado(), { tipo: 'comecar' });
+    assert.match(recusa(c, man(1, 10, 'esmagar')), /Cora não está agarrando Ocultista/);
+    c = aplicar(c, man(1, 10, 'agarrar'));
+    c = ate(aplicar(c, { tipo: 'passar' }), 'Cora');
+    const r = combate.aplicar(c, man(1, 10, 'esmagar', { dano: { formula: '1d3+2', soma: 2, total: 4, tipo: 'impacto', conta: '4', final: 4, naoLetal: true } }), ctx());
+    assert.ok(r.ok);
+    assert.deepEqual(r.vitais, [{ id: 10, pv: 16 }]);
+    c = r.combate!;
+    assert.equal(c.registro.at(-1)?.texto, 'Dano não letal 1d3+2: 4. Ocultista: PV 20 → 16.');
+    c = aplicar(c, { tipo: 'soltar', id: 1 });
+    assert.equal(combate.participante(c, 10)?.condicoes, undefined);
+    assert.equal(c.registro.at(-1)?.texto, 'Cora solta Ocultista (ação livre, LR p. 85).');
+    assert.equal(recusa(c, { tipo: 'soltar', id: 1 }), 'Esse ser não está agarrando ninguém.');
+  });
+
+  test('derrubar deixa caído; empurrar diz a distância; empate é recusado; quem resiste não sofre nada', () => {
+    let c = aplicar(montado(), { tipo: 'comecar' });
+    const empate = { quem: { dados: 1, bonus: 0, d20: 10, total: 10 }, alvo: { dados: 1, bonus: 0, d20: 10, total: 10 } };
+    assert.equal(recusa(c, man(1, 10, 'derrubar', { teste: empate, venceu: false, diferenca: 0 })), 'Empate: os dois rolam de novo (LR p. 75).');
+    c = aplicar(c, man(1, 10, 'derrubar', { diferenca: 6 }));
+    assert.deepEqual(combate.participante(c, 10)?.condicoes, ['caido']);
+    assert.match(c.registro.at(-1)!.texto, /^Ocultista cai e é empurrado 1 quadrado/);
+    c = aplicar(c, { tipo: 'passar' });
+    c = aplicar(c, man(2, 11, 'empurrar', { diferenca: 11, empurrao: 6 }));
+    assert.equal(c.registro.at(-1)?.texto, 'Acólito é empurrado 4,5 m; Tepes pode gastar uma ação de movimento para ir junto (LR p. 85).');
+    c = aplicar(c, { tipo: 'passar' });
+    // no turno do mestre, o Acólito tenta desarmar Catarina e perde
+    c = aplicar(c, man(11, 3, 'desarmar', { venceu: false, diferenca: 3 }));
+    assert.equal(c.registro.at(-1)?.texto, 'Acólito tenta desarmar Catarina: teste de manobra d20 15, total 20 contra d20 10, total 12 — Catarina venceu.');
+  });
+
+  test('atropelar na investida é livre; perdendo, o alvo impede o avanço (LR p. 86)', () => {
+    let c = aplicar(montado(), { tipo: 'comecar' });
+    c = aplicar(c, man(1, 10, 'atropelar', { qual: 'livre' }));
+    assert.equal(combate.acoesDe(c, 1).padrao, false);
+    assert.deepEqual(combate.participante(c, 10)?.condicoes, ['caido']);
+    c = aplicar(c, man(1, 11, 'atropelar', { qual: 'livre', venceu: false }));
+    assert.equal(c.registro.at(-1)?.texto, 'Acólito fica de pé e impede o avanço de Cora (LR p. 86).');
+  });
+
+  test('quem sai do combate larga e é largado; tirar o agarrado à mão também solta', () => {
+    let c = aplicar(montado(), { tipo: 'comecar' });
+    c = aplicar(c, man(1, 10, 'agarrar'));
+    c = aplicar(c, { tipo: 'condicao', id: 10, condicao: 'agarrado', ativa: false });
+    assert.equal(combate.participante(c, 1)?.agarra, undefined);
+    c = ate(aplicar(c, { tipo: 'passar' }), 'Cora');
+    c = aplicar(c, man(1, 10, 'agarrar'));
+    c = aplicar(c, { tipo: 'sair', id: 1, motivo: 'saiu' });
+    assert.equal(combate.participante(c, 10)?.condicoes, undefined);
+  });
+});
+
 describe('ataque no servidor', () => {
   let hotel: Hotel;
   let gm: Peer;
