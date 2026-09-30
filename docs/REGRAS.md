@@ -56,7 +56,7 @@ Um item por vez, cada um com testes e com sua aprovação antes do próximo. O m
 ## Decisões (com a proposta de cada uma)
 
 1. **Ficha própria no CROMA.** Decidido: tudo do jogo fica no CROMA, e o mestre monta e edita a ficha aqui. O C.R.I.S foi só referência.
-2. **Dados.** Proposta: dados físicos na mesa; o mestre digita o d20 que ficou quando o CROMA precisar.
+2. **Dados.** Decidido (30/09): sempre dados físicos na mesa, também os das ameaças, e só o mestre mexe na tela: ele digita o d20 que ficou e a soma dos dados de dano. Os jogadores assistem ao tabuleiro na mesa (`docs/COMBATE.md`, seção 2.2).
 3. **Regras da casa.** Proposta: começar pelas que o C.R.I.S prevê (seção 12), por campanha, todas desligadas (= livro puro) até o mestre ligar. Falta saber quais a mesa usa.
 4. **Conflitos do livro.** Proposta: seguir o que o C.R.I.S já decidiu (seção 13), com a chave da casa quando existir.
 5. **Catálogos (itens, rituais, poderes, origens).** Proposta: nome, números e página no repositório; a descrição fica fora dele (ou o repositório passa a ser privado).
@@ -206,6 +206,8 @@ São 28. ✱ = só treinada (sem treino não pode usar); (c) = sofre penalidade 
 
 ## 4. Combate (p. 82–91)
 
+Resumo. O detalhe de cada regra do combate, com o que a tela faz, está em `docs/COMBATE.md`.
+
 ### Iniciativa e rodada
 
 - **Livro:** cada jogador rola Iniciativa; o mestre rola uma vez por todos os inimigos, com o menor bônus entre eles. Empate rola de novo. A ordem vale o combate inteiro, e todos os seres do mestre agem num turno só (p. 169).
@@ -215,7 +217,7 @@ São 28. ✱ = só treinada (sem treino não pode usar); (c) = sofre penalidade 
 
 ### Ações do turno (p. 84–87)
 
-- Por turno: uma padrão + uma de movimento, ou duas de movimento, ou uma completa. Ações livres à vontade. Reação: uma por rodada.
+- Por turno: uma padrão + uma de movimento, ou duas de movimento, ou uma completa. Ações livres e reações à vontade; só as defesas especiais são uma por rodada (p. 85, 88).
 - **Padrão:** atacar, manobra, atropelar, conjurar ritual, fintar, preparar, usar habilidade ou item.
 - **Movimento:** andar, levantar-se, sacar ou guardar, manipular item (inclui abrir e fechar porta), mirar.
 - **Completa:** corrida; investida (até 2× o deslocamento em linha reta, +1d20 no ataque e −5 na Defesa até o próximo turno); golpe de misericórdia.
@@ -237,7 +239,7 @@ São 28. ✱ = só treinada (sem treino não pode usar); (c) = sofre penalidade 
 - **Crítico:** acertou e o d20 ≥ margem. Multiplica só os dados da arma; bônus fixos e dados extras não.
 - **Ordem do dano** (a do C.R.I.S): para cada parte do dano, rolado + bônus → imune vira 0 → metade se passou na resistência → vulnerável dobra → menos a RD daquele tipo. Depois, a RD geral sai uma vez só do total.
 - **Situações (Tab. 4.4):**
-  - atacante caído −2d20; cego tem 50% de falha; em posição elevada +1d20; flanqueando +1d20; invisível +2d20; ofuscado −1d20;
+  - atacante caído −2d20 (só corpo a corpo, p. 310); cego tem 50% de falha; em posição elevada +1d20; flanqueando +1d20; invisível +2d20; ofuscado −1d20;
   - alvo caído: −5 na Defesa contra corpo a corpo, +5 contra ataque à distância; alvo cego ou desprevenido: −5;
   - cobertura: +5 na Defesa (total: não pode ser alvo). Passa uma reta de um canto do quadrado do atacante a um canto do quadrado do alvo; se ela cruza obstáculo ou ser, há cobertura;
   - camuflagem: 20% de falha (total 50%; escuridão total dá camuflagem total). Chances de falha de fontes diferentes somam até 75%;
@@ -401,11 +403,12 @@ Decisões do C.R.I.S que não têm chave e que o CROMA segue (proposta, decisão
 - atributo ≤ 0 com penalidade soma dados no grupo em que fica o pior;
 - no teste oposto, um único 20 vence;
 - os contadores de morrendo e enlouquecendo valem o combate inteiro, e o turno de quem está morrendo é pulado;
-- o primeiro gasto de PE da rodada passa inteiro, mesmo acima do limite;
 - esquiva e bloqueio usam o bônus total da perícia;
 - relaxar conta o próprio personagem no bônus;
 - Transcender exige NEX 15%;
 - proteção pesada só reduz dano físico.
+
+Uma decisão do C.R.I.S que o CROMA não segue: deixar o primeiro gasto de PE da rodada passar inteiro, mesmo acima do limite. O livro só garante uma habilidade no custo mínimo por turno (p. 23; ver `docs/COMBATE.md`, seção 14).
 
 ## 13. Conflitos do livro e a escolha do CROMA
 
@@ -417,6 +420,8 @@ Decisões do C.R.I.S que não têm chave e que o CROMA segue (proposta, decisão
 | Fim do morrendo | só com Medicina DT 20 (p. 88); ao voltar a 1 PV (p. 311) | ao voltar a 1 PV; `morrendoEstrito` troca |
 | Até morrer | começar 3 turnos morrendo na cena (p. 88); mais de 3 rodadas (p. 311) | 3 turnos, como no C.R.I.S |
 | 0 PV | morrendo (p. 88); sangrando (p. 36) | morrendo |
+
+Os conflitos do combate (atacante caído, fintar, falta de ar, limite de PE e outros) estão em `docs/COMBATE.md`, seção 22.
 
 ## 14. O que o CROMA já tem
 

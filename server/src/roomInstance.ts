@@ -70,6 +70,8 @@ export interface Client {
   lastScenes?: string;
   /** última sessão enviada (evita reenviar igual) */
   lastSession?: string;
+  /** último estado do combate enviado (evita reenviar igual) */
+  lastCombate?: string;
   /** mestre ou jogador (peças não têm) */
   role?: Role;
   /** conexão do próprio computador do servidor */
@@ -106,6 +108,8 @@ export interface HotelApi {
   vitalChanged(roomId: number, tokenId: number, name: string, key: VitalKey, from: number, to: number, max: number): void;
   /** PV/PE/SAN de uma peça mudou: a ficha ligada ao personagem acompanha */
   vitaisDaPeca(personagem: number | null | undefined, v: Vitals): void;
+  /** peça nova (ou com outra folha): sem PV/PE/SAN, pega os da ficha ligada ao personagem */
+  vitaisDaFicha(personagem: number | null | undefined): void;
 }
 
 interface RoomUser {
@@ -264,10 +268,11 @@ export class RoomInstance {
   }
 
   /** PV/PE/SAN vindos da ficha para as peças deste personagem (folha). Devolve se mudou algo. */
-  definirVitais(personagem: number, v: Vitals): boolean {
+  definirVitais(personagem: number, v: Vitals, soSemVitais = false): boolean {
     let mudou = false;
     for (const u of this.users.values()) {
       if (u.client.look?.charId !== personagem) continue;
+      if (soSemVitais && u.meta?.vitals) continue;
       if (JSON.stringify(u.meta?.vitals) === JSON.stringify(v)) continue;
       u.meta ??= {};
       u.meta.vitals = { ...v };
@@ -275,6 +280,25 @@ export class RoomInstance {
     }
     if (mudou) this.saveTokens();
     return mudou;
+  }
+
+  /**
+   * PV, PE ou SAN novos de uma peça (vindos do combate), com o registro de
+   * "Últimas ações" e a ficha ligada acompanhando. Devolve os de antes, ou
+   * null se a peça não está nesta cena.
+   */
+  mudarVitais(tokenId: number, m: { pv?: number; pe?: number; san?: number }): Vitals | null {
+    const u = this.users.get(-tokenId);
+    if (!u) return null;
+    u.meta ??= {};
+    const antes = u.meta.vitals ?? DEFAULT_VITALS;
+    let v = { ...antes };
+    for (const k of VITAL_KEYS) if (typeof m[k] === 'number') v = applyVital(v, k, { value: m[k] });
+    u.meta.vitals = v;
+    for (const k of VITAL_KEYS) if (v[k] !== antes[k]) this.hotel.vitalChanged(this.data.id, tokenId, u.client.name ?? '?', k, antes[k], v[k], v[`${k}Max`]);
+    this.hotel.vitaisDaPeca(u.client.look?.charId, v);
+    this.saveTokens();
+    return { ...antes };
   }
 
   /** Tira a peça desta cena e devolve os dados dela. */
@@ -941,7 +965,9 @@ export class RoomInstance {
       const d = this.data.door;
       const color = typeof m.color === 'string' && /^#[0-9a-f]{6}$/i.test(m.color) ? m.color : undefined;
       const capacity = isInt(m.capacity) ? Math.max(1, Math.min(99, m.capacity)) : undefined;
-      this.putToken({ id: this.hotel.nextItemId(), name, look: sanitizeLook(m.look), x: d.x, y: d.y, dir: d.dir, color, capacity }, null);
+      const look = sanitizeLook(m.look);
+      this.putToken({ id: this.hotel.nextItemId(), name, look, x: d.x, y: d.y, dir: d.dir, color, capacity }, null);
+      this.hotel.vitaisDaFicha(look.charId);
       return;
     }
     const u = isInt(m.tokenId) ? this.users.get(m.tokenId) : undefined;
@@ -976,6 +1002,7 @@ export class RoomInstance {
         this.broadcast({ t: 'userLeave', id: u.client.id });
         this.broadcast({ t: 'userJoin', user: this.userInfo(u) });
         this.saveTokens();
+        if (m.look) this.hotel.vitaisDaFicha(u.client.look?.charId);
         break;
       }
       case 'tokenRemove':

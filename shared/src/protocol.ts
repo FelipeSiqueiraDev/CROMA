@@ -1,4 +1,5 @@
 import type { AvatarLook } from './avatar';
+import type { AcaoCombate, Combate, FichaAmeaca } from './combate/tipos';
 import type { RollResult } from './dice';
 import type { FloorItem, FloorStyle, Hint, ParticleKind, WallItem } from './room';
 import type { CampaignState, LootKind } from './rpg';
@@ -255,6 +256,10 @@ export type ClientMsg =
   | { t: 'fichaApagar'; id: number }
   /** gera (ou troca) o link do jogador para a ficha (só o mestre) */
   | { t: 'fichaLink'; id: number }
+  /** combate da campanha da cena atual (só o mestre; docs/COMBATE.md) */
+  | { t: 'combate'; a: AcaoCombate }
+  /** ficha rápida de uma ameaça (peça), preenchida pelo mestre; null apaga */
+  | { t: 'ameaca'; tokenId: number; ficha: FichaAmeaca | null }
   | { t: 'roomFx'; lightMode?: LightMode; fog?: number; darkness?: number; particleLevel?: number }
   | { t: 'setLink'; id: number; roomId: number | null }
   | { t: 'sendTo'; userId: number | 'all'; roomId: number }
@@ -322,4 +327,6 @@ export type ServerMsg =
   /** resposta à senha digitada (só para quem digitou) */
   | { t: 'lockResult'; id: number; ok: boolean; reason?: string }
   /** todas as fichas (só para o mestre); `nova` = id da ficha que acabou de ser criada */
-  | { t: 'fichas'; fichas: FichaSalva[]; nova?: number };
+  | { t: 'fichas'; fichas: FichaSalva[]; nova?: number }
+  /** combate da campanha (a mesa recebe só a ordem, a rodada e a vez); null = sem combate */
+  | { t: 'combate'; combate: Combate | null; podeDesfazer?: boolean; ameacas?: Record<string, FichaAmeaca> };

@@ -1526,7 +1526,7 @@ function fmtNum(n: number) {
   return Number.isInteger(n) ? String(n) : n.toFixed(1).replace('.', ',');
 }
 
-const NOME_DANO: Record<string, string> = {
+export const NOME_DANO: Record<string, string> = {
   balistico: 'Balístico',
   corte: 'Corte',
   eletricidade: 'Eletricidade',

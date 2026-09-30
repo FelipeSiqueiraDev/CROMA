@@ -32,6 +32,7 @@ import {
   type Vitals,
   VITAL_LABEL,
   regras,
+  combate as cmb,
   sanitizarFicha,
   type FichaSalva,
 } from '@croma/shared';
@@ -84,7 +85,12 @@ const GM_ONLY = new Set([
   'actionRemove',
   'actionLog',
   'floorPlan',
+  'combate',
+  'ameaca',
 ]);
+
+/** Quantos estados do combate o "Desfazer" guarda por campanha. */
+const MAX_DESFAZER = 40;
 
 const isInt = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v);
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
@@ -123,6 +129,14 @@ export class Hotel implements HotelApi {
     if (refreshPortraits(this.db.characters)) dirty = true;
     if (dirty && this.persist) saveDbNow(this.db);
     for (const r of this.db.rooms) this.rooms.set(r.id, new RoomInstance(r, this));
+    // peças de agente que ainda não têm PV/PE/SAN pegam os da ficha (a MAPA e o combate usam)
+    for (const f of this.db.fichas ?? [])
+      if (f.personagem)
+        try {
+          this.fichaParaPecas(f, true);
+        } catch (e) {
+          console.error(`[fichas] ficha ${f.id} com erro nas regras`, e);
+        }
     if (this.persist) console.log(`[hotel] ${this.rooms.size} quarto(s), ${this.db.characters.length} personagem(ns)`);
     if (this.timers) {
       setInterval(() => this.pushScenes(), 1500);
@@ -191,6 +205,96 @@ export class Hotel implements HotelApi {
 
   /** Mudanças de PV/PE/SAN esperando para ir ao registro (cliques seguidos viram uma linha). */
   private vitalLog = new Map<string, { roomId: number; name: string; key: VitalKey; from: number; to: number; max: number; timer: NodeJS.Timeout | null }>();
+
+  // ---------- combate (docs/COMBATE.md) ----------
+  /** estados anteriores do combate de cada campanha, para o "Desfazer" (só na memória), com os PV/PE/SAN que cada passo mudou */
+  private desfazeres = new Map<number, { combate: string; vitais: { id: number; antes: Vitals }[] }[]>();
+
+  /** Peças da campanha e os PV/SAN delas, para as regras do combate. */
+  private contextoCombate(group: number[], cena: number): cmb.Contexto {
+    const agentes = new Set((this.db.fichas ?? []).map((f) => f.personagem).filter((x): x is number => !!x));
+    const pecas: cmb.PecaCombate[] = [];
+    const vitais = new Map<number, Vitals>();
+    for (const id of group) {
+      const r = this.rooms.get(id);
+      if (!r) continue;
+      for (const t of r.tokensLive()) {
+        pecas.push({ id: t.token.id, nome: t.name, agente: !!t.look.charId && agentes.has(t.look.charId), naCena: id === cena });
+        if (t.vitals) vitais.set(t.token.id, { ...t.vitals });
+      }
+    }
+    return { agora: Date.now(), cena, pecas, vitais: (id) => vitais.get(id) ?? null };
+  }
+
+  /** Uma ação da tela de combate (só o mestre). */
+  private combateAcao(c: Client, m: Record<string, unknown>) {
+    const room = c.room;
+    if (!room) return;
+    const a = cmb.lerAcao(m.a);
+    if (!a) return c.send({ t: 'denied', action: 'combate', reason: 'Ação de combate inválida.' });
+    const group = this.sceneGroup(room.data.id);
+    const key = Math.min(...group);
+    const camp = this.campaignFor(key);
+    const pilha = this.desfazeres.get(key) ?? [];
+    this.desfazeres.set(key, pilha);
+    if (a.tipo === 'desfazer') {
+      const passo = pilha.pop();
+      if (passo === undefined) return c.send({ t: 'denied', action: 'combate', reason: 'Nada para desfazer.' });
+      const volta = JSON.parse(passo.combate) as cmb.Combate | null;
+      if (volta) camp.combate = volta;
+      else delete camp.combate;
+      // o que o passo mudou nas peças volta também
+      for (const x of passo.vitais) this.mudarVitaisPeca(group, x.id, x.antes);
+      this.save();
+      this.touch();
+      return;
+    }
+    const antes = camp.combate ?? null;
+    const r = cmb.aplicar(antes, a, this.contextoCombate(group, room.data.id));
+    if (!r.ok) return c.send({ t: 'denied', action: 'combate', reason: r.motivo });
+    const mudou: { id: number; antes: Vitals }[] = [];
+    for (const m of r.vitais ?? []) {
+      const velho = this.mudarVitaisPeca(group, m.id, m);
+      if (velho) mudou.push({ id: m.id, antes: velho });
+    }
+    pilha.push({ combate: JSON.stringify(antes), vitais: mudou });
+    if (pilha.length > MAX_DESFAZER) pilha.splice(0, pilha.length - MAX_DESFAZER);
+    if (r.combate) camp.combate = r.combate;
+    else delete camp.combate;
+    // o começo e o fim do combate vão também para o registro da sessão
+    if (a.tipo === 'comecar') this.log(room.data.id, 'dice', 'Combate começou.');
+    if (a.tipo === 'encerrar' && antes?.fase === 'andamento') this.log(room.data.id, 'dice', `Combate encerrado na rodada ${antes.rodada}.`);
+    this.save();
+    this.touch();
+  }
+
+  /** PV, PE ou SAN de uma peça da campanha (procura a cena em que ela está). Devolve os de antes. */
+  private mudarVitaisPeca(group: number[], tokenId: number, m: { pv?: number; pe?: number; san?: number }): Vitals | null {
+    for (const id of group) {
+      const antes = this.rooms.get(id)?.mudarVitais(tokenId, m);
+      if (antes) return antes;
+    }
+    return null;
+  }
+
+  /** Ficha rápida de ameaça de uma peça (só o mestre), guardada na campanha. */
+  private ameacaSalvar(c: Client, m: Record<string, unknown>) {
+    const room = c.room;
+    if (!room || typeof m.tokenId !== 'number') return;
+    const group = this.sceneGroup(room.data.id);
+    const existe = group.some((id) => this.rooms.get(id)?.tokensLive().some((t) => t.token.id === m.tokenId));
+    if (!existe) return c.send({ t: 'denied', action: 'ameaca', reason: 'Peça não encontrada nesta campanha.' });
+    const camp = this.campaignFor(Math.min(...group));
+    camp.ameacas ??= {};
+    if (m.ficha === null) delete camp.ameacas[String(m.tokenId)];
+    else {
+      const f = cmb.lerFichaAmeaca(m.ficha);
+      if (!f) return c.send({ t: 'denied', action: 'ameaca', reason: 'Ficha inválida.' });
+      camp.ameacas[String(m.tokenId)] = f;
+    }
+    this.save();
+    this.touch();
+  }
 
   // ---------- fichas ----------
   private fichasTimer: NodeJS.Timeout | null = null;
@@ -270,14 +374,21 @@ export class Hotel implements HotelApi {
     });
   }
 
-  /** PV/PE/SAN da ficha (máximos pelo motor de regras) para as peças do personagem ligado. */
-  private fichaParaPecas(f: FichaSalva) {
+  /** PV/PE/SAN da ficha (máximos pelo motor de regras) para as peças do personagem ligado. `soSemVitais`: só as peças que ainda não têm. */
+  private fichaParaPecas(f: FichaSalva, soSemVitais = false) {
     const calc = regras.calcular(f.ficha);
     const a = f.atual ?? { pv: calc.pv, pe: calc.pe, san: calc.san };
     const v: Vitals = { pv: Math.min(a.pv, calc.pv), pvMax: calc.pv, pe: Math.min(a.pe, calc.pe), peMax: calc.pe, san: Math.min(a.san, calc.san), sanMax: calc.san };
     let mudou = false;
-    for (const r of this.rooms.values()) mudou = r.definirVitais(f.personagem!, v) || mudou;
+    for (const r of this.rooms.values()) mudou = r.definirVitais(f.personagem!, v, soSemVitais) || mudou;
     if (mudou) this.touch();
+  }
+
+  /** Peça nova (ou com outra folha): sem PV/PE/SAN, pega os da ficha ligada ao personagem. */
+  vitaisDaFicha(personagem: number | null | undefined) {
+    if (!personagem) return;
+    const f = (this.db.fichas ?? []).find((x) => x.personagem === personagem);
+    if (f) this.fichaParaPecas(f, true);
   }
 
   /** PV/PE/SAN de uma peça mudou no tabuleiro: a ficha ligada ao personagem acompanha. */
@@ -451,6 +562,7 @@ export class Hotel implements HotelApi {
     const cache = new Map<number, string>();
     const groups = new Map<number, number[]>();
     const snaps = new Map<string, Omit<Session, 'me'>>();
+    const combates = new Map<string, string>();
     for (const c of this.clients.values()) {
       if (!c.name || !c.room) continue;
       const rid = c.room.data.id;
@@ -481,6 +593,21 @@ export class Hotel implements HotelApi {
       if (sj !== c.lastSession) {
         c.lastSession = sj;
         c.send({ t: 'session', session });
+      }
+      // combate: o mestre recebe tudo; a mesa, só a ordem, a rodada e a vez
+      let cj = combates.get(sk);
+      if (cj === undefined) {
+        const key = Math.min(...group);
+        const camp = this.campaignFor(key);
+        const cb = camp.combate ?? null;
+        const podeDesfazer = role === 'gm' && (this.desfazeres.get(key)?.length ?? 0) > 0;
+        // as fichas das ameaças são só do mestre (DC-4)
+        cj = JSON.stringify({ t: 'combate', combate: role === 'gm' ? cb : cmb.visaoMesa(cb), ...(role === 'gm' ? { podeDesfazer, ameacas: camp.ameacas ?? {} } : {}) });
+        combates.set(sk, cj);
+      }
+      if (cj !== c.lastCombate) {
+        c.lastCombate = cj;
+        c.send(JSON.parse(cj) as ServerMsg);
       }
     }
   }
@@ -913,6 +1040,12 @@ export class Hotel implements HotelApi {
         return;
       case 'fichaLink':
         this.fichaLink(m);
+        return;
+      case 'combate':
+        this.combateAcao(c, m);
+        return;
+      case 'ameaca':
+        this.ameacaSalvar(c, m);
         return;
     }
     c.room?.handle(c, m);

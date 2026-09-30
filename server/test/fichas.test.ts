@@ -76,6 +76,25 @@ describe('fichas', () => {
     assert.equal(hotel.db.fichas![0].atual?.pv, calc.pv - 3);
   });
 
+  test('ao subir o servidor, a peça de agente sem PV/PE/SAN pega os da ficha; a que já tem fica como está', () => {
+    const db = seedDb();
+    upgradeDb(db);
+    const pecas = db.rooms.flatMap((r) => r.tokens ?? []).filter((t) => t.look.charId);
+    const sem = pecas[0];
+    const com = pecas.find((t) => t.look.charId !== sem.look.charId)!;
+    delete sem.vitals;
+    com.vitals = { pv: 3, pvMax: 9, pe: 1, peMax: 2, san: 4, sanMax: 8 };
+    db.fichas = [
+      { ...fichaNova('Sem', sem.look.charId!), id: 1 },
+      { ...fichaNova('Com', com.look.charId!), id: 2 },
+    ];
+    const h = new Hotel({ db, persist: false, timers: false });
+    const calc = regras.calcular(db.fichas[0].ficha);
+    const peca = (id: number) => [...h.rooms.values()].flatMap((r) => r.tokenList()).find((t) => Math.abs(t.id) === id)!;
+    assert.deepEqual(peca(sem.id).vitals, { pv: calc.pv, pvMax: calc.pv, pe: calc.pe, peMax: calc.pe, san: calc.san, sanMax: calc.san });
+    assert.deepEqual(peca(com.id).vitals, { pv: 3, pvMax: 9, pe: 1, peMax: 2, san: 4, sanMax: 8 });
+  });
+
   test('link do jogador: vê só a própria ficha, sem a chave; NEX e patente ficam com o mestre', () => {
     gm.send({ t: 'fichaSalvar', ficha: fichaNova('Dele') });
     gm.send({ t: 'fichaSalvar', ficha: fichaNova('Outra') });

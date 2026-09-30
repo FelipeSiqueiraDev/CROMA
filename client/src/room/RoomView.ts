@@ -20,6 +20,7 @@ import {
 } from '@croma/shared';
 import { drawPixelAvatar, PIXEL_AVATAR_HEIGHT, type Pose } from '../render/avatarPixel';
 import { Bubbles, UI_FONT } from '../render/bubbles';
+import { desenharChao, desenharCima, desenharRotulos, type MarcasCombate } from '../render/combateMarcas';
 import { furniVisual } from '../render/furniFloor';
 import { drawWallFurni, wallLights } from '../render/furniWall';
 import { drawHintGlyph, drawHintIcon } from '../render/hints';
@@ -168,6 +169,17 @@ export class RoomView {
    * pista, e o quarto sempre enquadrado.
    */
   watchOnly = false;
+  /** marcações do combate (a tela COMBATE e a mesa preenchem; null = nenhuma) */
+  combate: MarcasCombate | null = null;
+  /** clique numa peça: devolve true quando a tela usou o clique (escolher o alvo sem trocar a peça comandada) */
+  aoClicarPeca: ((id: number) => boolean) | null = null;
+  /** clique numa casa para uma ferramenta (medir, área): devolve true quando usou o clique */
+  aoClicarCasa: ((x: number, y: number) => boolean) | null = null;
+
+  /** Casa do mouse (para as ferramentas do combate). */
+  get casaDoMouse(): { x: number; y: number } | null {
+    return this.mouse.inside ? this.hoverTile : null;
+  }
 
   constructor(canvas: HTMLCanvasElement, events: RoomEvents, live = true) {
     this.canvas = canvas;
@@ -699,9 +711,18 @@ export class RoomView {
     const key = hit ? `${hit.kind}${hit.id}` : '';
     const dbl = key !== '' && key === this.lastClick.key && now - this.lastClick.t < 380;
     this.lastClick = { t: dbl ? 0 : now, key };
-    const tile = this.tileAt(wx, wy);
+    let tile = this.tileAt(wx, wy);
+    // ferramenta do combate (medir, área): a casa da peça também serve
+    if (this.aoClicarCasa) {
+      if (!tile && hit?.kind === 'user') {
+        const u = this.users.get(hit.id);
+        if (u) tile = { x: u.x, y: u.y };
+      }
+      if (tile && this.aoClicarCasa(tile.x, tile.y)) return;
+    }
 
     if (hit?.kind === 'user') {
+      if (this.aoClicarPeca?.(hit.id)) return;
       // clicar numa peça passa a controlá-la
       this.myId = hit.id;
       this.select({ kind: 'user', id: hit.id });
@@ -839,6 +860,13 @@ export class RoomView {
     this.drawMarks(ctx, now);
 
     const lights: Light[] = [];
+    const marcas = this.combate;
+    const posPeca = (id: number) => {
+      const u = this.users.get(id);
+      return u ? this.userPos(u, now) : null;
+    };
+    const alturaCasa = (c: { x: number; y: number }) => map.standHeight(c.x, c.y);
+    if (marcas) desenharChao(ctx, marcas, posPeca, alturaCasa, now, lights);
     const hits: Hit[] = [];
     const hintTargets: HintTarget[] = [];
     this.painter.t = t;
@@ -1015,16 +1043,18 @@ export class RoomView {
             ctx.save();
             ctx.clip(door!.path, 'evenodd');
           }
+          const deitada = !!marcas?.deitadas.has(u.id);
           if (!seated) {
             ctx.fillStyle = 'rgba(0,0,0,0.38)';
             ctx.beginPath();
-            ctx.ellipse(sx, sy, 14, 7, 0, 0, Math.PI * 2);
+            ctx.ellipse(sx, sy, deitada ? 26 : 14, deitada ? 9 : 7, 0, 0, Math.PI * 2);
             ctx.fill();
-            // anel na cor do personagem; a peça ativa pulsa
+            // anel na cor do personagem (no combate, na cor do lado); a peça ativa pulsa
             const active = u.id === this.myId;
             const pulse = active ? 1 + Math.sin(now / 260) * 0.08 : 1;
+            const corBase = marcas?.bases.get(u.id) ?? u.color;
             ctx.lineWidth = active ? 2.6 : 1.8;
-            ctx.strokeStyle = rgba(u.color, active ? 0.95 : 0.75);
+            ctx.strokeStyle = rgba(corBase, active ? 0.95 : 0.8);
             ctx.beginPath();
             ctx.ellipse(sx, sy, 19 * pulse, 9.5 * pulse, 0, 0, Math.PI * 2);
             ctx.stroke();
@@ -1047,6 +1077,14 @@ export class RoomView {
             ctx.scale(k, 1 + (1 - k) * 0.08);
             ctx.translate(-sx, -fy);
           }
+          // caída ou inconsciente: a peça deita no chão, com a cabeça para a esquerda
+          if (deitada) {
+            ctx.save();
+            ctx.translate(sx + H * 0.42, fy - 4);
+            ctx.rotate(-Math.PI / 2 + 0.12);
+            ctx.scale(0.92, 1);
+            ctx.translate(-sx, -fy);
+          }
           if (sp) drawSprite(ctx, sp.def, sp.lc, u.dir, sx, fy + dance, now, u.phase, pose === 'sit' ? 'sit' : pose);
           else
             drawPixelAvatar(ctx, u.look, sx, fy, u.dir, u.headDir, {
@@ -1056,6 +1094,7 @@ export class RoomView {
               dance: u.dance,
               blink: (now + u.phase * 997) % 4300 < 140,
             });
+          if (deitada) ctx.restore();
           if (turning) ctx.restore();
           if (wave && sp) this.drawEmote(sx, fy - H - 14, now);
           if (clip) ctx.restore();
@@ -1159,6 +1198,12 @@ export class RoomView {
       this.particles.draw(ctx, now, active, this.info.particleLevel ?? DEFAULT_PARTICLE_LEVEL);
     }
 
+    // combate: anel de alcance, linha até o alvo, mira, medida (depois da luz: sempre à vista)
+    if (marcas) {
+      ctx.setTransform(scale, 0, 0, scale, this.cam.x * dpr, this.cam.y * dpr);
+      desenharCima(ctx, marcas, posPeca, alturaCasa, this.casaDoMouse, now);
+    }
+
     // vinheta
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const fr = this.frame_();
@@ -1172,6 +1217,24 @@ export class RoomView {
 
     // anel de destaque do objeto recém-selecionado
     this.drawPulses(ctx, now);
+
+    // combate: etiquetas, escudo da cobertura e caveiras
+    if (marcas)
+      desenharRotulos(
+        ctx,
+        marcas,
+        posPeca,
+        alturaCasa,
+        this.casaDoMouse,
+        (wx, wy) => [wx * z + this.cam.x, wy * z + this.cam.y],
+        (id) => {
+          const u = this.users.get(id);
+          if (!u) return null;
+          const p = this.userPos(u, now);
+          const [wx, wy] = iso(p.x + 0.5, p.y + 0.5, p.z);
+          return marcas.deitadas.has(id) ? [wx, wy - 14] : [wx, wy - this.avatarHeight(u)];
+        },
+      );
 
     // ícones de pista (a tela da mesa não mostra)
     if (this.watchOnly) hintTargets.length = 0;

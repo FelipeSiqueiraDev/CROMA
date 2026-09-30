@@ -41,6 +41,7 @@ import { brushSweep, brushWash, bump, countUp, drawStroke, eraseDraw, enter, flo
 import { askNote, promptNote } from './note';
 import { brushize, paperize, textures, unpaint } from './paperArt';
 import { sfx } from './sfx';
+import { CombateScreen } from './combate';
 import { FichasScreen } from './fichas';
 import { TopBar } from './topbar';
 import { ic } from './icons';
@@ -256,6 +257,8 @@ export class Shell {
   private topo: TopBar;
   /** aba FICHAS (as fichas dos agentes) */
   readonly fichas: FichasScreen;
+  /** aba COMBATE (ordem de iniciativa, turnos e registro) */
+  readonly combate: CombateScreen;
   private registro: HTMLElement;
   private registroLog!: HTMLElement;
   // esquerda: cartão da sala e o do objeto selecionado
@@ -394,6 +397,7 @@ export class Shell {
     const top = this.topo.el;
     this.fichas = new FichasScreen(app, { jogador: false });
     this.fichas.hide();
+    this.combate = new CombateScreen(app);
 
     // ================= esquerda =================
     this.scenesEl = h('div', { class: 'scene-list' });
@@ -504,7 +508,7 @@ export class Shell {
     void giveScrap;
     void scrapA;
     void backboard;
-    const ui = h('div', { class: 'ui' }, top, this.board, mapCol, rpgCol, bottom, this.fichas.el);
+    const ui = h('div', { class: 'ui' }, top, this.board, mapCol, rpgCol, bottom, this.combate.el, this.fichas.el);
     // textura de grafite para os traços a lápis
     const defs = svg(`<svg class="svg-defs" aria-hidden="true"><defs><filter id="pencil-tex" x="-20%" y="-20%" width="140%" height="140%">
       <feTurbulence type="fractalNoise" baseFrequency="1.3" numOctaves="2" seed="7" result="n"/>
@@ -536,17 +540,23 @@ export class Shell {
     this.mapCanvas = canvas;
     this.app.view.fundoPontos = true;
     this.mapLayer.prepend(canvas);
-    const upd = () => {
-      const r = this.board.getBoundingClientRect();
-      this.app.view.setFrame(r.width > 4 && r.height > 4 ? { x: r.left, y: r.top, w: r.width, h: r.height } : null);
-    };
-    new ResizeObserver(upd).observe(this.board);
+    const upd = () => this.updateFrame();
+    const ro = new ResizeObserver(upd);
+    ro.observe(this.board);
+    ro.observe(this.combate.quadro);
     window.addEventListener('resize', upd);
     canvas.addEventListener('pointermove', () => {
       this.el.classList.add('map-hover');
       clearTimeout(this.hoverTimer);
       this.hoverTimer = window.setTimeout(() => this.el.classList.remove('map-hover'), 2200);
     });
+  }
+
+  /** Janela do tabuleiro: o quadro da tela MAPA ou, na aba COMBATE, o da tela de combate. */
+  private updateFrame() {
+    const el = this.activeTab === 'COMBATE' ? this.combate.quadro : this.board;
+    const r = el.getBoundingClientRect();
+    this.app.view.setFrame(r.width > 4 && r.height > 4 ? { x: r.left, y: r.top, w: r.width, h: r.height } : null);
   }
 
   show() {
@@ -700,10 +710,14 @@ export class Shell {
     sfx.paper();
     this.paintTabs();
     this.el.classList.toggle('aba-fichas', t === 'FICHAS');
+    this.el.classList.toggle('aba-combate', t === 'COMBATE');
     if (t === 'FICHAS') this.fichas.show();
     else this.fichas.hide();
+    if (t === 'COMBATE') this.combate.show();
+    else this.combate.hide();
+    this.updateFrame();
     const o = this.tabOverlay;
-    if (t === 'MAPA' || t === 'FICHAS') {
+    if (t === 'MAPA' || t === 'FICHAS' || t === 'COMBATE') {
       if (!o.classList.contains('hidden')) {
         o.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, fill: 'forwards' }).onfinish = () => {
           o.classList.add('hidden');

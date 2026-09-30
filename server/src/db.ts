@@ -1,4 +1,4 @@
-import type { AvatarLook, CharacterDef, Door, FichaSalva, FloorItem, FloorStyle, InvItem, LightMode, LogEntry, Objective, ParticleKind, Vitals, WallItem } from '@croma/shared';
+import type { AvatarLook, CharacterDef, combate, Door, FichaSalva, FloorItem, FloorStyle, InvItem, LightMode, LogEntry, Objective, ParticleKind, Vitals, WallItem } from '@croma/shared';
 import type { Banco } from './banco';
 import { BancoJson } from './banco/json';
 
@@ -68,6 +68,10 @@ export interface CampaignData {
   log: LogEntry[];
   /** cena que todos estão vendo (a última que o mestre abriu) */
   currentSceneId?: number;
+  /** combate em andamento (docs/COMBATE.md); sem valor = sem combate */
+  combate?: combate.Combate;
+  /** fichas rápidas das ameaças, pelo id da peça (docs/COMBATE.md, seção 17) */
+  ameacas?: Record<string, combate.FichaAmeaca>;
 }
 
 export interface Database {

@@ -72,6 +72,96 @@
   transform-origin: 50% 50%;
 }
 
+/* combate: rodada, vez e ordem (o mestre controla na tela dele) */
+.mesa-combate {
+  position: absolute;
+  left: 50%;
+  top: 2.4rem;
+  z-index: 2;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 1rem 2.4rem 1.2rem;
+  border: 0.1rem solid rgba(200, 53, 43, 0.55);
+  border-radius: 0.4rem;
+  background: rgba(8, 6, 8, 0.78);
+  box-shadow: 0 0.6rem 2rem rgba(0, 0, 0, 0.6), inset 0 0 1.4rem rgba(120, 20, 16, 0.35);
+  color: #ddd4c6;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.mesa-combate.hidden {
+  display: none;
+}
+.mc-topo {
+  display: flex;
+  align-items: baseline;
+  gap: 1.6rem;
+}
+.mc-rodada {
+  font-size: 1.5rem;
+  letter-spacing: 0.2em;
+  color: #c8352b;
+}
+.mc-vez {
+  font-size: 2.6rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.mc-ordem {
+  display: flex;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.mc-ordem li {
+  padding: 0.3rem 1rem;
+  border: 0.1rem solid rgba(255, 255, 255, 0.14);
+  border-radius: 0.3rem;
+  font-size: 1.5rem;
+  color: #a39a8d;
+}
+.mc-ordem li.agiu {
+  opacity: 0.5;
+}
+.mc-ordem li.on {
+  border-color: #c8352b;
+  background: rgba(200, 53, 43, 0.28);
+  color: #fff;
+}
+
+/* carimbo do último ataque, no meio da tela */
+.mesa-carimbo {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  z-index: 3;
+  padding: 0.8rem 2.4rem 1rem;
+  border: 0.6rem double #d8322f;
+  border-radius: 1rem;
+  background: rgba(10, 6, 8, 0.55);
+  color: #ff4c46;
+  font-size: 4.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 1.2rem rgba(255, 60, 50, 0.6);
+  white-space: nowrap;
+  transform: translate(-50%, -50%) rotate(-8deg);
+  opacity: 0;
+  pointer-events: none;
+}
+.mesa-carimbo.on {
+  opacity: 1;
+}
+.mesa-carimbo.erro {
+  border-color: #b9b3a8;
+  color: #e6e0d4;
+  text-shadow: 0 0 1rem rgba(0, 0, 0, 0.8);
+}
+
 .mesa-hint {
   position: absolute;
   right: 2rem;

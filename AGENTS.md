@@ -2,7 +2,7 @@
 
 ## O que é
 
-Tabuleiro digital isométrico para sessões de **Ordem Paranormal RPG**. São duas telas: a do **mestre** (a interface completa, só ele vê; a tela MAPA segue a referência `docs/ref-mapa.webp`, 1536×1024) e a da **mesa** (só o tabuleiro, num tablet que os jogadores olham, sem toque). O plano do MVP está em `docs/guia-mvp.html`; o contrato entre interface e servidor, em `docs/CONTRATO.md`; as regras do jogo, em `docs/REGRAS.md`.
+Tabuleiro digital isométrico para sessões de **Ordem Paranormal RPG**. São duas telas: a do **mestre** (a interface completa, só ele vê; a tela MAPA segue a referência `docs/ref-mapa.webp`, 1536×1024) e a da **mesa** (só o tabuleiro, num tablet que os jogadores olham, sem toque). O plano do MVP está em `docs/guia-mvp.html`; o contrato entre interface e servidor, em `docs/CONTRATO.md`; as regras do jogo, em `docs/REGRAS.md`; a mecânica do combate, em `docs/COMBATE.md`.
 
 ## Rodar
 
@@ -33,17 +33,18 @@ npm run banco:parar
 
 | Pasta | O que tem |
 |---|---|
-| `shared/src/` | Tipos e regras usados pelos dois lados: mensagens entre cliente e servidor (`protocol.ts`), cenas e objetos (`room.ts`, `furni.ts`), campanha, itens e registro (`rpg.ts`), caminho (`pathfinding.ts`), planta (`heightmap.ts`, `layouts.ts`) |
+| `shared/src/` | Tipos e regras usados pelos dois lados: mensagens entre cliente e servidor (`protocol.ts`), cenas e objetos (`room.ts`, `furni.ts`), campanha, itens e registro (`rpg.ts`), caminho (`pathfinding.ts`), planta (`heightmap.ts`, `layouts.ts`), regras de Ordem Paranormal (`regras/`) e do combate (`combate/`: ordem de iniciativa, turnos, ações do turno e registro) |
 | `server/src/` | Servidor autoritativo: conexões, campanhas e cenas (`hotel.ts`), cena ao vivo com peças, movimento a cada 500 ms, itens, entregas e registro (`roomInstance.ts`), tipos do que é guardado (`db.ts`), banco Postgres ou JSON (`banco/`), conteúdo de exemplo (`seed.ts`) |
 | `client/src/room/`, `client/src/render/` | Motor do tabuleiro: canvas isométrico, luz, névoa, sprites |
-| `client/src/ui/` | Interface: tela MAPA (`shell.ts`, `shell.css` + `mapa.css`), barra do topo (`topbar.ts`), aba FICHAS (`fichas.ts`, `fichas.css`, `fichaRegras.ts` = a ligação com o motor, `fichaModal.ts` = as janelas de escolha, `corpo.ts` = o personagem grande), tela do jogador (`telaFicha.ts`), tema das telas novas (`tema.css`), ícones (`icons.ts`), papel desenhado (`paperArt.ts`), animações (`motion.ts`), sons (`sfx.ts`), bilhetes de confirmação (`note.ts`), janelas |
+| `client/src/ui/` | Interface: tela MAPA (`shell.ts`, `shell.css` + `mapa.css`), barra do topo (`topbar.ts`), aba FICHAS (`fichas.ts`, `fichas.css`, `fichaRegras.ts` = a ligação com o motor, `fichaModal.ts` = as janelas de escolha, `corpo.ts` = o personagem grande), aba COMBATE (`combate.ts`, `combateAtaque.ts` = arma, situação, rolagem e dano, `combateAmeaca.ts` = a ficha rápida da ameaça, `combate.css`), tela do jogador (`telaFicha.ts`), tema das telas novas (`tema.css`), ícones (`icons.ts`), papel desenhado (`paperArt.ts`), animações (`motion.ts`), sons (`sfx.ts`), bilhetes de confirmação (`note.ts`), janelas |
 | `shared/src/session.ts` | Contrato da sessão: `Session`, `Scene`, `Token`, `Character`, `Item`, `Objective`, `GameEvent`, ações e conversão casa ↔ ponto 0..1 |
 | `client/src/session/` | `SessionStore` (estado da sessão e ações para a interface) e chave do mestre |
 | `client/src/net.ts`, `client/src/ui/app.ts` | Conexão com o servidor e estado do cliente |
 | `server/test/` | Testes das regras (`npm test`) |
 | `client/src/main.ts` | Liga rede, estado e interface (trata as mensagens do servidor) |
-| `docs/` | Referências visuais, o guia do MVP, o contrato da sessão (`CONTRATO.md`), o guia de arte (`ARTE.md`) e o mapa das regras de Ordem Paranormal (`REGRAS.md`) |
+| `docs/` | Referências visuais, o guia do MVP, o contrato da sessão (`CONTRATO.md`), o guia de arte (`ARTE.md`), o mapa das regras de Ordem Paranormal (`REGRAS.md`) e a mecânica do combate (`COMBATE.md`) |
 | `client/public/arte/` | Arte entregue pelo Codex (servida em `/arte/...`) |
+| `.claude/agents/verissimo.md`, `.claude/skills/verissimo/`, `docs/verissimo/` | O Veríssimo (`/verissimo`): confere com os livros só o que mudou desde a última conferência (ver `docs/verissimo/README.md`) |
 
 ## Divisão de trabalho
 
@@ -56,9 +57,10 @@ npm run banco:parar
 - Cada um em sua branch (`claude/...` para código, `codex/arte-...` para arte), com pull request para `main`. Nada de push direto na `main`.
 - Antes de começar, atualizar a branch com a `main`.
 - Antes de abrir o pull request: `npm run typecheck`, `npm test` e `npm run build` sem erros.
+- Mexeu em regra (motor, catálogo, contas, documentos de regra) ou as fichas subiram de NEX? Rode `/verissimo`: ele confere com os livros só o que mudou e registra a conferência.
 - Textos da interface, comentários e mensagens de commit em português.
 
-## Estado em 29/09/2026
+## Estado em 30/09/2026
 
 - **Sede da Ordem** (campanha que abre por padrão): o bar no térreo e onze cômodos no subsolo, montados a partir da planta "Mapa Base Ordo Realitas" (`server/src/seedSede.ts`). A lista do visual, cômodo por cômodo, está em `docs/SEDE-DA-ORDEM.md`. Mudou a montagem? Suba `SEDE_REV`: a Sede é refeita no lugar, mantendo cômodos, peças e registro.
 - **Passagem secreta:** a geladeira do bar tem fechadura com senha (0413). O mestre digita no painel do objeto; certa, ela desliza e a escada escondida aparece. Quem sobe pela escada com a passagem fechada abre por dentro. Quando não sobra ninguém na sala, a passagem se fecha sozinha.
@@ -69,12 +71,14 @@ npm run banco:parar
 - **Telas novas (29/09):** MAPA e FICHAS seguem `docs/ref-mapa-2.webp` e `docs/ref-fichas.webp` (16:9, desenhadas em 1672×941; 1rem = 10 px da referência). No celular (retrato), a FICHAS segue a disposição de `docs/ref-fichas-mobile.webp`, com o conteúdo completo. As três referências ficam fora do git (trazem o emblema oficial). Sem arte, tudo usa o desenho padrão; a arte que chega em `client/public/arte/` entra sozinha (o servidor lista o que existe em `/api/arte`).
 - **Tela do mestre (MAPA):** à esquerda a planta, o cartão da sala e o do objeto selecionado; no meio o tabuleiro, com moldura (em cômodo grande, a câmera acompanha as peças; quando a peça comandada atravessa uma porta, a tela vai junto para o cômodo novo); à direita PLAYERS com PV, PE e SAN (− e + nas três); embaixo as cartas do grupo, o inventário rápido e as AÇÕES (examinar, abrir, usar, entregar). No topo: MAPA, COMBATE e FICHAS; objetivos e registro no botão de documento.
 - **Aba FICHAS:** a ficha inteira de cada agente, calculada pelo motor. Dois modos: jogo (PV, PE, SAN, condições e anotações gravam na hora) e editar (rascunho: Salvar grava, Cancelar descarta). Cada pendência (Evolução) abre as opções do livro, liberadas ou travadas com o motivo. O personagem grande respira pela ficha; pisca quando houver `corpo-olhos-fechados.png`.
-- **Ficha:** PV, PE e SAN (atual e total) por personagem, com as condições do livro (machucado, perturbado, morrendo, enlouquecendo). As cartas mostram as barrinhas; o retrato respira conforme a ficha e usa a imagem do estado (`docs/ARTE.md`).
-- A mesa (`client/src/ui/table.ts`) só mostra o tabuleiro e segue a última cena que o mestre abriu, em qualquer campanha. O servidor recusa qualquer ação que venha da mesa.
+- **Ficha:** PV, PE e SAN (atual e total) por personagem, com as condições do livro (machucado, perturbado, morrendo, enlouquecendo). As cartas mostram as barrinhas; o retrato respira conforme a ficha e usa a imagem do estado (`docs/ARTE.md`). Peça de agente sem PV, PE e SAN (nova, ou de antes da ficha) pega os da ficha quando o servidor sobe.
+- A mesa (`client/src/ui/table.ts`) só mostra o tabuleiro e segue a última cena que o mestre abriu, em qualquer campanha; em combate, mostra também a rodada, de quem é a vez e a ordem. O servidor recusa qualquer ação que venha da mesa.
 - O contrato (`docs/CONTRATO.md`) e o `SessionStore` existem; a tela MAPA ainda usa parte das mensagens antigas.
 - Personagens: D.Tepes, Catarina Albuquerque, Alosi Walker e Cora Falcão, com as folhas em `client/public/arte/personagens/`. O mestre gira o personagem parado com ↺ ↻ nas cartas ou Q e E.
 - **Regras:** tudo do jogo fica no CROMA (fichas, regras, dados, regras da casa). O C.R.I.S (sistema do mestre, repositório SistemaDeMestragemRPG) serviu só de referência para entender o sistema de Ordem Paranormal e como tratá-lo aqui; o CROMA não depende dele (não lê o banco de lá, não importa código nem arte). As regras ficam no próprio código (`shared/src/regras/`), conferidas com o livro. O mapa das regras, o que cada uma muda no tabuleiro e a ordem de construção estão em `docs/REGRAS.md`.
 - Os bilhetes de confirmação (`client/src/ui/note.ts`) ainda não têm estilo.
 - **Motor de criação de personagem** em `shared/src/regras/` (exportado como `regras` em `@croma/shared`): catálogos do livro e do *Sobrevivendo ao Horror*, ficha NEX a NEX de 0% a 99%, requisitos com motivo, contas e opções. Ainda sem tela; as telas estão descritas em `docs/CRIACAO-DE-PERSONAGEM.md`.
 - **Regras conferidas com os livros em 29/09** (`docs/AUDITORIA-REGRAS.md`): catálogos inteiros, as fichas dos Marcados e as dúvidas para o mestre decidir.
-- Testes das regras em `server/test/` (sessão, Sede, passagem secreta, ficha, fichas no servidor, banco, proporção, retratos, motor de regras).
+- **Combate (30/09):** a mecânica inteira, conferida com o livro de regras e o *Sobrevivendo ao Horror*, está em `docs/COMBATE.md`, com as decisões abertas (DC-1 a DC-23) e a ordem de construção. A tela segue `docs/ref-combate.webp` (fora do git), descrita em `docs/TELA-COMBATE.md`, com a arte em `docs/CHECKLIST-TELA-COMBATE.md`. Só o mestre mexe no combate, e os dados são sempre físicos: ele digita o que saiu na mesa; os jogadores assistem ao tabuleiro no tablet.
+- **Aba COMBATE (30/09):** o combate fica na campanha (`combate` em `CampaignData`), e as regras dele em `shared/src/combate/` (turnos, `ataque.ts` com as contas do ataque e do dano, `ameaca.ts` com a ficha rápida). O mestre monta o combate, digita a Iniciativa e passa os turnos; no ataque, escolhe a arma e o alvo, confere a situação que o tabuleiro viu (`client/src/room/combateGeo.ts`: alcance, cobertura, flanquear, posição elevada, áreas), digita o d20, o d10 da camuflagem e a soma do dano, e confirma: o servidor aplica o dano na peça e o registro guarda tudo, com Desfazer (que devolve também os PV). Ritual e habilidade gastam PE com o limite do turno; ritual sustentado, condições, primeiros socorros e acalmar entram no combate. As ameaças têm ficha rápida (Defesa, resistências, RD, ataques), guardada na campanha (`ameacas`). As marcações do tabuleiro ficam em `client/src/render/combateMarcas.ts`, e a mesa mostra a vez, os caídos e o carimbo de cada ataque. A tela está descrita em `docs/TELA-COMBATE.md`; o que falta, lá e em `docs/CHECKLIST-TELA-COMBATE.md`.
+- Testes das regras em `server/test/` (sessão, Sede, passagem secreta, ficha, fichas no servidor, banco, proporção, retratos, motor de regras, combate).

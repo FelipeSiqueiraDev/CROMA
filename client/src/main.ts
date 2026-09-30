@@ -4,6 +4,7 @@ import './ui/table.css';
 import './ui/tema.css';
 import './ui/mapa.css';
 import './ui/fichas.css';
+import './ui/combate.css';
 import { anyFurniName, getFurni, getWallFurni, type ServerMsg } from '@croma/shared';
 import { Net } from './net';
 import { clearIconCache } from './render/bubbles';
@@ -258,7 +259,12 @@ net.onMessage = (m: ServerMsg) => {
       break;
     case 'fichas':
       shell?.fichas.setFichas(m.fichas, m.nova);
+      shell?.combate.setFichas(m.fichas);
       telaFicha?.fichas.setFichas(m.fichas, m.nova);
+      break;
+    case 'combate':
+      shell?.combate.setCombate(m.combate, m.podeDesfazer, m.ameacas);
+      table?.setCombate(m.combate);
       break;
     case 'roomList':
       app.state.rooms = m.rooms;

@@ -156,3 +156,17 @@ A ficha de cada agente (`FichaSalva`, em `shared/src/fichas.ts`) guarda só as e
 
 - Ficha ligada a um personagem do tabuleiro (`personagem` = id da folha): os máximos de PV, PE e SAN vão para a peça, e o PV da peça volta para a ficha.
 - `GET /api/arte`: lista da arte que existe em `client/public/arte`. A tela só pede a imagem que está na lista; sem ela, fica o desenho padrão.
+
+## Combate (30/09/2026)
+
+O combate é um por campanha (`combate` em `CampaignData`) e as regras dele ficam em `shared/src/combate/` (`aplicar` recebe uma ação e devolve o combate novo, ou o motivo da recusa). Só o mestre manda; a mesa recebe só o que é público.
+
+| Direção | Mensagem | Para quê |
+|---|---|---|
+| cliente → servidor | `{ t: 'combate', a }` | Uma ação da tela COMBATE (`AcaoCombate`): montar (`abrir`, `participante`, `iniciativaMestre`, `comecar`), turnos (`passar`, `atrasar`, `preparar`, `usarPreparada`), ações (`orcamento`, `declarar`, `reacao`, `ataque`, `gastarPe`, `condicao`, `sustentar`, `vitais`), quem entra e sai (`entrar`, `sair`), `nota`, `encerrar`, `fechar` e `desfazer` |
+| cliente → servidor | `{ t: 'ameaca', tokenId, ficha }` | Ficha rápida de uma ameaça (Defesa, resistências, RD, ataques), guardada na campanha pelo id da peça; `null` apaga |
+| servidor → cliente | `{ t: 'combate', combate, podeDesfazer?, ameacas? }` | O mestre recebe tudo, com as fichas das ameaças; a mesa recebe a ordem, a rodada, a vez e o último ataque (`ultimo`), sem o registro, sem o texto das ações preparadas e sem as fichas das ameaças |
+
+- Recusa volta como `{ t: 'denied', action: 'combate', reason }`.
+- O ataque chega com os números que a tela calculou (as mesmas regras de `shared/src/combate/ataque.ts`); o servidor confere a forma, gasta a ação, marca a defesa especial e aplica o dano na peça (os PV da ficha ligada acompanham).
+- `desfazer` volta o último passo, com os PV, PE e SAN que ele mudou (os últimos 40 passos, só na memória do servidor).
