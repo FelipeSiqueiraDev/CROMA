@@ -21,6 +21,23 @@ Pasta: `client/public/arte/personagens/<nome>/`, com `<nome>` = `tepes`, `catari
 
 **Decidido em 30/09:** a folha de sprite de hoje de cada agente (`folha.webp`, pintada) é a **arte de referência** dele: aparece grande na FICHAS e vai para a Hand do jogador (tela que vem depois). O **tabuleiro** vai ganhar uma **folha nova** para cada agente, em estilo 32 bits, mais pixelada, com todos os ângulos e as animações de andar. O formato dessa folha nova entra aqui antes de ser feita.
 
+### Poses de referência do tabuleiro — Tepes, estilo 32 bits
+
+Entrega de quatro imagens estáticas escolhidas por Felipe, com luz neutra e pose idle, em `client/public/arte/personagens/tepes/tabuleiro-32bits/`:
+
+| Arquivo | Estado |
+|---|---|
+| `idle-desarmado.png` | Normal, mãos vazias |
+| `idle-armado.png` | Normal, corrente e escudo |
+| `idle-armado-machucado.png` | Machucado, corrente e escudo |
+| `idle-desarmado-machucado.png` | Machucado, mãos vazias |
+
+Formato: PNG RGBA, 1024×1536, corpo inteiro, frente em três quartos voltada para a direita. Os arquivos preservam as imagens escolhidas na conversa, com canal alfa; a limpeza final de eventuais halos e o alinhamento entre estados ficam para a montagem da folha. Luz neutra nas peças, conforme decisão de Felipe, para o ambiente do jogo aplicar sua iluminação.
+
+Armado: corrente sem acessório na ponta, enrolada no antebraço e com trecho solto até o início da bota; escudo pequeno, redondo, de madeira, abaixado junto ao corpo. Machucado: cortes, hematoma e roupa rasgada/manchada, preservando a identidade.
+
+São poses de referência para visualizar e baixar, ainda sem direções adicionais, quadros de piscar ou caminhada. Não substituem `folha.webp` nem os `retrato-*.png`; o construtor fará o encaixe no tabuleiro depois de definir a folha final.
+
 ### Folha de sprite: `folha.png`
 
 - **Grade de 4 colunas.** Cada linha é uma direção e cada coluna um quadro do personagem parado.
