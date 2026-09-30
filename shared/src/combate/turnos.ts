@@ -468,6 +468,113 @@ function manobra(c: Combate, x: unknown, ctx: Contexto, e: Entrada | undefined):
   return { ok: true, combate: c, vitais };
 }
 
+const NOME_TESTE_RES: Record<string, string> = { fortitude: 'Fortitude', reflexos: 'Reflexos', vontade: 'Vontade' };
+const NOME_FORMA_RIT: Record<string, string> = { basica: 'básica', discente: 'discente', verdadeira: 'verdadeira' };
+
+/**
+ * Ritual confirmado na tela (LR p. 117–121; COMBATE.md, seção 15.1): gasta a
+ * execução e os PE, confere a concentração, escreve a resistência e o dano de
+ * cada alvo, marca as condições, começa o sustentado e aplica o Custo do
+ * Paranormal em quem conjura (dano mental; a SAN perdida para sempre vai para a
+ * ficha pelo mestre).
+ */
+function ritual(c: Combate, x: unknown, ctx: Contexto, e: Entrada | undefined): Resultado {
+  const erro = (motivo: string): Resultado => ({ ok: false, motivo });
+  if (!x || typeof x !== 'object') return erro('Ritual inválido.');
+  const o = x as Record<string, unknown>;
+  if (!e) return erro('Não há turno em andamento.');
+  const quem = participante(c, inteiro(o.quem, 1, 1e9) ?? 0);
+  if (!quem || quem.fora || !e.participantes.includes(quem.id)) return erro('Quem conjura não está na vez.');
+  const nome = texto(o.ritual, 60);
+  if (!nome) return erro('Diga qual é o ritual.');
+  const forma = typeof o.forma === 'string' && o.forma in NOME_FORMA_RIT ? o.forma : 'basica';
+  const pe = inteiro(o.pe, 0, 99) ?? 0;
+  const v = ctx.vitais(quem.id);
+  if (pe > 0) {
+    if (!v) return erro(`${quem.nome} não tem PE marcados na peça.`);
+    if (v.pe < pe) return erro(`${quem.nome} só tem ${v.pe} PE.`);
+  }
+  // a execução do ritual gasta do turno como as outras ações (LR p. 119)
+  const ac = { ...acoesDe(c, quem.id) };
+  const qual = o.qual;
+  if (qual === 'padrao') {
+    if (ac.completa) return erro('A ação completa já gastou o turno.');
+    if (ac.padrao) return erro('A ação padrão já foi usada neste turno.');
+    ac.padrao = true;
+  } else if (qual === 'movimento') {
+    if (ac.completa) return erro('A ação completa já gastou o turno.');
+    if (!ac.movimento) ac.movimento = true;
+    else if (!ac.padrao) ac.padrao = true;
+    else return erro('Não sobra ação de movimento neste turno.');
+  } else if (qual === 'completa') {
+    if (ac.padrao || ac.movimento || ac.completa) return erro('A ação completa precisa do turno inteiro livre.');
+    ac.completa = true;
+  } else if (qual !== 'livre' && qual !== 'reacao') return erro('Execução inválida.');
+  ac.pe = (ac.pe ?? 0) + pe;
+  c.acoes[String(quem.id)] = ac;
+  const dt = inteiro(o.dt, 1, 99);
+  registrar(c, ctx.agora, 'acao', `${quem.nome} conjura ${nome} (${NOME_FORMA_RIT[forma]}${pe ? `, ${pe} PE` : ''}${dt ? `, DT ${dt}` : ''}).`);
+  const vitais: MudancaVitais[] = [];
+  const minhas: MudancaVitais = { id: quem.id };
+  if (pe > 0 && v) minhas.pe = v.pe - pe;
+  const lado = (t: unknown) => {
+    const r = (t && typeof t === 'object' ? t : null) as Record<string, unknown> | null;
+    if (!r) return null;
+    const d20 = inteiro(r.d20, 1, 20);
+    const total = inteiro(r.total, -99, 999);
+    const alvoDt = inteiro(r.dt, 1, 99);
+    return d20 === undefined || total === undefined ? null : { d20, total, dt: alvoDt, passou: r.passou === true, nome: texto(r.nome, 12) };
+  };
+  // concentração: falhou, o ritual não sai e os PE se perdem (LR p. 120)
+  const conc = lado(o.concentracao);
+  if (conc) {
+    registrar(c, ctx.agora, 'acao', `Concentração: Vontade d20 ${conc.d20}, total ${conc.total}${conc.dt ? ` contra DT ${conc.dt}` : ''} — ${conc.passou ? 'passou' : 'falhou'}.`, conc.passou ? undefined : ['falhou']);
+    if (!conc.passou) {
+      registrar(c, ctx.agora, 'estado', `O ritual não sai, e os PE se perdem (LR p. 120).`);
+      if (minhas.pe !== undefined) vitais.push(minhas);
+      return { ok: true, combate: c, vitais };
+    }
+  }
+  // cada alvo: resistência, dano e condição
+  const alvos = Array.isArray(o.alvos) ? o.alvos.slice(0, 20) : [];
+  for (const a of alvos) {
+    if (!a || typeof a !== 'object') continue;
+    const r = a as Record<string, unknown>;
+    const p = participante(c, inteiro(r.id, 1, 1e9) ?? 0);
+    if (!p || p.fora) continue;
+    const t = lado(r.teste);
+    if (t) registrar(c, ctx.agora, 'acao', `${p.nome}: ${NOME_TESTE_RES[t.nome] ?? 'resistência'} d20 ${t.d20}, total ${t.total}${dt ? ` contra DT ${dt}` : ''} — ${t.passou ? 'passou' : 'falhou'}.`);
+    const d = r.dano && typeof r.dano === 'object' ? (r.dano as Record<string, unknown>) : null;
+    if (d) aplicarDano(c, p, d, ctx, vitais);
+    const cond = texto(r.condicao, 30);
+    const def = cond ? condicaoDoCatalogo(cond) : undefined;
+    if (def) {
+      comCondicao(p, cond);
+      registrar(c, ctx.agora, 'estado', `${p.nome} entra na condição ${def.nome.toLowerCase()}.`);
+    }
+  }
+  if (o.sustentado === true) {
+    quem.sustenta = nome;
+    registrar(c, ctx.agora, 'estado', `${quem.nome} sustenta ${nome}: 1 PE no começo de cada turno (LR p. 120).`);
+  }
+  // Custo do Paranormal (LR p. 121)
+  const mental = inteiro(o.mental, 0, 99) ?? 0;
+  const perde = inteiro(o.sanPermanente, 0, 3) ?? 0;
+  const custo = lado(o.custo);
+  if (o.medo === true) registrar(c, ctx.agora, 'estado', `Ritual de Medo: ${quem.nome} sofre ${mental} de dano mental e perde ${perde} de SAN para sempre (LR p. 121).`, perde ? [`perde ${perde} de SAN para sempre`] : undefined);
+  else if (custo) {
+    registrar(c, ctx.agora, 'acao', `Custo do Paranormal: Ocultismo d20 ${custo.d20}, total ${custo.total}${custo.dt ? ` contra DT ${custo.dt}` : ''} — ${custo.passou ? 'passou' : 'falhou'}.`, custo.passou ? undefined : ['falhou']);
+    if (mental) registrar(c, ctx.agora, 'estado', `${quem.nome} sofre ${mental} de dano mental${perde ? ' e perde 1 de SAN para sempre: ajuste o máximo na ficha' : ''} (LR p. 121).`, perde ? ['perde 1 de SAN para sempre'] : undefined);
+  }
+  if (mental && v) minhas.san = Math.max(0, v.san - mental);
+  if (minhas.pe !== undefined || minhas.san !== undefined) {
+    const ja = vitais.find((m) => m.id === quem.id);
+    if (ja) Object.assign(ja, minhas);
+    else vitais.push(minhas);
+  }
+  return { ok: true, combate: c, vitais };
+}
+
 /** Aplica uma ação da tela do mestre. O desfazer fica com o servidor (ele guarda os estados anteriores). */
 export function aplicar(atual: Combate | null, a: AcaoCombate, ctx: Contexto): Resultado {
   const erro = (motivo: string): Resultado => ({ ok: false, motivo });
@@ -739,6 +846,9 @@ export function aplicar(atual: Combate | null, a: AcaoCombate, ctx: Contexto): R
     case 'manobra':
       return manobra(c, a.manobra, ctx, naVez());
 
+    case 'ritual':
+      return ritual(c, a.ritual, ctx, naVez());
+
     case 'soltar': {
       const p = participante(c, inteiro(a.id, 1, 1e9) ?? 0);
       if (!p || !p.agarra) return erro('Esse ser não está agarrando ninguém.');
@@ -840,6 +950,7 @@ export function aplicar(atual: Combate | null, a: AcaoCombate, ctx: Contexto): R
 const TIPOS = new Set<AcaoCombate['tipo']>([
   'ataque',
   'manobra',
+  'ritual',
   'soltar',
   'condicao',
   'gastarPe',

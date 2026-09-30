@@ -30,7 +30,8 @@ export function romano(c: number): string {
 /** "3d20+5"; com 0 dados (ou menos) rola 2 e fica o pior (LR p. 78). */
 export function textoTeste(dados: number, bonus: number): string {
   const b = bonus ? (bonus > 0 ? `+${bonus}` : `${bonus}`) : '';
-  if (dados < 1) return `2d20${b} (pior)`;
+  // menos de 1 dado: rola 2 − n e fica o menor (DC-1)
+  if (dados < 1) return `${2 - dados}d20${b} (pior)`;
   return `${dados}d20${b}`;
 }
 

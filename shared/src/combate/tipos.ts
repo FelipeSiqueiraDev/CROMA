@@ -10,6 +10,7 @@
  */
 import type { Elemento, TipoDano } from '../regras/tipos';
 import type { ManobraId, Tamanho } from './manobra';
+import type { FormaRitual, TesteResistencia } from './ritual';
 
 /** Lado de cada ser: os agentes têm turno próprio; inimigos e neutros agem no turno do mestre. */
 export type Lado = 'agente' | 'inimigo' | 'neutro';
@@ -200,6 +201,38 @@ export interface ManobraConfirmada {
   objeto?: { nome: string; pv: number; quebrou: boolean };
 }
 
+/** Um alvo do ritual: o teste de resistência, o dano e a condição que ele ganha. */
+export interface AlvoRitual {
+  id: number;
+  teste?: { nome: TesteResistencia; dados: number; bonus: number; d20: number; total: number; passou: boolean };
+  dano?: DanoConfirmado;
+  /** condição do catálogo que o alvo ganha */
+  condicao?: string;
+}
+
+/** Um ritual que o mestre confirmou na tela (LR p. 117–121; COMBATE.md, seção 15.1). */
+export interface RitualConfirmado {
+  quem: number;
+  ritual: string;
+  forma: FormaRitual;
+  /** a execução do ritual (o que gasta do turno) */
+  qual: TipoAcao;
+  /** PE gastos (0 = ameaça, que não paga PE) */
+  pe: number;
+  dt?: number;
+  sustentado?: boolean;
+  /** teste de Vontade de concentração (condição ruim ou terrível); falhou, o ritual não sai */
+  concentracao?: { dt: number; d20: number; total: number; passou: boolean };
+  alvos: AlvoRitual[];
+  /** Custo do Paranormal: o teste de Ocultismo, fora de Medo */
+  custo?: { dt: number; d20: number; total: number; passou: boolean };
+  /** ritual de Medo: não tem teste; o dano mental e a SAN vêm direto */
+  medo?: boolean;
+  /** dano mental em quem conjura e a SAN que ele perde para sempre */
+  mental?: number;
+  sanPermanente?: number;
+}
+
 /** O que a tela do mestre pede (o servidor confere e aplica). */
 export type AcaoCombate =
   /** abre o combate na cena atual, com as peças dela */
@@ -231,6 +264,8 @@ export type AcaoCombate =
   | { tipo: 'manobra'; manobra: ManobraConfirmada }
   /** quem agarra solta o alvo (ação livre, LR p. 85) */
   | { tipo: 'soltar'; id: number }
+  /** ritual resolvido na tela: PE, resistências, dano, condições e o Custo do Paranormal */
+  | { tipo: 'ritual'; ritual: RitualConfirmado }
   /** marca ou tira uma condição de um ser do combate */
   | { tipo: 'condicao'; id: number; condicao: string; ativa: boolean }
   /** gasta PE de quem age (habilidade, ritual): conta no limite do turno */

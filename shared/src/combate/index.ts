@@ -5,3 +5,4 @@ export * from './ataque';
 export * from './ameaca';
 export * from './manobra';
 export * from './ameacasLivro';
+export * from './ritual';

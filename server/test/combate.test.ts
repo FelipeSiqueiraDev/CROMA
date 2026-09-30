@@ -764,6 +764,102 @@ describe('ameaças do livro (LR p. 182–289)', () => {
   });
 });
 
+describe('ritual: regras puras (LR p. 117–121)', () => {
+  const r = { elemento: 'sangue' as const, discente: { custoExtra: 2, circulo: 2 as const }, verdadeiro: { custoExtra: 5, circulo: 3 as const, afinidade: true } };
+
+  test('forma: custo e requisitos (círculo e afinidade)', () => {
+    assert.deepEqual((['basica', 'discente', 'verdadeira'] as const).map((f) => combate.custoDaForma(3, r, f)), [3, 5, 8]);
+    assert.equal(combate.formaLiberada(r, 'discente', 1, null), 'Pede conjurar rituais de 2º círculo.');
+    assert.equal(combate.formaLiberada(r, 'verdadeira', 3, 'morte'), 'Pede afinidade com o elemento do ritual.');
+    assert.equal(combate.formaLiberada(r, 'verdadeira', 3, 'sangue'), null);
+    assert.equal(combate.formaLiberada({ elemento: 'medo' }, 'discente', 4, null), 'O ritual não tem a forma discente.');
+  });
+
+  test('resistência do cabeçalho; 20 natural passa', () => {
+    assert.deepEqual(combate.lerResistencia('Vontade parcial'), { teste: 'vontade', efeito: 'parcial' });
+    assert.deepEqual(combate.lerResistencia('Fortitude reduz à metade'), { teste: 'fortitude', efeito: 'metade' });
+    assert.deepEqual(combate.lerResistencia('Vontade anula (veja texto)'), { teste: 'vontade', efeito: 'anula' });
+    assert.deepEqual(combate.lerResistencia('Vontade parcial, Fortitude parcial'), { teste: 'vontade', efeito: 'parcial' });
+    assert.equal(combate.lerResistencia('veja texto'), null);
+    assert.equal(combate.passouResistencia(20, 5, 30), true);
+    assert.equal(combate.passouResistencia(10, 15, 16), false);
+  });
+
+  test('elemento contra a criatura: vence = −2d20 e vulnerável; o mesmo = +2d20; Medo é neutro (LR p. 118)', () => {
+    assert.deepEqual(combate.elementoContra('sangue', 'conhecimento'), { dados: -2, vulneravel: true, texto: 'o elemento do ritual vence o dela: −2d20 e vulnerável' });
+    assert.equal(combate.elementoContra('morte', 'sangue')?.vulneravel, true);
+    assert.equal(combate.elementoContra('morte', 'morte')?.dados, 2);
+    assert.equal(combate.elementoContra('sangue', 'energia'), null);
+    assert.equal(combate.elementoContra('medo', 'sangue'), null);
+  });
+
+  test('concentração pela condição; Custo do Paranormal (LR p. 120–121)', () => {
+    assert.deepEqual(combate.dtConcentracao(['caido'], 3), { dt: 18, motivo: 'condição ruim (caido)' });
+    assert.equal(combate.dtConcentracao(['caido', 'agarrado'], 3)?.dt, 23);
+    assert.equal(combate.dtConcentracao([], 3), null);
+    assert.deepEqual(combate.custoParanormal(6, true, 'discente'), { medo: true, mental: 6, sanPermanente: 2 });
+    assert.deepEqual(combate.custoParanormal(6, false, 'basica'), { medo: false, dt: 21 });
+    assert.deepEqual(combate.resultadoCusto(3, 10, 16), { passou: false, mental: 3, sanPermanente: 0 });
+    assert.deepEqual(combate.resultadoCusto(3, 5, 12), { passou: false, mental: 3, sanPermanente: 1 });
+    assert.equal(combate.resultadoCusto(3, 20, 5).passou, true);
+  });
+});
+
+describe('combate: ritual', () => {
+  const rit = (quem: number, extra: Partial<combate.RitualConfirmado> = {}): Acao => ({ tipo: 'ritual', ritual: { quem, ritual: 'Decadência', forma: 'basica', qual: 'padrao', pe: 3, dt: 16, alvos: [], ...extra } });
+  const naVezDeTepes = () => aplicar(aplicar(montado(), { tipo: 'comecar' }), { tipo: 'passar' });
+
+  test('gasta a execução e o PE; resistência e dano em cada alvo; o Custo do Paranormal tira SAN', () => {
+    const c0 = naVezDeTepes();
+    const r = combate.aplicar(
+      c0,
+      rit(2, {
+        alvos: [{ id: 10, teste: { nome: 'vontade', dados: 1, bonus: 2, d20: 8, total: 10, passou: false }, dano: { formula: '2d8+2', soma: 8, total: 10, tipo: 'morte', conta: '10', final: 10 } }],
+        custo: { dt: 18, d20: 5, total: 12, passou: false },
+        mental: 3,
+        sanPermanente: 1,
+      }),
+      ctx(),
+    );
+    assert.ok(r.ok);
+    const c = r.combate!;
+    assert.deepEqual(r.vitais, [{ id: 10, pv: 10 }, { id: 2, pe: 2, san: 17 }]);
+    assert.deepEqual(combate.acoesDe(c, 2), { padrao: true, movimento: false, completa: false, pe: 3 });
+    assert.deepEqual(
+      c.registro.slice(-6).map((l) => l.texto),
+      [
+        'Tepes conjura Decadência (básica, 3 PE, DT 16).',
+        'Ocultista: Vontade d20 8, total 10 contra DT 16 — falhou.',
+        'Dano 2d8+2: 10. Ocultista: PV 20 → 10.',
+        'Dano massivo: Ocultista faz Fortitude DT 17; se falhar, vai a 0 PV (LR p. 88).',
+        'Custo do Paranormal: Ocultismo d20 5, total 12 contra DT 18 — falhou.',
+        'Tepes sofre 3 de dano mental e perde 1 de SAN para sempre: ajuste o máximo na ficha (LR p. 121).',
+      ],
+    );
+    assert.equal(recusa(c, rit(2)), 'A ação padrão já foi usada neste turno.');
+  });
+
+  test('concentração que falha: o ritual não sai e os PE se perdem', () => {
+    const r = combate.aplicar(naVezDeTepes(), rit(2, { concentracao: { dt: 18, d20: 3, total: 6, passou: false }, alvos: [{ id: 10, dano: { formula: '2d8', soma: 9, total: 9, tipo: 'morte', conta: '9', final: 9 } }] }), ctx());
+    assert.ok(r.ok);
+    assert.deepEqual(r.vitais, [{ id: 2, pe: 2 }]);
+    assert.equal(r.combate!.registro.at(-1)?.texto, 'O ritual não sai, e os PE se perdem (LR p. 120).');
+  });
+
+  test('Medo: dano mental e SAN para sempre sem teste; execução livre não gasta ação; sustentado; sem PE, recusa', () => {
+    let c = naVezDeTepes();
+    const r = combate.aplicar(c, rit(2, { ritual: 'Cinerária', qual: 'livre', pe: 1, medo: true, mental: 1, sanPermanente: 1, sustentado: true }), ctx());
+    assert.ok(r.ok);
+    c = r.combate!;
+    assert.deepEqual(r.vitais, [{ id: 2, pe: 4, san: 19 }]);
+    assert.equal(combate.acoesDe(c, 2).padrao, false);
+    assert.equal(combate.participante(c, 2)?.sustenta, 'Cinerária');
+    assert.ok(c.registro.some((l) => l.texto === 'Ritual de Medo: Tepes sofre 1 de dano mental e perde 1 de SAN para sempre (LR p. 121).'));
+    vitais.set(2, { pe: 1 });
+    assert.equal(recusa(c, rit(2)), 'Tepes só tem 1 PE.');
+  });
+});
+
 describe('ataque no servidor', () => {
   let hotel: Hotel;
   let gm: Peer;

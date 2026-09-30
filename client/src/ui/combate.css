@@ -2464,3 +2464,148 @@ button.cb-barra {
   width: 3.4rem;
   font-size: 1.6rem;
 }
+
+/* ---------- ritual (combateRitual.ts) ---------- */
+.cb-atk.cb-rit {
+  grid-template-columns: 25rem minmax(0, 1.2fr) minmax(0, 1fr);
+}
+.cb-rit .cb-col-arma .cb-arma {
+  min-height: 3.6rem;
+  padding: 0.2rem 0.5rem 0.2rem 0.3rem;
+  gap: 0.5rem;
+}
+.cb-rit .cb-col-arma .cb-arma-ic {
+  width: 2.6rem;
+  height: 2.8rem;
+  border-right: 0;
+}
+.cb-rit .cb-col-arma .cb-arma-ic .ic {
+  width: 2.2rem;
+  height: 2.2rem;
+}
+.cb-rit .cb-col-arma .cb-arma-txt b {
+  font-size: 1.42rem;
+}
+.cb-rit .cb-col-arma .cb-arma-txt small {
+  font-size: 1.22rem;
+}
+.cb-rit-formas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.cb-rit-formas .cb-reacao,
+.cb-rit-modos .cb-reacao {
+  height: 2.4rem;
+  padding: 0 0.6rem;
+  font-size: 1.22rem;
+}
+.cb-rit-formas .cb-reacao:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.cb-rit-avulso {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.cb-rit-avulso .fx-inp,
+.cb-rit-dano .fx-inp {
+  font-size: 1.3rem;
+}
+.cb-rit-avulso .cb-caixa-dado,
+.cb-rit-alvo .cb-caixa-dado,
+.cb-rit-custo .cb-caixa-dado {
+  flex-direction: row;
+  gap: 0.4rem;
+  padding: 0 0.5rem;
+}
+.cb-rit-avulso .cb-dado,
+.cb-rit-alvo .cb-dado,
+.cb-rit-custo .cb-dado {
+  width: 3.6rem;
+  font-size: 1.6rem;
+}
+.cb-rit-modos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  flex: none;
+}
+.cb-rit-res {
+  flex: none;
+  font-size: 1.3rem;
+  color: var(--tinta-2);
+}
+.cb-rit-alvo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.6rem;
+  flex: none;
+  padding-top: 0.25rem;
+  border-top: 0.1rem solid rgba(84, 66, 44, 0.2);
+  font-size: 1.28rem;
+}
+.cb-rit-alvo b {
+  font-weight: 700;
+  font-size: 1.36rem;
+}
+.cb-rit-alvo small {
+  color: var(--tinta-2);
+}
+.cb-rit-marca {
+  padding: 0.1rem 0.55rem;
+  border-radius: 0.3rem;
+  font-weight: 700;
+  font-size: 1.18rem;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.cb-rit-marca.bom {
+  background: #2f7a36;
+  color: #fff;
+}
+.cb-rit-marca.ruim {
+  background: #9d221d;
+  color: #fff;
+}
+.cb-rit-meia {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 1.3rem;
+}
+.cb-rit-dano {
+  display: flex;
+  gap: 0.4rem;
+  flex: none;
+}
+.cb-rit-formula {
+  width: 10rem;
+}
+.cb-rit-dano select {
+  flex: 1;
+  min-width: 0;
+}
+.cb-rit-linha {
+  font-size: 1.25rem;
+  line-height: 1.3;
+}
+.cb-rit .cb-col-rol .cb-col-corpo {
+  overflow-y: auto;
+}
+.cb-rit-custo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 1.3rem;
+}
+.cb-rit-custo.alerta {
+  color: #9d221d;
+  font-weight: 600;
+}
+.cb-rit-pe .cb-dano-corpo {
+  flex-wrap: wrap;
+  gap: 0.4rem 1.2rem;
+}

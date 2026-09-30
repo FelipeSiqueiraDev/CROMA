@@ -15,6 +15,7 @@ import type { App } from './app';
 import { editarAmeaca } from './combateAmeaca';
 import { PASSOS_ATAQUE, ResolucaoAtaque, type AlvoAtaque, type ArmaOpcao, type CtxAtaque, type TabuleiroAtaque } from './combateAtaque';
 import { PASSOS_MANOBRA, ResolucaoManobra, type CtxManobra, type TesteLuta } from './combateManobra';
+import { PASSOS_RITUAL, ResolucaoRitual, type CtxRitual, type RitualOpcao } from './combateRitual';
 import { h, toast } from './dom';
 import { confirmar, janela, perguntarTexto } from './fichaModal';
 import { textoTeste } from './fichaRegras';
@@ -189,6 +190,7 @@ export class CombateScreen {
   private pondoNaVez = false;
   private ataque = new ResolucaoAtaque();
   private manobra = new ResolucaoManobra();
+  private ritualRes = new ResolucaoRitual();
   // ferramentas do tabuleiro
   private mostrarAlcance = true;
   private medida: { a: Casa; b: Casa | null } | null = null;
@@ -570,6 +572,91 @@ export class CombateScreen {
     this.app.net.send({ t: 'tokenWalk', tokenId: -alvoId, x: dest.x, y: dest.y });
   }
 
+  // ================================================================ ritual
+
+  /** Os rituais da ficha, com o custo e a DT de cada forma e o motivo das travadas (LR p. 121). */
+  private rituaisDe(p: Participante): RitualOpcao[] {
+    const calc = this.calcDe(p.id);
+    const ficha = this.fichaDe(p.id)?.ficha;
+    if (!calc || !ficha) return [];
+    const circuloMax = ficha.classe ? regras.circuloMaximo(ficha.classe, ficha.nex) : 0;
+    let afinidade: regras.Elemento | null = null;
+    try {
+      afinidade = regras.montarEstado(ficha).afinidade;
+    } catch {
+      afinidade = null;
+    }
+    const out: RitualOpcao[] = [];
+    for (const r of calc.rituais) {
+      const d = regras.catalogo.ritual(r.id);
+      if (!d) continue;
+      const custo = calc.custoRituais[r.id] ?? { pe: 1, dt: calc.dtRituais };
+      const formas = (['basica', 'discente', 'verdadeira'] as cb.FormaRitual[])
+        .filter((f) => f === 'basica' || (f === 'discente' ? d.discente : d.verdadeiro))
+        .map((f) => ({ forma: f, pe: cb.custoDaForma(custo.pe, d, f), motivo: cb.formaLiberada(d, f, circuloMax, afinidade) }));
+      const exec = d.execucao;
+      out.push({
+        id: d.id,
+        nome: d.nome,
+        elemento: d.elemento,
+        circulo: d.circulo,
+        qual: exec === 'movimento' || exec === 'completa' || exec === 'livre' || exec === 'reacao' ? exec : 'padrao',
+        alcance: d.alcance,
+        ...(d.alvo ? { alvo: d.alvo } : {}),
+        duracao: d.duracao,
+        ...(d.resistencia ? { resistencia: d.resistencia } : {}),
+        dt: custo.dt,
+        formas,
+        ref: `${d.ref.fonte} p. ${d.ref.pagina}`,
+      });
+    }
+    return out;
+  }
+
+  /** Quem do combate está na área desenhada (a ferramenta Área, já fixada no tabuleiro). */
+  private naAreaDoCombate(c: Combate, ator: Participante): AlvoAtaque[] | null {
+    const a = this.area;
+    if (!a?.fixa || !a.alvo) return null;
+    const origem = this.casa(ator.id) ?? a.alvo;
+    const area = { forma: a.forma, metros: a.metros, origem, alvo: a.alvo };
+    return c.participantes.filter((p) => !p.fora && (() => { const x = this.casa(p.id); return !!x && naArea(area, x); })()).map((p) => this.alvoAtaque(c, p));
+  }
+
+  private ctxRitual(c: Combate, ator: Participante): CtxRitual {
+    const alvoP = this.alvoId !== null ? cb.participante(c, this.alvoId) : undefined;
+    const calc = this.calcDe(ator.id);
+    const ac = cb.acoesDe(c, ator.id);
+    return {
+      combate: c,
+      ator,
+      agente: ator.lado === 'agente' && !!calc,
+      condicoesAtor: this.condicoesDe(c, ator),
+      rituais: this.rituaisDe(ator),
+      ocultismo: calc ? { dados: calc.pericias.ocultismo.dados, bonus: calc.pericias.ocultismo.bonus } : null,
+      vontade: calc ? { dados: calc.pericias.vontade.dados, bonus: calc.pericias.vontade.bonus } : null,
+      limite: calc ? (calc.limitePeRituais ?? calc.limitePe) : null,
+      gasto: ac.pe ?? 0,
+      alvo: alvoP && !alvoP.fora ? this.alvoAtaque(c, alvoP) : null,
+      naArea: this.naAreaDoCombate(c, ator),
+      testeDe: (p, t) => {
+        const pc = this.calcDe(p.id)?.pericias[t];
+        if (pc) return { dados: pc.dados, bonus: pc.bonus };
+        const f = this.ameacaDe(p.id);
+        return f ? { ...f[t] } : null;
+      },
+      elementoDe: (p) => this.ameacaDe(p.id)?.elemento ?? null,
+      metrosAte: (p) => {
+        const a = this.casa(ator.id);
+        const b = this.casa(p.id);
+        return a && b ? cb.metrosDe(cb.distanciaCasas(a, b)) : null;
+      },
+      acoes: ac,
+      pedirArea: () => this.ferramentaArea(),
+      enviar: (a) => this.acao(a),
+      mudou: () => (this.sigs.delete('res'), this.renderRes(), this.atualizarMarcas()),
+    };
+  }
+
   // ================================================================ tabuleiro
 
   /** Recorta o fundo escuro no retângulo do tabuleiro (o canvas aparece por baixo). */
@@ -734,6 +821,11 @@ export class CombateScreen {
           if (t && t.metros !== null && v.users.has(-ator.id) && v.users.has(-alvo.p.id))
             m.linha = { de: -ator.id, ate: -alvo.p.id, rotulo: `${cb.textoMetros(t.metros)} · ${t.adjacente ? 'adjacente' : 'longe'}`, fora: !t.adjacente };
         }
+      } else if (ator && this.aba === 'ritual' && this.alvoId !== null && this.alvoId !== ator.id && v.users.has(-this.alvoId)) {
+        m.mira = -this.alvoId;
+        const a = this.casa(ator.id);
+        const b = this.casa(this.alvoId);
+        if (a && b && v.users.has(-ator.id)) m.linha = { de: -ator.id, ate: -this.alvoId, rotulo: cb.textoMetros(cb.metrosDe(cb.distanciaCasas(a, b))) };
       } else if (this.alvoId !== null && v.users.has(-this.alvoId)) m.mira = -this.alvoId;
     }
     // ferramentas
@@ -1039,9 +1131,11 @@ export class CombateScreen {
     const v = this.daVez();
     const x = c && v?.ator && this.aba === 'atacar' ? this.ctxAtaque(c, v.ator) : null;
     const mx = c && v?.ator && this.aba === 'manobra' ? this.ctxManobra(c, v.ator) : null;
+    const rx = c && v?.ator && this.aba === 'ritual' ? this.ctxRitual(c, v.ator) : null;
     const tab = x?.tab ?? (mx ? (() => { const a = this.manobra.alvoEscolhido(mx); return a ? mx.tabDe(a.p) : null; })() : null);
     const geo = tab ? [tab.metros === null ? null : Math.round(tab.metros * 10), tab.adjacente, tab.cobertura.tipo, tab.cobertura.nome, tab.elevado, tab.flanqueia, tab.emCorpoACorpo] : null;
-    const dados = [c && { ...c, registro: 0 }, this.aba, this.atorId, this.alvoId, this.assinaturaPecas(), this.assinaturaFichas(), this.app.state.room?.id, this.ameacas, geo, this.clima()];
+    const areaSig = rx ? [this.area?.forma, this.area?.metros, this.area?.alvo, this.area?.fixa, rx.naArea?.map((a) => a.p.id), rx.alvo ? rx.metrosAte(rx.alvo.p) : null] : null;
+    const dados = [c && { ...c, registro: 0 }, this.aba, this.atorId, this.alvoId, this.assinaturaPecas(), this.assinaturaFichas(), this.app.state.room?.id, this.ameacas, geo, this.clima(), areaSig];
     if (!this.mudou('res', dados)) return;
     if (!c) return this.trocar(this.resCorpo, this.semCombate());
     if (c.fase === 'montando') return this.trocar(this.resCorpo, this.montagem(c));
@@ -1057,9 +1151,10 @@ export class CombateScreen {
           h('div', { class: 'cb-sem-botoes' }, botao('Pôr no combate', 'entrar', () => this.dialogoEntrar(), 'claro'), botao('Encerrar combate', 'bandeira', () => void this.encerrar(), 'forte')),
         ),
       );
-    const corpo = x ? this.ataque.montar(x) : mx ? this.manobra.montar(mx) : this.conteudoAba(c, v.ator);
-    const passo = x ? this.ataque.passo(x) : mx ? this.manobra.passo(mx) : 0;
-    this.trocar(this.resCorpo, this.faixaAtor(c, v.e, v.ativos, v.ator), this.passos(x ? PASSOS_ATAQUE : mx ? PASSOS_MANOBRA : this.passosDaAba(), passo, !!x || !!mx), corpo);
+    const corpo = x ? this.ataque.montar(x) : mx ? this.manobra.montar(mx) : rx ? this.ritualRes.montar(rx) : this.conteudoAba(c, v.ator);
+    const passo = x ? this.ataque.passo(x) : mx ? this.manobra.passo(mx) : rx ? this.ritualRes.passo(rx) : 0;
+    const nomes = x ? PASSOS_ATAQUE : mx ? PASSOS_MANOBRA : rx ? PASSOS_RITUAL : this.passosDaAba();
+    this.trocar(this.resCorpo, this.faixaAtor(c, v.e, v.ativos, v.ator), this.passos(nomes, passo, !!x || !!mx || !!rx), corpo);
   }
 
   private semCombate(): HTMLElement {
@@ -1334,8 +1429,6 @@ export class CombateScreen {
 
   private passosDaAba(): string[] {
     switch (this.aba) {
-      case 'ritual':
-        return ['Ação', 'Ritual e forma', 'Alvo ou área', 'Resistências', 'Efeito', 'Custo do Paranormal', 'Confirmar'];
       case 'movimento':
         return ['Ação', 'Caminho no tabuleiro', 'Confirmar'];
       default:
@@ -1370,18 +1463,6 @@ export class CombateScreen {
     let lista: HTMLElement[] = [];
     let nota = 'Declarar escreve no registro e gasta a ação do turno. O resultado dos dados que não tem conta aqui vai no lápis do registro.';
     switch (this.aba) {
-      case 'ritual':
-        lista = (calc?.rituais ?? []).map((r) => {
-          const d = regras.catalogo.ritual(r.id);
-          const custo = calc?.custoRituais[r.id];
-          const exec = d?.execucao;
-          const qual: cb.TipoAcao = exec === 'movimento' || exec === 'completa' || exec === 'livre' || exec === 'reacao' ? exec : 'padrao';
-          const partes = [d ? `${d.circulo}º círculo` : '', custo ? `${custo.pe} PE · DT ${custo.dt}` : '', d?.alcance ?? '', d?.duracao ?? ''].filter(Boolean);
-          return opcao('pentagrama', d?.nome ?? r.id, partes.join(' · '), qual, () => this.conjurar(ator, d?.nome ?? r.id, custo?.pe ?? 0, custo?.dt, qual, contra, /sustentad/i.test(d?.duracao ?? ''), d?.elemento === 'medo', calc!.limitePe, gasto), d ? `${d.ref.fonte} p. ${d.ref.pagina}` : undefined);
-        });
-        if (!lista.length) nota = calc ? 'Sem rituais na ficha.' : 'Ritual de ameaça: declare e anote a DT no lápis do registro.';
-        else nota = 'Conjurar gasta o PE, escreve no registro e, se for sustentado, entra no começo de cada turno. Resistências e Custo do Paranormal: role na mesa.';
-        break;
       case 'habilidade':
         if (ficha && calc)
           for (const p of calc.poderes) {
@@ -1480,30 +1561,6 @@ export class CombateScreen {
       this.acao({ tipo: 'gastarPe', quem: ator.id, pe: custo, motivo: nome });
       this.acao({ tipo: 'declarar', qual: 'livre', texto: `usa ${nome}${contra}`, quem: ator.id });
     });
-  }
-
-  private conjurar(ator: Participante, nome: string, pe: number, dt: number | undefined, qual: cb.TipoAcao, contra: string, sustentado: boolean, medo: boolean, limite: number, gasto: number) {
-    const j = janela(`CONJURAR ${nome.toUpperCase()}`, 'pentagrama', () => {}, 56);
-    const sust = h('input', { type: 'checkbox', class: 'cb-check', checked: sustentado });
-    j.corpo.append(
-      h(
-        'p',
-        { class: 'fj-texto' },
-        `Ação ${NOME_QUAL[qual]}; ${pe} PE (limite ${limite}, já gastos ${gasto})${dt ? `; resistência DT ${dt}` : ''}. ${medo ? 'Ritual de Medo: dano mental igual ao custo e perde SAN para sempre (LR p. 121).' : `Custo do Paranormal: Ocultismo DT ${15 + pe}; falhou, dano mental igual ao custo (LR p. 121).`}`,
-      ),
-      gasto + pe > limite ? h('p', { class: 'fj-texto alerta' }, 'Passa do limite de PE do turno (LR p. 121).') : '',
-      h('label', { class: 'cb-dlg-check' }, sust, h('span', null, 'Sustentado: 1 PE no começo de cada turno (LR p. 120)')),
-    );
-    j.rodape.append(
-      h('span', { class: 'fj-esp' }),
-      botaoJanela('Cancelar', 'fechar', '', () => j.fechar()),
-      botaoJanela('Conjurar', 'pentagrama', 'forte', () => {
-        if (pe > 0) this.acao({ tipo: 'gastarPe', quem: ator.id, pe, motivo: `conjura ${nome}` });
-        this.acao({ tipo: 'declarar', qual, texto: `conjura ${nome}${contra}`, quem: ator.id });
-        if (sust.checked) this.acao({ tipo: 'sustentar', id: ator.id, ritual: nome });
-        j.fechar();
-      }),
-    );
   }
 
   // ---------------------------------------------------------------- alvo
