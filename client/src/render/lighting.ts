@@ -1,4 +1,4 @@
-import { rgba } from './color';
+import { rgba, shade } from './color';
 
 /** Luz em coordenadas de mundo (px). */
 export interface Light {
@@ -27,6 +27,7 @@ export class Lighting {
     toDev: (x: number, y: number) => [number, number],
     scale: number,
     t: number,
+    ambient?: string,
   ) {
     const W = main.canvas.width;
     const H = main.canvas.height;
@@ -38,7 +39,8 @@ export class Lighting {
     l.setTransform(1, 0, 0, 1, 0, 0);
     l.globalCompositeOperation = 'source-over';
     l.clearRect(0, 0, W, H);
-    l.fillStyle = `rgba(6,4,12,${darkness})`;
+    // o escuro puxa para a cor do cômodo (roxo na tecnologia, vermelho nos rituais...)
+    l.fillStyle = ambient ? rgba(shade(ambient, -0.86), darkness) : `rgba(6,4,12,${darkness})`;
     l.fillRect(0, 0, W, H);
     l.globalCompositeOperation = 'destination-out';
     const active = lights.map((L) => {
@@ -62,6 +64,11 @@ export class Lighting {
     main.setTransform(1, 0, 0, 1, 0, 0);
     main.drawImage(this.canvas, 0, 0);
     main.globalCompositeOperation = 'lighter';
+    // um véu bem leve da cor do ambiente no ar
+    if (ambient) {
+      main.fillStyle = rgba(ambient, 0.035);
+      main.fillRect(0, 0, W, H);
+    }
     for (const a of active) {
       if (a.x + a.r < 0 || a.y + a.r < 0 || a.x - a.r > W || a.y - a.r > H) continue;
       const r = a.r * 0.85;

@@ -26,14 +26,18 @@ npm start
 
 Tudo passa a ser servido pelo servidor Node em http://localhost:3001 (ou na porta de `PORT` / `CROMA_PORT`).
 
-Os dados ficam em `server/data/` (`db.json` e os PNGs enviados em `uploads/`). Apague a pasta para voltar ao quarto de exemplo.
+Os dados ficam no Postgres do CROMA (`npm run banco` sobe o container `croma-postgres` no Docker, só acessível por este computador; configure `server/.env` a partir de `server/.env.example`). Sem essa configuração, ficam em `server/data/db.json`. Os PNGs enviados ficam em `server/data/uploads/`. Cópia do banco: `npm run banco:backup`.
 
 ## Mestre e mesa
 
 - **Mestre:** a interface completa, só para o mestre. Abra `http://localhost:5173` no computador que roda o servidor.
 - **Mesa:** só o tabuleiro, num tablet que os jogadores olham. Abra no tablet o link da mesa que o servidor mostra no terminal (`http://IP-deste-computador:5173/?mesa`). Ela acompanha em tempo real a cena que o mestre abrir e os personagens andando. Toque uma vez para a tela cheia.
 
-O contrato entre a interface e o servidor está em [`docs/CONTRATO.md`](docs/CONTRATO.md).
+O contrato entre a interface e o servidor está em [`docs/CONTRATO.md`](docs/CONTRATO.md). As regras de Ordem Paranormal que o CROMA segue, o que cada uma muda no tabuleiro e a ordem de construção estão em [`docs/REGRAS.md`](docs/REGRAS.md).
+
+## Sede da Ordem
+
+A campanha que abre por padrão: o bar de fachada no térreo e a sede no subsolo (salão, corredor, prisão, laboratório, tecnologia, gabinete, rituais, banheiro, enfermaria, arsenal e a câmara do selo). A entrada fica atrás da geladeira do bar: o mestre clica nela e digita a senha **0413**. A lista do visual, cômodo por cômodo, está em [`docs/SEDE-DA-ORDEM.md`](docs/SEDE-DA-ORDEM.md).
 
 ## Tela MAPA (tabuleiro)
 

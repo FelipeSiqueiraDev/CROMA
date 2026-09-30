@@ -1,4 +1,4 @@
-import { heightToChar, MAX_ROOM_SIZE, parseHeightmap, type Door } from '@croma/shared';
+import { FLOOR_STYLES, heightToChar, MAX_ROOM_SIZE, PARTICLE_KINDS, parseHeightmap, type Door, type FloorStyle, type ParticleKind } from '@croma/shared';
 import type { App } from './app';
 import { clear, h, icon, Win } from './dom';
 
@@ -37,6 +37,11 @@ export class RoomSettingsWin {
     });
     const system = r.owner === 'CROMA';
     const pub = h('input', { type: 'checkbox', checked: r.publicBuild, disabled: system });
+    const floorName = h('input', { class: 'input', maxlength: 20, value: r.floor ?? '', placeholder: 'Térreo, Subsolo… (vazio = um andar só)' });
+    const style = h('select', { class: 'input' }, ...FLOOR_STYLES.map((f) => h('option', { value: f.id, selected: (r.floorStyle ?? 'pedra') === f.id }, f.name)));
+    const useAmbient = h('input', { type: 'checkbox', checked: !!r.ambient });
+    const ambient = h('input', { type: 'color', value: r.ambient ?? '#6a5a8a' });
+    const parts = PARTICLE_KINDS.map((p) => ({ id: p.id, box: h('input', { type: 'checkbox', checked: (r.particles ?? []).includes(p.id) }), name: p.name }));
     b.append(
       h(
         'form',
@@ -44,7 +49,17 @@ export class RoomSettingsWin {
           class: 'form',
           onsubmit: (e: Event) => {
             e.preventDefault();
-            this.app.net.send({ t: 'roomSettings', name: name.value, description: desc.value, darkness: Number(dark.value) / 100, publicBuild: pub.checked });
+            this.app.net.send({
+              t: 'roomSettings',
+              name: name.value,
+              description: desc.value,
+              darkness: Number(dark.value) / 100,
+              publicBuild: pub.checked,
+              floor: floorName.value,
+              floorStyle: style.value as FloorStyle,
+              ambient: useAmbient.checked ? ambient.value : null,
+              particles: parts.filter((p) => p.box.checked).map((p) => p.id as ParticleKind),
+            });
             this.win.close();
           },
         },
@@ -52,6 +67,14 @@ export class RoomSettingsWin {
         name,
         h('label', { class: 'field-label' }, 'Descrição'),
         desc,
+        h('label', { class: 'field-label' }, 'Andar'),
+        floorName,
+        h('label', { class: 'field-label' }, 'Piso'),
+        style,
+        h('label', { class: 'field-label' }, 'Cor do ambiente'),
+        h('div', { class: 'row' }, h('label', { class: 'check' }, useAmbient, 'Tingir o escuro'), ambient),
+        h('label', { class: 'field-label' }, 'Partículas'),
+        ...parts.map((p) => h('label', { class: 'check' }, p.box, p.name)),
         h('label', { class: 'field-label' }, 'Escuridão ambiente'),
         h('div', { class: 'row' }, dark, darkV),
         h('label', { class: 'check' }, pub, system ? 'Quarto público do sistema: todos constroem' : 'Todos podem construir'),

@@ -1,4 +1,4 @@
-import type { RoomMap, WallSeg } from '@croma/shared';
+import type { FloorStyle, RoomMap, WallSeg } from '@croma/shared';
 import { hash, shade } from './color';
 import { iso } from './iso';
 
@@ -11,8 +11,31 @@ export interface StaticLayer {
   h: number;
 }
 
-const FLOOR = '#4f4841';
-const GROUT = 'rgba(18,14,12,0.6)';
+/** Como cada piso é desenhado: cor, rejunte e desenho (pedra, tábua, ladrilho...). */
+interface FloorLook {
+  base: string;
+  grout: string;
+  kind: 'stone' | 'plank' | 'tile' | 'checker' | 'carpet' | 'plate' | 'dirt';
+  alt?: string;
+}
+
+const FLOORS: Record<FloorStyle, FloorLook> = {
+  pedra: { base: '#4f4841', grout: 'rgba(18,14,12,0.6)', kind: 'stone' },
+  concreto: { base: '#585650', grout: 'rgba(20,20,18,0.28)', kind: 'stone' },
+  madeira: { base: '#3b2718', grout: 'rgba(10,6,4,0.7)', kind: 'plank' },
+  taco: { base: '#8a4a22', grout: 'rgba(40,16,6,0.6)', kind: 'plank' },
+  ladrilho: { base: '#c2beb2', grout: 'rgba(80,80,74,0.6)', kind: 'tile' },
+  xadrez: { base: '#cfcabd', alt: '#2a2622', grout: 'rgba(0,0,0,0.35)', kind: 'checker' },
+  azulejo: { base: '#93aebb', grout: 'rgba(40,60,70,0.5)', kind: 'tile' },
+  carpete: { base: '#3b2160', alt: '#7a5ab0', grout: 'rgba(0,0,0,0)', kind: 'carpet' },
+  musgo: { base: '#213b33', grout: 'rgba(0,10,6,0.6)', kind: 'stone' },
+  metal: { base: '#30343a', grout: 'rgba(0,0,0,0.55)', kind: 'plate' },
+  terra: { base: '#3a2e22', grout: 'rgba(0,0,0,0)', kind: 'dirt' },
+};
+
+export function floorLook(style: FloorStyle | undefined): FloorLook {
+  return FLOORS[style ?? 'pedra'] ?? FLOORS.pedra;
+}
 const EDGE_VOID_X = '#1d1916';
 const EDGE_VOID_Y = '#27221e';
 const EDGE_STEP_X = '#342e29';
@@ -23,7 +46,8 @@ const WALL_TOP = '#5a524b';
 const WALL_CAP = '#221d1a';
 const T = 0.3;
 const FLOOR_THICK = 0.35;
-const DOOR_H = 3.5;
+/** altura do vão da porta: 2,15 m (Z_PER_M) */
+const DOOR_H = 3.9;
 const MAX_PIXELS = 14_000_000;
 
 type Pt = [number, number];
@@ -226,7 +250,146 @@ function drawWallSeg(ctx: CanvasRenderingContext2D, map: RoomMap, s: WallSeg) {
   }
 }
 
-function drawTile(ctx: CanvasRenderingContext2D, map: RoomMap, x: number, y: number, h: number, door: boolean, minH: number) {
+/** Quadrilátero no chão: (u0, v0) até (u1, v1) na altura h. */
+function quad(u0: number, v0: number, u1: number, v1: number, h: number): Pt[] {
+  return [iso(u0, v0, h), iso(u1, v0, h), iso(u1, v1, h), iso(u0, v1, h)];
+}
+
+function line(ctx: CanvasRenderingContext2D, a: Pt, b: Pt, color: string, lw = 1) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lw;
+  ctx.beginPath();
+  ctx.moveTo(a[0], a[1]);
+  ctx.lineTo(b[0], b[1]);
+  ctx.stroke();
+}
+
+/** Pisos que não são pedra: tábuas, ladrilhos, xadrez, carpete, chapa, terra. */
+function drawPattern(ctx: CanvasRenderingContext2D, x: number, y: number, h: number, look: FloorLook) {
+  const base = look.base;
+  switch (look.kind) {
+    case 'plank': {
+      // três tábuas por casa, correndo em x, emendas desencontradas
+      for (let k = 0; k < 3; k++) {
+        const v0 = y + k / 3;
+        const v1 = v0 + 1 / 3;
+        const joint = x + 0.15 + hash(x, y * 3 + k, 11) * 0.7;
+        for (const [a, b] of [
+          [x, joint],
+          [joint, x + 1],
+        ]) {
+          const col = shade(base, (hash(Math.floor(a * 7), y * 3 + k, 12) - 0.5) * 0.28);
+          poly(ctx, quad(a, v0, b, v1, h), col);
+          line(ctx, iso(a + 0.05, v0 + 0.12, h), iso(b - 0.05, v0 + 0.13, h), 'rgba(0,0,0,0.12)');
+          line(ctx, iso(a + 0.1, v0 + 0.22, h), iso(b - 0.1, v0 + 0.21, h), 'rgba(255,230,200,0.05)');
+        }
+        line(ctx, iso(x, v1, h), iso(x + 1, v1, h), look.grout);
+        line(ctx, iso(joint, v0, h), iso(joint, v1, h), look.grout);
+      }
+      break;
+    }
+    case 'tile':
+    case 'checker': {
+      for (let i = 0; i < 2; i++)
+        for (let j = 0; j < 2; j++) {
+          const u0 = x + i / 2;
+          const v0 = y + j / 2;
+          const dark = look.kind === 'checker' && (x * 2 + i + y * 2 + j) % 2 === 1;
+          const col = shade(dark ? look.alt! : base, (hash(x * 2 + i, y * 2 + j, 5) - 0.5) * 0.08);
+          const pts = quad(u0, v0, u0 + 0.5, v0 + 0.5, h);
+          poly(ctx, pts, col);
+          line(ctx, pts[3], pts[0], 'rgba(255,255,255,0.14)');
+          line(ctx, pts[0], pts[1], 'rgba(255,255,255,0.14)');
+          ctx.strokeStyle = look.grout;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(pts[1][0], pts[1][1]);
+          ctx.lineTo(pts[2][0], pts[2][1]);
+          ctx.lineTo(pts[3][0], pts[3][1]);
+          ctx.stroke();
+          // mancha de uso de vez em quando
+          if (hash(x, y, i, j, 3) < 0.08) {
+            const [cx, cy] = iso(u0 + 0.25, v0 + 0.25, h);
+            ctx.fillStyle = 'rgba(60,50,40,0.18)';
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, 7, 3.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      break;
+    }
+    case 'carpet': {
+      poly(ctx, quad(x, y, x + 1, y + 1, h), shade(base, (hash(x, y, 4) - 0.5) * 0.05));
+      // fibras e um losango bem apagado
+      for (let k = 0; k < 14; k++) {
+        const [px, py] = iso(x + hash(x, y, k, 1), y + hash(y, x, k, 2), h);
+        ctx.fillStyle = hash(k, x, y) < 0.5 ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.05)';
+        ctx.fillRect(Math.round(px), Math.round(py), 1, 1);
+      }
+      if ((x + y) % 2 === 0) {
+        ctx.strokeStyle = `${look.alt ?? '#ffffff'}22`;
+        ctx.lineWidth = 1;
+        const p = [iso(x + 0.5, y + 0.2, h), iso(x + 0.8, y + 0.5, h), iso(x + 0.5, y + 0.8, h), iso(x + 0.2, y + 0.5, h)];
+        ctx.beginPath();
+        ctx.moveTo(p[0][0], p[0][1]);
+        for (const q of p.slice(1)) ctx.lineTo(q[0], q[1]);
+        ctx.closePath();
+        ctx.stroke();
+      }
+      break;
+    }
+    case 'plate': {
+      const pts = quad(x, y, x + 1, y + 1, h);
+      poly(ctx, pts, shade(base, (hash(x, y, 6) - 0.5) * 0.12));
+      // piso antiderrapante: tracinhos alternados
+      for (let i = 0; i < 4; i++)
+        for (let j = 0; j < 4; j++) {
+          const u = x + 0.15 + i * 0.23;
+          const v = y + 0.15 + j * 0.23;
+          const d = (i + j) % 2 ? 0.06 : -0.06;
+          line(ctx, iso(u - 0.05, v - d, h), iso(u + 0.05, v + d, h), 'rgba(170,180,190,0.16)', 1.3);
+        }
+      for (const [u, v] of [
+        [x + 0.07, y + 0.07],
+        [x + 0.93, y + 0.07],
+        [x + 0.07, y + 0.93],
+        [x + 0.93, y + 0.93],
+      ]) {
+        const [px, py] = iso(u, v, h);
+        ctx.fillStyle = 'rgba(200,205,210,0.35)';
+        ctx.fillRect(Math.round(px) - 1, Math.round(py), 2, 1);
+      }
+      ctx.strokeStyle = look.grout;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(pts[1][0], pts[1][1]);
+      ctx.lineTo(pts[2][0], pts[2][1]);
+      ctx.lineTo(pts[3][0], pts[3][1]);
+      ctx.stroke();
+      break;
+    }
+    case 'dirt': {
+      poly(ctx, quad(x, y, x + 1, y + 1, h), shade(base, (hash(x, y, 8) - 0.5) * 0.15));
+      for (let k = 0; k < 4; k++) {
+        const [cx, cy] = iso(x + hash(x, y, k, 9), y + hash(y, x, k, 10), h);
+        ctx.fillStyle = hash(k, y, x) < 0.5 ? 'rgba(0,0,0,0.2)' : 'rgba(120,100,70,0.14)';
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, 4 + hash(k, x) * 8, 2 + hash(k, y) * 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      for (let k = 0; k < 6; k++) {
+        const [px, py] = iso(x + hash(x, k, y, 1), y + hash(k, y, x, 2), h);
+        ctx.fillStyle = 'rgba(150,130,100,0.35)';
+        ctx.fillRect(Math.round(px), Math.round(py), 2, 1);
+      }
+      break;
+    }
+    default:
+      break;
+  }
+}
+
+function drawTile(ctx: CanvasRenderingContext2D, map: RoomMap, x: number, y: number, h: number, door: boolean, minH: number, look: FloorLook = FLOORS.pedra) {
   // bordas (espessura) para frente; na beira da sala descem até a base
   const nx = map.floorHeight(x + 1, y);
   const bx = nx === null ? minH - FLOOR_THICK : nx;
@@ -251,7 +414,17 @@ function drawTile(ctx: CanvasRenderingContext2D, map: RoomMap, x: number, y: num
     }
   }
 
-  const base = door ? '#221d19' : FLOOR;
+  if (!door && look.kind !== 'stone') {
+    drawPattern(ctx, x, y, h, look);
+    // sombra de degrau: piso mais alto atrás
+    const backX = map.floorHeight(x - 1, y);
+    const backY = map.floorHeight(x, y - 1);
+    if (backX !== null && backX > h) poly(ctx, quad(x, y, x + 0.5, y + 1, h), 'rgba(0,0,0,0.28)');
+    if (backY !== null && backY > h) poly(ctx, quad(x, y, x + 1, y + 0.5, h), 'rgba(0,0,0,0.28)');
+    return;
+  }
+  const base = door ? '#221d19' : look.base;
+  const GROUT = look.grout;
   ctx.lineWidth = 1;
   for (let i = 0; i < 2; i++)
     for (let j = 0; j < 2; j++) {
@@ -327,7 +500,8 @@ function drawLedges(ctx: CanvasRenderingContext2D, map: RoomMap, x: number, y: n
   ctx.lineWidth = 1;
 }
 
-export function buildStatic(map: RoomMap, wantScale: number): StaticLayer {
+export function buildStatic(map: RoomMap, wantScale: number, style?: FloorStyle): StaticLayer {
+  const look = floorLook(style);
   const bd = roomBounds(map);
   const pad = 8;
   const x = Math.floor(bd.minX - pad);
@@ -378,7 +552,7 @@ export function buildStatic(map: RoomMap, wantScale: number): StaticLayer {
     }
   tiles.sort((a, b) => a[0] + a[1] - (b[0] + b[1]) || a[2] - b[2]);
   for (const [tx, ty, th] of tiles) {
-    drawTile(ctx, map, tx, ty, th, false, minH);
+    drawTile(ctx, map, tx, ty, th, false, minH, look);
     drawLedges(ctx, map, tx, ty, th);
   }
 

@@ -37,10 +37,21 @@ Pasta: `client/public/arte/personagens/<nome>/`, com `<nome>` = `tepes`, `catari
 
   Com 8 direções, o personagem que anda na diagonal da grade (na tela, reto para cima, para baixo ou para o lado) usa a pose certa, em vez da diagonal mais próxima.
 
-### Retrato: `retrato.png` e `retrato-olhos-fechados.png`
+### Retratos das cartas: um por estado
 
-- **512×512**, busto de frente, olhando para a câmera, fundo escuro liso (este pode ser opaco).
-- A versão de olhos fechados é **idêntica**, só com os olhos fechados: o jogo alterna as duas para o retrato piscar.
+As cartas do grupo (tela do mestre) mostram o personagem **de corpo inteiro, olhando para a direita**, recortado da cabeça até a cintura. São quatro estados:
+
+| Arquivo | Quando aparece |
+|---|---|
+| `retrato-desarmado.png` | normal |
+| `retrato-armado.png` | o mestre marcou "Armado" |
+| `retrato-desarmado-machucado.png` | menos da metade dos PV (condição "machucado" do livro) |
+| `retrato-armado-machucado.png` | armado e machucado |
+
+- Para piscar: a **mesma imagem** com os olhos fechados, `retrato-<estado>-olhos-fechados.png` (mesmo tamanho e pose).
+- Fundo transparente ou branco liso (o jogo tira o branco). Tamanho livre; ~1024×1536 funciona bem.
+- O jogo acha os arquivos sozinho, sem reiniciar. Enquanto não houver retrato, a carta recorta o rosto da folha de sprite.
+- A respiração é feita pelo jogo, pela ficha: normal, irregular e calma (machucado), rápida (sanidade abaixo da metade) e bem devagar (PE abaixo da metade).
 
 ## 2. Itens
 
@@ -53,7 +64,58 @@ Pasta: `client/public/arte/itens/`.
 
 Os ícones são objetos soltos, sem moldura e sem o quadrado do inventário (o jogo desenha o quadrado).
 
-## 3. Interface (a tela MAPA)
+## 3. Interface (a tela MAPA) — referência nova, 16:9
+
+A referência de 29/09 (`docs/ref-mapa-2.webp`) é **16:9**: a tela passa a ser desenhada em **1920×1080**. Os tamanhos abaixo são em 1920×1080; entregue no **dobro** as peças que ficam na frente (papéis, botões, molduras). Os números são aproximados, medidos na referência: o construtor ajusta no encaixe.
+
+### O que é código e o que é arte
+
+A análise completa, elemento por elemento, está em [`TELA-MAPA.md`](TELA-MAPA.md), e a lista para ir marcando, em [`CHECKLIST-TELA-MAPA.md`](CHECKLIST-TELA-MAPA.md). Em resumo:
+- **Não precisa desenhar:** textos e números, ícones de linha (o jogo usa a biblioteca Lucide, licença ISC), botões, abas, etiquetas, molduras (polaroid, retrato, miniatura), barras de PV/PE/SAN, espaços do inventário, a moldura do tabuleiro, o carimbo da Ordem (desenhado com o logo) e a luz.
+- **Precisa de arte:** os papéis envelhecidos, o clipe, as fitas, a rosa dos ventos, a pilha de papéis e, na sala, os móveis e as texturas.
+
+### Fontes (decidido em 29/09; o jogo carrega)
+
+| Uso | Fonte | Onde aparece |
+|---|---|---|
+| Marca | Cinzel | "ORDO REALITAS / SEDE DA ORDEM" |
+| Títulos e botões | Special Elite (e Courier Prime Bold onde precisar de negrito) | SUBSOLO, SALA DE TECNOLOGIA, MAPA, AÇÕES |
+| Texto corrido | Courier Prime | descrições, lista "Contém", nomes nas cartas |
+| Anotações à mão | Caveat | "Instalações Técnicas", "Acesso Restrito" na planta |
+| Títulos e números da FICHA | Roboto Serif, condensada | IDENTIFICAÇÃO, ATRIBUTOS, os valores dos atributos e derivados, as abas do topo |
+| Texto da FICHA | Roboto Condensed | nomes, perícias, tabelas, botões |
+
+### Peças a desenhar
+
+Pasta: `client/public/arte/interface/`; o logo em `client/public/arte/local/` (fora do git: é o símbolo oficial de Ordem Paranormal e o repositório é público). Tamanho em 1920×1080; entregue no dobro. PNG transparente, sem texto e sem ícone pintado.
+
+| Arquivo | Tamanho (1×) | O que é |
+|---|---|---|
+| `papel-planta.png` | 540×320 | Folha envelhecida da planta, rasgada, com a folha de trás aparecendo no canto |
+| `papel-sala.png` | 540×185 | Folha mais clara do cartão da sala |
+| `papel-objeto.png` | 540×290 | Folha do objeto selecionado |
+| `papel-rpg.png` | 390×790 | Folha grande do painel da direita |
+| `papel-inventario.png` | 585×150 | Folha do inventário rápido |
+| `carta-player.png` | 370×160 | Cartão claro de cada personagem; borda de 24 px sem detalhe único, para o jogo esticar o meio |
+| `clipe.png` | 26×62 | Clipe de metal (prende a planta ao cartão da sala) |
+| `fita-1.png` a `fita-3.png` | ~80×22 | Fita crepe translúcida |
+| `rosa-dos-ventos.png` | 90×90 | Rosa dos ventos a nanquim com o "N" |
+| `pilha-papeis.png` | 300×260 | Pilha de fichas e papéis carimbados, no canto de baixo à direita (sai pela borda) |
+| `logo-ordem.png` | 72×72 | O emblema. Pode ser branco sobre preto: o jogo usa o branco como forma. Sem o arquivo, o topo mostra só o texto |
+| opcional: `fundo-mesa.jpg` | 1920×1080 | Fundo quase preto com textura suave (JPG opaco); sem ele, o jogo usa um ruído |
+| opcional: `asas-marca.png` | 80×60 | Asas bem apagadas no canto do painel do objeto |
+
+### A sala do tabuleiro (Sala de Tecnologia)
+
+Formato em [`SEDE-DA-ORDEM.md`](SEDE-DA-ORDEM.md) (casa de 64×32 px, 1 m de altura = 57,6 px, imagem de frente e de costas):
+- **Piso:** carpete roxo, uma casa que repete.
+- **Parede:** tijolo escuro, que repete.
+- **Móveis:** porta de madeira escura (fechada e aberta); bancada com 1, 2 e 3 monitores; cadeira de escritório nas 4 direções; lâmpada fluorescente (apagada e acesa).
+- O brilho das telas, das lâmpadas e da fita roxa embaixo das bancadas é feito pelo jogo.
+
+### A tela antiga (1536×1024)
+
+As peças abaixo eram da primeira referência (`docs/ref-mapa.webp`). As que servem na tela nova foram repetidas acima; o resto não precisa mais.
 
 Pasta: `client/public/arte/interface/`. Tamanhos em 1×; entregue no dobro.
 
@@ -128,7 +190,7 @@ Pasta: `client/public/arte/efeitos/`.
 
 **Decidido:** os cenários são montados no jogo (planta, paredes e móveis na grade isométrica), e a arte dos móveis vem depois, para deixar cada cômodo parecido com a referência. Luz, névoa e fumaça são feitas pelo jogo.
 
-O formato dos móveis (tamanho da casa, ângulo, rotações e ponto de apoio) será definido junto com a primeira leva. Até lá, não produza móveis.
+A lista dos móveis, cômodo por cômodo, com tamanho, altura e o que desenhar, está em [`SEDE-DA-ORDEM.md`](SEDE-DA-ORDEM.md), junto com a proposta de formato (casa de 64×32 px, 1 m de altura = 57,6 px, duas imagens por móvel: frente e costas). O formato se confirma na primeira leva: comece por um móvel marcado com ✱.
 
 ## Como entregar
 

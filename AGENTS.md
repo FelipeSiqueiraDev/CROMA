@@ -2,25 +2,31 @@
 
 ## O que é
 
-Tabuleiro digital isométrico para sessões de **Ordem Paranormal RPG**. São duas telas: a do **mestre** (a interface completa, só ele vê; a tela MAPA segue a referência `docs/ref-mapa.webp`, 1536×1024) e a da **mesa** (só o tabuleiro, num tablet que os jogadores olham, sem toque). O plano do MVP está em `docs/guia-mvp.html`; o contrato entre interface e servidor, em `docs/CONTRATO.md`.
+Tabuleiro digital isométrico para sessões de **Ordem Paranormal RPG**. São duas telas: a do **mestre** (a interface completa, só ele vê; a tela MAPA segue a referência `docs/ref-mapa.webp`, 1536×1024) e a da **mesa** (só o tabuleiro, num tablet que os jogadores olham, sem toque). O plano do MVP está em `docs/guia-mvp.html`; o contrato entre interface e servidor, em `docs/CONTRATO.md`; as regras do jogo, em `docs/REGRAS.md`.
 
 ## Rodar
 
 ```bash
 npm install
+npm run banco      # sobe o Postgres do CROMA no Docker (croma-postgres, 127.0.0.1:5433)
 npm run dev        # cliente em http://localhost:5173 + servidor em http://localhost:3001
 npm run typecheck  # shared, server e client (inclui os testes)
 npm test           # regras da sessão (server/test)
 npm run build
 npm start          # produção: tudo servido pela porta 3001 (ou PORT / CROMA_PORT)
+npm run banco:backup     # cópia do banco em server/data/backups/ (as 30 mais novas)
+npm run banco:restaurar -- server/data/backups/<arquivo>.dump --sim
+npm run banco:parar
 ```
 
 - **Mestre:** o computador que roda o servidor. Abre direto a interface em `http://localhost:5173`, sem login.
 - **Mesa (tablet):** `http://IP-deste-computador:5173/?mesa`. O servidor imprime o link ao subir. Na primeira vez, o Windows pode pedir para liberar o Node no firewall.
-- **Mestre em outro aparelho:** link com `?mestre=CHAVE`, também impresso pelo servidor. A chave fica em `server/data/db.json` (`gmKey`).
+- **Mestre em outro aparelho:** link com `?mestre=CHAVE`, também impresso pelo servidor. A chave fica no banco (`gmKey` na tabela `config`).
+- **Jogador (a própria ficha, no celular):** link `?ficha=CHAVE`, que o mestre gera na aba FICHAS (botão ⋯ da Identificação). O jogador vê e edita só a ficha dele; NEX e pontos de prestígio ficam com o mestre.
 - Em desenvolvimento, `?auto=Nome` escolhe o nome do mestre.
 - O Vite faz proxy de `/ws`, `/api` e `/uploads` para o servidor.
-- Os dados ficam em `server/data/` (fora do git). Apagar a pasta recria a campanha de exemplo.
+- **Banco:** com `CROMA_DB_URL` em `server/.env` (copie de `server/.env.example`), tudo fica no Postgres do Docker (`docker-compose.yml`), só acessível por este computador. As tabelas têm colunas legíveis e a coluna `dados` com o objeto inteiro; o servidor grava só o que mudou. As migrações ficam em `server/src/banco/migracoes/`. Na primeira vez, o `server/data/db.json` é importado. Sem `CROMA_DB_URL`, o servidor usa o `db.json` como antes.
+- Os arquivos enviados (folhas, retratos) ficam em `server/data/uploads/`; tudo em `server/data/` fica fora do git.
 - A pasta do projeto fica no OneDrive: o Vite usa polling para perceber mudanças.
 
 ## Estrutura
@@ -28,15 +34,15 @@ npm start          # produção: tudo servido pela porta 3001 (ou PORT / CROMA_P
 | Pasta | O que tem |
 |---|---|
 | `shared/src/` | Tipos e regras usados pelos dois lados: mensagens entre cliente e servidor (`protocol.ts`), cenas e objetos (`room.ts`, `furni.ts`), campanha, itens e registro (`rpg.ts`), caminho (`pathfinding.ts`), planta (`heightmap.ts`, `layouts.ts`) |
-| `server/src/` | Servidor autoritativo: conexões, campanhas e cenas (`hotel.ts`), cena ao vivo com peças, movimento a cada 500 ms, itens, entregas e registro (`roomInstance.ts`), persistência em JSON (`db.ts`), conteúdo de exemplo (`seed.ts`) |
+| `server/src/` | Servidor autoritativo: conexões, campanhas e cenas (`hotel.ts`), cena ao vivo com peças, movimento a cada 500 ms, itens, entregas e registro (`roomInstance.ts`), tipos do que é guardado (`db.ts`), banco Postgres ou JSON (`banco/`), conteúdo de exemplo (`seed.ts`) |
 | `client/src/room/`, `client/src/render/` | Motor do tabuleiro: canvas isométrico, luz, névoa, sprites |
-| `client/src/ui/` | Interface: tela MAPA (`shell.ts`, `shell.css`), papel desenhado (`paperArt.ts`), animações (`motion.ts`), sons (`sfx.ts`), bilhetes de confirmação (`note.ts`), janelas |
+| `client/src/ui/` | Interface: tela MAPA (`shell.ts`, `shell.css` + `mapa.css`), barra do topo (`topbar.ts`), aba FICHAS (`fichas.ts`, `fichas.css`, `fichaRegras.ts` = a ligação com o motor, `fichaModal.ts` = as janelas de escolha, `corpo.ts` = o personagem grande), tela do jogador (`telaFicha.ts`), tema das telas novas (`tema.css`), ícones (`icons.ts`), papel desenhado (`paperArt.ts`), animações (`motion.ts`), sons (`sfx.ts`), bilhetes de confirmação (`note.ts`), janelas |
 | `shared/src/session.ts` | Contrato da sessão: `Session`, `Scene`, `Token`, `Character`, `Item`, `Objective`, `GameEvent`, ações e conversão casa ↔ ponto 0..1 |
 | `client/src/session/` | `SessionStore` (estado da sessão e ações para a interface) e chave do mestre |
 | `client/src/net.ts`, `client/src/ui/app.ts` | Conexão com o servidor e estado do cliente |
 | `server/test/` | Testes das regras (`npm test`) |
 | `client/src/main.ts` | Liga rede, estado e interface (trata as mensagens do servidor) |
-| `docs/` | Referências visuais, o guia do MVP, o contrato da sessão (`CONTRATO.md`) e o guia de arte (`ARTE.md`) |
+| `docs/` | Referências visuais, o guia do MVP, o contrato da sessão (`CONTRATO.md`), o guia de arte (`ARTE.md`) e o mapa das regras de Ordem Paranormal (`REGRAS.md`) |
 | `client/public/arte/` | Arte entregue pelo Codex (servida em `/arte/...`) |
 
 ## Divisão de trabalho
@@ -54,11 +60,21 @@ npm start          # produção: tudo servido pela porta 3001 (ou PORT / CROMA_P
 
 ## Estado em 29/09/2026
 
-- Tela MAPA completa com dados de exemplo: campanha "Sombras de Arvendal" e 7 cenas da Mansão Alvarez.
-- O tabuleiro ainda é desenhado por código. O plano é trocar por cenas em imagem (ver `docs/guia-mvp.html`).
-- Duas telas. A da mesa (`client/src/ui/table.ts`) só mostra o tabuleiro: sem painéis, sem ícones de pista e sem toque. Ela segue a cena que o mestre abrir e mostra o nome da cena ao trocar. O servidor recusa qualquer ação que venha da mesa.
+- **Sede da Ordem** (campanha que abre por padrão): o bar no térreo e onze cômodos no subsolo, montados a partir da planta "Mapa Base Ordo Realitas" (`server/src/seedSede.ts`). A lista do visual, cômodo por cômodo, está em `docs/SEDE-DA-ORDEM.md`. Mudou a montagem? Suba `SEDE_REV`: a Sede é refeita no lugar, mantendo cômodos, peças e registro.
+- **Passagem secreta:** a geladeira do bar tem fechadura com senha (0413). O mestre digita no painel do objeto; certa, ela desliza e a escada escondida aparece. Quem sobe pela escada com a passagem fechada abre por dentro. Quando não sobra ninguém na sala, a passagem se fecha sozinha.
+- **Portas de cela:** abrem e fecham com clique duplo; fechadas, ninguém passa (`openState` no mobi).
+- **Andares:** cada cena tem um andar (Térreo, Subsolo). A planta à esquerda mostra um andar por vez, com abas, e é a navegação entre cenas (a lista de cenários saiu).
+- **Escala:** os mobis são medidos em metros (`Z_PER_M` = 1,8 unidade por metro): mesa 0,8 m, estante 2,2 m, porta 2,15 m, gente ~1,75 m.
+- **Clima de cada cômodo:** piso (`floorStyle`), cor do ambiente (`ambient`) e partículas (`particles`: poeira na luz, fumaça e brasas do fogo), tudo em Configurar cena. A quantidade de partículas (`particleLevel`) fica no ☀ Clima da cena, junto da névoa e da escuridão.
+- **Telas novas (29/09):** MAPA e FICHAS seguem `docs/ref-mapa-2.webp` e `docs/ref-fichas.webp` (16:9, desenhadas em 1672×941; 1rem = 10 px da referência). No celular (retrato), a FICHAS segue a disposição de `docs/ref-fichas-mobile.webp`, com o conteúdo completo. As três referências ficam fora do git (trazem o emblema oficial). Sem arte, tudo usa o desenho padrão; a arte que chega em `client/public/arte/` entra sozinha (o servidor lista o que existe em `/api/arte`).
+- **Tela do mestre (MAPA):** à esquerda a planta, o cartão da sala e o do objeto selecionado; no meio o tabuleiro, com moldura (em cômodo grande, a câmera acompanha as peças; quando a peça comandada atravessa uma porta, a tela vai junto para o cômodo novo); à direita PLAYERS com PV, PE e SAN (− e + nas três); embaixo as cartas do grupo, o inventário rápido e as AÇÕES (examinar, abrir, usar, entregar). No topo: MAPA, COMBATE e FICHAS; objetivos e registro no botão de documento.
+- **Aba FICHAS:** a ficha inteira de cada agente, calculada pelo motor. Dois modos: jogo (PV, PE, SAN, condições e anotações gravam na hora) e editar (rascunho: Salvar grava, Cancelar descarta). Cada pendência (Evolução) abre as opções do livro, liberadas ou travadas com o motivo. O personagem grande respira pela ficha; pisca quando houver `corpo-olhos-fechados.png`.
+- **Ficha:** PV, PE e SAN (atual e total) por personagem, com as condições do livro (machucado, perturbado, morrendo, enlouquecendo). As cartas mostram as barrinhas; o retrato respira conforme a ficha e usa a imagem do estado (`docs/ARTE.md`).
+- A mesa (`client/src/ui/table.ts`) só mostra o tabuleiro e segue a última cena que o mestre abriu, em qualquer campanha. O servidor recusa qualquer ação que venha da mesa.
 - O contrato (`docs/CONTRATO.md`) e o `SessionStore` existem; a tela MAPA ainda usa parte das mensagens antigas.
-- Personagens da demonstração com os nomes reais: D.Tepes, Catarina Albuquerque, Alosi Walker e Cora Falcão. As folhas de sprite (4 direções) estão em `client/public/arte/personagens/`; o motor já aceita folhas de 8 direções (`docs/ARTE.md`).
-- O mestre gira o personagem parado com os botões ↺ ↻ das cartas do grupo, os do painel dele, ou as teclas Q e E.
-- Os bilhetes de confirmação (`client/src/ui/note.ts`) e o carimbo SUCESSO/FALHA ainda não têm estilo.
-- Testes automáticos só das regras da sessão (`server/test/session.test.ts`).
+- Personagens: D.Tepes, Catarina Albuquerque, Alosi Walker e Cora Falcão, com as folhas em `client/public/arte/personagens/`. O mestre gira o personagem parado com ↺ ↻ nas cartas ou Q e E.
+- **Regras:** tudo do jogo fica no CROMA (fichas, regras, dados, regras da casa). O C.R.I.S (sistema do mestre, repositório SistemaDeMestragemRPG) serviu só de referência para entender o sistema de Ordem Paranormal e como tratá-lo aqui; o CROMA não depende dele (não lê o banco de lá, não importa código nem arte). As regras ficam no próprio código (`shared/src/regras/`), conferidas com o livro. O mapa das regras, o que cada uma muda no tabuleiro e a ordem de construção estão em `docs/REGRAS.md`.
+- Os bilhetes de confirmação (`client/src/ui/note.ts`) ainda não têm estilo.
+- **Motor de criação de personagem** em `shared/src/regras/` (exportado como `regras` em `@croma/shared`): catálogos do livro e do *Sobrevivendo ao Horror*, ficha NEX a NEX de 0% a 99%, requisitos com motivo, contas e opções. Ainda sem tela; as telas estão descritas em `docs/CRIACAO-DE-PERSONAGEM.md`.
+- **Regras conferidas com os livros em 29/09** (`docs/AUDITORIA-REGRAS.md`): catálogos inteiros, as fichas dos Marcados e as dúvidas para o mestre decidir.
+- Testes das regras em `server/test/` (sessão, Sede, passagem secreta, ficha, fichas no servidor, banco, proporção, retratos, motor de regras).
