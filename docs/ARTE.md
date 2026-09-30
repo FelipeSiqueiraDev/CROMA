@@ -19,6 +19,8 @@ Quem faz a arte entrega **só arquivos de imagem**. Todo o código (encaixar, an
 
 Pasta: `client/public/arte/personagens/<nome>/`, com `<nome>` = `tepes`, `catarina`, `alosi`, `cora-falcao` (ou o nome de um personagem novo).
 
+**Decidido em 30/09:** a folha de sprite de hoje de cada agente (`folha.webp`, pintada) é a **arte de referência** dele: aparece grande na FICHAS e vai para a Hand do jogador (tela que vem depois). O **tabuleiro** vai ganhar uma **folha nova** para cada agente, em estilo 32 bits, mais pixelada, com todos os ângulos e as animações de andar. O formato dessa folha nova entra aqui antes de ser feita.
+
 ### Folha de sprite: `folha.png`
 
 - **Grade de 4 colunas.** Cada linha é uma direção e cada coluna um quadro do personagem parado.
