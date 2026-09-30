@@ -73,6 +73,8 @@ export interface AcoesTurno {
   completa: boolean;
   /** PE gastos desde o começo do turno */
   pe?: number;
+  /** ataques que ainda cabem na ação padrão já usada (ataque ×2 da ameaça, LR p. 179) */
+  golpes?: number;
 }
 
 export type ResultadoAtaque = 'erro' | 'acerto' | 'critico';
@@ -152,6 +154,8 @@ export interface AtaqueConfirmado {
   reacao?: 'esquiva' | 'bloqueio';
   /** errou um golpe corpo a corpo e o alvo pode contra-atacar (lembrete no registro) */
   contraAtaque?: boolean;
+  /** a ação faz este número de ataques (o "×2" da ameaça, LR p. 179) */
+  vezes?: number;
 }
 
 /** Um lado do teste oposto: dados, bônus, o d20 que ficou e o total. */
@@ -248,6 +252,8 @@ export interface Contexto {
   pecas: PecaCombate[];
   /** PV, PE e SAN de cada peça (contadores de morrendo e enlouquecendo, dano, PE gasto) */
   vitais: (id: number) => Vitais | null;
+  /** a ficha rápida da ameaça de uma peça (presença perturbadora) */
+  ameaca?: (id: number) => FichaAmeaca | null;
 }
 
 /** PV, PE e SAN (igual ao `Vitals` da sessão; repetido aqui para o módulo não depender da sessão). */
@@ -291,6 +297,15 @@ export interface AtaqueAmeaca {
   multiplicador: number;
   /** alcance da arma: curto, médio, longo, extremo (sem alcance = corpo a corpo) */
   alcance?: string;
+  /** ataques por ação (o "×2" da ficha) */
+  vezes?: number;
+}
+
+/** Presença perturbadora: NEX que dá imunidade, DT e o dano mental (LR p. 180). */
+export interface PresencaAmeaca {
+  nex: number;
+  dt: number;
+  dano: string;
 }
 
 /**
@@ -316,5 +331,8 @@ export interface FichaAmeaca {
   luta?: TesteAmeaca;
   /** elemento da criatura (rituais: o elemento que vence o dela, LR p. 118); pessoa não tem */
   elemento?: Elemento;
+  presenca?: PresencaAmeaca;
+  /** id da ameaça do livro de que a ficha veio (ameacasLivro.ts) */
+  livro?: string;
   notas?: string;
 }

@@ -1,7 +1,7 @@
 /**
- * Janela da ficha rápida de ameaça (COMBATE.md, seção 17): o mestre copia do
- * livro só os números que o combate usa. PV ficam na peça, como os dos
- * agentes. O catálogo das ameaças do livro chega na etapa H.
+ * Janela da ficha rápida de ameaça (COMBATE.md, seção 17): o mestre escolhe
+ * uma ameaça do livro (preenche tudo, PV incluídos) ou copia à mão os números
+ * que o combate usa. PV ficam na peça, como os dos agentes.
  */
 import { combate as cb, type Vitals } from '@croma/shared';
 import type { regras } from '@croma/shared';
@@ -39,17 +39,49 @@ function selTipo(valor: TipoDano) {
 
 /**
  * Abre a ficha da ameaça. `gravar` recebe a ficha nova (null = apagar) e os
- * PV novos (atual e total), se o mestre mexeu neles.
+ * PV novos (atual e total), se o mestre mexeu neles. `pvNovo` preenche os PV
+ * (a ameaça escolhida no livro).
  */
-export function editarAmeaca(nome: string, atual: cb.FichaAmeaca | null, vit: Vitals | undefined, gravar: (f: cb.FichaAmeaca | null, pv: { pv: number; pvMax: number } | null) => void) {
+export function editarAmeaca(
+  nome: string,
+  atual: cb.FichaAmeaca | null,
+  vit: Vitals | undefined,
+  gravar: (f: cb.FichaAmeaca | null, pv: { pv: number; pvMax: number } | null) => void,
+  pvNovo?: number,
+) {
   const f = structuredClone(atual ?? cb.fichaAmeacaVazia());
   const j = janela(`FICHA · ${nome.toUpperCase()}`, 'caveira', () => {}, 92);
+  // do livro: escolher preenche a ficha inteira e os PV
+  const doLivro = f.livro ? cb.ameacaLivro(f.livro) : undefined;
+  const livro = h(
+    'select',
+    {
+      class: 'fx-inp',
+      'aria-label': 'Ameaça do livro',
+      onchange: () => {
+        const a = cb.ameacaLivro(livro.value);
+        if (!a) return;
+        j.fechar();
+        editarAmeaca(nome, cb.fichaDoLivro(a), vit, gravar, a.pv);
+      },
+    },
+    h('option', { value: '' }, doLivro ? `${doLivro.nome} (LR p. ${doLivro.pagina})` : 'Escolher uma ameaça do livro…'),
+    ...cb.GRUPOS_LIVRO.map((g) =>
+      h('optgroup', { label: g.nome }, ...g.ameacas.map((a) => h('option', { value: a.id }, `${a.nome}${a.vd !== undefined ? ` · VD ${a.vd}` : ''} · p. ${a.pagina}`))),
+    ),
+  );
 
   const tipo = h('input', { class: 'fx-inp', value: f.tipo, maxlength: 40, placeholder: 'Pessoa, Criatura de Sangue…' });
   const [cVd, iVd] = campoNum('VD', f.vd);
   const [cDef, iDef] = campoNum('Defesa', f.defesa);
-  const [cPvMax, iPvMax] = campoNum('PV total', vit?.pvMax);
-  const [cPv, iPv] = campoNum('PV atual', vit?.pv);
+  const [cPvMax, iPvMax] = campoNum('PV total', pvNovo ?? vit?.pvMax);
+  const [cPv, iPv] = campoNum('PV atual', pvNovo ?? vit?.pv);
+  const tam = h('select', { class: 'fx-inp' }, ...cb.TAMANHOS.map((t) => h('option', { value: t, selected: t === (f.tamanho ?? 'medio') }, cb.NOME_TAMANHO[t])));
+  const ELEMENTOS = ['sangue', 'morte', 'conhecimento', 'energia', 'medo'] as const;
+  const elem = h('select', { class: 'fx-inp' }, h('option', { value: '' }, '—'), ...ELEMENTOS.map((e) => h('option', { value: e, selected: e === f.elemento }, cb.NOME_ELEMENTO[e])));
+  const [cPrNex, iPrNex] = campoNum('NEX imune', f.presenca?.nex, 'mini');
+  const [cPrDt, iPrDt] = campoNum('DT', f.presenca?.dt, 'mini');
+  const prDano = h('input', { class: 'fx-inp', value: f.presenca?.dano ?? '', maxlength: 12, placeholder: '3d6' });
   const testes = (['fortitude', 'reflexos', 'vontade'] as const).map((k) => {
     const [cd, id] = campoNum('d20', f[k].dados, 'mini');
     const [cb2, ib] = campoNum('bônus', f[k].bonus, 'mini');
@@ -109,6 +141,7 @@ export function editarAmeaca(nome: string, atual: cb.FichaAmeaca | null, vit: Vi
     const tipoEl = selTipo(a.tipo);
     const [cM, iM] = campoNum('margem', a.margem, 'mini');
     const [cX, iX] = campoNum('×', a.multiplicador, 'mini');
+    const [cV, iV] = campoNum('por ação', a.vezes ?? 1, 'mini');
     const alc = h('select', { class: 'fx-inp' }, ...FAIXAS.map((x) => h('option', { value: x.v, selected: cb.faixaArma(a.alcance) === cb.faixaArma(x.v) }, x.rot)));
     const linha = {
       el: h('div', { class: 'cb-fa-atk' }),
@@ -124,6 +157,7 @@ export function editarAmeaca(nome: string, atual: cb.FichaAmeaca | null, vit: Vi
               margem: num(iM, 20),
               multiplicador: num(iX, 2),
               ...(alc.value ? { alcance: alc.value } : {}),
+              ...(num(iV, 1) > 1 ? { vezes: num(iV, 1) } : {}),
             }
           : null,
     };
@@ -136,6 +170,7 @@ export function editarAmeaca(nome: string, atual: cb.FichaAmeaca | null, vit: Vi
       h('label', { class: 'fj-campo' }, h('span', null, 'Tipo'), tipoEl),
       cM,
       cX,
+      cV,
       h('label', { class: 'fj-campo' }, h('span', null, 'Alcance'), alc),
       h('button', { class: 'cb-fa-x', type: 'button', title: 'Tirar o ataque', 'aria-label': 'Tirar o ataque', onclick: () => (linha.el.remove(), atkLinhas.splice(atkLinhas.indexOf(linha), 1)) }, ic('fechar')),
     );
@@ -149,14 +184,22 @@ export function editarAmeaca(nome: string, atual: cb.FichaAmeaca | null, vit: Vi
     h(
       'div',
       { class: 'cb-fa' },
+      h('label', { class: 'fj-campo cb-fa-livro' }, h('span', null, 'Do livro'), livro),
       h('div', { class: 'cb-fa-linha' }, h('label', { class: 'fj-campo cb-fa-tipo' }, h('span', null, 'Tipo'), tipo), cVd, cDef, cPv, cPvMax),
+      h(
+        'div',
+        { class: 'cb-fa-linha' },
+        h('label', { class: 'fj-campo' }, h('span', null, 'Tamanho'), tam),
+        h('label', { class: 'fj-campo' }, h('span', null, 'Elemento'), elem),
+        h('div', { class: 'cb-fa-teste' }, h('b', null, 'Presença perturbadora'), cPrNex, cPrDt, h('label', { class: 'fj-campo cb-fa-num mini' }, h('span', null, 'dano mental'), prDano)),
+      ),
       h('div', { class: 'cb-fa-linha' }, ...testes.map((t) => t.el)),
       h('div', { class: 'cb-fa-bloco' }, h('div', { class: 'cb-fa-cab' }, h('b', null, 'Redução de dano'), botao('RD', 'mais', 'mini', () => addRd('balistico', 5))), rdLista),
       imu.el,
       vul.el,
       h('div', { class: 'cb-fa-bloco' }, h('div', { class: 'cb-fa-cab' }, h('b', null, 'Ataques'), botao('Ataque', 'mais', 'mini', () => addAtk({ nome: '', pericia: 'luta', dados: 2, bonus: 0, dano: '1d6', tipo: 'corte', margem: 20, multiplicador: 2 }))), atkLista),
       h('label', { class: 'fj-campo' }, h('span', null, 'Notas'), notas),
-      h('p', { class: 'fj-texto' }, 'Copie os números do livro (LR p. 178–181). As contas do ataque e do dano usam esta ficha.'),
+      h('p', { class: 'fj-texto' }, 'Escolha no livro ou copie os números (LR p. 178–181). As contas do ataque, do dano e das manobras usam esta ficha; o texto das habilidades fica no livro.'),
     ),
   );
 
@@ -177,10 +220,14 @@ export function editarAmeaca(nome: string, atual: cb.FichaAmeaca | null, vit: Vi
       imunidades: [...imu.sel],
       vulnerabilidades: [...vul.sel],
       ataques: atkLinhas.map((l) => l.ler()).filter((a): a is cb.AtaqueAmeaca => !!a),
+      ...(tam.value !== 'medio' ? { tamanho: tam.value as cb.Tamanho } : {}),
+      ...(elem.value ? { elemento: elem.value as (typeof ELEMENTOS)[number] } : {}),
+      ...(/\d/.test(prDano.value) ? { presenca: { nex: num(iPrNex, 0), dt: num(iPrDt, 10), dano: prDano.value.trim() } } : {}),
+      ...(f.livro ? { livro: f.livro } : {}),
       ...(notas.value.trim() ? { notas: notas.value.trim() } : {}),
     };
-    const pvMax = num(iPvMax, vit?.pvMax ?? 0);
-    const pv = num(iPv, Math.min(vit?.pv ?? pvMax, pvMax));
+    const pvMax = num(iPvMax, pvNovo ?? vit?.pvMax ?? 0);
+    const pv = num(iPv, Math.min(pvNovo ?? vit?.pv ?? pvMax, pvMax));
     const mudouPv = pvMax >= 1 && (pvMax !== vit?.pvMax || pv !== vit?.pv);
     gravar(nova, mudouPv ? { pv: Math.max(0, Math.min(pv, pvMax)), pvMax } : null);
     j.fechar();

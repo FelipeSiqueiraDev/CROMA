@@ -1,11 +1,12 @@
 /**
- * Ficha rápida de ameaça: os números que o combate usa, preenchidos pelo
- * mestre a partir do livro (LR p. 178–181; COMBATE.md, seção 17). O catálogo
- * das ameaças do livro fica para a etapa H.
+ * Ficha rápida de ameaça: os números que o combate usa (LR p. 178–181;
+ * COMBATE.md, seção 17). O mestre escolhe uma ameaça do livro
+ * (ameacasLivro.ts) ou preenche à mão.
  */
 import type { Elemento, TipoDano } from '../regras/tipos';
+import { AMEACAS_LIVRO, type AmeacaLivro } from './ameacasLivro';
 import { lerTamanho } from './manobra';
-import type { AtaqueAmeaca, FichaAmeaca, TesteAmeaca } from './tipos';
+import type { AtaqueAmeaca, FichaAmeaca, PresencaAmeaca, TesteAmeaca } from './tipos';
 
 export const TIPOS_DANO: TipoDano[] = ['balistico', 'corte', 'impacto', 'perfuracao', 'fisico', 'eletricidade', 'fogo', 'frio', 'quimico', 'mental', 'sangue', 'morte', 'conhecimento', 'energia', 'medo', 'paranormal', 'todos'];
 
@@ -51,7 +52,16 @@ function ataque(v: unknown): AtaqueAmeaca | null {
     margem: int(o.margem, 2, 20, 20),
     multiplicador: int(o.multiplicador, 2, 6, 2),
     ...(alcance ? { alcance } : {}),
+    ...(int(o.vezes, 1, 6, 1) > 1 ? { vezes: int(o.vezes, 1, 6, 1) } : {}),
   };
+}
+
+function presenca(v: unknown): PresencaAmeaca | null {
+  if (!v || typeof v !== 'object') return null;
+  const o = v as Record<string, unknown>;
+  const dano = txt(o.dano, 20).replace(/[^0-9dD+\s]/g, '');
+  if (!/\d/.test(dano)) return null;
+  return { nex: int(o.nex, 0, 100, 0), dt: int(o.dt, 1, 60, 10), dano };
 }
 
 /** Confere a ficha que veio da rede (ou do banco). */
@@ -70,6 +80,8 @@ export function lerFichaAmeaca(raw: unknown): FichaAmeaca | null {
   const notas = txt(o.notas, 300);
   const tamanho = lerTamanho(o.tamanho);
   const el = elemento(o.elemento);
+  const pres = presenca(o.presenca);
+  const livro = typeof o.livro === 'string' && LIVRO.has(o.livro) ? o.livro : '';
   return {
     tipo: txt(o.tipo, 40) || 'Pessoa',
     ...(vd >= 0 ? { vd } : {}),
@@ -84,6 +96,48 @@ export function lerFichaAmeaca(raw: unknown): FichaAmeaca | null {
     ...(tamanho && tamanho !== 'medio' ? { tamanho } : {}),
     ...(o.luta && typeof o.luta === 'object' ? { luta: teste(o.luta) } : {}),
     ...(el ? { elemento: el } : {}),
+    ...(pres ? { presenca: pres } : {}),
+    ...(livro ? { livro } : {}),
     ...(notas ? { notas } : {}),
   };
+}
+
+// ------------------------------------------------------------------ livro
+
+const LIVRO = new Map(AMEACAS_LIVRO.map((a) => [a.id, a]));
+export const ameacaLivro = (id: string): AmeacaLivro | undefined => LIVRO.get(id);
+
+export const NOME_ELEMENTO: Record<Elemento, string> = { sangue: 'Sangue', morte: 'Morte', conhecimento: 'Conhecimento', energia: 'Energia', medo: 'Medo' };
+
+/** O seletor do livro: as criaturas por elemento, e a realidade (animais e pessoas). */
+export const GRUPOS_LIVRO: { nome: string; ameacas: AmeacaLivro[] }[] = [
+  ...(['sangue', 'morte', 'conhecimento', 'energia', 'medo'] as Elemento[]).map((e) => ({ nome: `Criaturas de ${NOME_ELEMENTO[e]}`, ameacas: AMEACAS_LIVRO.filter((a) => a.elemento === e) })),
+  { nome: 'Animais', ameacas: AMEACAS_LIVRO.filter((a) => !a.elemento && /animal/i.test(a.tipo)) },
+  { nome: 'Pessoas e outros', ameacas: AMEACAS_LIVRO.filter((a) => !a.elemento && !/animal/i.test(a.tipo)) },
+].filter((g) => g.ameacas.length);
+
+/**
+ * A ficha rápida do combate a partir da ficha do livro (os PV vão para a
+ * peça). As notas guardam a página e o que muda com o enigma.
+ */
+export function fichaDoLivro(a: AmeacaLivro): FichaAmeaca {
+  const notas = [`LR p. ${a.pagina}`, a.enigma ? 'imune a todo dano até resolver o enigma de medo' : '', a.duvida ?? ''].filter(Boolean).join(' · ');
+  const f: FichaAmeaca = {
+    tipo: a.elemento && a.tipo === 'Criatura' ? `Criatura de ${NOME_ELEMENTO[a.elemento]}` : a.tipo,
+    ...(a.vd !== undefined ? { vd: a.vd } : {}),
+    defesa: a.defesa,
+    fortitude: { ...a.fortitude },
+    reflexos: { ...a.reflexos },
+    vontade: { ...a.vontade },
+    rd: { ...a.rd },
+    imunidades: [...a.imunidades],
+    vulnerabilidades: [...a.vulnerabilidades],
+    ataques: a.ataques.map((x) => ({ ...x })),
+    ...(a.tamanho !== 'medio' ? { tamanho: a.tamanho } : {}),
+    ...(a.elemento ? { elemento: a.elemento } : {}),
+    ...(a.presenca ? { presenca: { ...a.presenca } } : {}),
+    livro: a.id,
+    notas: notas.slice(0, 300),
+  };
+  return lerFichaAmeaca(f) ?? f;
 }

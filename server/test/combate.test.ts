@@ -695,6 +695,75 @@ describe('combate: manobras', () => {
   });
 });
 
+describe('ameaças do livro (LR p. 182–289)', () => {
+  test('o catálogo inteiro vira ficha rápida sem perder número', () => {
+    const ids = new Set<string>();
+    for (const a of combate.AMEACAS_LIVRO) {
+      assert.ok(!ids.has(a.id), `id repetido: ${a.id}`);
+      ids.add(a.id);
+      assert.ok(a.pagina >= 182 && a.pagina <= 289, `${a.id}: página ${a.pagina}`);
+      assert.ok(a.pv > 0 && a.defesa > 0, a.id);
+      const f = combate.fichaDoLivro(a);
+      assert.deepEqual(combate.lerFichaAmeaca(f), f, `${a.id}: a ficha passa pela leitura igual`);
+      for (const x of a.ataques) assert.match(x.dano, /\d/, `${a.id}: dano de ${x.nome}`);
+    }
+    assert.ok(combate.AMEACAS_LIVRO.length >= 70);
+    assert.equal(combate.GRUPOS_LIVRO.reduce((t, g) => t + g.ameacas.length, 0), combate.AMEACAS_LIVRO.length);
+  });
+
+  test('a ficha do livro: tipo com o elemento, tamanho, ataque ×2, presença e página', () => {
+    const f = combate.fichaDoLivro(combate.ameacaLivro('aberracao-de-carne')!);
+    assert.equal(f.tipo, 'Criatura de Sangue');
+    assert.equal(f.vd, 40);
+    assert.equal(f.tamanho, 'grande');
+    assert.equal(f.elemento, 'sangue');
+    assert.deepEqual(f.presenca, { nex: 25, dt: 15, dano: '3d6' });
+    assert.equal(f.ataques[0].vezes, 2);
+    assert.deepEqual(f.vulnerabilidades, ['morte']);
+    assert.equal(f.livro, 'aberracao-de-carne');
+    assert.match(f.notas ?? '', /^LR p\. 182/);
+    // pessoa: sem elemento, tipo como no livro
+    const p = combate.fichaDoLivro(combate.ameacaLivro('capanga')!);
+    assert.equal(p.tipo, 'Pessoa');
+    assert.equal(p.elemento, undefined);
+  });
+
+  test('imune a dano = a todo dano; imune a físico = aos quatro das armas (LR p. 180, 312)', () => {
+    assert.deepEqual(combate.contaDano({ soma: 20, fixo: 5, tipo: 'fogo', imunidades: ['todos'] }), { total: 25, final: 0, conta: 'imune a todo dano: 0' });
+    assert.equal(combate.contaDano({ soma: 20, fixo: 0, tipo: 'balistico', imunidades: ['fisico'] }).final, 0);
+    assert.equal(combate.contaDano({ soma: 20, fixo: 0, tipo: 'fogo', imunidades: ['fisico'] }).final, 20);
+    // as criaturas de Medo com enigma ficam imunes a todo dano
+    const diabo = combate.ameacaLivro('o-diabo')!;
+    assert.ok(diabo.enigma);
+    assert.ok(diabo.imunidades.includes('todos'));
+  });
+
+  test('ataque ×2: dois ataques na mesma ação padrão; o terceiro é recusado (LR p. 179)', () => {
+    let c = aplicar(montado(), { tipo: 'comecar' });
+    c = aplicar(aplicar(c, { tipo: 'passar' }), { tipo: 'passar' });
+    const golpe = (): Acao => ({
+      tipo: 'ataque',
+      ataque: { quem: 10, alvo: 1, arma: 'Pancada', qual: 'padrao', vezes: 2, teste: { dados: 3, bonus: 10, d20: 12, total: 22, defesa: 15 }, situacoes: [], resultado: 'erro' },
+    });
+    c = aplicar(c, golpe());
+    assert.equal(combate.acoesDe(c, 10).golpes, 1);
+    c = aplicar(c, golpe());
+    assert.equal(c.registro.at(-1)?.texto, 'Ocultista ataca Cora com Pancada (outro ataque da mesma ação): d20 12, total 22 contra Defesa 15 — errou.');
+    assert.equal(recusa(c, golpe()), 'A ação padrão já foi usada neste turno.');
+  });
+
+  test('presença perturbadora: lembrete ao começar; com várias, a de maior VD e +1d6 por criatura a mais', () => {
+    const fichas = new Map<number, combate.FichaAmeaca>([
+      [10, { ...combate.fichaDoLivro(combate.ameacaLivro('zumbi-de-sangue')!) }],
+      [11, { ...combate.fichaDoLivro(combate.ameacaLivro('aberracao-de-carne')!) }],
+    ]);
+    const r = combate.aplicar(montado(), { tipo: 'comecar' }, { ...ctx(), ameaca: (id) => fichas.get(id) ?? null });
+    assert.ok(r.ok);
+    const linha = r.combate!.registro.find((l) => l.texto.startsWith('Presença perturbadora'));
+    assert.equal(linha?.texto, 'Presença perturbadora (2 criaturas; vale a de Acólito): quem a vê faz Vontade DT 15; falhou, 3d6+1d6 de dano mental; passou, metade. NEX 25% ou mais é imune (LR p. 180; uma vez por cena, DC-15).');
+  });
+});
+
 describe('ataque no servidor', () => {
   let hotel: Hotel;
   let gm: Peer;

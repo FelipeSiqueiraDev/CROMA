@@ -13,6 +13,7 @@ import {
   type Combate,
   type Contexto,
   type Entrada,
+  type FichaAmeaca,
   type Lado,
   type MudancaVitais,
   type Participante,
@@ -237,6 +238,30 @@ function porIniciativa(c: Combate, e: Entrada, valor: number, desempate: number)
   }
 }
 
+/**
+ * Presença perturbadora das criaturas no combate (LR p. 180): quem as vê faz
+ * Vontade; com várias, vale a de maior VD, +1d6 por criatura a mais. O mestre
+ * pede o teste uma vez por cena para cada personagem (DC-15).
+ */
+function lembrarPresenca(c: Combate, ctx: Contexto, quemChega?: Participante) {
+  if (!ctx.ameaca) return;
+  const com = c.participantes
+    .filter((p) => !p.fora && p.lado !== 'agente')
+    .map((p) => ({ p, f: ctx.ameaca!(p.id) }))
+    .filter((x): x is { p: Participante; f: FichaAmeaca & { presenca: NonNullable<FichaAmeaca['presenca']> } } => !!x.f?.presenca);
+  if (!com.length || (quemChega && !com.some((x) => x.p.id === quemChega.id))) return;
+  const maior = com.reduce((a, b) => ((b.f.vd ?? 0) > (a.f.vd ?? 0) ? b : a));
+  const pr = maior.f.presenca;
+  const extra = com.length - 1;
+  const quem = com.length > 1 ? ` (${com.length} criaturas; vale a de ${maior.p.nome})` : ` de ${maior.p.nome}`;
+  registrar(
+    c,
+    ctx.agora,
+    'estado',
+    `Presença perturbadora${quem}: quem a vê faz Vontade DT ${pr.dt}; falhou, ${pr.dano}${extra ? `+${extra}d6` : ''} de dano mental; passou, metade. NEX ${pr.nex}% ou mais é imune (LR p. 180; uma vez por cena, DC-15).`,
+  );
+}
+
 const NOME_SAIDA: Record<Saida, string> = { morto: 'morreu', insano: 'chegou à insanidade', saiu: 'saiu do combate' };
 const NOME_ACAO: Record<TipoAcao, string> = { padrao: 'ação padrão', movimento: 'ação de movimento', completa: 'ação completa', livre: 'ação livre', reacao: 'reação' };
 
@@ -256,13 +281,22 @@ function ataque(c: Combate, x: unknown, ctx: Contexto, e: Entrada | undefined): 
   const alvo = participante(c, inteiro(o.alvo, 1, 1e9) ?? 0);
   if (!alvo || alvo.fora) return erro('O alvo não está no combate.');
   const ac = { ...acoesDe(c, quem.id) };
+  const vezes = inteiro(o.vezes, 1, 6) ?? 1;
+  let golpe = '';
   if (o.qual === 'completa') {
     if (ac.padrao || ac.movimento || ac.completa) return erro('A ação completa precisa do turno inteiro livre.');
     ac.completa = true;
   } else {
     if (ac.completa) return erro('A ação completa já gastou o turno.');
-    if (ac.padrao) return erro('A ação padrão já foi usada neste turno.');
-    ac.padrao = true;
+    if (ac.padrao) {
+      // o "×2" da ameaça: mais um ataque na mesma ação (LR p. 179)
+      if (!ac.golpes) return erro('A ação padrão já foi usada neste turno.');
+      ac.golpes -= 1;
+      golpe = ' (outro ataque da mesma ação)';
+    } else {
+      ac.padrao = true;
+      if (vezes > 1) ac.golpes = vezes - 1;
+    }
   }
   const reacao = o.reacao === 'esquiva' || o.reacao === 'bloqueio' ? o.reacao : null;
   if (reacao) {
@@ -281,7 +315,7 @@ function ataque(c: Combate, x: unknown, ctx: Contexto, e: Entrada | undefined): 
 
   if (reacao) alvo.reacao = true;
   c.acoes[String(quem.id)] = ac;
-  let linha = `${quem.nome} ataca ${alvo.nome} com ${arma}${reacao ? ` (${alvo.nome} usa ${reacao})` : ''}: d20 ${d20}, total ${total} contra Defesa ${defesa}`;
+  let linha = `${quem.nome} ataca ${alvo.nome} com ${arma}${golpe}${reacao ? ` (${alvo.nome} usa ${reacao})` : ''}: d20 ${d20}, total ${total} contra Defesa ${defesa}`;
   if (sits.length) linha += ` (${sits.join(', ')})`;
   const f = o.falha && typeof o.falha === 'object' ? (o.falha as Record<string, unknown>) : null;
   const d10 = f ? inteiro(f.d10, 1, 10) : undefined;
@@ -520,6 +554,7 @@ export function aplicar(atual: Combate | null, a: AcaoCombate, ctx: Contexto): R
       registrar(c, ctx.agora, 'estado', `Combate começou. Ordem de iniciativa: ${ordem}.`);
       const surp = c.participantes.filter((p) => !p.ciente);
       if (surp.length) registrar(c, ctx.agora, 'estado', `Surpreendidos na rodada 1 (desprevenidos e sem turno): ${surp.map((p) => p.nome).join(', ')}.`);
+      lembrarPresenca(c, ctx);
       registrar(c, ctx.agora, 'rodada', 'Rodada 1.');
       proximo(c, ctx);
       return ok();
@@ -669,6 +704,7 @@ export function aplicar(atual: Combate | null, a: AcaoCombate, ctx: Contexto): R
       if (lado === 'agente') p.iniciativa = v!;
       else if (c.mestre.iniciativa === null) c.mestre.iniciativa = v!;
       registrar(c, ctx.agora, 'estado', `${p.nome} entra no combate e age a partir da rodada ${c.rodada + 1}${lado === 'agente' ? `, com Iniciativa ${v}` : ', no turno do mestre'}.`);
+      if (lado !== 'agente') lembrarPresenca(c, ctx, p);
       return ok();
     }
 

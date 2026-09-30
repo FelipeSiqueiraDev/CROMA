@@ -223,7 +223,8 @@ export class Hotel implements HotelApi {
         if (t.vitals) vitais.set(t.token.id, { ...t.vitals });
       }
     }
-    return { agora: Date.now(), cena, pecas, vitais: (id) => vitais.get(id) ?? null };
+    const ameacas = this.campaignFor(Math.min(...group)).ameacas ?? {};
+    return { agora: Date.now(), cena, pecas, vitais: (id) => vitais.get(id) ?? null, ameaca: (id) => ameacas[String(id)] ?? null };
   }
 
   /** Uma ação da tela de combate (só o mestre). */

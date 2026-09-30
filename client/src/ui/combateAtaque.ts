@@ -31,6 +31,8 @@ export interface ArmaOpcao {
   /** faixa de alcance; null = corpo a corpo */
   faixa: cb.Faixa | null;
   notas: string[];
+  /** ataques por ação (o "×2" da ameaça) */
+  vezes?: number;
 }
 
 export interface AlvoAtaque {
@@ -286,14 +288,14 @@ export class ResolucaoAtaque {
           ? h(
               'span',
               { class: 'cb-arma-txt' },
-              h('b', null, a.nome),
+              h('b', null, a.vezes ? `${a.nome} ×${a.vezes}` : a.nome),
               h('small', null, `${a.pericia === 'luta' ? 'Luta' : 'Pontaria'} ${textoTeste(a.dados, a.bonus)} · dano ${a.dano}`),
               h('small', null, [`${a.margem}/${JUNTA}×${a.multiplicador}`, a.faixa ? cb.NOME_FAIXA[a.faixa] : 'corpo a corpo', ...a.notas].join(' · ')),
             )
           : h(
               'span',
               { class: 'cb-arma-txt' },
-              h('b', null, a.nome),
+              h('b', null, a.vezes ? `${a.nome} ×${a.vezes}` : a.nome),
               h('small', null, [`${a.pericia === 'luta' ? 'Luta' : 'Pontaria'} ${textoTeste(a.dados, a.bonus)}`, a.dano, a.margem < 20 ? String(a.margem) : '', a.faixa ? cb.NOME_FAIXA[a.faixa] : ''].filter(Boolean).join(' · ')),
             ),
       ),
@@ -492,7 +494,8 @@ export class ResolucaoAtaque {
       ic('girarE'),
       h('span', null, 'Desfazer'),
     );
-    const semAcao = x.acoes.completa || (x.acoes.padrao && !k.ids.includes('investida'));
+    // o "×2" da ameaça deixa mais ataques na mesma ação padrão
+    const semAcao = x.acoes.completa || (x.acoes.padrao && !k.ids.includes('investida') && !x.acoes.golpes);
     const confirmar = h(
       'button',
       {
@@ -528,6 +531,7 @@ export class ResolucaoAtaque {
                 }
               : {}),
             ...(k.res.resultado === 'erro' && !arma.faixa && alvo.agente && alvo.reacoes?.contraAtaque && !alvo.p.reacao ? { contraAtaque: true } : {}),
+            ...(arma.vezes ? { vezes: arma.vezes } : {}),
           };
           x.enviar({ tipo: 'ataque', ataque });
           this.e.d20 = this.e.d10 = this.e.soma = null;

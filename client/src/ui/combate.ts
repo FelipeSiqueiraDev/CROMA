@@ -432,6 +432,7 @@ export class CombateScreen {
       multiplicador: a.multiplicador,
       faixa: cb.faixaArma(a.alcance),
       notas: [],
+      ...(a.vezes ? { vezes: a.vezes } : {}),
     }));
   }
 
@@ -1526,7 +1527,9 @@ export class CombateScreen {
     const tipo =
       lado === 'agente'
         ? `Agente${f?.ficha.classe ? ` · ${regras.catalogo.classe(f.ficha.classe).nome} · NEX ${f.ficha.nex}%` : ''}`
-        : `${lado === 'inimigo' ? 'Ameaça' : 'Neutro'}${am ? ` · ${am.tipo}${am.vd !== undefined ? ` · VD ${am.vd}` : ''}` : ' · sem ficha'}`;
+        : `${lado === 'inimigo' ? 'Ameaça' : 'Neutro'}${am ? ` · ${am.tipo}${am.tamanho ? ` ${cb.NOME_TAMANHO[am.tamanho]}` : ''}${am.vd !== undefined ? ` · VD ${am.vd}` : ''}${am.livro ? ` · LR p. ${cb.ameacaLivro(am.livro)?.pagina ?? ''}` : ''}` : ' · sem ficha'}`;
+    // a página do livro já vai na linha do tipo; nas notas fica o resto
+    const notasAm = am?.notas ? (am.livro ? am.notas.replace(/^LR p\. \d+( · )?/, '') : am.notas) : '';
     const editarPv = () => void this.editarPv(ch.id, ch.name, vit);
     const pv = vit
       ? h(
@@ -1547,8 +1550,12 @@ export class CombateScreen {
       const x = calc?.pericias[per] ?? am?.[per];
       return caixa(rot, x ? textoTeste(x.dados, x.bonus) : '—');
     };
+    // RD numa linha, como no livro: os tipos com o mesmo valor juntos ("balístico, impacto e perfuração 5 · Sangue 10")
     const rdFonte: Partial<Record<string, number>> = calc?.resistencias ?? am?.rd ?? {};
-    const rds = Object.entries(rdFonte).map(([t, n]) => caixa(`RD ${(NOME_DANO[t] ?? t).toLowerCase()}`, String(n)));
+    const porValor = new Map<number, string[]>();
+    for (const [t, n] of Object.entries(rdFonte)) if (n) porValor.set(n, [...(porValor.get(n) ?? []), t === 'todos' ? 'todo dano' : (NOME_DANO[t] ?? t).toLowerCase()]);
+    const junta = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} e ${xs.at(-1)}` : xs[0]);
+    const rdTexto = [...porValor].map(([n, ts]) => `${junta(ts)} ${n}`).join(' · ');
     const defesa = calc?.defesa ?? am?.defesa;
     const esquiva = calc?.reacoes.esquiva;
     const bloqueio = calc?.reacoes.bloqueio;
@@ -1594,7 +1601,7 @@ export class CombateScreen {
         c?.fase === 'andamento' ? (noCombate ? icone('sair', 'Tirar do combate', () => this.dialogoSair(ch.id)) : icone('entrar', 'Pôr no combate', () => this.dialogoEntrar(ch.id))) : null,
       ].filter((x): x is HTMLButtonElement => !!x),
     );
-    const semFicha = lado !== 'agente' && !am ? h('p', { class: 'cb-alvo-nota aviso' }, ic('lapis'), h('span', null, 'Sem ficha: crie no lápis do cabeçalho para o ataque usar Defesa e RD.')) : null;
+    const semFicha = lado !== 'agente' && !am ? h('p', { class: 'cb-alvo-nota aviso' }, ic('lapis'), h('span', null, 'Sem ficha: no lápis do cabeçalho, escolha uma ameaça do livro ou preencha à mão.')) : null;
     this.alvoCorpo.replaceChildren(
       h(
         'div',
@@ -1604,19 +1611,24 @@ export class CombateScreen {
       ),
       linhaDefesa,
       h('div', { class: 'cb-alvo-linha tres' }, res('fortitude', 'Fortitude'), res('reflexos', 'Reflexos'), res('vontade', 'Vontade')),
-      rds.length ? h('div', { class: 'cb-alvo-linha dois' }, ...rds.slice(0, 4)) : '',
-      am?.imunidades.length || am?.vulnerabilidades.length
+      rdTexto ? h('small', { class: 'cb-alvo-nota rd' }, h('b', null, 'RD '), rdTexto) : '',
+      // imunidades, vulnerabilidades e presença perturbadora numa linha só
+      am && (am.imunidades.length || am.vulnerabilidades.length || am.presenca)
         ? h(
             'small',
             { class: 'cb-alvo-nota' },
-            [am.imunidades.length ? `Imune a ${am.imunidades.map((t) => cb.NOME_TIPO_DANO[t]).join(', ')}` : '', am.vulnerabilidades.length ? `vulnerável a ${am.vulnerabilidades.map((t) => cb.NOME_TIPO_DANO[t]).join(', ')}` : '']
+            [
+              am.imunidades.length ? `Imune a ${am.imunidades.map((t) => this.nomeImune(t)).join(', ')}` : '',
+              am.vulnerabilidades.length ? `vulnerável a ${am.vulnerabilidades.map((t) => cb.NOME_TIPO_DANO[t]).join(', ')}` : '',
+              am.presenca ? `presença: Vontade DT ${am.presenca.dt}, ${am.presenca.dano} mental (NEX ${am.presenca.nex}% imune)` : '',
+            ]
               .filter(Boolean)
-              .join('; ') + '.',
+              .join(' · ') + '.',
           )
         : '',
       condicoes,
       sustenta ?? '',
-      am?.notas ? h('small', { class: 'cb-alvo-nota' }, am.notas) : '',
+      notasAm ? h('small', { class: 'cb-alvo-nota' }, notasAm) : '',
       semFicha ?? '',
     );
   }
@@ -1657,6 +1669,11 @@ export class CombateScreen {
       this.app.net.send({ t: 'ameaca', tokenId: id, ficha });
       if (pv) this.mandarPv(id, pv.pv, pv.pvMax);
     });
+  }
+
+  /** "Imune a todo dano" quando a ficha diz `todos`. */
+  private nomeImune(t: regras.TipoDano) {
+    return t === 'todos' ? 'todo dano' : cb.NOME_TIPO_DANO[t];
   }
 
   private async editarPv(id: number, nome: string, vit: Vitals | undefined) {

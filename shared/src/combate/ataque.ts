@@ -295,7 +295,9 @@ export function contaDano(o: {
 }): ContaDano {
   const total = Math.max(0, o.soma + o.fixo);
   const nome = NOME_TIPO_DANO[o.tipo] ?? o.tipo;
-  if (o.imunidades?.includes(o.tipo)) return { total, final: 0, conta: `imune a ${nome}: 0` };
+  // "imune a dano" = a todo dano; "físico" = os quatro tipos das armas
+  if (o.imunidades?.includes('todos')) return { total, final: 0, conta: 'imune a todo dano: 0' };
+  if (o.imunidades?.includes(o.tipo) || (FISICOS.includes(o.tipo) && o.imunidades?.includes('fisico'))) return { total, final: 0, conta: `imune a ${nome}: 0` };
   let v = total;
   let conta = String(total);
   if (o.metade) {
