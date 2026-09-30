@@ -1,4 +1,4 @@
-import type { LightMode } from '@croma/shared';
+import { DEFAULT_PARTICLE_LEVEL, type LightMode } from '@croma/shared';
 import type { App } from './app';
 import { clear, h, Win } from './dom';
 
@@ -8,7 +8,7 @@ const MODES: [LightMode, string, string][] = [
   ['blackout', 'Apagão', 'Só velas, janelas e emergência'],
 ];
 
-/** Controles de clima ao vivo para o mestre: luz, névoa e escuridão. */
+/** Controles de clima ao vivo para o mestre: luz, névoa, escuridão e partículas. */
 export class FxWin {
   readonly win: Win;
   private app: App;
@@ -31,7 +31,7 @@ export class FxWin {
     const r = this.app.state.room;
     const b = clear(this.win.body);
     if (!r) return;
-    const send = (p: { lightMode?: LightMode; fog?: number; darkness?: number }) => this.app.net.send({ t: 'roomFx', ...p });
+    const send = (p: { lightMode?: LightMode; fog?: number; darkness?: number; particleLevel?: number }) => this.app.net.send({ t: 'roomFx', ...p });
     const modes = h('div', { class: 'fx-modes' });
     for (const [id, label, desc] of MODES)
       modes.append(
@@ -53,7 +53,8 @@ export class FxWin {
       modes,
       slider('Névoa', r.fog, 100, (v) => send({ fog: v }), (v) => info && (info.fog = v)),
       slider('Escuridão', r.darkness, 90, (v) => send({ darkness: v }), (v) => info && (info.darkness = v)),
-      h('p', { class: 'muted' }, 'Muda na hora para todos na cena.'),
+      slider('Partículas', r.particleLevel ?? DEFAULT_PARTICLE_LEVEL, 100, (v) => send({ particleLevel: v }), (v) => info && (info.particleLevel = v)),
+      h('p', { class: 'muted' }, (r.particles ?? []).length ? 'Muda na hora para todos na cena.' : 'Muda na hora para todos na cena. Esta cena não tem partículas: ligue em Configurar cena.'),
     );
   }
 }

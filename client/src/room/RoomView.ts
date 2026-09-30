@@ -1,4 +1,5 @@
 import {
+  DEFAULT_PARTICLE_LEVEL,
   footprint,
   getFurni,
   getWallFurni,
@@ -19,6 +20,7 @@ import {
 } from '@croma/shared';
 import { drawPixelAvatar, PIXEL_AVATAR_HEIGHT, type Pose } from '../render/avatarPixel';
 import { Bubbles, UI_FONT } from '../render/bubbles';
+import { desenharChao, desenharCima, desenharRotulos, type MarcasCombate } from '../render/combateMarcas';
 import { furniVisual } from '../render/furniFloor';
 import { drawWallFurni, wallLights } from '../render/furniWall';
 import { drawHintGlyph, drawHintIcon } from '../render/hints';
@@ -26,10 +28,12 @@ import { iso } from '../render/iso';
 import { hash, rgba } from '../render/color';
 import { Fog } from '../render/fog';
 import { Lighting, type Light } from '../render/lighting';
+import { Particles } from '../render/particles';
 import { boxSilhouette, Mapper, Painter, pointInPoly, type WBox } from '../render/painter';
 import { buildStatic, doorClipPath, roomBounds, type StaticLayer } from '../render/roomStatic';
 import { cmp, sortDrawables, type Drawable } from '../render/sort';
-import { drawSprite, sprites } from '../render/sprites';
+import { drawSprite, framesFor, sprites } from '../render/sprites';
+import { sfx } from '../ui/sfx';
 
 export interface ClientUser {
   id: number;
@@ -46,7 +50,12 @@ export interface ClientUser {
   waveUntil: number;
   phase: number;
   color: string;
+  /** virou parado neste instante (efeito de giro) */
+  turnAt?: number;
 }
+
+/** Duração do efeito de giro da peça parada. */
+const TURN_MS = 240;
 
 export type Selection = { kind: 'floor' | 'wall' | 'user'; id: number } | null;
 export type FloorPlacement = { kind: 'floor'; defId: string; rot: number; invId?: number; moveId?: number };
@@ -95,6 +104,10 @@ function flickerLevel(t: number): number {
 }
 
 const ZOOMS =[0.35, 0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3];
+/** duração do deslize de um mobi com senha */
+const SLIDE_MS = 1500;
+/** abaixo deste zoom o cômodo não é encolhido: a câmera acompanha as peças */
+const FIT_MIN = 0.72;
 const BG = '#07060a';
 const AMBER = 'rgba(255,196,90,0.95)';
 
@@ -113,6 +126,8 @@ export class RoomView {
   private autoFit = true;
   /** centro (mundo) de cada objeto no último quadro, para fotos */
   private centers = new Map<string, [number, number]>();
+  /** mobis com senha deslizando (abrindo ou fechando a passagem) */
+  private slides = new Map<number, { fx: number; fy: number; t0: number }>();
   /** câmera deslizando até um alvo */
   private camAnim: { fx: number; fy: number; tx: number; ty: number; t0: number; dur: number } | null = null;
   /** marcas de destino (clique no chão) e anéis de seleção */
@@ -128,6 +143,10 @@ export class RoomView {
   private mapper = new Mapper();
   private lighting = new Lighting();
   private fog = new Fog();
+  private particles = new Particles();
+  /** cômodo grande demais para caber: a câmera acompanha as peças */
+  private follow = false;
+  private followAt = 0;
   private bubbles = new Bubbles();
   private staticLayer: StaticLayer | null = null;
   private staticKey = '';
@@ -145,6 +164,22 @@ export class RoomView {
 
   /** tamanho fixo (render fora da tela) */
   private fixed: { w: number; h: number } | null = null;
+  /**
+   * Só assistir (tela da mesa): sem clique, arrasto ou zoom, sem ícones de
+   * pista, e o quarto sempre enquadrado.
+   */
+  watchOnly = false;
+  /** marcações do combate (a tela COMBATE e a mesa preenchem; null = nenhuma) */
+  combate: MarcasCombate | null = null;
+  /** clique numa peça: devolve true quando a tela usou o clique (escolher o alvo sem trocar a peça comandada) */
+  aoClicarPeca: ((id: number) => boolean) | null = null;
+  /** clique numa casa para uma ferramenta (medir, área): devolve true quando usou o clique */
+  aoClicarCasa: ((x: number, y: number) => boolean) | null = null;
+
+  /** Casa do mouse (para as ferramentas do combate). */
+  get casaDoMouse(): { x: number; y: number } | null {
+    return this.mouse.inside ? this.hoverTile : null;
+  }
 
   constructor(canvas: HTMLCanvasElement, events: RoomEvents, live = true) {
     this.canvas = canvas;
@@ -174,6 +209,7 @@ export class RoomView {
     this.map = new RoomMap(info.heightmap, info.door, items, wallItems);
     this.door = doorClipPath(this.map);
     this.fog.setMap(this.map);
+    this.particles.setRoom(this.map, info.particles);
     // mantém a peça ativa se ela estiver nesta cena
     this.myId = users.some((u) => u.id === myId) ? myId : 0;
     this.users.clear();
@@ -203,11 +239,58 @@ export class RoomView {
     // zoom contínuo: o quarto preenche o tabuleiro
     // um pouco além do encaixe exato: as bordas do quarto passam por baixo dos papéis
     const z = Math.max(0.35, Math.min(2.5, Math.min(availW / bw, availH / bh) * 1.1));
-    this.zoom = z;
     this.needFit = false;
     this.autoFit = true;
     this.bubbles.clear();
+    // cômodo grande: em vez de encolher tudo, fica num zoom confortável e acompanha as peças
+    if (z < FIT_MIN && this.users.size) {
+      this.zoom = FIT_MIN;
+      this.follow = true;
+      this.followParty(false);
+      return;
+    }
+    this.follow = false;
+    this.zoom = z;
     this.center();
+  }
+
+  /** Centro das peças na tela (mundo), dentro dos limites do cômodo. */
+  private partyTarget(): [number, number] | null {
+    if (!this.map || !this.users.size) return null;
+    const now = performance.now();
+    let sx = 0;
+    let sy = 0;
+    for (const u of this.users.values()) {
+      const p = this.userPos(u, now);
+      const [x, y] = iso(p.x + 0.5, p.y + 0.5, p.z);
+      sx += x;
+      sy += y - 40;
+    }
+    const n = this.users.size;
+    const b = roomBounds(this.map);
+    const f = this.frame_();
+    const hw = f.w / 2 / this.zoom;
+    const hh = f.h / 2 / this.zoom;
+    const clamp = (v: number, a: number, c: number) => (a > c ? (a + c) / 2 : Math.max(a, Math.min(c, v)));
+    return [clamp(sx / n, b.minX + hw - 40, b.maxX - hw + 40), clamp(sy / n, b.minY + hh - 40, b.maxY - hh + 40)];
+  }
+
+  /** Leva a câmera para as peças (sem desligar o enquadramento automático). */
+  private followParty(smooth: boolean) {
+    const t = this.partyTarget();
+    if (!t) return;
+    const f = this.frame_();
+    const tx = Math.round(f.x + f.w / 2 - t[0] * this.zoom);
+    const ty = Math.round(f.y + f.h / 2 - t[1] * this.zoom);
+    if (!smooth) {
+      this.camAnim = null;
+      this.cam.x = tx;
+      this.cam.y = ty;
+      return;
+    }
+    if (Math.hypot(tx - this.cam.x, ty - this.cam.y) < f.w * 0.18) return;
+    const dist = Math.hypot(tx - this.cam.x, ty - this.cam.y);
+    this.camAnim = { fx: this.cam.x, fy: this.cam.y, tx, ty, t0: performance.now(), dur: Math.min(1400, 500 + dist * 0.8) };
   }
 
   /** Área visível do tabuleiro, em px do canvas (null = canvas inteiro). */
@@ -223,6 +306,40 @@ export class RoomView {
       this.cam.x += after.x + after.w / 2 - (before.x + before.w / 2);
       this.cam.y += after.y + after.h / 2 - (before.y + before.h / 2);
     }
+  }
+
+  /** Tela MAPA: dentro da moldura, fundo azul-escuro com pontinhos (docs/referencias/mapa.webp). */
+  fundoPontos = false;
+  private padraoPontos: CanvasPattern | null = null;
+
+  private pintarFundo(ctx: CanvasRenderingContext2D) {
+    const fr = this.frame_();
+    const dpr = this.dpr;
+    if (!this.padraoPontos) {
+      const c = document.createElement('canvas');
+      c.width = c.height = Math.round(22 * dpr);
+      const g = c.getContext('2d')!;
+      g.fillStyle = 'rgba(140, 170, 220, 0.34)';
+      g.beginPath();
+      g.arc(11 * dpr, 11 * dpr, Math.max(0.8, 1.1 * dpr), 0, Math.PI * 2);
+      g.fill();
+      this.padraoPontos = ctx.createPattern(c, 'repeat');
+    }
+    ctx.save();
+    const x = fr.x * dpr;
+    const y = fr.y * dpr;
+    const w = fr.w * dpr;
+    const h = fr.h * dpr;
+    const grad = ctx.createRadialGradient(x + w / 2, y + h * 0.45, 10, x + w / 2, y + h / 2, Math.max(w, h) * 0.7);
+    grad.addColorStop(0, '#151b28');
+    grad.addColorStop(1, '#090c12');
+    ctx.fillStyle = grad;
+    ctx.fillRect(x, y, w, h);
+    if (this.padraoPontos) {
+      ctx.fillStyle = this.padraoPontos;
+      ctx.fillRect(x, y, w, h);
+    }
+    ctx.restore();
   }
 
   private frame_() {
@@ -300,6 +417,8 @@ export class RoomView {
       u.anim = { fx: f.x, fy: f.y, fz: f.z, tx: s.mv.x, ty: s.mv.y, tz: s.mv.z, start: now };
     } else if (u.anim && !(u.anim.tx === s.x && u.anim.ty === s.y)) u.anim = null;
     else if (u.anim) u.anim.tz = s.z;
+    // virou sem sair do lugar: efeito de giro
+    if (!s.mv && !u.anim && s.dir !== u.dir) u.turnAt = now;
     u.x = s.x;
     u.y = s.y;
     u.z = s.z;
@@ -351,7 +470,27 @@ export class RoomView {
     this.map?.addItem(it);
   }
   updateItem(it: FloorItem) {
+    const old = this.map?.getItem(it.id);
+    // fechadura abriu ou fechou: o mobi desliza até o lugar novo, arrastando
+    if (old?.lock && it.lock && old.lock.open !== it.lock.open && (old.x !== it.x || old.y !== it.y)) {
+      this.slides.set(it.id, { fx: old.x, fy: old.y, t0: performance.now() });
+      sfx.scrape(SLIDE_MS);
+    }
     this.map?.updateItem(it);
+  }
+
+  /** Posição desenhada de um mobi que está deslizando (pesado: custa a sair, trepida, para). */
+  private slidPos(it: FloorItem, now: number) {
+    const s = this.slides.get(it.id);
+    if (!s) return it;
+    const t = (now - s.t0) / SLIDE_MS;
+    if (t >= 1) {
+      this.slides.delete(it.id);
+      return it;
+    }
+    const e = t < 0.14 ? t * 0.25 : 0.035 + 0.965 * (1 - Math.pow(1 - (t - 0.14) / 0.86, 3));
+    const shake = t > 0.14 && t < 0.92 ? Math.sin(now / 16) * 0.012 : 0;
+    return { ...it, x: s.fx + (it.x - s.fx) * e + shake, y: s.fy + (it.y - s.fy) * e + shake * 0.5 };
   }
   removeItem(id: number) {
     this.map?.removeItem(id);
@@ -412,6 +551,9 @@ export class RoomView {
       this.vw = w;
       this.vh = h;
       this.dpr = dpr;
+      this.padraoPontos = null;
+      // mudou o tamanho e ninguém mexeu na câmera: enquadra de novo
+      if (this.autoFit || this.watchOnly) this.needFit = true;
       this.canvas.width = Math.round(w * dpr);
       this.canvas.height = Math.round(h * dpr);
     }
@@ -453,6 +595,7 @@ export class RoomView {
     const c = this.canvas;
     c.addEventListener('contextmenu', (e) => e.preventDefault());
     c.addEventListener('pointerdown', (e) => {
+      if (this.watchOnly) return;
       this.mouse = { x: e.offsetX, y: e.offsetY, inside: true };
       this.updateHover();
       if (e.button === 2) {
@@ -464,6 +607,7 @@ export class RoomView {
       this.drag = { sx: e.offsetX, sy: e.offsetY, cx: this.cam.x, cy: this.cam.y, moved: false };
     });
     c.addEventListener('pointermove', (e) => {
+      if (this.watchOnly) return;
       this.mouse = { x: e.offsetX, y: e.offsetY, inside: true };
       const d = this.drag;
       if (d) {
@@ -498,6 +642,7 @@ export class RoomView {
       'wheel',
       (e) => {
         e.preventDefault();
+        if (this.watchOnly) return;
         this.zoomStep(e.deltaY < 0 ? 1 : -1, e.offsetX, e.offsetY);
       },
       { passive: false },
@@ -566,9 +711,18 @@ export class RoomView {
     const key = hit ? `${hit.kind}${hit.id}` : '';
     const dbl = key !== '' && key === this.lastClick.key && now - this.lastClick.t < 380;
     this.lastClick = { t: dbl ? 0 : now, key };
-    const tile = this.tileAt(wx, wy);
+    let tile = this.tileAt(wx, wy);
+    // ferramenta do combate (medir, área): a casa da peça também serve
+    if (this.aoClicarCasa) {
+      if (!tile && hit?.kind === 'user') {
+        const u = this.users.get(hit.id);
+        if (u) tile = { x: u.x, y: u.y };
+      }
+      if (tile && this.aoClicarCasa(tile.x, tile.y)) return;
+    }
 
     if (hit?.kind === 'user') {
+      if (this.aoClicarPeca?.(hit.id)) return;
       // clicar numa peça passa a controlá-la
       this.myId = hit.id;
       this.select({ kind: 'user', id: hit.id });
@@ -660,6 +814,14 @@ export class RoomView {
   // ---------- quadro ----------
   private frame() {
     this.resize();
+    // cômodo grande: de tempos em tempos a câmera vai atrás das peças
+    if (this.follow && (this.autoFit || this.watchOnly) && !this.camAnim) {
+      const n = performance.now();
+      if (n - this.followAt > 350) {
+        this.followAt = n;
+        this.followParty(true);
+      }
+    }
     if (this.camAnim) {
       const a = this.camAnim;
       const t = Math.min(1, (performance.now() - a.t0) / a.dur);
@@ -675,6 +837,7 @@ export class RoomView {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = BG;
     ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    if (this.fundoPontos) this.pintarFundo(ctx);
     const map = this.map;
     if (!map || !this.info) return;
     const now = performance.now();
@@ -684,9 +847,9 @@ export class RoomView {
     const scale = z * dpr;
     const canBuild = this.info.canBuild;
 
-    const key = `${this.info.id}|${this.info.heightmap}|${map.door.x},${map.door.y}|${scale}`;
+    const key = `${this.info.id}|${this.info.heightmap}|${map.door.x},${map.door.y}|${scale}|${this.info.floorStyle ?? ''}`;
     if (key !== this.staticKey) {
-      this.staticLayer = buildStatic(map, scale);
+      this.staticLayer = buildStatic(map, scale, this.info.floorStyle);
       this.staticKey = key;
     }
     ctx.setTransform(scale, 0, 0, scale, this.cam.x * dpr, this.cam.y * dpr);
@@ -697,6 +860,13 @@ export class RoomView {
     this.drawMarks(ctx, now);
 
     const lights: Light[] = [];
+    const marcas = this.combate;
+    const posPeca = (id: number) => {
+      const u = this.users.get(id);
+      return u ? this.userPos(u, now) : null;
+    };
+    const alturaCasa = (c: { x: number; y: number }) => map.standHeight(c.x, c.y);
+    if (marcas) desenharChao(ctx, marcas, posPeca, alturaCasa, now, lights);
     const hits: Hit[] = [];
     const hintTargets: HintTarget[] = [];
     this.painter.t = t;
@@ -745,7 +915,7 @@ export class RoomView {
       const p = this.userPos(meU, now);
       const [mx, my] = iso(p.x + 0.5, p.y + 0.5, p.z);
       const H = this.avatarHeight(meU);
-      meBox = { x0: p.x + 0.2, x1: p.x + 0.8, y0: p.y + 0.2, y1: p.y + 0.8, z0: p.z, z1: p.z + 2.4 };
+      meBox = { x0: p.x + 0.2, x1: p.x + 0.8, y0: p.y + 0.2, y1: p.y + 0.8, z0: p.z, z1: p.z + 3.2 };
       meRect = [mx - 22, my - H - 6, mx + 22, my + 8];
     }
     const addFurni =(it: { id: number; defId: string; x: number; y: number; z: number; rot: number; state: number }, alpha: number, selected: boolean, ghost: boolean) => {
@@ -809,7 +979,8 @@ export class RoomView {
       return topZ;
     };
 
-    for (const it of map.allItems()) {
+    for (const real of map.allItems()) {
+      const it = this.slides.size ? this.slidPos(real, now) : real;
       const moving = place?.kind === 'floor' && place.moveId === it.id;
       const topZ = addFurni(it, moving ? 0.35 : 1, sel?.kind === 'floor' && sel.id === it.id, false);
       const fdef = getFurni(it.defId);
@@ -845,14 +1016,19 @@ export class RoomView {
       const p = this.userPos(u, now);
       const cx = p.x + 0.5;
       const cy = p.y + 0.5;
-      const half = u.sit ? 0.25 : 0.3;
-      const [sx, sy] = iso(cx, cy, p.z);
       const sp = u.look.charId ? sprites.get(u.look.charId) : null;
+      // folha sem pose de sentar: fica de pé no chão, junto do assento (não em cima dele)
+      const standBy = !!sp && u.sit === 1 && !p.moving && !framesFor(sp.lc, u.dir, 'sit');
+      const seated = u.sit === 1 && !standBy;
+      const baseZ = standBy ? (map.floorHeight(u.x, u.y) ?? p.z) : p.z;
+      const half = seated ? 0.25 : 0.3;
+      const [sx, sy] = iso(cx, cy, baseZ);
       const H = sp ? sp.def.height : PIXEL_AVATAR_HEIGHT;
       const isSel = sel?.kind === 'user' && sel.id === u.id;
-      const pose: Pose = p.moving ? 'walk' : u.sit ? 'sit' : 'stand';
+      const pose: Pose = p.moving ? 'walk' : seated || u.sit === 2 ? 'sit' : 'stand';
       const wave = u.waveUntil > now;
-      const box: WBox = { x0: cx - half, x1: cx + half, y0: cy - half, y1: cy + half, z0: p.z, z1: p.z + 2.4 };
+      // ~1,75 m de altura para a ordem de desenho
+      const box: WBox = { x0: cx - half, x1: cx + half, y0: cy - half, y1: cy + half, z0: baseZ, z1: baseZ + 3.2 };
       const d: Drawable = {
         box,
         sx0: sx - 40,
@@ -867,16 +1043,18 @@ export class RoomView {
             ctx.save();
             ctx.clip(door!.path, 'evenodd');
           }
-          if (u.sit !== 1) {
+          const deitada = !!marcas?.deitadas.has(u.id);
+          if (!seated) {
             ctx.fillStyle = 'rgba(0,0,0,0.38)';
             ctx.beginPath();
-            ctx.ellipse(sx, sy, 14, 7, 0, 0, Math.PI * 2);
+            ctx.ellipse(sx, sy, deitada ? 26 : 14, deitada ? 9 : 7, 0, 0, Math.PI * 2);
             ctx.fill();
-            // anel na cor do personagem; a peça ativa pulsa
+            // anel na cor do personagem (no combate, na cor do lado); a peça ativa pulsa
             const active = u.id === this.myId;
             const pulse = active ? 1 + Math.sin(now / 260) * 0.08 : 1;
+            const corBase = marcas?.bases.get(u.id) ?? u.color;
             ctx.lineWidth = active ? 2.6 : 1.8;
-            ctx.strokeStyle = rgba(u.color, active ? 0.95 : 0.75);
+            ctx.strokeStyle = rgba(corBase, active ? 0.95 : 0.8);
             ctx.beginPath();
             ctx.ellipse(sx, sy, 19 * pulse, 9.5 * pulse, 0, 0, Math.PI * 2);
             ctx.stroke();
@@ -889,6 +1067,24 @@ export class RoomView {
             }
           }
           const dance = u.dance ? -Math.abs(Math.sin((now * Math.PI) / 320 + u.phase)) * 4 : 0;
+          // giro: afina de lado e volta, com um pulinho, a partir dos pés
+          const tt = u.turnAt ? (now - u.turnAt) / TURN_MS : 1;
+          const turning = tt < 1;
+          if (turning) {
+            const k = 0.35 + 0.65 * (1 - Math.pow(1 - tt, 3));
+            ctx.save();
+            ctx.translate(sx, fy - Math.sin(tt * Math.PI) * 4);
+            ctx.scale(k, 1 + (1 - k) * 0.08);
+            ctx.translate(-sx, -fy);
+          }
+          // caída ou inconsciente: a peça deita no chão, com a cabeça para a esquerda
+          if (deitada) {
+            ctx.save();
+            ctx.translate(sx + H * 0.42, fy - 4);
+            ctx.rotate(-Math.PI / 2 + 0.12);
+            ctx.scale(0.92, 1);
+            ctx.translate(-sx, -fy);
+          }
           if (sp) drawSprite(ctx, sp.def, sp.lc, u.dir, sx, fy + dance, now, u.phase, pose === 'sit' ? 'sit' : pose);
           else
             drawPixelAvatar(ctx, u.look, sx, fy, u.dir, u.headDir, {
@@ -898,6 +1094,8 @@ export class RoomView {
               dance: u.dance,
               blink: (now + u.phase * 997) % 4300 < 140,
             });
+          if (deitada) ctx.restore();
+          if (turning) ctx.restore();
           if (wave && sp) this.drawEmote(sx, fy - H - 14, now);
           if (clip) ctx.restore();
         },
@@ -992,7 +1190,19 @@ export class RoomView {
       } else active.push(L);
     }
     if (darkness > 0.01)
-      this.lighting.render(ctx, active, darkness, (x, y) => [(x * z + this.cam.x) * dpr, (y * z + this.cam.y) * dpr], scale, t);
+      this.lighting.render(ctx, active, darkness, (x, y) => [(x * z + this.cam.x) * dpr, (y * z + this.cam.y) * dpr], scale, t, this.info.ambient);
+
+    // partículas (poeira na luz, fumaça e brasas das velas)
+    if (this.particles.active) {
+      ctx.setTransform(scale, 0, 0, scale, this.cam.x * dpr, this.cam.y * dpr);
+      this.particles.draw(ctx, now, active, this.info.particleLevel ?? DEFAULT_PARTICLE_LEVEL);
+    }
+
+    // combate: anel de alcance, linha até o alvo, mira, medida (depois da luz: sempre à vista)
+    if (marcas) {
+      ctx.setTransform(scale, 0, 0, scale, this.cam.x * dpr, this.cam.y * dpr);
+      desenharCima(ctx, marcas, posPeca, alturaCasa, this.casaDoMouse, now);
+    }
 
     // vinheta
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -1008,7 +1218,26 @@ export class RoomView {
     // anel de destaque do objeto recém-selecionado
     this.drawPulses(ctx, now);
 
-    // ícones de pista
+    // combate: etiquetas, escudo da cobertura e caveiras
+    if (marcas)
+      desenharRotulos(
+        ctx,
+        marcas,
+        posPeca,
+        alturaCasa,
+        this.casaDoMouse,
+        (wx, wy) => [wx * z + this.cam.x, wy * z + this.cam.y],
+        (id) => {
+          const u = this.users.get(id);
+          if (!u) return null;
+          const p = this.userPos(u, now);
+          const [wx, wy] = iso(p.x + 0.5, p.y + 0.5, p.z);
+          return marcas.deitadas.has(id) ? [wx, wy - 14] : [wx, wy - this.avatarHeight(u)];
+        },
+      );
+
+    // ícones de pista (a tela da mesa não mostra)
+    if (this.watchOnly) hintTargets.length = 0;
     for (const h of hintTargets) {
       h.sx = Math.round(h.wx * z + this.cam.x);
       h.sy = Math.round(h.wy * z + this.cam.y + Math.sin(t / 450 + h.id) * 2);

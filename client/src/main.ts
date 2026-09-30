@@ -1,5 +1,10 @@
 import './style.css';
 import './ui/shell.css';
+import './ui/table.css';
+import './ui/tema.css';
+import './ui/mapa.css';
+import './ui/fichas.css';
+import './ui/combate.css';
 import { anyFurniName, getFurni, getWallFurni, type ServerMsg } from '@croma/shared';
 import { Net } from './net';
 import { clearIconCache } from './render/bubbles';
@@ -13,14 +18,28 @@ import { FxWin } from './ui/fx';
 import { HelpWin } from './ui/help';
 import { HintViewer } from './ui/infostand';
 import { Shell } from './ui/shell';
-import { LoginScreen } from './ui/login';
+import { loadLogin, saveLogin } from './ui/login';
+import { TableScreen } from './ui/table';
+import { esquecerChaveFicha, lerChaveFicha, TelaFicha } from './ui/telaFicha';
 import { NavigatorWin } from './ui/navigator';
 import { RoomSettingsWin } from './ui/roomSettings';
+import { forgetGmKey, readGmKey, tableName, tableRequested } from './session/access';
 
 const LAST_ROOM = 'croma.lastRoom';
 const HOME_SEEN = 'croma.homeSeen';
 const net = new Net();
 const app = new App(net);
+/** chave do link do mestre (?mestre=...), para mestre em outro aparelho */
+const gmKey = readGmKey();
+/**
+ * Duas telas: a do mestre (a interface completa, só ele vê) e a da mesa (só o
+ * tabuleiro, no tablet que os jogadores veem). ?mesa pede a da mesa; sem isso,
+ * quem o servidor disser que é mestre fica com a interface.
+ */
+const tableMode = tableRequested();
+/** link da ficha do jogador (?ficha=CHAVE): só a ficha dele, no celular */
+const fichaKey = tableMode ? null : lerChaveFicha();
+const fichaMode = !!fichaKey;
 const root = document.getElementById('app')!;
 const canvas = h('canvas', { class: 'room-canvas', 'aria-label': 'Tabuleiro' });
 
@@ -28,7 +47,7 @@ const usedInv = new Set<number>();
 
 function endPlacement() {
   app.view.cancelPlacement();
-  shell.setPlacement(null);
+  shell?.setPlacement(null);
   usedInv.clear();
 }
 
@@ -41,11 +60,13 @@ function startPlace(defId: string, invId?: number) {
     if (!def) return;
     app.view.startPlacement({ kind: 'floor', defId, rot: def.rotations.includes(2) ? 2 : def.rotations[0], invId });
   }
-  shell.setPlacement(`Colocando ${name}: clique para colocar · R ou botão direito gira · Shift coloca vários · Esc cancela`);
+  shell?.setPlacement(`Colocando ${name}: clique para colocar · R ou botão direito gira · Shift coloca vários · Esc cancela`);
 }
 
 const view = new RoomView(canvas, {
   walk: (x, y) => {
+    // jogador só acompanha
+    if (!app.isGm) return;
     const id = app.view.myId;
     if (id) net.send({ t: 'tokenWalk', tokenId: id, x, y });
     else toast('Clique num personagem para comandá-lo.');
@@ -97,51 +118,114 @@ const settings = new RoomSettingsWin(app);
 const help = new HelpWin();
 const fx = new FxWin(app);
 const hintViewer = new HintViewer(app);
-const shell = new Shell(app, {
-  navigator: () => navigator.toggle(),
-  catalog: () => catalog.toggle(),
-  inventory: () => inventory.toggle(),
-  characters: () => characters.toggle(),
-  settings: () => settings.toggle(),
-  fx: () => fx.toggle(),
-  help: () => help.toggle(),
-  logout: () => {
-    net.close();
-    location.href = location.pathname;
-  },
-});
-shell.mountCanvas(canvas);
-root.append(shell.el);
+const shell = tableMode || fichaMode
+  ? null
+  : new Shell(app, {
+      navigator: () => navigator.toggle(),
+      catalog: () => catalog.toggle(),
+      inventory: () => inventory.toggle(),
+      characters: () => characters.toggle(),
+      settings: () => settings.toggle(),
+      fx: () => fx.toggle(),
+      help: () => help.toggle(),
+      logout: () => {
+        net.close();
+        sessionEnded();
+      },
+    });
+const params = new URLSearchParams(location.search);
+const table = tableMode ? new TableScreen(app) : null;
+const telaFicha = fichaMode
+  ? new TelaFicha(app, () => {
+      net.close();
+      sessionEnded();
+    })
+  : null;
+if (shell) {
+  shell.mountCanvas(canvas);
+  root.append(shell.el);
+}
+if (table) {
+  table.mountCanvas(canvas);
+  root.append(table.el);
+}
+if (telaFicha) {
+  document.documentElement.classList.add('modo-ficha');
+  root.append(telaFicha.el);
+}
 
 app.on('placement', () => {
   const p = app.view.placement;
-  if (p) shell.setPlacement(`Movendo ${anyFurniName(p.defId)}: clique no destino · R gira · Esc cancela`);
+  if (p) shell?.setPlacement(`Movendo ${anyFurniName(p.defId)}: clique no destino · R gira · Esc cancela`);
 });
 
-let login: LoginScreen | null = new LoginScreen(app, (name, look) => net.send({ t: 'login', name, look }));
-root.append(login.el);
-if (import.meta.env.DEV && new URLSearchParams(location.search).has('auto')) setTimeout(() => login?.submit(new URLSearchParams(location.search).get('auto') || undefined), 300);
+/** Entra sem tela de login: o mestre com o nome salvo (ou "Mestre"), a mesa com o nome dela. */
+function login(fresh = false) {
+  const saved = loadLogin();
+  const dev = import.meta.env.DEV ? params.get('auto') : null;
+  if (fichaMode) {
+    // o nome da conexão sai da chave (o mesmo link em outro aparelho assume a sessão)
+    net.send({ t: 'login', name: `Agente ${fichaKey!.replace(/[^\p{L}\p{N}]/gu, '').slice(0, 6)}`, look: saved.look, fichaKey: fichaKey! });
+    return;
+  }
+  const name = tableMode ? tableName(fresh) : dev || saved.name || 'Mestre';
+  net.send({ t: 'login', name, look: saved.look, gmKey, mesa: tableMode });
+}
+login();
+let loginTries = 0;
+
+/** "Encerrar sessão": desconecta e mostra um aviso para voltar. */
+function sessionEnded() {
+  document.body.append(
+    h(
+      'div',
+      { class: 'replaced' },
+      h('div', { class: 'paper' }, h('h3', { class: 'paper-title' }, 'SESSÃO ENCERRADA'), h('p', null, 'O tabuleiro fica salvo para a próxima sessão.'), h('button', { class: 'pbtn primary', onclick: () => location.reload() }, 'Voltar para a sessão')),
+    ),
+  );
+}
 
 let reconnecting = false;
 let wantRoom: number | null = null;
 
 net.onMessage = (m: ServerMsg) => {
+  // sessão compartilhada: estado, passos das peças e recusas
+  if (app.session.receive(m)) {
+    if (m.t === 'denied') toast(m.reason, 'error');
+    return;
+  }
   const me = app.state.me;
   switch (m.t) {
     case 'hello':
       app.state.characters = m.characters;
       sprites.setDefs(m.characters);
       app.emit('characters');
-      if (me && reconnecting) net.send({ t: 'login', name: me.name, look: me.look });
+      if (me && reconnecting) {
+        if (fichaMode) net.send({ t: 'login', name: me.name, look: me.look, fichaKey: fichaKey! });
+        else net.send({ t: 'login', name: me.name, look: me.look, gmKey, mesa: tableMode });
+      }
       break;
     case 'welcome': {
       app.state.me = { id: m.id, name: m.name, look: m.look, token: m.token };
       app.state.inventory = m.inventory;
-      if (login) {
-        login.hide();
-        login = null;
+      app.state.role = m.role;
+      if (fichaMode) {
+        loginTries = 0;
+        telaFicha?.show();
+        app.emit('me');
+        reconnecting = false;
+        break;
       }
-      shell.show();
+      if (!tableMode && m.role !== 'gm') {
+        // não é o mestre: esta tela vira a da mesa
+        if (gmKey) forgetGmKey();
+        location.replace(`${location.pathname}?mesa`);
+        return;
+      }
+      if (!tableMode) saveLogin(m.name, m.look);
+      loginTries = 0;
+      shell?.show();
+      table?.show();
       app.emit('me');
       app.emit('inventory');
       if (reconnecting && app.state.room) wantRoom = app.state.room.id;
@@ -163,14 +247,29 @@ net.onMessage = (m: ServerMsg) => {
       break;
     }
     case 'error':
-      if (!app.state.me && login) login.error(m.msg);
-      else toast(m.msg, 'error');
+      // a mesa não escolhe nome: se o dela estiver em uso, tenta outro
+      if (!app.state.me && tableMode && loginTries++ < 3) login(true);
+      else if (!app.state.me && fichaMode) {
+        if (/inválido/.test(m.msg)) esquecerChaveFicha();
+        telaFicha?.erro(m.msg);
+      } else toast(m.msg, 'error');
       break;
     case 'notice':
       toast(m.msg);
       break;
+    case 'fichas':
+      shell?.fichas.setFichas(m.fichas, m.nova);
+      shell?.combate.setFichas(m.fichas);
+      telaFicha?.fichas.setFichas(m.fichas, m.nova);
+      break;
+    case 'combate':
+      shell?.combate.setCombate(m.combate, m.podeDesfazer, m.ameacas);
+      table?.setCombate(m.combate);
+      break;
     case 'roomList':
       app.state.rooms = m.rooms;
+      // a ficha do jogador não abre o tabuleiro
+      if (fichaMode) break;
       if (wantRoom !== null) {
         const target = m.rooms.find((r) => r.id === wantRoom) ?? m.rooms.find((r) => r.id === 1) ?? m.rooms[0];
         wantRoom = null;
@@ -197,6 +296,7 @@ net.onMessage = (m: ServerMsg) => {
       }
       app.emit('room');
       app.emit('selection');
+      table?.onRoom();
       break;
     case 'roomUpdate':
       app.state.room = m.room;
@@ -208,6 +308,14 @@ net.onMessage = (m: ServerMsg) => {
       break;
     case 'userLeave':
       view.removeUser(m.id);
+      break;
+    case 'tokenTravel':
+      // a peça comandada atravessou uma passagem: a câmera vai junto para o cômodo novo
+      // (a mesa segue o mestre sozinha)
+      if (!tableMode && m.tokenId === view.myId && m.roomId !== app.state.room?.id) {
+        app.pendingActive = m.tokenId;
+        net.send({ t: 'join', roomId: m.roomId });
+      }
       break;
     case 'userLook':
       view.setLook(m.id, m.look);
@@ -249,10 +357,14 @@ net.onMessage = (m: ServerMsg) => {
       app.emit('inventory');
       break;
     case 'campaign':
-      shell.setCampaign(m.state);
+      shell?.setCampaign(m.state);
+      table?.setCampaign(m.state);
       break;
     case 'peek':
-      shell.onPeek(m.room, m.items, m.wallItems);
+      shell?.onPeek(m.room, m.items, m.wallItems);
+      break;
+    case 'lockResult':
+      shell?.onLockResult(m);
       break;
     case 'characters':
       app.state.characters = m.list;
@@ -288,7 +400,8 @@ sprites.onLoad = () => {
 window.addEventListener('keydown', (e) => {
   const tgt = e.target as HTMLElement;
   if (tgt && (tgt.tagName === 'INPUT' || tgt.tagName === 'TEXTAREA' || tgt.tagName === 'SELECT')) return;
-  if (!app.state.me) return;
+  // a tela da mesa é só para ver
+  if (!app.state.me || !shell) return;
   const v = app.view;
   if (e.key === 'Escape') {
     if (v.placement) endPlacement();
@@ -301,6 +414,12 @@ window.addEventListener('keydown', (e) => {
   }
   if (e.key === 'Delete' && app.canBuild && v.selection && v.selection.kind !== 'user') {
     net.send({ t: 'pickup', id: v.selection.id });
+    return;
+  }
+  // Q e E giram o personagem selecionado (ou o comandado)
+  if ((e.key === 'q' || e.key === 'Q' || e.key === 'e' || e.key === 'E') && !v.placement && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    const target = v.selection?.kind === 'user' ? v.selection.id : v.myId;
+    if (target) shell.turnToken(target, e.key.toLowerCase() === 'e');
     return;
   }
   // 1-9: comanda o personagem da barra

@@ -1,136 +1,13 @@
-import type { FurniDef } from '@croma/shared';
+import { Z_PER_M, type FurniDef } from '@croma/shared';
 import { hash, rgba, rng, shade } from './color';
 import { OUTLINE, type LBox, type LFace, type Painter } from './painter';
+import { B, crateFace, drawers, faceRange, lightIf, N, PAPER, V, vents, wallBlock, WARM, type Builder, type FNode, type FVisual, type LightDef } from './furniKit';
+import { SEDE_BUILDERS } from './furniSede';
 
-/** fire = vela/tocha (resiste ao apagão), electric = cai no apagão e pisca, natural = janela/lua, emergency = só no apagão fica forte */
-export type LightKind = 'fire' | 'electric' | 'natural' | 'emergency';
-
-export interface LightDef {
-  u: number;
-  v: number;
-  z: number;
-  radius: number;
-  color: string;
-  intensity: number;
-  flicker?: number;
-  kind?: LightKind;
-}
-export interface FNode {
-  b: LBox;
-  draw(p: Painter): void;
-}
-export interface FVisual {
-  nodes: FNode[];
-  lights: LightDef[];
-}
-
-type Builder = (def: FurniDef, state: number, seed: number) => FVisual;
-
-const N = (b: LBox, draw: (p: Painter) => void): FNode => ({ b, draw });
-const B = (b: LBox, color: string, o?: Parameters<Painter['box']>[2]): FNode => N(b, (p) => p.box(b, color, o));
-const V = (nodes: FNode[], lights: LightDef[] = []): FVisual => ({ nodes, lights });
-
-const WARM = '#ffb45a';
-const PAPER = '#d8cdb0';
-
-/** Faixa horizontal da face (a0..a1). */
-function faceRange(b: LBox, f: LFace): [number, number] {
-  return f === 'front' || f === 'back' ? [b[2], b[3]] : [b[0], b[1]];
-}
-
-function drawers(p: Painter, b: LBox, f: LFace, rows: number, cols: number, color: string, handle: string, label?: string) {
-  if (!p.m.visible(f)) return;
-  const [a0, a1] = faceRange(b, f);
-  const z0 = b[4] + 0.05;
-  const z1 = b[5] - 0.04;
-  const cw = (a1 - a0 - 0.06) / cols;
-  const rh = (z1 - z0) / rows;
-  for (let c = 0; c < cols; c++)
-    for (let r = 0; r < rows; r++) {
-      const x0 = a0 + 0.04 + c * cw;
-      const x1 = x0 + cw - 0.03;
-      const y0 = z0 + r * rh;
-      const y1 = y0 + rh - 0.04;
-      p.face(b, f, x0, x1, y0, y1, shade(color, -0.25));
-      p.face(b, f, x0 + 0.02, x1 - 0.02, y0 + 0.02, y1 - 0.01, shade(color, 0.04));
-      const mid = (x0 + x1) / 2;
-      if (label) p.face(b, f, mid - 0.1, mid + 0.1, y1 - 0.12, y1 - 0.05, label);
-      const hz = label ? y1 - 0.19 : (y0 + y1) / 2;
-      p.face(b, f, mid - 0.08, mid + 0.08, hz - 0.02, hz + 0.015, handle);
-    }
-}
-
-function vents(p: Painter, b: LBox, f: LFace, z0: number, n: number, color: string) {
-  if (!p.m.visible(f)) return;
-  const [a0, a1] = faceRange(b, f);
-  const m = (a0 + a1) / 2;
-  const w = Math.min(0.3, (a1 - a0) * 0.3);
-  for (let i = 0; i < n; i++) p.face(b, f, m - w, m + w, z0 + i * 0.06, z0 + i * 0.06 + 0.025, color);
-}
-
-function crateFace(p: Painter, b: LBox, f: LFace, wood: string) {
-  if (!p.m.visible(f)) return;
-  const [a0, a1] = faceRange(b, f);
-  const z0 = b[4];
-  const z1 = b[5];
-  const dark = shade(wood, -0.35);
-  const frame = shade(wood, -0.12);
-  const h = z1 - z0;
-  for (let k = 1; k < 3; k++) p.face(b, f, a0, a1, z0 + (k * h) / 3 - 0.01, z0 + (k * h) / 3 + 0.01, dark);
-  p.withFace(b, f, (ctx) => {
-    ctx.strokeStyle = shade(frame, p.m.shadeOf(f));
-    ctx.lineWidth = 0.09;
-    ctx.beginPath();
-    ctx.moveTo(a0 + 0.1, z0 + 0.08);
-    ctx.lineTo(a1 - 0.1, z1 - 0.08);
-    ctx.stroke();
-  });
-  p.face(b, f, a0, a0 + 0.1, z0, z1, frame);
-  p.face(b, f, a1 - 0.1, a1, z0, z1, frame);
-  p.face(b, f, a0, a1, z0, z0 + 0.08, frame);
-  p.face(b, f, a0, a1, z1 - 0.08, z1, frame);
-  for (const [a, z] of [
-    [a0 + 0.05, z0 + 0.04],
-    [a1 - 0.05, z0 + 0.04],
-    [a0 + 0.05, z1 - 0.04],
-    [a1 - 0.05, z1 - 0.04],
-  ])
-    p.face(b, f, a - 0.015, a + 0.015, z - 0.015, z + 0.015, '#1a1410');
-}
-
-/** Bloco de parede interna com tijolos, no mesmo estilo das paredes do quarto. */
-function wallBlock(p: Painter, b: LBox, color: string) {
-  p.box(b, color, { edge: 0.12, top: '#5a524b' });
-  for (const f of ['front', 'back', 'left', 'right'] as LFace[]) {
-    if (!p.m.visible(f)) continue;
-    const [a0, a1] = faceRange(b, f);
-    p.withFace(b, f, (ctx) => {
-      ctx.strokeStyle = 'rgba(0,0,0,0.32)';
-      ctx.lineWidth = 0.025;
-      let k = 0;
-      for (let z = b[4] + 0.3; z < b[5] - 0.05; z += 0.3, k++) {
-        ctx.beginPath();
-        ctx.moveTo(a0, z);
-        ctx.lineTo(a1, z);
-        ctx.stroke();
-        for (let a = a0 + ((k % 2) * 0.25 + 0.25); a < a1; a += 0.5) {
-          ctx.beginPath();
-          ctx.moveTo(a, z);
-          ctx.lineTo(a, Math.min(b[5], z + 0.3));
-          ctx.stroke();
-        }
-      }
-    });
-    // sujeira na base
-    p.face(b, f, a0, a1, b[4], b[4] + 0.14, 'rgba(10,8,7,0.7)', true);
-  }
-}
-
-function lightIf(on: boolean, l: LightDef): LightDef[] {
-  return on ? [l] : [];
-}
+export type { FNode, FVisual, LightDef, LightKind } from './furniKit';
 
 const builders: Record<string, Builder> = {
+  ...SEDE_BUILDERS,
   desk(def) {
     const [c0, c1, c2] = def.colors;
     const W = def.width;
@@ -246,7 +123,7 @@ const builders: Record<string, Builder> = {
 
   table(def) {
     const [c0, c1] = def.colors;
-    const h = def.height;
+    const h = def.height / Z_PER_M;
     const top: LBox = [0.03, 0.97, 0.03, 0.97, h - 0.08, h];
     const L = (u: number, v: number): LBox => [u, u + 0.08, v, v + 0.08, 0, h - 0.08];
     return V([L(0.1, 0.1), L(0.82, 0.1), L(0.1, 0.82), L(0.82, 0.82)].map((b) => B(b, c1)).concat([B(top, c0, { edge: 0.28 })]));
@@ -602,15 +479,15 @@ const builders: Record<string, Builder> = {
   tank(def, state, seed) {
     const [c0, glowC] = def.colors;
     const on = state === 0;
-    const base: LBox = [0, 2, 0, 2, 0, 0.4];
-    const cap: LBox = [0, 2, 0, 2, 2.45, 2.8];
+    const base: LBox = [0, 2, 0, 2, 0, 0.32];
+    const cap: LBox = [0, 2, 0, 2, 1.92, 2.2];
     const posts: LBox[] = [
-      [0, 0.1, 0, 0.1, 0.4, 2.45],
-      [1.9, 2, 0, 0.1, 0.4, 2.45],
-      [0, 0.1, 1.9, 2, 0.4, 2.45],
-      [1.9, 2, 1.9, 2, 0.4, 2.45],
+      [0, 0.1, 0, 0.1, 0.32, 1.92],
+      [1.9, 2, 0, 0.1, 0.32, 1.92],
+      [0, 0.1, 1.9, 2, 0.32, 1.92],
+      [1.9, 2, 1.9, 2, 0.32, 1.92],
     ];
-    const glass: LBox = [0.1, 1.9, 0.1, 1.9, 0.4, 2.45];
+    const glass: LBox = [0.1, 1.9, 0.1, 1.9, 0.32, 1.92];
     const nodes: FNode[] = [
       N(base, (p) => {
         p.box(base, c0, { edge: 0.3 });
@@ -618,7 +495,7 @@ const builders: Record<string, Builder> = {
           if (!p.m.visible(f)) continue;
           vents(p, base, f, 0.1, 3, '#15171a');
           const [a0, a1] = faceRange(base, f);
-          p.face(base, f, a0, a1, 0.34, 0.37, on ? glowC : '#333', true);
+          p.face(base, f, a0, a1, 0.27, 0.3, on ? glowC : '#333', true);
         }
       }),
       ...posts.slice(0, 3).map((b) => B(b, shade(c0, 0.1))),
@@ -675,14 +552,14 @@ const builders: Record<string, Builder> = {
         for (const f of ['front', 'back', 'left', 'right'] as LFace[]) {
           if (!p.m.visible(f)) continue;
           const [a0, a1] = faceRange(cap, f);
-          p.face(cap, f, a0, a1, 2.47, 2.5, on ? glowC : '#333', true);
-          vents(p, cap, f, 2.58, 3, '#15171a');
+          p.face(cap, f, a0, a1, 1.94, 1.97, on ? glowC : '#333', true);
+          vents(p, cap, f, 2.03, 3, '#15171a');
         }
-        p.cyl(0.55, 0.6, 0.12, 2.8, 3.05, '#2e3236');
-        p.cyl(1.4, 1.3, 0.09, 2.8, 3.2, '#2e3236');
+        p.cyl(0.55, 0.6, 0.12, 2.2, 2.4, '#2e3236');
+        p.cyl(1.4, 1.3, 0.09, 2.2, 2.5, '#2e3236');
       }),
     ];
-    return V(nodes, lightIf(on, { u: 1, v: 1, z: 1.4, radius: 200, color: glowC, intensity: 0.95 }));
+    return V(nodes, lightIf(on, { u: 1, v: 1, z: 1.1, radius: 200, color: glowC, intensity: 0.95 }));
   },
 
   monitor(def, state, seed) {
@@ -1281,45 +1158,46 @@ const builders: Record<string, Builder> = {
 
   iwall(def) {
     const [c0] = def.colors;
-    const b: LBox = [0, 0.22, 0, 1, 0, 3.2];
+    // parede inteira (2,4 m) ou meia parede, pela altura do mobi
+    const b: LBox = [0, 0.22, 0, 1, 0, def.height / Z_PER_M];
     return V([N(b, (p) => wallBlock(p, b, c0))]);
   },
 
   iwall_door(def) {
     const [c0, wood] = def.colors;
-    const jl: LBox = [0, 0.22, 0, 0.14, 0, 3.2];
-    const jr: LBox = [0, 0.22, 0.86, 1, 0, 3.2];
-    const lintel: LBox = [0, 0.22, 0.14, 0.86, 2.6, 3.2];
+    const jl: LBox = [0, 0.22, 0, 0.14, 0, 2.4];
+    const jr: LBox = [0, 0.22, 0.86, 1, 0, 2.4];
+    const lintel: LBox = [0, 0.22, 0.14, 0.86, 2.1, 2.4];
     return V([
-      N(jl, (p) => (wallBlock(p, jl, c0), p.face(jl, 'right', 0, 0.22, 0, 2.6, wood))),
-      N(jr, (p) => (wallBlock(p, jr, c0), p.face(jr, 'left', 0, 0.22, 0, 2.6, wood))),
-      N(lintel, (p) => (wallBlock(p, lintel, c0), p.face(lintel, 'front', 0.14, 0.86, 2.6, 2.7, wood))),
+      N(jl, (p) => (wallBlock(p, jl, c0), p.face(jl, 'right', 0, 0.22, 0, 2.1, wood))),
+      N(jr, (p) => (wallBlock(p, jr, c0), p.face(jr, 'left', 0, 0.22, 0, 2.1, wood))),
+      N(lintel, (p) => (wallBlock(p, lintel, c0), p.face(lintel, 'front', 0.14, 0.86, 2.1, 2.17, wood))),
     ]);
   },
 
   iwall_window(def) {
     const [c0, wood] = def.colors;
-    const low: LBox = [0, 0.22, 0, 1, 0, 1.2];
-    const high: LBox = [0, 0.22, 0, 1, 2.4, 3.2];
-    const sl: LBox = [0, 0.22, 0, 0.15, 1.2, 2.4];
-    const sr: LBox = [0, 0.22, 0.85, 1, 1.2, 2.4];
-    const glass: LBox = [0.09, 0.13, 0.15, 0.85, 1.2, 2.4];
+    const low: LBox = [0, 0.22, 0, 1, 0, 0.95];
+    const high: LBox = [0, 0.22, 0, 1, 1.9, 2.4];
+    const sl: LBox = [0, 0.22, 0, 0.15, 0.95, 1.9];
+    const sr: LBox = [0, 0.22, 0.85, 1, 0.95, 1.9];
+    const glass: LBox = [0.09, 0.13, 0.15, 0.85, 0.95, 1.9];
     return V([
-      N(low, (p) => (wallBlock(p, low, c0), p.face(low, 'front', 0.1, 0.9, 1.1, 1.2, wood))),
+      N(low, (p) => (wallBlock(p, low, c0), p.face(low, 'front', 0.1, 0.9, 0.88, 0.95, wood))),
       N(sl, (p) => wallBlock(p, sl, c0)),
       N(glass, (p) => {
         p.poly(
           [
-            [0.11, 0.15, 1.2],
-            [0.11, 0.85, 1.2],
-            [0.11, 0.85, 2.4],
-            [0.11, 0.15, 2.4],
+            [0.11, 0.15, 0.95],
+            [0.11, 0.85, 0.95],
+            [0.11, 0.85, 1.9],
+            [0.11, 0.15, 1.9],
           ],
           'rgba(120,150,170,0.22)',
           'rgba(20,16,14,0.9)',
         );
-        for (const v of [0.38, 0.62]) p.line([0.11, v, 1.2], [0.11, v, 2.4], '#161412', 1.5);
-        p.line([0.11, 0.15, 1.8], [0.11, 0.85, 1.8], '#161412', 1.5);
+        for (const v of [0.38, 0.62]) p.line([0.11, v, 0.95], [0.11, v, 1.9], '#161412', 1.5);
+        p.line([0.11, 0.15, 1.42], [0.11, 0.85, 1.42], '#161412', 1.5);
       }),
       N(sr, (p) => wallBlock(p, sr, c0)),
       N(high, (p) => wallBlock(p, high, c0)),
@@ -1328,10 +1206,10 @@ const builders: Record<string, Builder> = {
 
   portal(def, _s, seed) {
     const [wood] = def.colors;
-    const jl: LBox = [0, 0.2, 0.06, 0.18, 0, 2.7];
-    const jr: LBox = [0, 0.2, 0.82, 0.94, 0, 2.7];
-    const lintel: LBox = [0, 0.2, 0.06, 0.94, 2.7, 2.9];
-    const voidB: LBox = [0, 0.06, 0.18, 0.82, 0, 2.7];
+    const jl: LBox = [0, 0.2, 0.06, 0.18, 0, 2.15];
+    const jr: LBox = [0, 0.2, 0.82, 0.94, 0, 2.15];
+    const lintel: LBox = [0, 0.2, 0.06, 0.94, 2.15, 2.3];
+    const voidB: LBox = [0, 0.06, 0.18, 0.82, 0, 2.15];
     return V([
       N([0.05, 0.95, 0.05, 0.95, 0, 0], (p) =>
         p.withTop(0.004, (ctx) => {
@@ -1343,14 +1221,14 @@ const builders: Record<string, Builder> = {
         }),
       ),
       N(voidB, (p) => {
-        p.face(voidB, 'front', 0.18, 0.82, 0, 2.7, '#030203', true);
+        p.face(voidB, 'front', 0.18, 0.82, 0, 2.15, '#030203', true);
         p.withFace(voidB, 'front', (ctx) => {
           // névoa escura girando dentro da passagem
           const k = p.t / 1000 + seed;
           ctx.fillStyle = 'rgba(120,20,20,0.12)';
           for (let i = 0; i < 4; i++) {
             ctx.beginPath();
-            ctx.ellipse(0.5 + Math.sin(k * 0.7 + i) * 0.15, 0.6 + i * 0.45 + Math.sin(k + i * 2) * 0.1, 0.22, 0.18, 0, 0, Math.PI * 2);
+            ctx.ellipse(0.5 + Math.sin(k * 0.7 + i) * 0.15, 0.45 + i * 0.36 + Math.sin(k + i * 2) * 0.08, 0.22, 0.15, 0, 0, Math.PI * 2);
             ctx.fill();
           }
         });
@@ -1366,10 +1244,10 @@ const builders: Record<string, Builder> = {
     const on = state === 0;
     return V(
       [
-        N([0.4, 0.6, 0.4, 0.6, 2.75, 4.8], (p) => {
-          p.line([0.5, 0.5, 4.8], [0.5, 0.5, 3.12], '#141212', 1.2);
+        N([0.4, 0.6, 0.4, 0.6, 2.15, 2.75], (p) => {
+          p.line([0.5, 0.5, 2.75], [0.5, 0.5, 2.22], '#141212', 1.2);
           const ctx = p.ctx;
-          const [x, y] = p.m.p(0.5, 0.5, 3.1);
+          const [x, y] = p.m.p(0.5, 0.5, 2.21);
           // cúpula
           ctx.fillStyle = '#2a2622';
           ctx.strokeStyle = OUTLINE;
@@ -1396,17 +1274,17 @@ const builders: Record<string, Builder> = {
           }
         }),
       ],
-      lightIf(on, { u: 0.5, v: 0.5, z: 2.4, radius: 210, color: '#ffd98a', intensity: 0.95 }),
+      lightIf(on, { u: 0.5, v: 0.5, z: 1.95, radius: 210, color: '#ffd98a', intensity: 0.95 }),
     );
   },
 
   pillar(def, _s, seed) {
     const [c0] = def.colors;
-    const base: LBox = [0.1, 0.9, 0.1, 0.9, 0, 0.25];
-    const shaft: LBox = [0.2, 0.8, 0.2, 0.8, 0.25, 4.75];
-    const cap: LBox = [0.1, 0.9, 0.1, 0.9, 4.75, 5];
+    const base: LBox = [0.1, 0.9, 0.1, 0.9, 0, 0.14];
+    const shaft: LBox = [0.2, 0.8, 0.2, 0.8, 0.14, 2.61];
+    const cap: LBox = [0.1, 0.9, 0.1, 0.9, 2.61, 2.75];
     const r = rng(seed + 4);
-    const cracks = Array.from({ length: 3 }, () => ({ f: (['front', 'right', 'left', 'back'] as LFace[])[Math.floor(r() * 4)], a: 0.3 + r() * 0.4, z: 0.6 + r() * 3.5 }));
+    const cracks = Array.from({ length: 3 }, () => ({ f: (['front', 'right', 'left', 'back'] as LFace[])[Math.floor(r() * 4)], a: 0.3 + r() * 0.4, z: 0.4 + r() * 1.9 }));
     return V([
       B(base, shade(c0, -0.1)),
       N(shaft, (p) => {
@@ -1641,7 +1519,7 @@ export function furniVisual(def: FurniDef, state: number, seed: number): FVisual
   let v = cache.get(key);
   if (!v) {
     const b = builders[def.kind];
-    v = b ? b(def, state, seed) : V([B([0.05, 0.95, 0.05, 0.95, 0, Math.max(0.1, def.height)], def.colors[0] ?? '#888')]);
+    v = b ? b(def, state, seed) : V([B([0.05, 0.95, 0.05, 0.95, 0, Math.max(0.1, def.height / Z_PER_M)], def.colors[0] ?? '#888')]);
     cache.set(key, v);
     if (cache.size > 2000) cache.clear();
   }

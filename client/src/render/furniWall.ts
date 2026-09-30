@@ -337,6 +337,166 @@ const draws: Record<string, Draw> = {
     ctx.lineTo(c + Math.cos(sA) * 7, c + Math.sin(sA) * 7);
     ctx.stroke();
   },
+
+  // ---------- Sede da Ordem ----------
+  /** Quadro a óleo com moldura dourada (paisagem escura). */
+  painting(ctx, d, _s, seed) {
+    const [gold, canvasC] = d.colors;
+    frameRect(ctx, 0, 0, d.w, d.h, shade(gold, -0.2));
+    ctx.fillStyle = gold;
+    ctx.fillRect(2, 2, d.w - 4, d.h - 4);
+    ctx.fillStyle = canvasC;
+    ctx.fillRect(5, 5, d.w - 10, d.h - 10);
+    const r = rng(seed + 21);
+    const g = ctx.createLinearGradient(0, 5, 0, d.h - 5);
+    g.addColorStop(0, '#5a4a30');
+    g.addColorStop(1, '#1a140c');
+    ctx.fillStyle = g;
+    ctx.fillRect(5, 5, d.w - 10, d.h - 10);
+    ctx.fillStyle = 'rgba(20,30,20,0.8)';
+    ctx.beginPath();
+    ctx.moveTo(5, d.h - 5);
+    for (let x = 5; x <= d.w - 5; x += 6) ctx.lineTo(x, d.h * 0.55 - r() * 8);
+    ctx.lineTo(d.w - 5, d.h - 5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = 'rgba(230,200,140,0.5)';
+    ctx.beginPath();
+    ctx.arc(d.w * 0.7, d.h * 0.35, 3, 0, Math.PI * 2);
+    ctx.fill();
+  },
+
+  /** Letreiro "BAR" em neon rosa (apaga no apagão). */
+  neon(ctx, d, state) {
+    const [tube, core] = d.colors;
+    const on = state === 0;
+    frameRect(ctx, 0, 2, d.w, d.h - 4, '#141012');
+    ctx.save();
+    ctx.font = `bold ${d.h - 8}px Georgia, serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    if (on) {
+      ctx.shadowColor = tube;
+      ctx.shadowBlur = 8;
+    }
+    ctx.lineWidth = 2.2;
+    ctx.strokeStyle = on ? tube : shade(tube, -0.6);
+    ctx.strokeText('BAR', d.w / 2, d.h / 2 + 1);
+    ctx.shadowBlur = 0;
+    ctx.lineWidth = 0.8;
+    ctx.strokeStyle = on ? core : shade(tube, -0.4);
+    ctx.strokeText('BAR', d.w / 2, d.h / 2 + 1);
+    ctx.restore();
+  },
+
+  dartboard(ctx, d) {
+    const [black, red, cream] = d.colors;
+    const c = d.w / 2;
+    const ring = (r: number, col: string) => {
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.arc(c, c, r, 0, Math.PI * 2);
+      ctx.fill();
+    };
+    ring(c, OUTLINE);
+    ring(c - 1, black);
+    // setores claros e escuros
+    for (let i = 0; i < 20; i++) {
+      const a0 = (i / 20) * Math.PI * 2;
+      ctx.fillStyle = i % 2 ? cream : '#1e1a16';
+      ctx.beginPath();
+      ctx.moveTo(c, c);
+      ctx.arc(c, c, c - 3, a0, a0 + Math.PI / 10);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.lineWidth = 1.5;
+    for (const r of [c - 3.5, c * 0.55]) {
+      ctx.strokeStyle = red;
+      ctx.beginPath();
+      ctx.arc(c, c, r, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ring(2.4, '#2f7a3a');
+    ring(1.2, red);
+    // dardos cravados
+    ctx.strokeStyle = '#c9c4bc';
+    ctx.lineWidth = 1;
+    for (const [x, y] of [
+      [c + 4, c - 3],
+      [c - 5, c + 2],
+    ]) {
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + 3, y - 4);
+      ctx.stroke();
+      ctx.fillStyle = red;
+      ctx.fillRect(x + 2.5, y - 5.5, 2, 2);
+    }
+  },
+
+  /** Tela de projeção: enrolada no alto; ligada, mostra o mapa da missão. */
+  screen(ctx, d, state, seed, t) {
+    const [cloth, cas] = d.colors;
+    const on = state === 0;
+    frameRect(ctx, 0, 0, d.w, 5, cas);
+    ctx.fillStyle = OUTLINE;
+    ctx.fillRect(2, 5, d.w - 4, d.h - 6);
+    ctx.fillStyle = on ? shade(cloth, 0.05) : shade(cloth, -0.25);
+    ctx.fillRect(3, 5, d.w - 6, d.h - 7);
+    if (on) {
+      // mapa projetado: ruas, pontos marcados e a luz tremendo de leve
+      const r = rng(seed + 9);
+      ctx.strokeStyle = 'rgba(40,60,70,0.55)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 7; i++) {
+        ctx.beginPath();
+        ctx.moveTo(4 + r() * (d.w - 8), 6);
+        ctx.lineTo(4 + r() * (d.w - 8), d.h - 3);
+        ctx.stroke();
+      }
+      ctx.fillStyle = 'rgba(160,30,20,0.8)';
+      for (let i = 0; i < 3; i++) {
+        ctx.beginPath();
+        ctx.arc(10 + r() * (d.w - 20), 12 + r() * (d.h - 22), 2.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = `rgba(255,250,235,${0.08 + 0.04 * Math.sin(t / 90 + seed)})`;
+      ctx.fillRect(3, 5, d.w - 6, d.h - 7);
+    }
+    ctx.fillStyle = cas;
+    ctx.fillRect(d.w / 2 - 3, d.h - 3, 6, 3);
+  },
+
+  mirror(ctx, d) {
+    const [glass, frame] = d.colors;
+    frameRect(ctx, 0, 0, d.w, d.h, frame);
+    const g = ctx.createLinearGradient(0, 0, d.w, d.h);
+    g.addColorStop(0, shade(glass, 0.2));
+    g.addColorStop(1, shade(glass, -0.35));
+    ctx.fillStyle = g;
+    ctx.fillRect(3, 3, d.w - 6, d.h - 6);
+    ctx.fillStyle = 'rgba(255,255,255,0.28)';
+    ctx.beginPath();
+    ctx.moveTo(6, d.h - 8);
+    ctx.lineTo(d.w - 12, 5);
+    ctx.lineTo(d.w - 8, 5);
+    ctx.lineTo(10, d.h - 8);
+    ctx.closePath();
+    ctx.fill();
+  },
+
+  extinguisher(ctx, d) {
+    const [red, black] = d.colors;
+    frameRect(ctx, 1, 6, d.w - 2, d.h - 7, red);
+    ctx.fillStyle = shade(red, 0.25);
+    ctx.fillRect(3, 8, 2, d.h - 12);
+    ctx.fillStyle = black;
+    ctx.fillRect(d.w / 2 - 2, 1, 4, 5);
+    ctx.fillRect(d.w / 2 + 1, 2, 4, 2);
+    ctx.fillStyle = '#e8e4dc';
+    ctx.fillRect(3, d.h * 0.45, d.w - 6, 5);
+  },
 };
 
 export function drawWallFurni(ctx: CanvasRenderingContext2D, def: WallFurniDef, state: number, seed: number, t: number) {
@@ -354,6 +514,10 @@ export function wallLights(def: WallFurniDef, state: number): WallLight[] {
       return on ? [{ x: 8, y: 6, radius: 120, color: '#ffb45a', intensity: 0.9, flicker: 0.12, kind: 'fire' }] : [];
     case 'emergency':
       return on ? [{ x: def.w / 2, y: def.h / 2 + 4, radius: 170, color: '#ff2a1a', intensity: 0.8, pulse: 260, kind: 'emergency' }] : [];
+    case 'neon':
+      return on ? [{ x: def.w / 2, y: def.h / 2, radius: 110, color: def.colors[0], intensity: 0.65, flicker: 0.03, kind: 'electric' }] : [];
+    case 'screen':
+      return on ? [{ x: def.w / 2, y: def.h / 2, radius: 120, color: '#f2eadc', intensity: 0.45, kind: 'electric' }] : [];
     default:
       return [];
   }

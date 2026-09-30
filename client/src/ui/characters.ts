@@ -1,4 +1,4 @@
-import { ANIM_KEYS, DIR_KEYS, type AnimKey, type AvatarLook, type CharacterDef, type DirKey } from '@croma/shared';
+import { ANIM_KEYS, DIR_KEYS, SHEET_TO_DIR, type AnimKey, type AvatarLook, type CharacterDef, type DirKey } from '@croma/shared';
 
 const ANIM_LABEL: Record<AnimKey, string> = { idle: 'parado', walk: 'andando', sit: 'sentado' };
 import { drawSprite, sprites, type LoadedChar } from '../render/sprites';
@@ -12,8 +12,11 @@ const DIR_LABEL: Record<DirKey, string> = {
   se: '↘ frente-direita',
   nw: '↖ costas-esquerda',
   ne: '↗ costas-direita',
+  s: '↓ de frente',
+  e: '→ de lado, direita',
+  n: '↑ de costas',
+  w: '← de lado, esquerda',
 };
-const DIR_TO_GAME: Record<DirKey, number> = { sw: 4, se: 2, nw: 6, ne: 0 };
 
 function setLook(app: App, look: AvatarLook) {
   const me = app.state.me;
@@ -206,6 +209,9 @@ export class CharactersWin {
     renderDirs();
 
     const dpr = Math.min(2, devicePixelRatio || 1);
+    // as direções que a folha tem (4 ou 8), na ordem da lista
+    const shown = DIR_KEYS.filter((k) => c.dirs.includes(k));
+    const view = shown.length ? shown : DIR_KEYS.slice(0, 4);
     const prev = h('canvas', { class: 'dir-preview', width: 440 * dpr, height: 150 * dpr, style: 'width:440px;height:150px' });
     const sheetBox = h('div', { class: 'sheet-box' });
     let lc: LoadedChar | null = null;
@@ -224,17 +230,19 @@ export class CharactersWin {
       pctx.setTransform(1, 0, 0, 1, 0, 0);
       pctx.clearRect(0, 0, prev.width, prev.height);
       if (!lc) return;
-      const scale = Math.min(1, 120 / c.height);
+      // com 8 direções os bonecos ficam menores para caberem lado a lado
+      const scale = Math.min(1, 120 / c.height) * (view.length > 4 ? 0.7 : 1);
       pctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
       const now = performance.now();
-      DIR_KEYS.forEach((k, i) => {
-        const x = (55 + i * 110) / scale;
+      const step = 440 / view.length;
+      view.forEach((k, i) => {
+        const x = (step / 2 + i * step) / scale;
         const y = 138 / scale;
         pctx.fillStyle = 'rgba(0,0,0,0.4)';
         pctx.beginPath();
         pctx.ellipse(x, y, 16, 7, 0, 0, Math.PI * 2);
         pctx.fill();
-        drawSprite(pctx, c, lc!, DIR_TO_GAME[k], x, y, now, 0, 'stand');
+        drawSprite(pctx, c, lc!, SHEET_TO_DIR[k], x, y, now, 0, 'stand');
       });
     };
     this.raf = requestAnimationFrame(loop);
@@ -255,7 +263,7 @@ export class CharactersWin {
       'div',
       { class: 'char-editor' },
       prev,
-      h('div', { class: 'dir-labels' }, ...DIR_KEYS.map((k) => h('span', null, DIR_LABEL[k]))),
+      h('div', { class: 'dir-labels', style: `grid-template-columns:repeat(${view.length},1fr)` }, ...view.map((k) => h('span', null, DIR_LABEL[k]))),
       h('div', { class: 'grid2' }, h('label', null, 'Nome', nameI), h('label', null, 'Altura na tela', h('div', { class: 'row' }, heightI, heightV))),
       h('div', { class: 'grid3' }, h('label', null, 'Colunas', colsI), h('label', null, 'Linhas', rowsI), h('label', null, 'Quadros/s', fpsI)),
       h('label', null, 'Sequência de quadros (idle)', seqI),

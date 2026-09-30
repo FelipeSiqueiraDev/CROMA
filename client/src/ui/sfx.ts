@@ -188,6 +188,37 @@ class Sfx {
   pop() {
     this.tone(540, 900, 0.08, 0.18, 'triangle');
   }
+
+  /** Tecla do painel de senha (cada número um tom). */
+  beep(n = 0) {
+    this.tone(880 + (n % 10) * 22, 880 + (n % 10) * 22, 0.07, 0.12, 'square');
+  }
+
+  /** Senha errada: zumbido grave. */
+  denied() {
+    this.tone(150, 140, 0.32, 0.22, 'sawtooth');
+    this.tone(155, 150, 0.32, 0.12, 'square');
+  }
+
+  /** Senha certa: trava abrindo (dois tons e um estalo). */
+  granted() {
+    this.tone(660, 660, 0.09, 0.14, 'square');
+    setTimeout(() => this.tone(990, 990, 0.14, 0.14, 'square'), 110);
+    setTimeout(() => this.burst({ dur: 0.05, type: 'highpass', freq: 1500, gain: 0.3, attack: 0.002, release: 0.03 }), 260);
+  }
+
+  /** Móvel pesado arrastado no chão (geladeira deslizando), com a batida no fim. */
+  scrape(ms: number) {
+    const b = this.burst({ dur: ms / 1000, type: 'lowpass', freq: 380, freq2: 240, q: 1.4, gain: 0.55, attack: 0.18, release: 0.2 });
+    if (!b) return;
+    // trepida enquanto arrasta
+    for (let i = 0; i < 14; i++) b.g.gain.setValueAtTime(i % 2 ? 0.3 : 0.55, b.t + 0.2 + (i / 14) * (ms / 1000 - 0.4));
+    this.burst({ dur: ms / 1000, type: 'bandpass', freq: 1400, freq2: 900, q: 2, gain: 0.08, attack: 0.2, release: 0.2 });
+    setTimeout(() => {
+      this.tone(90, 50, 0.22, 0.5);
+      this.burst({ dur: 0.08, type: 'lowpass', freq: 500, gain: 0.35, attack: 0.003, release: 0.06 });
+    }, ms - 60);
+  }
 }
 
 export const sfx = new Sfx();

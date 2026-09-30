@@ -3,6 +3,7 @@ import { h, Win } from './dom';
 const ROWS: [string, string][] = [
   ['Comandar', 'clique num personagem (ou no retrato, ou tecla 1–9)'],
   ['Andar', 'com um personagem ativo, clique no piso; ele desvia dos mobis'],
+  ['Girar', 'Q e E giram o personagem parado (ou os botões ↺ ↻ no painel dele)'],
   ['Sentar', 'clique numa cadeira, banqueta ou sofá'],
   ['Cenas', 'Passagem leva para outra cena · lista à esquerda troca a cena vista'],
   ['Planta', 'arraste as cenas para montar o mapa · clique para ir'],

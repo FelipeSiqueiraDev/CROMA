@@ -1,3 +1,4 @@
+import { Z_PER_M } from '@croma/shared';
 import { shade } from './color';
 import { iso } from './iso';
 
@@ -33,7 +34,10 @@ export interface BoxOpts {
   edge?: number;
 }
 
-/** Converte coordenadas locais do mobi para o mundo, respeitando a rotação. */
+/**
+ * Converte coordenadas locais do mobi para o mundo, respeitando a rotação.
+ * u e v em casas; z local em metros (vira unidades de altura com Z_PER_M).
+ */
 export class Mapper {
   rot = 2;
   W = 1;
@@ -67,7 +71,7 @@ export class Mapper {
 
   p(u: number, v: number, z: number): [number, number] {
     const [x, y] = this.xy(u, v);
-    return iso(x, y, this.oz + z);
+    return iso(x, y, this.oz + z * Z_PER_M);
   }
 
   box(b: LBox): WBox {
@@ -78,8 +82,8 @@ export class Mapper {
       x1: Math.max(xa, xb),
       y0: Math.min(ya, yb),
       y1: Math.max(ya, yb),
-      z0: this.oz + b[4],
-      z1: this.oz + b[5],
+      z0: this.oz + b[4] * Z_PER_M,
+      z1: this.oz + b[5] * Z_PER_M,
     };
   }
 

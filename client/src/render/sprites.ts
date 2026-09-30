@@ -1,4 +1,4 @@
-import type { AnimKey, CharacterDef, DirKey } from '@croma/shared';
+import { sheetDirFor, type AnimKey, type CharacterDef } from '@croma/shared';
 
 /** Quadro pronto para desenhar. w/h/ax/ay em pixels de mundo (zoom 1). */
 export interface SpriteFrame {
@@ -20,14 +20,6 @@ export interface LoadedChar {
 /** Superamostragem para ficar nítido no zoom 2 / telas retina. */
 const RES = 2.5;
 
-/** dir do jogo (0..7) → linha da folha. As folhas têm 4 direções diagonais. */
-const DIR_TO_KEY: DirKey[] = ['ne', 'se', 'se', 'sw', 'sw', 'sw', 'nw', 'ne'];
-const FALLBACK: Record<DirKey, DirKey[]> = {
-  se: ['sw', 'ne', 'nw'],
-  sw: ['se', 'nw', 'ne'],
-  ne: ['nw', 'se', 'sw'],
-  nw: ['ne', 'sw', 'se'],
-};
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((res, rej) => {
@@ -282,13 +274,14 @@ class SpriteStore {
 
 export const sprites = new SpriteStore();
 
-/** Quadros para a direção e animação; cai para idle e para outra direção se faltar. */
+/**
+ * Quadros para a direção e animação. Folha de 8 direções: a linha da própria
+ * direção; de 4: a diagonal mais próxima (ver sheetDirFor). null = a folha não
+ * tem essa animação (quem chama cai para idle).
+ */
 export function framesFor(lc: LoadedChar, dir: number, anim: AnimKey = 'idle'): SpriteFrame[] | null {
-  const key = DIR_TO_KEY[((dir % 8) + 8) % 8];
-  if (lc.frames[`${anim}:${key}`]?.length) return lc.frames[`${anim}:${key}`];
-  if (anim !== 'idle') return null;
-  for (const k of [key, ...FALLBACK[key]]) if (lc.frames[`idle:${k}`]?.length) return lc.frames[`idle:${k}`];
-  return null;
+  const key = sheetDirFor(dir, (k) => !!lc.frames[`${anim}:${k}`]?.length);
+  return key ? lc.frames[`${anim}:${key}`] : null;
 }
 
 export type SpritePose = 'stand' | 'walk' | 'sit';

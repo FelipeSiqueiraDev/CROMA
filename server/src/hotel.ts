@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import type { WebSocket } from 'ws';
 import {
+  DIR_KEYS,
   getLayout,
   MAX_NAME,
   sanitizeCharPatch,
@@ -10,36 +11,156 @@ import {
   DEFAULT_CAPACITY,
   parseHeightmap,
   playerColorFor,
+  SESSION_ACTIONS,
+  sceneShortName,
   type CampaignState,
+  type Character,
+  type Item,
   type LogIcon,
+  type NormPoint,
   type PartyMember,
+  type Role,
   type RoomSummary,
   type SceneInfo,
+  type SceneObject,
   type ServerMsg,
+  type Session,
+  type SessionActionType,
+  type Tile,
+  type Token,
+  type VitalKey,
+  type Vitals,
+  VITAL_LABEL,
+  regras,
+  combate as cmb,
+  sanitizarFicha,
+  type FichaSalva,
 } from '@croma/shared';
 import { loadDb, saveDbNow, scheduleSave, type CampaignData, type Database, type RoomData, type UserData } from './db';
 import { RoomInstance, type Client, type HotelApi } from './roomInstance';
+import { refreshPortraits } from './portraits';
 import { seedDb, SYSTEM_OWNER, upgradeDb } from './seed';
 
 const NAME_RE = /^[\p{L}\p{N}_\-. ]+$/u;
 const STARTER: string[] = ['chair_wood', 'table_small', 'candles', 'crate_wood', 'plant'];
 
+/** Mensagens que mudam o tabuleiro: só o mestre manda (o resto recebe "Só o mestre..."). */
+const GM_ONLY = new Set([
+  'createRoom',
+  'charUpdate',
+  'charDelete',
+  'sendTo',
+  'objAdd',
+  'objToggle',
+  'objRemove',
+  'campaignSet',
+  'layoutSet',
+  'capacitySet',
+  'tokenAdd',
+  'tokenEdit',
+  'tokenRemove',
+  'tokenWalk',
+  'tokenFace',
+  'tokenScene',
+  'vitals',
+  'fichaApagar',
+  'fichaLink',
+  'place',
+  'placeWall',
+  'moveItem',
+  'moveWallItem',
+  'pickup',
+  'use',
+  'setHint',
+  'roomSettings',
+  'roomFx',
+  'setLink',
+  'unlock',
+  'relock',
+  'lootAdd',
+  'lootRemove',
+  'lootGive',
+  'lootReveal',
+  'actionAdd',
+  'actionRemove',
+  'actionLog',
+  'floorPlan',
+  'combate',
+  'ameaca',
+]);
+
+/** Quantos estados do combate o "Desfazer" guarda por campanha. */
+const MAX_DESFAZER = 40;
+
+const isInt = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v);
+const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+const round1 = (n: number) => Math.round(n * 10) / 10;
+
+export interface HotelOptions {
+  /** banco em memória (testes); sem ele, lê server/data/db.json */
+  db?: Database;
+  /** false = não grava nada em disco (testes) */
+  persist?: boolean;
+  /** false = nada roda sozinho; o teste chama pushNow() e room.step() */
+  timers?: boolean;
+}
+
 export class Hotel implements HotelApi {
   db: Database;
   rooms = new Map<number, RoomInstance>();
+  readonly timers: boolean;
+  private persist: boolean;
   private clients = new Map<number, Client>();
   private byToken = new Map<string, Client>();
   private nextClientId = 1;
   private listTimer: NodeJS.Timeout | null = null;
   private touchTimer: NodeJS.Timeout | null = null;
 
-  constructor() {
-    const loaded = loadDb();
-    this.db = loaded ?? seedDb();
-    if (upgradeDb(this.db) || !loaded) saveDbNow(this.db);
+  constructor(opts: HotelOptions = {}) {
+    this.persist = opts.persist ?? true;
+    this.timers = opts.timers ?? true;
+    const loaded = opts.db ? null : loadDb();
+    this.db = opts.db ?? loaded ?? seedDb();
+    let dirty = upgradeDb(this.db) || (!loaded && !opts.db);
+    if (!this.db.gmKey) {
+      this.db.gmKey = crypto.randomBytes(9).toString('base64url');
+      dirty = true;
+    }
+    if (refreshPortraits(this.db.characters)) dirty = true;
+    if (dirty && this.persist) saveDbNow(this.db);
     for (const r of this.db.rooms) this.rooms.set(r.id, new RoomInstance(r, this));
-    console.log(`[hotel] ${this.rooms.size} quarto(s), ${this.db.characters.length} personagem(ns)`);
-    setInterval(() => this.pushScenes(), 1500);
+    // peças de agente que ainda não têm PV/PE/SAN pegam os da ficha (a MAPA e o combate usam)
+    for (const f of this.db.fichas ?? [])
+      if (f.personagem)
+        try {
+          this.fichaParaPecas(f, true);
+        } catch (e) {
+          console.error(`[fichas] ficha ${f.id} com erro nas regras`, e);
+        }
+    if (this.persist) console.log(`[hotel] ${this.rooms.size} quarto(s), ${this.db.characters.length} personagem(ns)`);
+    if (this.timers) {
+      setInterval(() => this.pushScenes(), 1500);
+      // retratos novos na pasta do personagem aparecem sem reiniciar o servidor
+      setInterval(() => this.checkPortraits(), 5000);
+    }
+  }
+
+  /** Procura retratos novos (ou removidos) nas pastas dos personagens. */
+  checkPortraits() {
+    if (!refreshPortraits(this.db.characters)) return;
+    this.save();
+    this.broadcastCharacters();
+  }
+
+  /** Chave do link do mestre. */
+  get gmKey() {
+    return this.db.gmKey!;
+  }
+
+  private checkGmKey(key: string) {
+    const a = Buffer.from(key);
+    const b = Buffer.from(this.gmKey);
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
   }
 
   // ---------- minimapa: cenas ligadas por Passagens ----------
@@ -82,8 +203,232 @@ export class Hotel implements HotelApi {
     this.touch();
   }
 
+  /** Mudanças de PV/PE/SAN esperando para ir ao registro (cliques seguidos viram uma linha). */
+  private vitalLog = new Map<string, { roomId: number; name: string; key: VitalKey; from: number; to: number; max: number; timer: NodeJS.Timeout | null }>();
+
+  // ---------- combate (docs/COMBATE.md) ----------
+  /** estados anteriores do combate de cada campanha, para o "Desfazer" (só na memória), com os PV/PE/SAN que cada passo mudou */
+  private desfazeres = new Map<number, { combate: string; vitais: { id: number; antes: Vitals }[] }[]>();
+
+  /** Peças da campanha e os PV/SAN delas, para as regras do combate. */
+  private contextoCombate(group: number[], cena: number): cmb.Contexto {
+    const agentes = new Set((this.db.fichas ?? []).map((f) => f.personagem).filter((x): x is number => !!x));
+    const pecas: cmb.PecaCombate[] = [];
+    const vitais = new Map<number, Vitals>();
+    for (const id of group) {
+      const r = this.rooms.get(id);
+      if (!r) continue;
+      for (const t of r.tokensLive()) {
+        pecas.push({ id: t.token.id, nome: t.name, agente: !!t.look.charId && agentes.has(t.look.charId), naCena: id === cena });
+        if (t.vitals) vitais.set(t.token.id, { ...t.vitals });
+      }
+    }
+    return { agora: Date.now(), cena, pecas, vitais: (id) => vitais.get(id) ?? null };
+  }
+
+  /** Uma ação da tela de combate (só o mestre). */
+  private combateAcao(c: Client, m: Record<string, unknown>) {
+    const room = c.room;
+    if (!room) return;
+    const a = cmb.lerAcao(m.a);
+    if (!a) return c.send({ t: 'denied', action: 'combate', reason: 'Ação de combate inválida.' });
+    const group = this.sceneGroup(room.data.id);
+    const key = Math.min(...group);
+    const camp = this.campaignFor(key);
+    const pilha = this.desfazeres.get(key) ?? [];
+    this.desfazeres.set(key, pilha);
+    if (a.tipo === 'desfazer') {
+      const passo = pilha.pop();
+      if (passo === undefined) return c.send({ t: 'denied', action: 'combate', reason: 'Nada para desfazer.' });
+      const volta = JSON.parse(passo.combate) as cmb.Combate | null;
+      if (volta) camp.combate = volta;
+      else delete camp.combate;
+      // o que o passo mudou nas peças volta também
+      for (const x of passo.vitais) this.mudarVitaisPeca(group, x.id, x.antes);
+      this.save();
+      this.touch();
+      return;
+    }
+    const antes = camp.combate ?? null;
+    const r = cmb.aplicar(antes, a, this.contextoCombate(group, room.data.id));
+    if (!r.ok) return c.send({ t: 'denied', action: 'combate', reason: r.motivo });
+    const mudou: { id: number; antes: Vitals }[] = [];
+    for (const m of r.vitais ?? []) {
+      const velho = this.mudarVitaisPeca(group, m.id, m);
+      if (velho) mudou.push({ id: m.id, antes: velho });
+    }
+    pilha.push({ combate: JSON.stringify(antes), vitais: mudou });
+    if (pilha.length > MAX_DESFAZER) pilha.splice(0, pilha.length - MAX_DESFAZER);
+    if (r.combate) camp.combate = r.combate;
+    else delete camp.combate;
+    // o começo e o fim do combate vão também para o registro da sessão
+    if (a.tipo === 'comecar') this.log(room.data.id, 'dice', 'Combate começou.');
+    if (a.tipo === 'encerrar' && antes?.fase === 'andamento') this.log(room.data.id, 'dice', `Combate encerrado na rodada ${antes.rodada}.`);
+    this.save();
+    this.touch();
+  }
+
+  /** PV, PE ou SAN de uma peça da campanha (procura a cena em que ela está). Devolve os de antes. */
+  private mudarVitaisPeca(group: number[], tokenId: number, m: { pv?: number; pe?: number; san?: number }): Vitals | null {
+    for (const id of group) {
+      const antes = this.rooms.get(id)?.mudarVitais(tokenId, m);
+      if (antes) return antes;
+    }
+    return null;
+  }
+
+  /** Ficha rápida de ameaça de uma peça (só o mestre), guardada na campanha. */
+  private ameacaSalvar(c: Client, m: Record<string, unknown>) {
+    const room = c.room;
+    if (!room || typeof m.tokenId !== 'number') return;
+    const group = this.sceneGroup(room.data.id);
+    const existe = group.some((id) => this.rooms.get(id)?.tokensLive().some((t) => t.token.id === m.tokenId));
+    if (!existe) return c.send({ t: 'denied', action: 'ameaca', reason: 'Peça não encontrada nesta campanha.' });
+    const camp = this.campaignFor(Math.min(...group));
+    camp.ameacas ??= {};
+    if (m.ficha === null) delete camp.ameacas[String(m.tokenId)];
+    else {
+      const f = cmb.lerFichaAmeaca(m.ficha);
+      if (!f) return c.send({ t: 'denied', action: 'ameaca', reason: 'Ficha inválida.' });
+      camp.ameacas[String(m.tokenId)] = f;
+    }
+    this.save();
+    this.touch();
+  }
+
+  // ---------- fichas ----------
+  private fichasTimer: NodeJS.Timeout | null = null;
+
+  /** Manda a lista de fichas para quem é mestre (ou só para um cliente). */
+  private enviarFichas(so?: Client, nova?: number) {
+    const todas = this.db.fichas ?? [];
+    const para = (c: Client) => {
+      if (c.role === 'gm') return c.send({ t: 'fichas', fichas: todas, nova });
+      if (!c.fichaId) return;
+      const minha = todas.find((f) => f.id === c.fichaId);
+      c.send({ t: 'fichas', fichas: minha ? [{ ...minha, chave: undefined }] : [] });
+    };
+    if (so) return para(so);
+    for (const c of this.clients.values()) para(c);
+  }
+
+  private fichaSalvar(c: Client, m: Record<string, unknown>) {
+    const f = sanitizarFicha(m.ficha);
+    if (!f) return c.send({ t: 'error', msg: 'Ficha inválida.' });
+    const lista = (this.db.fichas ??= []);
+    const antiga = f.id ? lista.find((x) => x.id === f.id) : undefined;
+    if (c.role !== 'gm') {
+      // o jogador mexe só na própria ficha; NEX, patente, ligação e link são do mestre
+      if (!c.fichaId || !antiga || antiga.id !== c.fichaId) return c.send({ t: 'error', msg: 'Você só pode mexer na sua ficha.' });
+      f.ficha.nex = antiga.ficha.nex;
+      f.ficha.pp = antiga.ficha.pp;
+      f.ficha.regras = antiga.ficha.regras;
+      f.personagem = antiga.personagem;
+      f.campanha = antiga.campanha;
+    }
+    if (antiga) f.chave = antiga.chave;
+    else delete f.chave;
+    let nova: number | undefined;
+    if (antiga) {
+      f.criadaEm = antiga.criadaEm;
+      lista[lista.indexOf(antiga)] = f;
+    } else {
+      f.id = this.db.nextFichaId = Math.max(this.db.nextFichaId ?? 1, ...lista.map((x) => x.id + 1));
+      this.db.nextFichaId = f.id + 1;
+      lista.push(f);
+      nova = f.id;
+    }
+    // uma folha de sprite tem uma ficha só
+    if (f.personagem) for (const o of lista) if (o !== f && o.personagem === f.personagem) delete o.personagem;
+    if (f.personagem) this.fichaParaPecas(f);
+    this.save();
+    this.enviarFichas(undefined, nova);
+  }
+
+  private fichaApagar(c: Client, m: Record<string, unknown>) {
+    const id = typeof m.id === 'number' ? m.id : 0;
+    const lista = this.db.fichas ?? [];
+    const i = lista.findIndex((x) => x.id === id);
+    if (i < 0) return;
+    lista.splice(i, 1);
+    this.save();
+    this.enviarFichas();
+    void c;
+  }
+
+  private fichaLink(m: Record<string, unknown>) {
+    const f = (this.db.fichas ?? []).find((x) => x.id === m.id);
+    if (!f) return;
+    f.chave = crypto.randomBytes(9).toString('base64url');
+    this.save();
+    this.enviarFichas();
+  }
+
+  /** Link de jogador válido? Devolve a ficha. */
+  private fichaPelaChave(chave: string): FichaSalva | undefined {
+    const b = Buffer.from(chave);
+    return (this.db.fichas ?? []).find((f) => {
+      if (!f.chave) return false;
+      const a = Buffer.from(f.chave);
+      return a.length === b.length && crypto.timingSafeEqual(a, b);
+    });
+  }
+
+  /** PV/PE/SAN da ficha (máximos pelo motor de regras) para as peças do personagem ligado. `soSemVitais`: só as peças que ainda não têm. */
+  private fichaParaPecas(f: FichaSalva, soSemVitais = false) {
+    const calc = regras.calcular(f.ficha);
+    const a = f.atual ?? { pv: calc.pv, pe: calc.pe, san: calc.san };
+    const v: Vitals = { pv: Math.min(a.pv, calc.pv), pvMax: calc.pv, pe: Math.min(a.pe, calc.pe), peMax: calc.pe, san: Math.min(a.san, calc.san), sanMax: calc.san };
+    let mudou = false;
+    for (const r of this.rooms.values()) mudou = r.definirVitais(f.personagem!, v, soSemVitais) || mudou;
+    if (mudou) this.touch();
+  }
+
+  /** Peça nova (ou com outra folha): sem PV/PE/SAN, pega os da ficha ligada ao personagem. */
+  vitaisDaFicha(personagem: number | null | undefined) {
+    if (!personagem) return;
+    const f = (this.db.fichas ?? []).find((x) => x.personagem === personagem);
+    if (f) this.fichaParaPecas(f, true);
+  }
+
+  /** PV/PE/SAN de uma peça mudou no tabuleiro: a ficha ligada ao personagem acompanha. */
+  vitaisDaPeca(personagem: number | null | undefined, v: Vitals) {
+    if (!personagem) return;
+    const f = (this.db.fichas ?? []).find((x) => x.personagem === personagem);
+    if (!f) return;
+    f.atual = { ...f.atual, pv: v.pv, pe: v.pe, san: v.san };
+    this.save();
+    if (!this.timers) return this.enviarFichas();
+    if (this.fichasTimer) return;
+    this.fichasTimer = setTimeout(() => {
+      this.fichasTimer = null;
+      this.enviarFichas();
+    }, 300);
+  }
+
+  vitalChanged(roomId: number, tokenId: number, name: string, key: VitalKey, from: number, to: number, max: number) {
+    const k = `${tokenId}:${key}`;
+    const cur = this.vitalLog.get(k);
+    const entry = cur ?? { roomId, name, key, from, to, max, timer: null };
+    entry.to = to;
+    entry.max = max;
+    entry.name = name;
+    if (entry.timer) clearTimeout(entry.timer);
+    this.vitalLog.set(k, entry);
+    const flush = () => {
+      this.vitalLog.delete(k);
+      if (entry.to === entry.from) return;
+      const d = entry.to - entry.from;
+      const label = VITAL_LABEL[entry.key];
+      const what = d < 0 ? `perdeu ${-d} ${label}` : `recuperou ${d} ${label}`;
+      this.log(entry.roomId, 'user', `${entry.name} ${what} (${entry.to}/${entry.max}).`);
+    };
+    if (this.timers) entry.timer = setTimeout(flush, 2500);
+    else flush();
+  }
+
   touch() {
-    if (this.touchTimer) return;
+    if (!this.timers || this.touchTimer) return;
     this.touchTimer = setTimeout(() => {
       this.touchTimer = null;
       this.pushScenes();
@@ -97,25 +442,13 @@ export class Hotel implements HotelApi {
     const scenes: SceneInfo[] = rooms.map((r) => ({
       id: r.data.id,
       name: r.data.name,
+      floor: r.data.floor,
       heightmap: r.data.heightmap,
       door: r.data.door,
       portals: r.portals(),
       users: r.userPositions(),
     }));
-    // planta: posiciona cenas novas lado a lado
-    let changed = false;
-    let right = 0;
-    for (const s of scenes) {
-      const p = camp.layout[s.id];
-      if (p) right = Math.max(right, p.x + parseHeightmap(s.heightmap).width + 1);
-    }
-    for (const s of scenes)
-      if (!camp.layout[s.id]) {
-        camp.layout[s.id] = { x: right, y: 0 };
-        right += parseHeightmap(s.heightmap).width + 1;
-        changed = true;
-      }
-    if (changed) this.save();
+    this.ensureLayout(camp, scenes);
     // grupo = as peças de todas as cenas da campanha
     const load = new Map<string, number>();
     for (const r of rooms) for (const l of r.heldLoot()) load.set(l.holder.toLowerCase(), (load.get(l.holder.toLowerCase()) ?? 0) + l.weight);
@@ -130,11 +463,15 @@ export class Hotel implements HotelApi {
           capacity: t.capacity ?? DEFAULT_CAPACITY,
           roomId: r.data.id,
           color: t.color ?? playerColorFor(t.name),
+          armed: t.armed,
+          hurt: t.hurt,
+          vitals: t.vitals,
         });
     return {
       key,
       title: camp.title,
       subtitle: camp.subtitle,
+      operacao: camp.operacao,
       objectives: camp.objectives,
       layout: camp.layout,
       log: camp.log.slice(-30),
@@ -143,20 +480,134 @@ export class Hotel implements HotelApi {
     };
   }
 
+  /** Planta: posiciona cenas novas lado a lado. */
+  private ensureLayout(camp: CampaignData, scenes: { id: number; heightmap: string }[]) {
+    let changed = false;
+    let right = 0;
+    for (const s of scenes) {
+      const p = camp.layout[s.id];
+      if (p) right = Math.max(right, p.x + parseHeightmap(s.heightmap).width + 1);
+    }
+    for (const s of scenes)
+      if (!camp.layout[s.id]) {
+        camp.layout[s.id] = { x: right, y: 0 };
+        right += parseHeightmap(s.heightmap).width + 1;
+        changed = true;
+      }
+    if (changed) this.save();
+  }
+
+  /** Estado da sessão para um papel (o "me" de cada pessoa entra no envio). */
+  private sessionState(group: number[], role: Role): Omit<Session, 'me'> {
+    const key = Math.min(...group);
+    const camp = this.campaignFor(key);
+    const rooms = group.map((id) => this.rooms.get(id)!).sort((a, b) => a.data.id - b.data.id);
+    const scenes = rooms.map((r) => r.sceneInfo());
+    this.ensureLayout(camp, scenes);
+    const objects: SceneObject[] = [];
+    const items: Item[] = [];
+    for (const r of rooms) {
+      const o = r.sessionObjects(role);
+      objects.push(...o.objects);
+      items.push(...o.items);
+    }
+    const load = new Map<string, number>();
+    for (const r of rooms) for (const l of r.heldLoot()) load.set(l.holder.toLowerCase(), (load.get(l.holder.toLowerCase()) ?? 0) + l.weight);
+    const characters: Character[] = [];
+    const tokens: Token[] = [];
+    for (const r of rooms)
+      for (const t of r.tokensLive()) {
+        tokens.push(t.token);
+        characters.push({
+          id: t.token.id,
+          name: t.name,
+          color: t.color ?? playerColorFor(t.name),
+          capacity: t.capacity ?? DEFAULT_CAPACITY,
+          load: round1(load.get(t.name.toLowerCase()) ?? 0),
+          look: t.look,
+          sceneId: r.data.id,
+          armed: !!t.armed,
+          hurt: !!t.hurt,
+          vitals: t.vitals,
+        });
+      }
+    characters.sort((a, b) => a.id - b.id);
+    const byName = new Map(characters.map((ch) => [ch.name.toLowerCase(), ch.id]));
+    for (const it of items) it.holderId = it.holderName ? (byName.get(it.holderName.toLowerCase()) ?? null) : null;
+    const cur = camp.currentSceneId;
+    const home = this.db.home;
+    const currentSceneId = cur !== undefined && group.includes(cur) ? cur : home !== undefined && group.includes(home) ? home : key;
+    return {
+      id: key,
+      title: camp.title,
+      subtitle: camp.subtitle,
+      currentSceneId,
+      scenes,
+      objects,
+      characters,
+      tokens,
+      items,
+      objectives: camp.objectives,
+      events: camp.log.slice(-30),
+      layout: camp.layout,
+    };
+  }
+
+  /** Reenvia campanha e sessão para quem mudou (público para os testes). */
+  pushNow() {
+    this.pushScenes();
+  }
+
   private pushScenes() {
     const cache = new Map<number, string>();
+    const groups = new Map<number, number[]>();
+    const snaps = new Map<string, Omit<Session, 'me'>>();
+    const combates = new Map<string, string>();
     for (const c of this.clients.values()) {
       if (!c.name || !c.room) continue;
       const rid = c.room.data.id;
+      let group = groups.get(rid);
+      if (!group) {
+        group = this.sceneGroup(rid);
+        for (const id of group) groups.set(id, group);
+      }
       let json = cache.get(rid);
       if (json === undefined) {
-        const group = this.sceneGroup(rid);
         json = JSON.stringify(this.campaignState(group));
         for (const id of group) cache.set(id, json);
       }
       if (json !== c.lastScenes) {
         c.lastScenes = json;
         c.send({ t: 'campaign', state: JSON.parse(json) as CampaignState });
+      }
+      // sessão (contrato novo): um estado por papel, com o "me" de cada um
+      const role: Role = c.role === 'gm' ? 'gm' : 'player';
+      const sk = `${Math.min(...group)}:${role}`;
+      let snap = snaps.get(sk);
+      if (!snap) {
+        snap = this.sessionState(group, role);
+        snaps.set(sk, snap);
+      }
+      const session: Session = { ...snap, me: { name: c.name, role } };
+      const sj = JSON.stringify(session);
+      if (sj !== c.lastSession) {
+        c.lastSession = sj;
+        c.send({ t: 'session', session });
+      }
+      // combate: o mestre recebe tudo; a mesa, só a ordem, a rodada e a vez
+      let cj = combates.get(sk);
+      if (cj === undefined) {
+        const key = Math.min(...group);
+        const camp = this.campaignFor(key);
+        const cb = camp.combate ?? null;
+        const podeDesfazer = role === 'gm' && (this.desfazeres.get(key)?.length ?? 0) > 0;
+        // as fichas das ameaças são só do mestre (DC-4)
+        cj = JSON.stringify({ t: 'combate', combate: role === 'gm' ? cb : cmb.visaoMesa(cb), ...(role === 'gm' ? { podeDesfazer, ameacas: camp.ameacas ?? {} } : {}) });
+        combates.set(sk, cj);
+      }
+      if (cj !== c.lastCombate) {
+        c.lastCombate = cj;
+        c.send(JSON.parse(cj) as ServerMsg);
       }
     }
   }
@@ -169,29 +620,26 @@ export class Hotel implements HotelApi {
     const camp = this.campaignFor(this.groupKey(room.data.id));
     const txt = (v: unknown, max: number) => (typeof v === 'string' ? v.replace(/[\u0000-\u001f]/g, '').trim().slice(0, max) : '');
     switch (m.t) {
-      case 'objAdd': {
-        const text = txt(m.text, 80);
-        if (!text || camp.objectives.length >= 20) return;
-        camp.objectives.push({ id: this.nextItemId(), text, done: false });
+      case 'objAdd':
+        if (this.objectiveAdd(camp, m.text)) return;
         break;
-      }
       case 'objToggle': {
         const o = camp.objectives.find((x) => x.id === m.id);
         if (!o) return;
-        o.done = !o.done;
-        if (o.done) this.log(room.data.id, 'obj', `Objetivo concluído: ${o.text}.`);
+        this.objectiveSet(camp, o.id, !o.done, room.data.id);
         break;
       }
       case 'objRemove':
-        camp.objectives = camp.objectives.filter((x) => x.id !== m.id);
+        this.objectiveRemove(camp, m.id);
         break;
       case 'campaignSet':
         camp.title = txt(m.title, 40) || camp.title;
         camp.subtitle = txt(m.subtitle, 40);
+        if (typeof m.operacao === 'string') camp.operacao = txt(m.operacao, 40) || undefined;
         break;
       case 'layoutSet': {
         if (typeof m.roomId !== 'number' || typeof m.x !== 'number' || typeof m.y !== 'number') return;
-        camp.layout[m.roomId] = { x: Math.max(-40, Math.min(120, Math.round(m.x))), y: Math.max(-40, Math.min(120, Math.round(m.y))) };
+        camp.layout[m.roomId] = { ...camp.layout[m.roomId], x: Math.max(-40, Math.min(120, Math.round(m.x))), y: Math.max(-40, Math.min(120, Math.round(m.y))) };
         break;
       }
       case 'capacitySet': {
@@ -204,6 +652,152 @@ export class Hotel implements HotelApi {
     }
     this.save();
     this.touch();
+  }
+
+  /** Novo objetivo. Devolve o motivo quando não dá. */
+  private objectiveAdd(camp: CampaignData, raw: unknown): string | null {
+    const text = typeof raw === 'string' ? raw.replace(/[\u0000-\u001f]/g, '').trim().slice(0, 80) : '';
+    if (!text) return 'Escreva o objetivo.';
+    if (camp.objectives.length >= 20) return 'Máximo de 20 objetivos.';
+    camp.objectives.push({ id: this.nextItemId(), text, done: false });
+    return null;
+  }
+
+  private objectiveSet(camp: CampaignData, id: unknown, done: boolean, roomId: number): string | null {
+    const o = camp.objectives.find((x) => x.id === id);
+    if (!o) return 'Objetivo não encontrado.';
+    if (o.done === done) return null;
+    o.done = done;
+    if (done) this.log(roomId, 'obj', `Objetivo concluído: ${o.text}.`);
+    return null;
+  }
+
+  private objectiveRemove(camp: CampaignData, id: unknown): string | null {
+    const n = camp.objectives.length;
+    camp.objectives = camp.objectives.filter((x) => x.id !== id);
+    return camp.objectives.length === n ? 'Objetivo não encontrado.' : null;
+  }
+
+  // ---------- cena atual da sessão ----------
+  /** A cena que o mestre deixou aberta na sessão desta cena (se houver). */
+  private currentSceneOf(roomId: number): RoomInstance | null {
+    const group = this.sceneGroup(roomId);
+    const id = this.campaignFor(Math.min(...group)).currentSceneId;
+    return id !== undefined && group.includes(id) ? (this.rooms.get(id) ?? null) : null;
+  }
+
+  /**
+   * Entrar numa cena. O mestre vai para onde quiser e leva os jogadores junto;
+   * o jogador sempre vai para a cena que o mestre deixou aberta.
+   */
+  private enter(c: Client, room: RoomInstance) {
+    if (c.role !== 'gm') {
+      const live = this.db.liveScene !== undefined ? this.rooms.get(this.db.liveScene) : undefined;
+      const target = live ?? this.currentSceneOf(room.data.id) ?? room;
+      if (c.room === target) return c.send({ t: 'notice', msg: 'Quem escolhe a cena é o mestre.' });
+      c.room?.leave(c);
+      target.join(c);
+      return;
+    }
+    if (c.room !== room) {
+      c.room?.leave(c);
+      room.join(c);
+    }
+    this.setCurrentScene(room);
+  }
+
+  private setCurrentScene(room: RoomInstance) {
+    const group = this.sceneGroup(room.data.id);
+    const camp = this.campaignFor(Math.min(...group));
+    const changed = camp.currentSceneId !== room.data.id;
+    camp.currentSceneId = room.data.id;
+    this.db.liveScene = room.data.id;
+    // a mesa vai junto, mesmo que estivesse em outra campanha
+    for (const o of this.clients.values()) {
+      if (o.role === 'gm' || !o.name || !o.room || o.room === room) continue;
+      o.room.leave(o);
+      room.join(o);
+    }
+    if (changed) this.log(room.data.id, 'scene', `Cena atual: ${sceneShortName(room.data.name)}.`);
+    this.save();
+    this.touch();
+  }
+
+  // ---------- ações do contrato (SessionAction) ----------
+  private roomOfToken(tokenId: number) {
+    for (const r of this.rooms.values()) if (r.hasToken(tokenId)) return r;
+    return null;
+  }
+
+  private roomOfLoot(lootId: number) {
+    for (const r of this.rooms.values()) if (r.findLoot(lootId)) return r;
+    return null;
+  }
+
+  private act(c: Client, raw: unknown) {
+    const a = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+    const type = typeof a.type === 'string' ? a.type : '';
+    const deny = (reason: string) => c.send({ t: 'denied', action: type, reason });
+    if (!SESSION_ACTIONS.includes(type as SessionActionType)) return deny('Ação desconhecida.');
+    if (c.role !== 'gm') return deny('Só o mestre pode fazer isso.');
+    let err: string | null = null;
+    switch (type as SessionActionType) {
+      case 'scene.change': {
+        const room = isInt(a.sceneId) ? this.rooms.get(a.sceneId) : undefined;
+        if (!room) return deny('Cena não encontrada.');
+        this.enter(c, room);
+        return;
+      }
+      case 'token.move': {
+        const room = isInt(a.tokenId) ? this.roomOfToken(a.tokenId) : null;
+        if (!room) return deny('Peça não encontrada.');
+        const to = a.to && typeof a.to === 'object' ? (a.to as Record<string, unknown>) : {};
+        const mode = a.mode === 'place' ? 'place' : 'walk';
+        const tile = to.tile && typeof to.tile === 'object' ? (to.tile as Record<string, unknown>) : null;
+        if (tile) {
+          if (!isInt(tile.x) || !isInt(tile.y)) return deny('Casa inválida.');
+          err = room.moveTokenTo(a.tokenId as number, { x: tile.x, y: tile.y } as Tile, true, mode);
+        } else {
+          if (!isNum(to.x) || !isNum(to.y)) return deny('Ponto inválido: use x e y entre 0 e 1.');
+          const p: NormPoint = { x: Math.max(0, Math.min(1, to.x)), y: Math.max(0, Math.min(1, to.y)) };
+          err = room.moveTokenTo(a.tokenId as number, p, false, mode);
+        }
+        break;
+      }
+      case 'token.face': {
+        const room = isInt(a.tokenId) ? this.roomOfToken(a.tokenId) : null;
+        if (!room) return deny('Peça não encontrada.');
+        err = room.faceToken(a.tokenId as number, isInt(a.dir) ? a.dir : -1);
+        break;
+      }
+      case 'item.give': {
+        const room = isInt(a.itemId) ? this.roomOfLoot(a.itemId) : null;
+        if (!room) return deny('Item não encontrado.');
+        let toName: string | null = null;
+        if (a.to !== null) {
+          const holder = isInt(a.to) ? this.roomOfToken(a.to)?.tokensLive().find((t) => t.token.id === a.to) : undefined;
+          if (!holder) return deny('Personagem não encontrado.');
+          toName = holder.name;
+        }
+        err = room.giveLoot(c, a.itemId as number, toName);
+        break;
+      }
+      case 'objective.add':
+      case 'objective.set':
+      case 'objective.remove': {
+        if (!c.room) return deny('Entre numa cena primeiro.');
+        const camp = this.campaignFor(this.groupKey(c.room.data.id));
+        if (type === 'objective.add') err = this.objectiveAdd(camp, a.text);
+        else if (type === 'objective.set') err = typeof a.done === 'boolean' ? this.objectiveSet(camp, a.id, a.done, c.room.data.id) : 'Diga se está feito (done).';
+        else err = this.objectiveRemove(camp, a.id);
+        if (!err) {
+          this.save();
+          this.touch();
+        }
+        break;
+      }
+    }
+    if (err) deny(err);
   }
 
   /** Mestre muda a cena de um jogador (ou de todos no quarto dele). */
@@ -232,10 +826,10 @@ export class Hotel implements HotelApi {
 
   // ---------- HotelApi ----------
   save() {
-    scheduleSave(this.db);
+    if (this.persist) scheduleSave(this.db);
   }
   flush() {
-    saveDbNow(this.db);
+    if (this.persist) saveDbNow(this.db);
   }
   nextItemId() {
     return this.db.nextItemId++;
@@ -257,7 +851,7 @@ export class Hotel implements HotelApi {
   }
   /** Contagem de usuários mudou: avisa o navegador (com debounce). */
   roomChanged() {
-    if (this.listTimer) return;
+    if (!this.timers || this.listTimer) return;
     this.listTimer = setTimeout(() => {
       this.listTimer = null;
       const msg: ServerMsg = { t: 'roomList', rooms: this.roomList() };
@@ -267,6 +861,16 @@ export class Hotel implements HotelApi {
 
   roomExists(roomId: number) {
     return this.rooms.has(roomId);
+  }
+
+  tokenNameTaken(roomId: number, name: string, exceptTokenId?: number) {
+    const key = name.toLowerCase();
+    return this.sceneGroup(roomId).some((id) => this.rooms.get(id)?.tokenNames(exceptTokenId).includes(key));
+  }
+
+  renameHolder(roomId: number, oldName: string, newName: string) {
+    for (const id of this.sceneGroup(roomId)) this.rooms.get(id)?.renameHolder(oldName, newName);
+    this.touch();
   }
 
   moveToken(from: RoomInstance, tokenId: number, toRoomId: number) {
@@ -290,7 +894,11 @@ export class Hotel implements HotelApi {
   }
 
   // ---------- conexões ----------
-  connect(ws: WebSocket) {
+  /**
+   * Nova conexão. `send` entrega uma mensagem; `close` encerra (sessão aberta
+   * em outro lugar); `local` = vem do próprio computador do servidor (é o mestre).
+   */
+  attach(send: (msg: ServerMsg) => void, close?: (code: number) => void, local = false): Client {
     const c: Client = {
       id: this.nextClientId++,
       name: null,
@@ -299,20 +907,46 @@ export class Hotel implements HotelApi {
       token: crypto.randomBytes(18).toString('base64url'),
       room: null,
       lastChat: 0,
-      send: (msg) => {
-        if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(msg));
-      },
+      local,
+      send,
       kick: () => {
         c.room?.leave(c);
         c.name = null;
         c.key = '';
-        ws.close(4000, 'replaced');
+        c.role = undefined;
+        close?.(4000);
       },
     };
     this.clients.set(c.id, c);
     this.byToken.set(c.token, c);
     c.send({ t: 'hello', characters: this.db.characters });
+    return c;
+  }
 
+  /** Mensagem recebida de uma conexão. */
+  receive(c: Client, msg: unknown) {
+    if (!msg || typeof msg !== 'object' || typeof (msg as { t?: unknown }).t !== 'string') return;
+    try {
+      this.handle(c, msg as Record<string, unknown>);
+    } catch (e) {
+      console.error('[hotel] erro tratando mensagem', e);
+    }
+  }
+
+  detach(c: Client) {
+    c.room?.leave(c);
+    this.clients.delete(c.id);
+    this.byToken.delete(c.token);
+  }
+
+  connect(ws: WebSocket, local = false) {
+    const c = this.attach(
+      (msg) => {
+        if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(msg));
+      },
+      (code) => ws.close(code, 'replaced'),
+      local,
+    );
     ws.on('message', (data) => {
       let msg: unknown;
       try {
@@ -320,20 +954,11 @@ export class Hotel implements HotelApi {
       } catch {
         return;
       }
-      if (!msg || typeof msg !== 'object' || typeof (msg as { t?: unknown }).t !== 'string') return;
-      try {
-        this.handle(c, msg as Record<string, unknown>);
-      } catch (e) {
-        console.error('[hotel] erro tratando mensagem', e);
-      }
+      this.receive(c, msg);
     });
     // Sem este listener, um frame inválido/grande demais derrubaria o processo.
     ws.on('error', (e) => console.warn(`[ws] cliente ${c.id}: ${e.message}`));
-    ws.on('close', () => {
-      c.room?.leave(c);
-      this.clients.delete(c.id);
-      this.byToken.delete(c.token);
-    });
+    ws.on('close', () => this.detach(c));
   }
 
   private roomList(): RoomSummary[] {
@@ -358,7 +983,11 @@ export class Hotel implements HotelApi {
       if (m.t === 'login') this.login(c, m);
       return;
     }
+    if (GM_ONLY.has(m.t as string) && c.role !== 'gm') return c.send({ t: 'error', msg: 'Só o mestre pode fazer isso.' });
     switch (m.t) {
+      case 'act':
+        this.act(c, m.a);
+        return;
       case 'rooms':
         c.send({ t: 'roomList', rooms: this.roomList() });
         return;
@@ -368,8 +997,7 @@ export class Hotel implements HotelApi {
       case 'join': {
         const room = typeof m.roomId === 'number' ? this.rooms.get(m.roomId) : undefined;
         if (!room) return c.send({ t: 'error', msg: 'Quarto não encontrado.' });
-        c.room?.leave(c);
-        room.join(c);
+        this.enter(c, room);
         return;
       }
       case 'peek': {
@@ -404,6 +1032,21 @@ export class Hotel implements HotelApi {
       case 'capacitySet':
         this.campaignEdit(c, m);
         return;
+      case 'fichaSalvar':
+        this.fichaSalvar(c, m);
+        return;
+      case 'fichaApagar':
+        this.fichaApagar(c, m);
+        return;
+      case 'fichaLink':
+        this.fichaLink(m);
+        return;
+      case 'combate':
+        this.combateAcao(c, m);
+        return;
+      case 'ameaca':
+        this.ameacaSalvar(c, m);
+        return;
     }
     c.room?.handle(c, m);
   }
@@ -414,10 +1057,19 @@ export class Hotel implements HotelApi {
       return c.send({ t: 'error', msg: `Nome inválido (2 a ${MAX_NAME} letras, números, espaço, _ - .).` });
     const key = name.toLowerCase();
     if (key === SYSTEM_OWNER.toLowerCase()) return c.send({ t: 'error', msg: 'Esse nome é reservado.' });
-    // mesma pessoa abrindo em outra aba: a conexão nova assume
+    // a tela da mesa é sempre jogador; mestre = o próprio computador do servidor ou quem tem a chave
+    const hasKey = typeof m.gmKey === 'string' && !!m.gmKey && this.checkGmKey(m.gmKey);
+    const daFicha = typeof m.fichaKey === 'string' && m.fichaKey ? this.fichaPelaChave(m.fichaKey) : undefined;
+    if (typeof m.fichaKey === 'string' && m.fichaKey && !daFicha) return c.send({ t: 'error', msg: 'Link de ficha inválido. Peça um novo ao mestre.' });
+    const role: Role = m.mesa === true || daFicha ? 'player' : c.local || hasKey ? 'gm' : 'player';
+    c.fichaId = daFicha?.id;
+    // mesma pessoa abrindo em outra aba: a conexão nova assume (jogador não derruba o mestre)
+    for (const o of this.clients.values())
+      if (o !== c && o.key === key && o.role === 'gm' && role !== 'gm') return c.send({ t: 'error', msg: 'Esse nome já está em uso na sessão.' });
     for (const o of this.clients.values()) if (o !== c && o.key === key) o.kick?.();
     c.name = name;
     c.key = key;
+    c.role = role;
     c.look = sanitizeLook(m.look);
     if (c.look.charId && !this.db.characters.some((ch) => ch.id === c.look.charId)) c.look.charId = null;
     const isNew = !this.db.users[key];
@@ -426,9 +1078,10 @@ export class Hotel implements HotelApi {
     ud.look = c.look;
     if (isNew) for (const defId of STARTER) ud.inventory.push({ id: this.nextItemId(), defId });
     this.save();
-    c.send({ t: 'welcome', id: c.id, name, look: c.look, token: c.token, inventory: ud.inventory, home: this.db.home });
+    c.send({ t: 'welcome', id: c.id, name, look: c.look, token: c.token, inventory: ud.inventory, home: this.db.home, role });
     c.send({ t: 'roomList', rooms: this.roomList() });
-    console.log(`[hotel] ${name} entrou`);
+    if (role === 'gm' || c.fichaId) this.enviarFichas(c);
+    if (this.persist) console.log(`[hotel] ${name} entrou (${role === 'gm' ? 'mestre' : 'jogador'})`);
   }
 
   private createRoom(c: Client, m: Record<string, unknown>) {
@@ -479,19 +1132,17 @@ export class Hotel implements HotelApi {
     return def;
   }
 
-  private canEditChar(c: Client, ch: CharacterDef) {
-    return ch.owner.toLowerCase() === c.key;
+  /** Quem controla a sessão (o mestre) ajusta qualquer personagem, inclusive os do repositório. */
+  private canEditChar(c: Client, _ch: CharacterDef) {
+    return c.role === 'gm';
   }
 
   private charUpdate(c: Client, m: Record<string, unknown>) {
     const ch = this.db.characters.find((x) => x.id === m.id);
     if (!ch) return;
-    if (!this.canEditChar(c, ch)) return c.send({ t: 'error', msg: 'Só quem enviou pode editar esse personagem.' });
+    if (!this.canEditChar(c, ch)) return c.send({ t: 'error', msg: 'Só o mestre edita personagens.' });
     Object.assign(ch, sanitizeCharPatch(m.patch));
-    if (ch.dirs.length !== ch.rows) {
-      const base = ['sw', 'se', 'nw', 'ne'] as const;
-      ch.dirs = Array.from({ length: ch.rows }, (_, i) => ch.dirs[i] ?? base[i % 4]);
-    }
+    if (ch.dirs.length !== ch.rows) ch.dirs = Array.from({ length: ch.rows }, (_, i) => ch.dirs[i] ?? DIR_KEYS[i % DIR_KEYS.length]);
     const anims = ch.anims ?? [];
     ch.anims = Array.from({ length: ch.rows }, (_, i) => anims[i] ?? 'idle');
     ch.sequence = ch.sequence.filter((n) => n < ch.cols);
@@ -503,7 +1154,7 @@ export class Hotel implements HotelApi {
   private charDelete(c: Client, m: Record<string, unknown>) {
     const i = this.db.characters.findIndex((x) => x.id === m.id);
     if (i < 0) return;
-    if (!this.canEditChar(c, this.db.characters[i])) return c.send({ t: 'error', msg: 'Só quem enviou pode apagar.' });
+    if (!this.canEditChar(c, this.db.characters[i])) return c.send({ t: 'error', msg: 'Só o mestre apaga personagens.' });
     const [removed] = this.db.characters.splice(i, 1);
     this.save();
     this.broadcastCharacters();

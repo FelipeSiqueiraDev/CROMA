@@ -1,14 +1,32 @@
-import { getLayout, RoomMap, type AvatarLook, type Door, type FloorItem, type Hint, type LogIcon, type Loot, type WallItem } from '@croma/shared';
+import {
+  footprint,
+  getFurni,
+  getLayout,
+  getWallFurni,
+  parseHeightmap,
+  RoomMap,
+  WALL_HEIGHT,
+  Z_PER_M,
+  Z_PX,
+  type AvatarLook,
+  type CharacterDef,
+  type Door,
+  type FloorItem,
+  type Hint,
+  type Loot,
+  type WallItem,
+} from '@croma/shared';
 import type { Database, RoomData, TokenData } from './db';
+import { rebuildSede, seedSede } from './seedSede';
 
 export const SYSTEM_OWNER = 'CROMA';
 
-type FloorSeed = [defId: string, x: number, y: number, rot: number, hint?: Hint, state?: number];
-type WallSeed = [defId: string, wall: 'l' | 'r', plane: number, pos: number, z: number, hint?: Hint];
+export type FloorSeed = [defId: string, x: number, y: number, rot: number, hint?: Hint, state?: number];
+export type WallSeed = [defId: string, wall: 'l' | 'r', plane: number, pos: number, z: number, hint?: Hint];
 
 const hint = (icon: Hint['icon'], title: string, text: string): Hint => ({ icon, title, text, visible: true });
 
-function buildRoom(
+export function buildRoom(
   db: Database,
   name: string,
   description: string,
@@ -56,7 +74,68 @@ function buildRoom(
   };
 }
 
-const SEED_VERSION = 8;
+const SEED_VERSION = 14;
+
+/** Os quatro investigadores da mesa. */
+const TEPES = 'D.Tepes';
+const CATARINA = 'Catarina Albuquerque';
+const ALOSI = 'Alosi Walker';
+const FALCAO = 'Cora Falcão';
+/** Nomes da primeira demonstração → nomes reais (mesma aparência e cor). */
+const OLD_NAMES: Record<string, string> = { Arthur: TEPES, Cora: CATARINA, Miguel: ALOSI, Teps: FALCAO };
+
+/** Folhas de sprite dos investigadores, no repositório (client/public/arte/personagens/<pasta>/folha.webp). */
+const PARTY_SPRITES: [name: string, folder: string][] = [
+  [TEPES, 'tepes'],
+  [CATARINA, 'catarina'],
+  [ALOSI, 'alosi'],
+  [FALCAO, 'cora-falcao'],
+];
+
+/** Caminho servido da folha de um personagem do repositório. */
+export const partySheet = (folder: string) => `/arte/personagens/${folder}/folha.webp`;
+
+/**
+ * Personagens com as folhas do repositório, ligados às peças de mesmo nome.
+ * Se já existir um personagem com esse nome (enviado antes pela janela), ele
+ * passa a usar a folha do repositório e mantém os ajustes.
+ */
+function seedPartySprites(db: Database) {
+  for (const [name, folder] of PARTY_SPRITES) {
+    const sheet = partySheet(folder);
+    let def = db.characters.find((c) => c.sheet === sheet) ?? db.characters.find((c) => c.name.toLowerCase() === name.toLowerCase());
+    if (def) def.sheet = sheet;
+    else {
+      // linhas: frente-direita, frente-esquerda, costas-esquerda, costas-direita; coluna 3 = piscar
+      const created: CharacterDef = {
+        id: db.nextCharId++,
+        name,
+        owner: SYSTEM_OWNER,
+        sheet,
+        cols: 4,
+        rows: 4,
+        dirs: ['se', 'sw', 'nw', 'ne'],
+        anims: ['idle', 'idle', 'idle', 'idle'],
+        height: 104,
+        fps: 4,
+        sequence: [0, 1, 0, 1, 0, 1, 3, 1, 0, 2, 0, 1],
+        removeBg: false,
+      };
+      db.characters.push(created);
+      def = created;
+    }
+    for (const r of db.rooms) for (const t of r.tokens ?? []) if (t.name === name && !t.look.charId) t.look = { ...t.look, charId: def.id };
+  }
+}
+
+/** Últimas ações de exemplo (as mesmas da tela de referência). */
+function demoLog(now: number) {
+  return [
+    { at: now - 19 * 60000, icon: 'give' as const, text: `${TEPES} entregou a Chave da Escrivaninha.` },
+    { at: now - 3 * 60000, icon: 'user' as const, text: `${CATARINA} investigou a Escrivaninha (DT 15) — Sucesso (18).` },
+    { at: now, icon: 'user' as const, text: `${ALOSI} abriu a gaveta — encontrou Faca de Cozinha.` },
+  ];
+}
 
 /** Liga as Passagens de `a` (na ordem) aos quartos de `targets`. */
 function linkPortals(room: RoomData, targets: number[]) {
@@ -193,15 +272,15 @@ function seedTokens(db: Database) {
     look: { skin: '#e8b98f', hair: '#1a1412', hairStyle: 0, top: '#2b2a30', outfit: 0, extra: 0, ...base, ...look } as AvatarLook,
   });
   sala.tokens = [
-    mk('Arthur', 10, 6, 4, { hair: '#3b2618', hairStyle: 1, extra: 2, top: '#5c4632', outfit: 1 }),
-    mk('Cora', 9, 7, 6, { skin: '#f3d2b3', hair: '#a8321e', hairStyle: 3, top: '#2b2a30', outfit: 1 }),
-    mk('Miguel', 11, 5, 4, { hair: '#1a1412', extra: 1, top: '#d8d0c0', outfit: 2 }),
-    mk('Teps', 8, 7, 2, { hair: '#c9c4bc', hairStyle: 2, top: '#1c1b1f' }),
+    mk(TEPES, 10, 6, 4, { hair: '#3b2618', hairStyle: 1, extra: 2, top: '#5c4632', outfit: 1 }),
+    mk(CATARINA, 9, 7, 6, { skin: '#f3d2b3', hair: '#a8321e', hairStyle: 3, top: '#2b2a30', outfit: 1 }),
+    mk(ALOSI, 11, 5, 4, { hair: '#1a1412', extra: 1, top: '#d8d0c0', outfit: 2 }),
+    mk(FALCAO, 8, 7, 2, { hair: '#c9c4bc', hairStyle: 2, top: '#1c1b1f' }),
   ];
 }
 
 /** Planta retangular com a porta na parede esquerda. */
-function plan(w: number, h: number, doorY: number): { heightmap: string; door: Door } {
+export function plan(w: number, h: number, doorY: number): { heightmap: string; door: Door } {
   const rows: string[] = [];
   for (let y = 0; y < h; y++) rows.push((y === doorY ? '0' : 'x') + '0'.repeat(w));
   return { heightmap: rows.join('\n'), door: { x: 0, y: doorY, dir: 2 } };
@@ -359,10 +438,7 @@ function seedMansao(db: Database) {
       ['portal', 2, 0, 4],
       ['portal', 4, 5, 0],
     ],
-    [
-      ['window_barred', 'r', 0, 6.4, 2.2],
-      ['pipes', 'r', 0, 2.6, 4.4],
-    ],
+    [['window_barred', 'r', 0, 6.4, 2.2]],
     0.68,
   );
   const quarto = buildRoom(
@@ -438,8 +514,8 @@ function seedMansao(db: Database) {
     'desk_wood',
     [
       ['Faca de Cozinha', 2, 'weapon'],
-      ['Diário Rasgado', 1, 'document', 'Cora'],
-      ['Chave da Escrivaninha', 0.1, 'key', 'Arthur'],
+      ['Diário Rasgado', 1, 'document', CATARINA],
+      ['Chave da Escrivaninha', 0.1, 'key', TEPES],
     ],
     [
       ['Investigar', 15],
@@ -452,18 +528,18 @@ function seedMansao(db: Database) {
   loot(escr, 'shelf_metal', [['Fita Cassete', 0.2, 'tape']]);
   loot(escr, 'crate_wood', [['Caixa de Charutos', 0.5, 'box']], [['Abrir o caixote', 8]]);
   loot(hall, 'chest_military', [
-    ['Revólver .38', 2, 'weapon', 'Arthur'],
-    ['Lanterna', 1, 'misc', 'Arthur'],
-    ['Mochila de Campo', 2.9, 'box', 'Arthur'],
-    ['Pé de Cabra', 3, 'weapon', 'Cora'],
-    ['Kit de Primeiros Socorros', 2, 'box', 'Cora'],
-    ['Rádio Portátil', 3, 'misc', 'Cora'],
-    ['Câmera Fotográfica', 2, 'misc', 'Miguel'],
-    ['Caderno de Anotações', 1, 'document', 'Miguel'],
-    ['Lanterna', 1, 'misc', 'Miguel'],
-    ['Espingarda', 5, 'weapon', 'Teps'],
-    ['Munição', 2, 'box', 'Teps'],
-    ['Corda', 3, 'misc', 'Teps'],
+    ['Revólver .38', 2, 'weapon', TEPES],
+    ['Lanterna', 1, 'misc', TEPES],
+    ['Mochila de Campo', 2.9, 'box', TEPES],
+    ['Pé de Cabra', 3, 'weapon', CATARINA],
+    ['Kit de Primeiros Socorros', 2, 'box', CATARINA],
+    ['Rádio Portátil', 3, 'misc', CATARINA],
+    ['Câmera Fotográfica', 2, 'misc', ALOSI],
+    ['Caderno de Anotações', 1, 'document', ALOSI],
+    ['Lanterna', 1, 'misc', ALOSI],
+    ['Espingarda', 5, 'weapon', FALCAO],
+    ['Munição', 2, 'box', FALCAO],
+    ['Corda', 3, 'misc', FALCAO],
   ]);
 
   // o grupo no Escritório, como na referência
@@ -479,17 +555,16 @@ function seedMansao(db: Database) {
     look: { skin: '#e8b98f', hair: '#1a1412', hairStyle: 0, top: '#2b2a30', outfit: 0, extra: 0, ...base, ...look } as AvatarLook,
   });
   escr.tokens = [
-    tk('Arthur', 4, 3, 4, '#e3a94c', 10, { hair: '#3b2618', hairStyle: 1, extra: 2, top: '#5c4632', outfit: 1 }),
-    tk('Cora', 4, 6, 6, '#d83a2e', 10, { skin: '#f3d2b3', hair: '#a8321e', hairStyle: 3, top: '#2b2a30', outfit: 1 }),
-    tk('Miguel', 7, 6, 6, '#3f6fd8', 12, { hair: '#1a1412', extra: 1, top: '#d8d0c0', outfit: 2 }),
-    tk('Teps', 2, 4, 2, '#f2efe6', 10, { hair: '#c9c4bc', hairStyle: 2, top: '#1c1b1f' }),
+    tk(TEPES, 4, 3, 4, '#e3a94c', 10, { hair: '#3b2618', hairStyle: 1, extra: 2, top: '#5c4632', outfit: 1 }),
+    tk(CATARINA, 4, 6, 6, '#d83a2e', 10, { skin: '#f3d2b3', hair: '#a8321e', hairStyle: 3, top: '#2b2a30', outfit: 1 }),
+    tk(ALOSI, 7, 6, 6, '#3f6fd8', 12, { hair: '#1a1412', extra: 1, top: '#d8d0c0', outfit: 2 }),
+    tk(FALCAO, 2, 4, 2, '#f2efe6', 10, { hair: '#c9c4bc', hairStyle: 2, top: '#1c1b1f' }),
   ];
 
   db.rooms.push(hall, estar, biblio, escr, cozinha, quarto, jardim);
 
   // campanha: título, objetivos, planta do andar e últimas ações
   const now = Date.now();
-  const entry = (minAgo: number, icon: LogIcon, text: string) => ({ at: now - minAgo * 60000, icon, text });
   db.campaigns ??= {};
   db.campaigns[String(hall.id)] = {
     title: 'Sombras de Arvendal',
@@ -509,19 +584,66 @@ function seedMansao(db: Database) {
       [quarto.id]: { x: 19, y: 15 },
       [jardim.id]: { x: 8, y: 22 },
     },
-    log: [
-      entry(19, 'give', 'Arthur entregou a Chave da Escrivaninha.'),
-      entry(3, 'user', 'Cora investigou a Escrivaninha (DT 15) — Sucesso (18).'),
-      entry(0, 'user', 'Miguel abriu a gaveta — encontrou Faca de Cozinha.'),
-    ],
+    log: demoLog(now),
   };
   db.home = escr.id;
+}
+
+/**
+ * Escala nova (móveis em metros, Z_PER_M): refaz a altura dos mobis
+ * empilhados (o que estava em cima da mesa continua em cima da mesa, agora
+ * mais alta). O que está no chão fica no chão.
+ */
+export function restackRoom(r: RoomData) {
+  const hm = parseHeightmap(r.heightmap);
+  const floorAt = (x: number, y: number) => hm.tiles[y]?.[x] ?? 0;
+  const oldZ = new Map(r.items.map((it) => [it.id, it.z]));
+  // altura antiga = a medida em metros (a escala antiga era 1 unidade = 1 m)
+  const oldTop = (it: FloorItem) => (oldZ.get(it.id) ?? it.z) + (getFurni(it.defId)?.height ?? 0) / Z_PER_M;
+  const tiles = (it: FloorItem) => {
+    const def = getFurni(it.defId);
+    const fp = def ? footprint(def, it.rot) : { sx: 1, sy: 1 };
+    const out: string[] = [];
+    for (let dy = 0; dy < fp.sy; dy++) for (let dx = 0; dx < fp.sx; dx++) out.push(`${it.x + dx},${it.y + dy}`);
+    return out;
+  };
+  const placed: FloorItem[] = [];
+  for (const it of [...r.items].sort((a, b) => a.z - b.z || a.id - b.id)) {
+    const z0 = oldZ.get(it.id) ?? it.z;
+    const floor = floorAt(it.x, it.y);
+    if (z0 > floor + 0.05) {
+      const mine = new Set(tiles(it));
+      let top = floor;
+      for (const o of placed) {
+        if (oldTop(o) > z0 + 0.01 || !tiles(o).some((t) => mine.has(t))) continue;
+        top = Math.max(top, o.z + (getFurni(o.defId)?.height ?? 0));
+      }
+      it.z = Math.round(top * 1000) / 1000;
+    } else it.z = floor;
+    placed.push(it);
+  }
+}
+
+/** Itens de parede que estavam baixos demais para gente de 1,75 m: sobem (em unidades). */
+const WALL_LIFT: Record<string, number> = { sconce: 0.9, poster_sigil: 0.6, notes_wall: 0.5, board_investigation: 0.5, antlers: 0.3 };
+
+function liftWallItems(r: RoomData) {
+  let maxH = 0;
+  for (const row of parseHeightmap(r.heightmap).tiles) for (const t of row) if (t !== null && t > maxH) maxH = t;
+  const top = maxH + WALL_HEIGHT;
+  for (const it of r.wallItems) {
+    const lift = WALL_LIFT[it.defId];
+    const def = getWallFurni(it.defId);
+    if (!lift || !def) continue;
+    it.z = Math.round(Math.min(it.z + lift, top - def.h / Z_PX - 0.05) * 100) / 100;
+  }
 }
 
 /** Aplica conteúdo novo em bancos antigos sem apagar nada. */
 export function upgradeDb(db: Database): boolean {
   const v = db.seedVersion ?? 1;
-  if (v >= SEED_VERSION) return false;
+  // a Sede muda de montagem sem esperar versão nova do banco
+  if (v >= SEED_VERSION) return rebuildSede(db);
   for (const r of db.rooms) {
     r.lightMode ??= 'normal';
     r.fog ??= r.id === 1 ? 0.2 : 0;
@@ -531,7 +653,7 @@ export function upgradeDb(db: Database): boolean {
   if (v < 4) seedTokens(db);
   if (v < 5) {
     // cores e carga das peças de exemplo (como no layout de referência)
-    const meta: Record<string, [string, number]> = { Arthur: ['#e3a94c', 10], Cora: ['#d83a2e', 10], Miguel: ['#3f6fd8', 12], Teps: ['#f2efe6', 10] };
+    const meta: Record<string, [string, number]> = { [TEPES]: ['#e3a94c', 10], [CATARINA]: ['#d83a2e', 10], [ALOSI]: ['#3f6fd8', 12], [FALCAO]: ['#f2efe6', 10] };
     for (const r of db.rooms)
       for (const t of r.tokens ?? []) {
         const m = meta[t.name];
@@ -554,14 +676,32 @@ export function upgradeDb(db: Database): boolean {
     const camp = ids.length ? db.campaigns?.[String(Math.min(...ids))] : undefined;
     if (camp) {
       const now = Date.now();
-      camp.log = [
-        { at: now - 19 * 60000, icon: 'give', text: 'Arthur entregou a Chave da Escrivaninha.' },
-        { at: now - 3 * 60000, icon: 'user', text: 'Cora investigou a Escrivaninha (DT 15) — Sucesso (18).' },
-        { at: now, icon: 'user', text: 'Miguel abriu a gaveta — encontrou Faca de Cozinha.' },
-      ];
+      camp.log = demoLog(now);
       camp.objectives.forEach((o, i) => (o.done = i === 0));
     }
   }
+  if (v < 9) {
+    // nomes reais dos investigadores: peças, itens com eles e o registro de exemplo
+    for (const r of db.rooms) {
+      for (const t of r.tokens ?? []) if (OLD_NAMES[t.name]) t.name = OLD_NAMES[t.name];
+      for (const it of [...r.items, ...r.wallItems])
+        for (const l of it.loot ?? []) if (l.holder && OLD_NAMES[l.holder]) l.holder = OLD_NAMES[l.holder];
+    }
+    const ids = db.rooms.filter((r) => r.name.startsWith('Mansão Alvarez · ')).map((r) => r.id);
+    const camp = ids.length ? db.campaigns?.[String(Math.min(...ids))] : undefined;
+    if (camp) camp.log = demoLog(Date.now());
+  }
+  if (v < 10) seedPartySprites(db);
+  if (v < 11) {
+    // proporção: móveis em metros na escala do personagem
+    for (const r of db.rooms) {
+      restackRoom(r);
+      liftWallItems(r);
+    }
+  }
+  // Sede da Ordem: bar no térreo e a sede no subsolo
+  if (v < 12) seedSede(db);
+  rebuildSede(db);
   db.seedVersion = SEED_VERSION;
   return true;
 }

@@ -1,17 +1,27 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import http from 'node:http';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
-import { UPLOAD_DIR } from './db';
+import { abrirBanco } from './banco';
+import { fecharBanco, UPLOAD_DIR } from './db';
 import { Hotel } from './hotel';
+
+// server/.env (fora do git): CROMA_DB_URL e afins. Ver server/.env.example.
+try {
+  process.loadEnvFile(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../.env'));
+} catch {
+  /* sem .env: usa server/data/db.json */
+}
 
 // Em desenvolvimento o Vite usa PORT; o servidor fica na 3001 (ou CROMA_PORT).
 // Com --prod (npm start) respeita PORT, como a maioria das hospedagens espera.
 const PROD = process.argv.includes('--prod');
 const PORT = Number(process.env.CROMA_PORT ?? (PROD ? process.env.PORT : undefined) ?? 3001);
 const CLIENT_DIST = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../client/dist');
+const ARTE_FONTE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../client/public/arte');
 const MAX_UPLOAD = 12 * 1024 * 1024;
 
 const MIME: Record<string, string> = {
@@ -27,6 +37,7 @@ const MIME: Record<string, string> = {
   '.woff2': 'font/woff2',
 };
 
+await abrirBanco();
 const hotel = new Hotel();
 
 function sendJson(res: http.ServerResponse, status: number, body: unknown) {
@@ -64,6 +75,7 @@ function imageExt(buf: Buffer): '.png' | '.jpg' | '.webp' | null {
 function handleUpload(req: http.IncomingMessage, res: http.ServerResponse, url: URL) {
   const client = hotel.clientByToken(url.searchParams.get('token') ?? '');
   if (!client?.name) return sendJson(res, 401, { error: 'Entre no hotel antes de enviar.' });
+  if (client.role !== 'gm') return sendJson(res, 403, { error: 'Só o mestre envia sprites.' });
   const chunks: Buffer[] = [];
   let size = 0;
   let aborted = false;
@@ -96,6 +108,35 @@ function handleUpload(req: http.IncomingMessage, res: http.ServerResponse, url: 
   });
 }
 
+/**
+ * Lista da arte que existe (client/public/arte, ou a cópia do build). A tela
+ * só pede uma imagem que está na lista: sem arte, fica o desenho padrão, sem
+ * pedido perdido no console.
+ */
+let arteCache: { em: number; lista: string[] } | null = null;
+function listarArte(): string[] {
+  if (arteCache && Date.now() - arteCache.em < 5000) return arteCache.lista;
+  const raiz = fs.existsSync(ARTE_FONTE) ? ARTE_FONTE : path.join(CLIENT_DIST, 'arte');
+  const lista: string[] = [];
+  const andar = (dir: string, rel: string, fundo: number) => {
+    if (fundo > 5) return;
+    let itens: fs.Dirent[];
+    try {
+      itens = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const it of itens) {
+      if (it.name.startsWith('.')) continue;
+      if (it.isDirectory()) andar(path.join(dir, it.name), `${rel}/${it.name}`, fundo + 1);
+      else if (/\.(png|webp|jpe?g|svg)$/i.test(it.name)) lista.push(`/arte${rel}/${it.name}`);
+    }
+  };
+  andar(raiz, '', 0);
+  arteCache = { em: Date.now(), lista };
+  return lista;
+}
+
 const server = http.createServer((req, res) => {
   try {
     route(req, res);
@@ -114,6 +155,7 @@ function route(req: http.IncomingMessage, res: http.ServerResponse) {
     return serveFile(res, file, true);
   }
   if (url.pathname === '/api/health') return sendJson(res, 200, { ok: true });
+  if (url.pathname === '/api/arte') return sendJson(res, 200, { arquivos: listarArte() });
 
   // Cliente compilado (npm run build). Em desenvolvimento o Vite serve o cliente.
   if (!fs.existsSync(CLIENT_DIST)) {
@@ -140,14 +182,45 @@ function route(req: http.IncomingMessage, res: http.ServerResponse) {
   serveFile(res, file, file.includes(`${path.sep}assets${path.sep}`));
 }
 
+const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
+
+/**
+ * A conexão vem deste computador? Em desenvolvimento o Vite repassa as
+ * conexões e informa a origem em x-forwarded-for (a última entrada é a real).
+ */
+function isLocal(req: http.IncomingMessage) {
+  if (!LOOPBACK.has(req.socket.remoteAddress ?? '')) return false;
+  const fwd = req.headers['x-forwarded-for'];
+  const list = (Array.isArray(fwd) ? fwd.join(',') : (fwd ?? '')).split(',').map((s) => s.trim()).filter(Boolean);
+  return !list.length || LOOPBACK.has(list[list.length - 1]);
+}
+
+/** Endereço deste computador na rede (para o link do tablet). */
+function lanAddress() {
+  for (const list of Object.values(os.networkInterfaces()))
+    for (const a of list ?? []) if (a.family === 'IPv4' && !a.internal) return a.address;
+  return 'localhost';
+}
+
 const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 256 * 1024 });
-wss.on('connection', (ws) => hotel.connect(ws));
+wss.on('connection', (ws, req) => hotel.connect(ws, isLocal(req)));
 
-server.listen(PORT, () => console.log(`[croma] servidor em http://localhost:${PORT}`));
+server.listen(PORT, () => {
+  console.log(`[croma] servidor em http://localhost:${PORT}`);
+  // em desenvolvimento a página vem do Vite (5173); em produção, deste servidor
+  const port = PROD ? PORT : 5173;
+  const lan = lanAddress();
+  console.log(`[croma] mestre (este computador): http://localhost:${port}`);
+  console.log(`[croma] mesa (tablet):            http://${lan}:${port}/?mesa`);
+  console.log(`[croma] mestre em outro aparelho: http://${lan}:${port}/?mestre=${hotel.gmKey}`);
+});
 
-function shutdown() {
+let desligando = false;
+async function shutdown() {
+  if (desligando) return;
+  desligando = true;
   try {
-    hotel.flush();
+    await fecharBanco(hotel.db);
   } catch (e) {
     console.error(e);
   }

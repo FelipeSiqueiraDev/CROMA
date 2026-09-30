@@ -1,0 +1,332 @@
+/**
+ * O ataque passo a passo (LR p. 54–60, 82, 85, 88–90, 312–313; COMBATE.md,
+ * seções 6 a 8): distância e alcance, situações, o teste, a Defesa, a chance
+ * de falha, o crítico, o dano e o que vem depois. Funções puras: a tela usa
+ * para mostrar a conta, e o servidor para escrever o registro.
+ */
+import type { TipoDano } from '../regras/tipos';
+import type { ResultadoAtaque } from './tipos';
+
+/** 1 casa do tabuleiro = 0,75 m: 2 casas fazem 1 quadrado de 1,5 m (REGRAS.md, decisão 6; COMBATE.md 7.2). */
+export const METROS_POR_CASA = 0.75;
+
+export type Faixa = 'curto' | 'medio' | 'longo' | 'extremo';
+export const METROS_FAIXA: Record<Faixa, number> = { curto: 9, medio: 18, longo: 36, extremo: 90 };
+export const NOME_FAIXA: Record<Faixa, string> = { curto: 'curto', medio: 'médio', longo: 'longo', extremo: 'extremo' };
+
+const semAcento = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().trim();
+
+/** Faixa de alcance da arma ("curto", "médio"...). Sem alcance = corpo a corpo. */
+export function faixaArma(alcance?: string | null): Faixa | null {
+  if (!alcance) return null;
+  const k = semAcento(alcance);
+  return k in METROS_FAIXA ? (k as Faixa) : null;
+}
+
+/** Faixa em que uma distância cai; além do extremo, `null`. */
+export function faixaDaDistancia(metros: number): Faixa | null {
+  for (const f of ['curto', 'medio', 'longo', 'extremo'] as Faixa[]) if (metros <= METROS_FAIXA[f] + 1e-6) return f;
+  return null;
+}
+
+/** Distância em casas, em linha reta entre os centros (DC-10). */
+export function distanciaCasas(a: { x: number; y: number }, b: { x: number; y: number }): number {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+export const metrosDe = (casas: number) => casas * METROS_POR_CASA;
+
+/** Adjacente: até 2 casas em qualquer direção, diagonal incluída (COMBATE.md 7.2). */
+export function adjacente(a: { x: number; y: number }, b: { x: number; y: number }): boolean {
+  return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y)) <= 2;
+}
+
+/** "7,5 m" */
+export function textoMetros(m: number): string {
+  const r = Math.round(m * 10) / 10;
+  return `${Number.isInteger(r) ? r : r.toFixed(1).replace('.', ',')} m`;
+}
+
+export const sinal = (n: number) => (n >= 0 ? `+${n}` : `${n}`);
+
+// ------------------------------------------------------------------ situações
+
+export type SituacaoId =
+  | 'cobertura'
+  | 'camuflagem'
+  | 'camuflagemTotal'
+  | 'alcanceDobro'
+  | 'emCorpoACorpo'
+  | 'flanqueando'
+  | 'elevado'
+  | 'investida'
+  | 'alvoDesprevenido'
+  | 'alvoCaido'
+  | 'alvoVulneravel'
+  | 'alvoIndefeso'
+  | 'atacanteCaido'
+  | 'atacanteOfuscado'
+  | 'atacanteAgarrado'
+  | 'atacanteCego'
+  | 'naoLetal';
+
+export interface Situacao {
+  id: SituacaoId;
+  nome: string;
+  /** o que muda, para a chave da tela */
+  efeito: string;
+  /** vale só no corpo a corpo ou só à distância */
+  so?: 'corpo' | 'distancia';
+  /** d20 a mais ou a menos no ataque */
+  dados?: number;
+  /** no total do ataque */
+  bonus?: number;
+  /** na Defesa do alvo */
+  defesa?: number;
+  /** chance de falha, em % */
+  falha?: number;
+  pagina: number;
+}
+
+/** As situações da Tab. 4.4 e as outras que pesam no ataque (LR p. 85, 87–90; COMBATE.md 7.1). */
+export const SITUACOES: Situacao[] = [
+  { id: 'cobertura', nome: 'Cobertura', efeito: '+5 na Defesa', defesa: 5, pagina: 89 },
+  { id: 'camuflagem', nome: 'Camuflagem', efeito: 'camuflagem 20%', falha: 20, pagina: 89 },
+  { id: 'camuflagemTotal', nome: 'Camuflagem total', efeito: 'camuflagem total 50%', falha: 50, pagina: 89 },
+  { id: 'alcanceDobro', nome: 'Além do alcance', efeito: '−5 (até o dobro)', bonus: -5, so: 'distancia', pagina: 85 },
+  { id: 'emCorpoACorpo', nome: 'Alvo em corpo a corpo', efeito: '−5', bonus: -5, so: 'distancia', pagina: 89 },
+  { id: 'flanqueando', nome: 'Flanqueando', efeito: '+1d20', dados: 1, so: 'corpo', pagina: 89 },
+  { id: 'elevado', nome: 'Posição elevada', efeito: '+1d20', dados: 1, pagina: 89 },
+  { id: 'investida', nome: 'Investida', efeito: '+1d20; −5 na sua Defesa', dados: 1, so: 'corpo', pagina: 87 },
+  { id: 'alvoDesprevenido', nome: 'Alvo desprevenido', efeito: '−5 na Defesa', defesa: -5, pagina: 89 },
+  { id: 'alvoCaido', nome: 'Alvo caído', efeito: '−5 na Defesa no corpo a corpo; +5 à distância', pagina: 89 },
+  { id: 'alvoVulneravel', nome: 'Alvo vulnerável', efeito: '−5 na Defesa', defesa: -5, pagina: 311 },
+  { id: 'alvoIndefeso', nome: 'Alvo indefeso', efeito: '−10 na Defesa', defesa: -10, pagina: 311 },
+  { id: 'atacanteCaido', nome: 'Atacante caído', efeito: '−2d20', dados: -2, so: 'corpo', pagina: 310 },
+  { id: 'atacanteOfuscado', nome: 'Atacante ofuscado', efeito: '−1d20', dados: -1, pagina: 311 },
+  { id: 'atacanteAgarrado', nome: 'Atacante agarrado', efeito: '−1d20', dados: -1, pagina: 310 },
+  { id: 'atacanteCego', nome: 'Atacante cego', efeito: '50% de falha', falha: 50, pagina: 310 },
+  { id: 'naoLetal', nome: 'Dano não letal', efeito: '−5', bonus: -5, so: 'corpo', pagina: 88 },
+];
+
+const SIT = new Map(SITUACOES.map((s) => [s.id, s]));
+export const situacao = (id: SituacaoId) => SIT.get(id)!;
+
+/** Condições do catálogo que viram situação sozinhas: do alvo e de quem ataca. */
+export const SITUACAO_DA_CONDICAO: { alvo: Record<string, SituacaoId>; atacante: Record<string, SituacaoId> } = {
+  alvo: {
+    desprevenido: 'alvoDesprevenido',
+    surpreendido: 'alvoDesprevenido',
+    atordoado: 'alvoDesprevenido',
+    agarrado: 'alvoDesprevenido',
+    cego: 'alvoDesprevenido',
+    caido: 'alvoCaido',
+    vulneravel: 'alvoVulneravel',
+    enredado: 'alvoVulneravel',
+    fatigado: 'alvoVulneravel',
+    exausto: 'alvoVulneravel',
+    indefeso: 'alvoIndefeso',
+    inconsciente: 'alvoIndefeso',
+    paralisado: 'alvoIndefeso',
+  },
+  atacante: { caido: 'atacanteCaido', ofuscado: 'atacanteOfuscado', agarrado: 'atacanteAgarrado', cego: 'atacanteCego', enredado: 'atacanteAgarrado' },
+};
+
+export interface Teste {
+  /** quantos d20 (menos de 1: rola 2 − n e fica o menor, DC-1) */
+  dados: number;
+  bonus: number;
+  /** Defesa final do alvo e as partes (base + modificadores) */
+  defesa: number;
+  partesDefesa: { nome: string; valor: number }[];
+  /** chance de falha somada (até 75%, LR p. 313) */
+  falha: number;
+  /** as situações que pesaram, na ordem da tabela */
+  ativas: Situacao[];
+}
+
+/**
+ * Soma o que as situações mudam no ataque e na Defesa. Efeitos iguais não
+ * somam: desprevenido, vulnerável e indefeso valem o pior (LR p. 311, 313).
+ */
+export function montarTeste(o: { dados: number; bonus: number; defesaBase: number; distancia: boolean; situacoes: SituacaoId[] }): Teste {
+  const ativas = SITUACOES.filter((s) => o.situacoes.includes(s.id) && (!s.so || (s.so === 'distancia') === o.distancia));
+  let dados = o.dados;
+  let bonus = o.bonus;
+  let falha = 0;
+  const partesDefesa: { nome: string; valor: number }[] = [];
+  let pior: Situacao | null = null;
+  for (const s of ativas) {
+    dados += s.dados ?? 0;
+    bonus += s.bonus ?? 0;
+    falha += s.falha ?? 0;
+    if (s.id === 'alvoCaido') partesDefesa.push({ nome: s.nome, valor: o.distancia ? 5 : -5 });
+    else if (s.id === 'alvoDesprevenido' || s.id === 'alvoVulneravel' || s.id === 'alvoIndefeso') {
+      if (!pior || (s.defesa ?? 0) < (pior.defesa ?? 0)) pior = s;
+    } else if (s.defesa) partesDefesa.push({ nome: s.nome, valor: s.defesa });
+  }
+  if (pior) partesDefesa.push({ nome: pior.nome, valor: pior.defesa ?? 0 });
+  const defesa = o.defesaBase + partesDefesa.reduce((t, p) => t + p.valor, 0);
+  return { dados, bonus, defesa, partesDefesa, falha: Math.min(75, falha), ativas };
+}
+
+/** "Role 3d20, fique com o maior, +5" (menos de 1 dado: rola 2 − n e fica o menor, DC-1). */
+export function textoRolagem(dados: number, bonus: number): string {
+  const b = bonus ? `, ${sinal(bonus)}` : '';
+  if (dados < 1) return `Role ${2 - dados}d20, fique com o menor${b}`;
+  if (dados === 1) return `Role 1d20${b}`;
+  return `Role ${dados}d20, fique com o maior${b}`;
+}
+
+/** "20 (15 + 5)" */
+export function textoDefesa(t: Teste, base: number): string {
+  if (!t.partesDefesa.length) return String(t.defesa);
+  return `${t.defesa} (${base}${t.partesDefesa.map((p) => ` ${p.valor >= 0 ? '+' : '−'} ${Math.abs(p.valor)}`).join('')})`;
+}
+
+/** Com a chance de falha, quais resultados do d10 falham: 20% = 1 ou 2, 50% = 1 a 5. */
+export const falhaNoD10 = (chance: number) => Math.round(chance / 10);
+
+export interface Resolucao {
+  total: number;
+  acertou: boolean;
+  critico: boolean;
+  /** a chance de falha tirou o acerto */
+  falhou: boolean;
+  resultado: ResultadoAtaque;
+}
+
+/**
+ * Acerta com total ≥ Defesa; 20 natural sempre acerta. Crítico: acertou e o d20
+ * que ficou está na margem de ameaça (LR p. 82, 85; COMBATE.md 6). A chance de
+ * falha vem depois do acerto (7.3).
+ */
+export function resolver(o: { d20: number; bonus: number; defesa: number; margem: number; falha: number; d10?: number | null }): Resolucao {
+  const total = o.d20 + o.bonus;
+  const acertou = o.d20 >= 20 || total >= o.defesa;
+  const falhou = acertou && o.falha > 0 && o.d10 != null && o.d10 >= 1 && o.d10 <= falhaNoD10(o.falha);
+  const critico = acertou && !falhou && o.d20 >= o.margem;
+  return { total, acertou, critico, falhou, resultado: !acertou || falhou ? 'erro' : critico ? 'critico' : 'acerto' };
+}
+
+// ------------------------------------------------------------------ dano
+
+export interface PartesDano {
+  grupos: { n: number; faces: number }[];
+  fixo: number;
+}
+
+/** "3d8+5", "1d3+2", "2d6", "1d8+1d6+2", "1d4−1" */
+export function lerDano(formula: string): PartesDano {
+  const grupos: { n: number; faces: number }[] = [];
+  let fixo = 0;
+  const limpo = formula.replace(/\s+/g, '').replace(/[−–]/g, '-');
+  for (const m of limpo.matchAll(/([+-]?)(\d*)d(\d+)|([+-]?)(\d+)/gi)) {
+    if (m[3]) grupos.push({ n: (m[1] === '-' ? -1 : 1) * (m[2] ? Number(m[2]) : 1), faces: Number(m[3]) });
+    else if (m[5]) fixo += (m[4] === '-' ? -1 : 1) * Number(m[5]);
+  }
+  return { grupos, fixo };
+}
+
+export function textoFormula(p: PartesDano): string {
+  const g = p.grupos.map((x, i) => `${i && x.n > 0 ? '+' : ''}${x.n}d${x.faces}`).join('');
+  return `${g}${p.fixo ? sinal(p.fixo) : ''}` || '0';
+}
+
+/** No crítico, só os dados da arma (o primeiro grupo) multiplicam; o fixo e os extras, não (LR p. 82; DC-13). */
+export function danoCritico(formula: string, multiplicador: number): PartesDano {
+  const p = lerDano(formula);
+  if (!p.grupos.length || multiplicador <= 1) return p;
+  const [primeiro, ...resto] = p.grupos;
+  return { grupos: [{ n: primeiro.n * multiplicador, faces: primeiro.faces }, ...resto], fixo: p.fixo };
+}
+
+/** "Role 9d8 (crítico ×3) e some +5" */
+export function textoDano(formula: string, multiplicador = 1): string {
+  const p = danoCritico(formula, multiplicador);
+  const dados = p.grupos.map((x, i) => `${i ? ' + ' : ''}${x.n}d${x.faces}`).join('');
+  const crit = multiplicador > 1 ? ` (crítico ×${multiplicador})` : '';
+  return `Role ${dados || 'o dano'}${crit}${p.fixo ? ` e some ${sinal(p.fixo)}` : ''}`;
+}
+
+export const NOME_TIPO_DANO: Record<TipoDano, string> = {
+  balistico: 'balístico',
+  corte: 'corte',
+  eletricidade: 'eletricidade',
+  fogo: 'fogo',
+  frio: 'frio',
+  impacto: 'impacto',
+  mental: 'mental',
+  perfuracao: 'perfuração',
+  quimico: 'químico',
+  sangue: 'Sangue',
+  morte: 'Morte',
+  conhecimento: 'Conhecimento',
+  energia: 'Energia',
+  medo: 'Medo',
+  paranormal: 'paranormal',
+  fisico: 'físico',
+  todos: 'todos',
+};
+
+const FISICOS: TipoDano[] = ['balistico', 'corte', 'impacto', 'perfuracao'];
+
+export interface ContaDano {
+  /** soma dos dados + fixo */
+  total: number;
+  final: number;
+  /** "46 − RD balística 10 = 36" */
+  conta: string;
+}
+
+/**
+ * Aplica imunidade, metade, vulnerabilidade e RD, nessa ordem (LR p. 312–313;
+ * COMBATE.md 8.3). A RD do tipo soma com a de "físico" (nos quatro tipos das
+ * armas) e com a geral.
+ */
+export function contaDano(o: {
+  soma: number;
+  fixo: number;
+  tipo: TipoDano;
+  rd?: Partial<Record<TipoDano, number>>;
+  imunidades?: TipoDano[];
+  vulnerabilidades?: TipoDano[];
+  metade?: boolean;
+}): ContaDano {
+  const total = Math.max(0, o.soma + o.fixo);
+  const nome = NOME_TIPO_DANO[o.tipo] ?? o.tipo;
+  if (o.imunidades?.includes(o.tipo)) return { total, final: 0, conta: `imune a ${nome}: 0` };
+  let v = total;
+  let conta = String(total);
+  if (o.metade) {
+    v = Math.floor(v / 2);
+    conta += ` ÷ 2 = ${v}`;
+  }
+  if (o.vulnerabilidades?.includes(o.tipo)) {
+    v *= 2;
+    conta += ` × 2 (vulnerável) = ${v}`;
+  }
+  const rd = (o.rd?.[o.tipo] ?? 0) + (FISICOS.includes(o.tipo) ? (o.rd?.fisico ?? 0) : 0) + (o.rd?.todos ?? 0);
+  if (rd > 0) {
+    v = Math.max(0, v - rd);
+    conta = `${conta} − RD ${nome} ${rd} = ${v}`;
+  }
+  return { total, final: v, conta };
+}
+
+export interface Consequencia {
+  pv: number;
+  machucado: boolean;
+  /** chegou a 0 PV */
+  zerou: boolean;
+  /** dano massivo: Fortitude com esta DT (LR p. 88) */
+  massivo: number | null;
+}
+
+/** PV depois do dano, machucado, 0 PV e dano massivo (≥ metade dos PV totais sem zerar; DT 15 +2 a cada 10). */
+export function consequencia(v: { pv: number; pvMax: number }, dano: number): Consequencia {
+  const pv = Math.max(0, v.pv - Math.max(0, dano));
+  const zerou = pv === 0 && dano > 0;
+  const massivo = !zerou && dano > 0 && dano >= v.pvMax / 2 ? 15 + 2 * Math.floor(dano / 10) : null;
+  return { pv, machucado: pv > 0 && pv < v.pvMax / 2, zerou, massivo };
+}

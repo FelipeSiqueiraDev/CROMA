@@ -1,0 +1,121 @@
+# Tela COMBATE
+
+Referência: `docs/referencias/combate.webp` (1672×941, a mesma escala das telas MAPA e FICHAS: 1rem = 10 px). No git, com o emblema oficial coberto (a original fica só na máquina). A imagem é guia de **layout**: personagens e números vêm do motor e das nossas fichas.
+
+A regra de cada coisa está em [`COMBATE.md`](COMBATE.md). A arte que falta está em [`CHECKLIST-TELA-COMBATE.md`](CHECKLIST-TELA-COMBATE.md).
+
+## Quem usa (decidido em 30/09)
+
+- **Só o mestre mexe nesta tela.** Escolhe as ações, move as peças e digita as rolagens: o d20 que ficou e a soma dos dados de dano.
+- **Os jogadores só assistem**, na mesa (o tablet), ao tabuleiro acontecendo. Eles rolam os dados físicos e dizem o resultado.
+- **Inimigos:** agem num turno só do mestre, com uma Iniciativa para o grupo, como no livro (LR p. 83 e 169).
+
+## As regiões
+
+Posições em pixels da referência (x e y do canto de cima à esquerda até o de baixo à direita).
+
+| Região | Posição | O que tem |
+|---|---|---|
+| Barra do topo | 0,0 – 1672,80 | a mesma das outras telas, com COMBATE ativo |
+| Ordem de iniciativa | 8,88 – 348,592 | rodada, uma linha por turno, e os botões Atrasar, Preparar e Passar turno |
+| Efeitos e pendências | 8,602 – 348,932 | o que acontece sozinho no começo do turno e os efeitos com duração |
+| Tabuleiro | 360,88 – 1338,460 | o cômodo da vez, com as marcações do combate |
+| Resolução da ação | 360,468 – 1338,932 | quem age, as ações, os passos, arma, situação, rolagem e dano |
+| Alvo | 1350,88 – 1664,530 | a ficha do alvo escolhido |
+| Registro do combate | 1350,540 – 1664,932 | o que aconteceu, por rodada, e o botão de desfazer |
+
+### Ordem de iniciativa
+
+- **Cabeçalho:** "ORDEM DE INICIATIVA" e a etiqueta da rodada.
+- **Uma linha por turno** (pitch de ~75 px): o valor da Iniciativa num quadradinho, o retrato, o nome e a etiqueta ("Agente" ou "Turno do mestre").
+  - A vez de quem age fica destacada em vermelho, com "Sua vez" e a seta.
+  - Ícones de estado, que saem sozinhos das condições: caído, morrendo 1/3, enlouquecendo 1/3, ritual sustentado, atordoado, inconsciente.
+  - **Turno do mestre:** uma linha só, com os retratos dos seres do mestre lado a lado. Na vez dele, o mestre escolhe qual age, e cada um tem as próprias ações.
+  - Quem chega depois entra marcado "a partir da rodada N+1".
+- **Botões:** Atrasar, Preparar e Passar turno.
+- **Menu do cabeçalho** (falta na referência): Encerrar combate e Pôr no combate (quem chega no meio).
+
+### Efeitos e pendências
+
+- **Começo do turno de quem age:** a lista da seção 4.3 do COMBATE.md: fim de efeitos, contadores (morrendo, enlouquecendo), ritual sustentado, dano e testes que se repetem (em chamas, sangrando, veneno, fumaça), cura acelerada, confuso.
+- **Efeitos ativos de todos**, com quem, o quê e até quando: investida (−5 na Defesa até o próximo turno), finta, mira, ação preparada, condições com duração.
+- Cada linha que pede algo tem o botão da ação: "Pagar 1 PE", "Rolar Vigor", "Primeiros socorros".
+
+### Tabuleiro
+
+- **O mesmo tabuleiro da tela MAPA**, no cômodo de quem age. Quando a vez passa para alguém em outro cômodo, a câmera vai junto.
+- **Peças** com a base na cor do lado: agentes em ciano, inimigos em vermelho, neutros em cinza.
+- **Marcações do combate:**
+  - **anel de alcance da arma escolhida** (o alcance e, mais fraco, o dobro, com −5). Na referência o anel diz "curto 9 m"; o certo é o alcance da arma;
+  - **casas ao alcance do movimento**, com a diagonal e o terreno difícil contando em dobro, quando a aba MOVIMENTO está aberta;
+  - **linha até o alvo**, com a distância e a categoria ("7,5 m · curto");
+  - **escudo** no ponto em que a linha passa por mobi ou parede (cobertura +5), e o aviso de cobertura total;
+  - **mira** no alvo, e marcas de flanqueando e de alvo em corpo a corpo;
+  - **área** de ritual ou granada (esfera, cone, linha, cubo), com os seres dentro destacados;
+  - **estados na peça:** deitada (caído, inconsciente), caveira (morrendo), círculo de símbolos (ritual sustentado ou em conjuração).
+- **Barra do canto:** Alcance (liga o anel), Medir (dois pontos, dá metros e categoria), Área (escolhe o formato) e Centralizar (câmera em quem age).
+- **Faixa de baixo:** o clima da cena que pesa na regra (iluminação e camuflagem, névoa, terreno difícil, clima). Clicar abre o ☀ Clima da cena.
+- **Mexer:** clicar numa peça escolhe o alvo; arrastar a peça de quem age gasta o movimento (as casas contam no turno).
+
+### Resolução da ação
+
+- **Faixa de quem age:** retrato, nome, classe e NEX; barras de PV, PE e SAN; Defesa; deslocamento; "Limite de PE: 4 · gasto: 0"; etiquetas do turno: Padrão, Movimento, Completa e Reação (livre, usado ou disponível).
+- **Abas de ação:** Atacar, Manobra, Ritual, Habilidade, Item, Movimento e Outras (as ações das seções 5.2 a 5.5 do COMBATE.md).
+- **Passos:** mudam com a ação.
+  - Atacar: Ação, Arma, Alvo, Reação do alvo, Rolagem, Dano, Confirmar. "Reação do alvo" só aparece quando o alvo é agente com a perícia treinada e a defesa da rodada livre (ameaças não usam esquiva nem bloqueio).
+  - Manobra: Ação, Manobra, Alvo, Teste oposto (dois resultados), Efeito, Confirmar.
+  - Ritual: Ação, Ritual e forma, Alvo ou área, Resistências (uma por alvo), Dano ou efeito, Custo do Paranormal, Confirmar.
+  - Movimento: Ação, Caminho no tabuleiro, Confirmar.
+- **Cartões do ataque:**
+  1. **Arma:** os ataques que o motor calcula para a ficha (teste, dano, crítico, alcance, notas e penalidades), com o ataque desarmado sempre na lista.
+  2. **Situação:** as situações da Tab. 4.4 e as outras da seção 7.1 do COMBATE.md, cada uma com a chave liga/desliga e o ícone de "visto no tabuleiro". O CROMA liga sozinho o que detecta (cobertura, alcance, flanqueando, alvo em corpo a corpo, alvo desprevenido por conjurar ritual longo, camuflagem pela iluminação), e o mestre corrige.
+  3. **Rolagem:** "Role Nd20, fique com o maior, +B", o campo "d20 que ficou", "Total contra Defesa" e o carimbo do resultado: ERROU, ACERTO ou ACERTO CRÍTICO ×N (20 natural sempre acerta). A chance de falha (camuflagem) aparece quando existe.
+- **Dano:** "Role XdY (crítico ×N) e some +Z", o campo "soma dos dados", a conta (metade pela resistência, vulnerável, RD), "PV a → b" e o que vem junto: concentração de quem conjura, dano massivo, machucado, morrendo.
+- **Botões:** Desfazer (volta um passo) e Confirmar ação (aplica e escreve no registro).
+
+### Alvo
+
+- **Ameaça:** retrato, nome, "Ameaça · tipo · VD", PV com a marca do machucado, Defesa, Fortitude, Reflexos e Vontade, RD, imunidades e vulnerabilidades, presença perturbadora e as condições com duração.
+- **Agente como alvo:** PV, PE e SAN, Defesa, esquiva e bloqueio (disponíveis ou usados na rodada) e as condições.
+
+### Registro do combate
+
+- Filtro (Todos, Ataques, Dano, Condições, Turnos), separador de rodada e linhas curtas com a hora.
+- "Desfazer último" volta a última ação confirmada, com tudo o que ela mudou.
+
+## Estados da tela (sem referência: mesmo estilo)
+
+1. **Sem combate:** o botão "Abrir combate nesta cena" e as peças do cômodo.
+2. **Montar o combate:** participantes e lado de cada um, quem está ciente (os outros ficam surpreendidos), a Iniciativa de cada agente e a do grupo do mestre (já com o menor bônus), e o desempate.
+3. **Em combate:** a referência.
+4. **Fim:** o resumo (quem caiu, o que acabou com a cena, a munição gasta) e o aviso do que está em aberto (morrendo ou enlouquecendo).
+
+## Ajustes sobre a referência
+
+- O anel de alcance é o da arma escolhida, com o dobro mais fraco.
+- A Situação detecta também o alvo desprevenido (ritual longo, surpreendido, não percebe o atacante) e o alvo em corpo a corpo com qualquer inimigo, mesmo caído.
+- O passo "Reação do alvo" some quando o alvo é ameaça.
+- Pôr no combate, tirar do combate e encerrar ficam no menu que abre no botão da rodada (cabeçalho da iniciativa); tirar e pôr aparecem também no painel Alvo.
+- O painel Alvo mostra presença perturbadora e vulnerabilidades (criatura) ou esquiva e bloqueio (agente).
+
+## A mesa durante o combate (proposta)
+
+O tablet continua só com o tabuleiro, e mostra o que é público: de quem é a vez, a linha do ataque, a área do ritual, as peças caídas e o carimbo do resultado (ERROU, ACERTO, CRÍTICO). Números e fichas das ameaças não aparecem (COMBATE.md, DC-4).
+
+## Ordem de construção
+
+A das etapas do COMBATE.md (seção 25). A tela nasce na etapa A, com a iniciativa, os turnos, o registro e o desfazer, e cada etapa acende a sua parte da tela.
+
+### O que a tela já faz (30/09)
+
+- **Montar:** as peças da campanha (as da cena primeiro), com incluir, lado, "Percebeu"/"Surpreendido" e a Iniciativa de cada agente (com o que ele rola, pela ficha). O grupo do mestre tem uma Iniciativa só. Empate que sobrou pede quem vai antes.
+- **Ordem de iniciativa:** a vez em vermelho, quem já agiu mais apagado, o estado mais importante de cada um (morrendo n/3, enlouquecendo n/3, surpreendido, chega na rodada n, ritual sustentado, caído, outras condições, ação preparada, machucado). Atrasar, Preparar e Passar turno; o botão da rodada abre o menu (pôr e tirar do combate, encerrar).
+- **Efeitos e pendências:** o que aconteceu sozinho no começo do turno, o que a última ação pediu (dano massivo), morrendo e enlouquecendo (com a DT do socorro), ritual sustentado (Pagar 1 PE, Encerrar), caído (Levantar), em chamas, sangrando, surpresa, quem chega e as ações preparadas (Usar agora).
+- **Resolução da ação:** a faixa de quem age (PV, PE, SAN, Defesa, deslocamento, "Limite de PE · gasto", padrão, movimento e reação) e as abas.
+  - **Atacar:** os passos acendem conforme a resolução. 1. Arma (da ficha do agente ou da ficha da ameaça). 2. Situação, com o que o tabuleiro viu ligado (olho): alcance, cobertura, camuflagem pela escuridão e pela névoa, alvo em corpo a corpo, flanquear, posição elevada e as condições do alvo e de quem ataca; o mestre corrige nas chaves. 3. Rolagem: a defesa especial do alvo (esquiva, bloqueio), "Role Nd20…", o d20 que ficou, o total contra a Defesa, o d10 da camuflagem e o carimbo (ERROU, ACERTO, ACERTO CRÍTICO ×N). 4. Dano: "Role XdY (crítico ×N) e some +Z", a soma dos dados, RD, imunidade e vulnerabilidade, PV a → b, dano massivo. Desfazer volta um passo; Confirmar ação aplica o dano na peça e escreve no registro.
+  - **Ritual e Habilidade:** gastam o PE (com o limite do turno), escrevem no registro e o ritual pode ficar sustentado. **Outras:** primeiros socorros e acalmar perguntam se passou e deixam com 1 PV ou 1 de SAN; jogar-se no chão e apagar as chamas mexem na condição. **Movimento:** levantar tira o caído. As outras ações declaram e gastam a ação.
+- **Alvo:** clique numa peça ou num nome da ordem. Agente: PV com a marca de machucado, Defesa, esquiva e bloqueio, resistências e RD. Ameaça: a ficha rápida (lápis do cabeçalho), com tipo, VD, Defesa, Fortitude, Reflexos, Vontade, RD, imunidades, vulnerabilidades e ataques; o PV marca-se clicando na barra. Condições com "+ Condição" e ×.
+- **Tabuleiro:** base na cor do lado, peça caída deitada, caveira em quem está morrendo, círculo de quem sustenta ritual, anel de alcance da arma (com a etiqueta no pé de quem ataca), linha até o alvo com a distância, escudo da cobertura e mira. Medir (dois pontos) e Área (esfera, cone, linha, cubo, com quem está dentro). O clima traduzido para a regra.
+- **Registro:** filtro, destaque em vermelho (acerto, crítico, machucado), notas (lápis) e Desfazer último, que devolve também o dano.
+- **Mesa:** a rodada, a vez e a ordem; bases por lado, caídos e morrendo; e, a cada ataque, a linha até o alvo e o carimbo por alguns segundos.
+- **Ainda não:** movimento contado em casas e terreno difícil (etapa B), manobra com o teste oposto, resistências de vários alvos do ritual e Custo do Paranormal com conta (etapas F e G), o catálogo de ameaças do livro (etapa H), itens e perigos (etapa I).

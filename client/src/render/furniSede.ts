@@ -1,0 +1,886 @@
+import { rgba, rng, shade } from './color';
+import { B, drawers, faceRange, lightIf, N, V, type Builder, type FNode } from './furniKit';
+import { OUTLINE, type LBox, type LFace, type Painter } from './painter';
+
+/*
+ * Mobis da Sede da Ordem (bar, dormitório, enfermaria, arsenal...). Medidas
+ * em metros na altura (z) e em casas no chão (u = frente, v = lateral), como
+ * em furniFloor. São a primeira versão, para montar o mapa; a arte final
+ * entra depois, mobi a mobi.
+ */
+
+const FACES: LFace[] = ['front', 'back', 'left', 'right'];
+
+/** Garrafa: corpo, ombro e gargalo. */
+function bottle(p: Painter, u: number, v: number, z: number, h: number, r: number, color: string) {
+  p.cyl(u, v, r, z, z + h * 0.7, color, { top: shade(color, 0.2) });
+  p.cyl(u, v, r * 0.45, z + h * 0.7, z + h, shade(color, -0.2), { outline: false });
+  p.cyl(u, v, r * 0.5, z + h, z + h + 0.02, '#1a1612', { outline: false });
+}
+
+const BOTTLES = ['#6a3a10', '#2f5a24', '#b8c4c0', '#8a1a14', '#3a2410', '#c9a24a', '#1f3a2a'];
+
+export const SEDE_BUILDERS: Record<string, Builder> = {
+  // ---------------------------------------------------------------- escadas
+  /** Degraus que sobem em direção à parede (para a porta do quarto). */
+  stairs_up(def) {
+    const [wood, dark] = def.colors;
+    const steps = 5;
+    const nodes: FNode[] = [
+      // vão escuro no alto da escada
+      B([0, 0.04, 0.1, 0.9, 0, 2.15], '#050404', { edge: 0 }),
+    ];
+    for (let i = steps - 1; i >= 0; i--) {
+      const u0 = (i / steps) * 0.96;
+      const top = ((steps - i) / steps) * 0.9;
+      const b: LBox = [u0, u0 + 0.96 / steps + 0.02, 0.1, 0.9, 0, top];
+      nodes.push(
+        N(b, (p) => {
+          p.box(b, shade(wood, -0.08 * i), { edge: 0.25, faces: { front: shade(wood, -0.25) } });
+          p.face(b, 'front', 0.1, 0.9, top - 0.03, top, shade(wood, 0.25), true);
+        }),
+      );
+    }
+    // corrimãos
+    for (const v of [0.07, 0.93]) {
+      const rail: LBox = [0, 1, v - 0.02, v + 0.02, 0, 1.8];
+      nodes.push(
+        N(rail, (p) => {
+          p.line([0.98, v, 0], [0.98, v, 0.95], dark, 2);
+          p.line([0.98, v, 0.95], [0.02, v, 1.8], dark, 2.5);
+          p.line([0.02, v, 1.8], [0.02, v, 0.9], dark, 2);
+        }),
+      );
+    }
+    return V(nodes);
+  },
+
+  /**
+   * Escada escondida (estado 0 = não aparece). Revelada, é um vão na parede
+   * com os primeiros degraus descendo para o escuro e uma luz vermelha lá embaixo.
+   */
+  stairs_down(def, state) {
+    if (state !== 1) return V([]);
+    const [stone] = def.colors;
+    const hole: LBox = [0, 0.05, 0.08, 0.92, 0, 2.15];
+    return V(
+      [
+        N([0.02, 0.9, 0.05, 0.95, 0, 0.01], (p) =>
+          p.withTop(0.004, (ctx) => {
+            const g = ctx.createLinearGradient(0, 0, 0.9, 0);
+            g.addColorStop(0, 'rgba(0,0,0,0.8)');
+            g.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = g;
+            ctx.fillRect(0.02, 0.1, 0.88, 0.8);
+          }),
+        ),
+        N(hole, (p) => {
+          if (!p.m.visible('front')) return;
+          // batente de concreto
+          p.face(hole, 'front', 0.08, 0.92, 0, 2.15, shade(stone, -0.1));
+          p.withFace(hole, 'front', (ctx) => {
+            ctx.fillStyle = '#040303';
+            ctx.fillRect(0.15, 0, 0.7, 2.05);
+            // degraus descendo: faixas cada vez mais estreitas e escuras
+            for (let k = 0; k < 6; k++) {
+              const z = 0.32 - k * 0.055;
+              const inset = 0.02 + k * 0.035;
+              ctx.fillStyle = `rgba(${150 - k * 18},${118 - k * 16},${96 - k * 14},${0.75 - k * 0.1})`;
+              ctx.fillRect(0.15 + inset, z, 0.7 - inset * 2, 0.022);
+            }
+            // brilho vermelho lá no fundo
+            const g = ctx.createRadialGradient(0.5, 0.05, 0, 0.5, 0.05, 0.5);
+            g.addColorStop(0, 'rgba(200,30,20,0.45)');
+            g.addColorStop(1, 'rgba(200,30,20,0)');
+            ctx.fillStyle = g;
+            ctx.fillRect(0.15, 0, 0.7, 0.6);
+          });
+        }),
+      ],
+      [{ u: 0.3, v: 0.5, z: 0.2, radius: 90, color: '#ff4a30', intensity: 0.55, flicker: 0.05 }],
+    );
+  },
+
+  // ---------------------------------------------------------------- bar
+  bar_counter(def, _s, seed) {
+    const [wood, top, brass] = def.colors;
+    const W = def.width;
+    const body: LBox = [0.12, 0.98, 0, W, 0, 1.02];
+    const board: LBox = [0.02, 1.02, 0, W, 1.02, 1.1];
+    const r = rng(seed + 31);
+    const nodes: FNode[] = [
+      N(body, (p) => {
+        p.box(body, wood, { edge: 0.12 });
+        for (const f of FACES) {
+          if (!p.m.visible(f) || f === 'back') continue;
+          const [a0, a1] = faceRange(body, f);
+          // ripas verticais e rodapé escuro
+          for (let a = a0 + 0.12; a < a1 - 0.05; a += 0.16) p.face(body, f, a, a + 0.018, 0.08, 0.98, shade(wood, -0.35));
+          p.face(body, f, a0, a1, 0, 0.08, '#140c0a');
+        }
+        // apoio de pé de latão
+        p.line([1.04, 0.05, 0.16], [1.04, W - 0.05, 0.16], brass, 2);
+      }),
+      B(board, top, { edge: 0.35, faces: { front: shade(brass, -0.25) } }),
+    ];
+    // quase nada em cima: um copo sujo ou uma garrafa aqui e ali
+    for (let v = 0.35; v < W - 0.2; v += 0.55 + r() * 0.35) {
+      if (r() < 0.55) continue;
+      const u = 0.35 + r() * 0.35;
+      const vv = v;
+      if (r() < 0.35) {
+        const col = BOTTLES[Math.floor(r() * BOTTLES.length)];
+        nodes.push(N([u - 0.06, u + 0.06, vv - 0.06, vv + 0.06, 1.1, 1.42], (p) => bottle(p, u, vv, 1.1, 0.3, 0.045, col)));
+      } else {
+        nodes.push(
+          N([u - 0.06, u + 0.06, vv - 0.06, vv + 0.06, 1.1, 1.22], (p) => {
+            p.cyl(u, vv, 0.045, 1.1, 1.22, 'rgba(210,225,230,0.55)', { top: 'rgba(230,200,120,0.7)' });
+          }),
+        );
+      }
+    }
+    return V(nodes);
+  },
+
+  /** Prateleira do bar: quase vazia, umas garrafas em pé, uma deitada, poeira. */
+  bar_shelf(def, _s, seed) {
+    const [wood, dark] = def.colors;
+    const W = def.width;
+    const r = rng(seed * 11 + 7);
+    const back: LBox = [0.04, 0.1, 0, W, 0, 2.1];
+    const cab: LBox = [0.1, 0.62, 0.02, W - 0.02, 0, 0.85];
+    const nodes: FNode[] = [
+      N(back, (p) => {
+        p.box(back, shade(dark, -0.1), { edge: 0 });
+        // espelho encardido atrás das garrafas
+        p.face(back, 'front', 0.1, W - 0.1, 0.95, 1.95, 'rgba(90,100,95,0.28)', true);
+        p.withFace(back, 'front', (ctx) => {
+          ctx.fillStyle = 'rgba(40,30,15,0.35)';
+          for (let i = 0; i < 5; i++) ctx.fillRect(0.15 + r() * (W - 0.4), 1.0 + r() * 0.8, 0.12 + r() * 0.2, 0.05 + r() * 0.08);
+        });
+      }),
+      N(cab, (p) => {
+        p.box(cab, wood, { edge: 0.12 });
+        drawers(p, cab, 'front', 1, Math.round(W * 2), shade(wood, -0.1), '#6a5a3a');
+      }),
+    ];
+    for (const z of [0.85, 1.35, 1.8]) {
+      const shelf: LBox = [0.1, 0.5, 0.02, W - 0.02, z, z + 0.04];
+      nodes.push(
+        N(shelf, (p) => {
+          p.box(shelf, wood, { edge: 0.15 });
+          p.withTop(z + 0.041, (ctx) => {
+            ctx.fillStyle = 'rgba(150,140,120,0.18)';
+            ctx.fillRect(0.12, 0.05, 0.36, W - 0.1);
+          });
+        }),
+      );
+      // poucas bebidas: uma ou duas em pé por prateleira, às vezes nenhuma
+      const list: { v: number; h: number; c: string; rr: number }[] = [];
+      const n = Math.floor(r() * 3);
+      for (let i = 0; i < n; i++) list.push({ v: 0.2 + r() * (W - 0.4), h: 0.22 + r() * 0.12, c: BOTTLES[Math.floor(r() * BOTTLES.length)], rr: 0.035 + r() * 0.012 });
+      const lying = r() < 0.35 ? 0.3 + r() * (W - 0.8) : -1;
+      if (!list.length && lying < 0) continue;
+      nodes.push(
+        N([0.2, 0.42, 0.1, W - 0.1, z + 0.04, z + 0.42], (p) => {
+          for (const b of list.sort((x, y) => x.v - y.v)) bottle(p, 0.3, b.v, z + 0.04, b.h, b.rr, b.c);
+          if (lying >= 0) {
+            const bb: LBox = [0.26, 0.34, lying, lying + 0.3, z + 0.04, z + 0.1];
+            p.box(bb, '#3a5a2a', { edge: 0.3 });
+          }
+        }),
+      );
+    }
+    nodes.push(B([0.04, 0.55, 0, W, 2.06, 2.1], wood, { edge: 0.3 }));
+    return V(nodes);
+  },
+
+  /** Geladeira de porta de vidro, acesa por dentro (apaga no apagão). */
+  beer_fridge(def, _s, seed) {
+    const [body, glow] = def.colors;
+    const b: LBox = [0.1, 0.92, 0.06, 0.94, 0, 2.0];
+    const r = rng(seed + 5);
+    const rows = [0.25, 0.62, 0.99, 1.36].map((z) => Array.from({ length: 5 }, (_, i) => ({ a: 0.2 + i * 0.13 + r() * 0.02, h: 0.16 + r() * 0.08, c: BOTTLES[Math.floor(r() * 4)], z })));
+    return V(
+      [
+        N(b, (p) => {
+          p.box(b, body, { edge: 0.2 });
+          if (!p.m.visible('front')) return;
+          const lit = p.power > 0.1;
+          // placa acesa no alto
+          p.face(b, 'front', 0.1, 0.9, 1.74, 1.94, lit ? glow : shade(glow, -0.7), true);
+          p.withFace(b, 'front', (ctx) => {
+            ctx.fillStyle = lit ? 'rgba(120,20,10,0.8)' : 'rgba(40,10,10,0.8)';
+            ctx.fillRect(0.2, 1.8, 0.6, 0.02);
+            ctx.fillRect(0.3, 1.86, 0.4, 0.02);
+            // vidro: fundo aceso, prateleiras e garrafas
+            const g = ctx.createLinearGradient(0, 1.65, 0, 0.1);
+            g.addColorStop(0, lit ? rgba(glow, 0.95) : 'rgba(30,26,20,0.95)');
+            g.addColorStop(1, lit ? rgba(shade(glow, -0.35), 0.95) : 'rgba(14,12,10,0.95)');
+            ctx.fillStyle = g;
+            ctx.fillRect(0.12, 0.1, 0.76, 1.58);
+            for (const row of rows) {
+              ctx.fillStyle = 'rgba(60,40,20,0.6)';
+              ctx.fillRect(0.12, row[0].z - 0.02, 0.76, 0.02);
+              for (const bt of row) {
+                ctx.fillStyle = lit ? bt.c : shade(bt.c, -0.6);
+                ctx.fillRect(bt.a, row[0].z, 0.07, bt.h * 0.72);
+                ctx.fillRect(bt.a + 0.02, row[0].z + bt.h * 0.72, 0.03, bt.h * 0.28);
+              }
+            }
+            // reflexo e puxador
+            ctx.fillStyle = 'rgba(255,255,255,0.16)';
+            ctx.fillRect(0.2, 0.12, 0.04, 1.5);
+            ctx.fillRect(0.3, 0.12, 0.015, 1.5);
+            ctx.fillStyle = '#c9c4bc';
+            ctx.fillRect(0.8, 0.7, 0.03, 0.45);
+          });
+          p.face(b, 'front', 0.1, 0.9, 0, 0.1, '#1a1210');
+        }),
+      ],
+      [{ u: 1.05, v: 0.5, z: 1.1, radius: 125, color: glow, intensity: 0.75, kind: 'electric' }],
+    );
+  },
+
+  pool_table(def) {
+    const [felt, wood] = def.colors;
+    const W = def.width;
+    const D = def.depth;
+    const legs: LBox[] = [
+      [0.2, 0.42, 0.18, 0.4, 0, 0.55],
+      [D - 0.42, D - 0.2, 0.18, 0.4, 0, 0.55],
+      [0.2, 0.42, W - 0.4, W - 0.18, 0, 0.55],
+      [D - 0.42, D - 0.2, W - 0.4, W - 0.18, 0, 0.55],
+    ];
+    const apron: LBox = [0.1, D - 0.1, 0.1, W - 0.1, 0.55, 0.74];
+    const rails: LBox = [0, D, 0, W, 0.74, 0.85];
+    return V(
+      [
+        ...legs.map((l) => B(l, shade(wood, -0.15))),
+        B(apron, wood, { edge: 0.2 }),
+        N(rails, (p) => {
+          p.box(rails, wood, { edge: 0.35 });
+          p.withTop(0.851, (ctx) => {
+            const g = ctx.createRadialGradient(D / 2, W / 2, 0.1, D / 2, W / 2, D * 0.6);
+            g.addColorStop(0, shade(felt, 0.1));
+            g.addColorStop(1, shade(felt, -0.3));
+            ctx.fillStyle = g;
+            ctx.fillRect(0.14, 0.14, D - 0.28, W - 0.28);
+            ctx.fillStyle = '#060504';
+            for (const [u, v] of [
+              [0.16, 0.16],
+              [D / 2, 0.12],
+              [D - 0.16, 0.16],
+              [0.16, W - 0.16],
+              [D / 2, W - 0.12],
+              [D - 0.16, W - 0.16],
+            ]) {
+              ctx.beginPath();
+              ctx.arc(u, v, 0.09, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            // bolas e o taco
+            const balls: [number, number, string][] = [
+              [D * 0.72, W * 0.5, '#f2efe6'],
+              [D * 0.3, W * 0.42, '#c8352b'],
+              [D * 0.34, W * 0.58, '#e0b43a'],
+              [D * 0.26, W * 0.55, '#2a4ab0'],
+              [D * 0.3, W * 0.66, '#1a1a1a'],
+            ];
+            for (const [u, v, c] of balls) {
+              ctx.fillStyle = c;
+              ctx.beginPath();
+              ctx.arc(u, v, 0.055, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            ctx.strokeStyle = '#c9a26a';
+            ctx.lineWidth = 0.035;
+            ctx.beginPath();
+            ctx.moveTo(D * 0.8, W * 0.52);
+            ctx.lineTo(D - 0.2, W * 0.9);
+            ctx.stroke();
+          });
+        }),
+        // luminária comprida pendurada sobre a mesa
+        N([D / 2 - 0.6, D / 2 + 0.6, W / 2 - 0.2, W / 2 + 0.2, 1.95, 2.75], (p) => {
+          p.line([D / 2 - 0.4, W / 2, 2.75], [D / 2 - 0.4, W / 2, 2.05], '#141212', 1);
+          p.line([D / 2 + 0.4, W / 2, 2.75], [D / 2 + 0.4, W / 2, 2.05], '#141212', 1);
+          const shadeB: LBox = [D / 2 - 0.6, D / 2 + 0.6, W / 2 - 0.16, W / 2 + 0.16, 1.95, 2.05];
+          p.box(shadeB, '#1f3a26', { edge: 0.3 });
+        }),
+      ],
+      [{ u: D / 2, v: W / 2, z: 1.7, radius: 200, color: '#ffe6a8', intensity: 0.85, kind: 'electric' }],
+    );
+  },
+
+  jukebox(def, state) {
+    const [body, neon, neon2] = def.colors;
+    const on = state === 0;
+    const b: LBox = [0.25, 0.9, 0.12, 0.88, 0, 1.25];
+    const cap: LBox = [0.25, 0.9, 0.12, 0.88, 1.25, 1.55];
+    return V(
+      [
+        N(b, (p) => {
+          p.box(b, body, { edge: 0.2 });
+          if (!p.m.visible('front')) return;
+          const lit = on && p.power > 0.1;
+          const c1 = lit ? neon : shade(neon, -0.65);
+          const c2 = lit ? neon2 : shade(neon2, -0.65);
+          p.face(b, 'front', 0.14, 0.2, 0.1, 1.2, c1, true);
+          p.face(b, 'front', 0.8, 0.86, 0.1, 1.2, c1, true);
+          p.face(b, 'front', 0.26, 0.74, 0.62, 1.12, lit ? '#2a1a14' : '#140c0a', true);
+          p.withFace(b, 'front', (ctx) => {
+            // disco e grade do alto-falante
+            ctx.fillStyle = lit ? '#0c0808' : '#060404';
+            ctx.beginPath();
+            ctx.ellipse(0.5, 0.87, 0.16, 0.16, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = c2;
+            ctx.beginPath();
+            ctx.ellipse(0.5, 0.87, 0.04, 0.04, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+            ctx.lineWidth = 0.015;
+            for (let z = 0.15; z < 0.5; z += 0.06) {
+              ctx.beginPath();
+              ctx.moveTo(0.28, z);
+              ctx.lineTo(0.72, z);
+              ctx.stroke();
+            }
+          });
+        }),
+        N(cap, (p) => {
+          p.box(cap, shade(body, 0.1), { edge: 0.3 });
+          if (p.m.visible('front')) p.face(cap, 'front', 0.14, 0.86, 1.3, 1.5, on && p.power > 0.1 ? neon2 : shade(neon2, -0.65), true);
+        }),
+      ],
+      lightIf(on, { u: 1, v: 0.5, z: 0.9, radius: 115, color: neon, intensity: 0.7, kind: 'electric' }),
+    );
+  },
+
+  stool_high(def) {
+    const [seat, metal] = def.colors;
+    return V([
+      N([0.2, 0.8, 0.2, 0.8, 0, 0.78], (p) => {
+        p.disc(0.5, 0.5, 0.2, 0.01, shade(metal, 0.1), OUTLINE);
+        p.cyl(0.5, 0.5, 0.035, 0.01, 0.7, metal);
+        const ctx = p.ctx;
+        const [x, y] = p.m.p(0.5, 0.5, 0.28);
+        ctx.strokeStyle = shade(metal, 0.25);
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.ellipse(x, y, 0.16 * 45.25, 0.16 * 22.63, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        p.cyl(0.5, 0.5, 0.24, 0.68, 0.76, seat, { top: shade(seat, 0.12) });
+      }),
+    ]);
+  },
+
+  // ---------------------------------------------------------------- dormitório
+  /** Cama de solteiro: cabeceira no fundo (u = 0), cobertor até os pés. */
+  bed(def) {
+    const [blanket, frame, sheet] = def.colors;
+    const D = def.depth;
+    const legs: LBox[] = [
+      [0.04, 0.12, 0.05, 0.13, 0, 0.2],
+      [D - 0.12, D - 0.04, 0.05, 0.13, 0, 0.2],
+      [0.04, 0.12, 0.87, 0.95, 0, 0.2],
+      [D - 0.12, D - 0.04, 0.87, 0.95, 0, 0.2],
+    ];
+    const base: LBox = [0.04, D - 0.04, 0.04, 0.96, 0.2, 0.32];
+    const mattress: LBox = [0.1, D - 0.07, 0.07, 0.93, 0.32, 0.48];
+    const pillow: LBox = [0.16, 0.62, 0.14, 0.86, 0.48, 0.58];
+    const cover: LBox = [0.8, D - 0.05, 0.05, 0.95, 0.32, 0.53];
+    const head: LBox = [0.01, 0.08, 0.02, 0.98, 0, 0.95];
+    return V([
+      B(head, frame, { edge: 0.25 }),
+      ...legs.map((l) => B(l, frame)),
+      B(base, frame, { edge: 0.15 }),
+      B(mattress, sheet, { edge: 0.2 }),
+      B(pillow, shade(sheet, 0.1), { edge: 0.3 }),
+      N(cover, (p) => {
+        p.box(cover, blanket, { edge: 0.2 });
+        p.withTop(0.531, (ctx) => {
+          // dobra na ponta do cobertor
+          ctx.fillStyle = shade(blanket, 0.18);
+          ctx.fillRect(0.8, 0.05, 0.16, 0.9);
+          ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+          ctx.lineWidth = 0.02;
+          for (let u = 1.2; u < D - 0.2; u += 0.45) {
+            ctx.beginPath();
+            ctx.moveTo(u, 0.1);
+            ctx.lineTo(u + 0.08, 0.9);
+            ctx.stroke();
+          }
+        });
+      }),
+    ]);
+  },
+
+  nightstand(def) {
+    const [wood, brass] = def.colors;
+    const b: LBox = [0.14, 0.86, 0.14, 0.86, 0, 0.56];
+    const top: LBox = [0.1, 0.9, 0.1, 0.9, 0.56, 0.6];
+    return V([
+      N(b, (p) => {
+        p.box(b, wood, { edge: 0.15 });
+        drawers(p, b, 'front', 2, 1, wood, brass);
+      }),
+      B(top, shade(wood, 0.08), { edge: 0.3 }),
+    ]);
+  },
+
+  bench(def) {
+    const [wood, dark] = def.colors;
+    const W = def.width;
+    const seat: LBox = [0.25, 0.85, 0.04, W - 0.04, 0.38, 0.46];
+    const legs: LBox[] = [
+      [0.3, 0.8, 0.16, 0.24, 0, 0.38],
+      [0.3, 0.8, W - 0.24, W - 0.16, 0, 0.38],
+    ];
+    return V([...legs.map((l) => B(l, dark)), B([0.5, 0.58, 0.24, W - 0.24, 0.14, 0.2], dark), B(seat, wood, { edge: 0.3 })]);
+  },
+
+  // ---------------------------------------------------------------- salas
+  table_round(def) {
+    const [top, base] = def.colors;
+    const W = def.width;
+    const c = W / 2;
+    return V([
+      N([c - 0.35, c + 0.35, c - 0.35, c + 0.35, 0, 0.7], (p) => {
+        p.disc(c, c, 0.34, 0.01, shade(base, -0.1), OUTLINE);
+        p.cyl(c, c, 0.1, 0.01, 0.7, base);
+      }),
+      N([0.04, W - 0.04, 0.04, W - 0.04, 0.7, 0.76], (p) => {
+        p.cyl(c, c, c - 0.05, 0.7, 0.76, top, { top: shade(top, 0.1) });
+        const ctx = p.ctx;
+        const [x, y] = p.m.p(c, c, 0.76);
+        ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.ellipse(x, y, (c - 0.2) * 45.25, (c - 0.2) * 22.63, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }),
+    ]);
+  },
+
+  table_chess(def) {
+    const [dark, light] = def.colors;
+    return V([
+      N([0.3, 0.7, 0.3, 0.7, 0, 0.66], (p) => {
+        p.disc(0.5, 0.5, 0.22, 0.01, dark, OUTLINE);
+        p.cyl(0.5, 0.5, 0.06, 0.01, 0.66, dark);
+      }),
+      N([0.1, 0.9, 0.1, 0.9, 0.66, 0.72], (p) => {
+        const top: LBox = [0.1, 0.9, 0.1, 0.9, 0.66, 0.72];
+        p.box(top, dark, { edge: 0.3 });
+        p.withTop(0.721, (ctx) => {
+          const s = 0.7 / 8;
+          for (let i = 0; i < 8; i++)
+            for (let j = 0; j < 8; j++) {
+              ctx.fillStyle = (i + j) % 2 ? light : shade(dark, 0.15);
+              ctx.fillRect(0.15 + i * s, 0.15 + j * s, s, s);
+            }
+        });
+        for (const [u, v, c] of [
+          [0.3, 0.35, light],
+          [0.62, 0.55, '#141414'],
+          [0.45, 0.7, light],
+        ] as [number, number, string][])
+          p.cyl(u, v, 0.025, 0.72, 0.8, c, { outline: false });
+      }),
+    ]);
+  },
+
+  armchair(def) {
+    const [c0] = def.colors;
+    const base: LBox = [0.2, 0.95, 0.02, 0.98, 0, 0.26];
+    const back: LBox = [0.04, 0.24, 0.02, 0.98, 0, 0.95];
+    const seat: LBox = [0.24, 0.95, 0.16, 0.84, 0.26, 0.45];
+    const arms: LBox[] = [
+      [0.24, 0.95, 0.02, 0.18, 0.26, 0.66],
+      [0.24, 0.95, 0.82, 0.98, 0.26, 0.66],
+    ];
+    return V([B(back, c0, { edge: 0.15 }), B(base, shade(c0, -0.25)), B(seat, shade(c0, 0.06), { edge: 0.2 }), ...arms.map((a) => B(a, c0, { edge: 0.2 }))]);
+  },
+
+  altar(def) {
+    const [stone, cloth] = def.colors;
+    const W = def.width;
+    const b: LBox = [0.1, 0.9, 0.05, W - 0.05, 0, 1.0];
+    return V([
+      N(b, (p) => {
+        p.box(b, stone, { edge: 0.2 });
+        for (const f of FACES) {
+          if (!p.m.visible(f)) continue;
+          const [a0, a1] = faceRange(b, f);
+          p.face(b, f, a0, a1, 0.12, 0.16, shade(stone, -0.3));
+          p.face(b, f, a0, a1, 0.84, 0.88, shade(stone, -0.3));
+        }
+        // pano vermelho por cima e caindo na frente
+        p.withTop(1.001, (ctx) => {
+          ctx.fillStyle = cloth;
+          ctx.fillRect(0.1, W / 2 - 0.3, 0.8, 0.6);
+        });
+        p.face(b, 'front', W / 2 - 0.3, W / 2 + 0.3, 0.5, 1.0, cloth, false);
+      }),
+    ]);
+  },
+
+  // ---------------------------------------------------------------- banheiro e enfermaria
+  toilet(def) {
+    const [c0] = def.colors;
+    const tank: LBox = [0.08, 0.3, 0.24, 0.76, 0.3, 0.85];
+    return V([
+      B(tank, c0, { edge: 0.25 }),
+      N([0.3, 0.9, 0.25, 0.75, 0, 0.45], (p) => {
+        p.cyl(0.6, 0.5, 0.14, 0, 0.36, shade(c0, -0.05));
+        p.cyl(0.6, 0.5, 0.22, 0.36, 0.44, c0, { top: shade(c0, 0.05) });
+        p.disc(0.6, 0.5, 0.13, 0.441, '#9aa4a8');
+      }),
+    ]);
+  },
+
+  sink(def) {
+    const [c0, metal] = def.colors;
+    const basin: LBox = [0.15, 0.8, 0.14, 0.86, 0.72, 0.9];
+    return V([
+      N([0.35, 0.55, 0.4, 0.6, 0, 0.72], (p) => p.cyl(0.45, 0.5, 0.08, 0, 0.72, shade(c0, -0.08))),
+      N(basin, (p) => {
+        p.box(basin, c0, { edge: 0.3 });
+        p.withTop(0.901, (ctx) => {
+          ctx.fillStyle = '#9aa4a8';
+          ctx.fillRect(0.3, 0.26, 0.42, 0.48);
+        });
+        p.cyl(0.22, 0.5, 0.025, 0.9, 1.05, metal);
+        p.line([0.22, 0.5, 1.05], [0.36, 0.5, 1.02], metal, 2);
+      }),
+    ]);
+  },
+
+  /** Leito com a cabeceira levantada, lençol verde e grades de metal. */
+  hospital_bed(def) {
+    const [sheet, metal] = def.colors;
+    const D = def.depth;
+    const frame: LBox = [0.05, D - 0.05, 0.05, 0.95, 0.3, 0.42];
+    const mattress: LBox = [0.9, D - 0.08, 0.08, 0.92, 0.42, 0.56];
+    const cover: LBox = [1.3, D - 0.08, 0.06, 0.94, 0.42, 0.6];
+    const nodes: FNode[] = [
+      B([0.02, 0.08, 0.05, 0.95, 0.3, 1.0], metal, { edge: 0.3 }),
+      ...[
+        [0.1, 0.1],
+        [D - 0.1, 0.1],
+        [0.1, 0.9],
+        [D - 0.1, 0.9],
+      ].map(([u, v]) =>
+        N([u - 0.05, u + 0.05, v - 0.05, v + 0.05, 0, 0.3], (p) => {
+          p.cyl(u, v, 0.02, 0.06, 0.3, metal);
+          p.disc(u, v, 0.05, 0.03, '#1a1a1a', OUTLINE);
+        }),
+      ),
+      B(frame, metal, { edge: 0.2 }),
+      N([0.1, 0.92, 0.08, 0.92, 0.42, 0.95], (p) => {
+        // encosto inclinado com o travesseiro
+        p.poly(
+          [
+            [0.9, 0.08, 0.5],
+            [0.9, 0.92, 0.5],
+            [0.14, 0.92, 0.92],
+            [0.14, 0.08, 0.92],
+          ],
+          '#e8ecee',
+          OUTLINE,
+        );
+        p.poly(
+          [
+            [0.62, 0.2, 0.68],
+            [0.62, 0.8, 0.68],
+            [0.24, 0.8, 0.9],
+            [0.24, 0.2, 0.9],
+          ],
+          '#ffffff',
+          'rgba(0,0,0,0.3)',
+        );
+      }),
+      B(mattress, '#e8ecee', { edge: 0.2 }),
+      B(cover, sheet, { edge: 0.25 }),
+      B([D - 0.08, D - 0.02, 0.05, 0.95, 0.3, 0.78], metal, { edge: 0.3 }),
+    ];
+    for (const v of [0.03, 0.97]) nodes.push(N([0.9, 2.1, v - 0.02, v + 0.02, 0.42, 0.8], (p) => p.line([0.9, v, 0.78], [2.1, v, 0.78], metal, 2)));
+    return V(nodes);
+  },
+
+  iv_stand(def) {
+    const [metal, bag] = def.colors;
+    return V([
+      N([0.25, 0.75, 0.25, 0.75, 0, 1.9], (p) => {
+        for (let i = 0; i < 5; i++) {
+          const a = (i / 5) * Math.PI * 2;
+          p.line([0.5, 0.5, 0.05], [0.5 + Math.cos(a) * 0.22, 0.5 + Math.sin(a) * 0.22, 0.03], '#2a2d31', 2.5);
+        }
+        p.cyl(0.5, 0.5, 0.018, 0.05, 1.85, metal);
+        p.line([0.5, 0.36, 1.84], [0.5, 0.64, 1.84], metal, 2);
+        const bagB: LBox = [0.46, 0.54, 0.32, 0.44, 1.45, 1.78];
+        p.box(bagB, rgba(bag, 0.75), { edge: 0.4 });
+        p.line([0.5, 0.38, 1.45], [0.62, 0.3, 0.8], 'rgba(220,235,240,0.7)', 1);
+      }),
+    ]);
+  },
+
+  medical_cabinet(def) {
+    const [white, red] = def.colors;
+    const W = def.width;
+    const low: LBox = [0.12, 0.9, 0.02, W - 0.02, 0, 0.85];
+    const high: LBox = [0.12, 0.62, 0.02, W - 0.02, 0.85, 1.9];
+    return V([
+      N(low, (p) => {
+        p.box(low, white, { edge: 0.2 });
+        drawers(p, low, 'front', 1, Math.round(W * 2), white, '#8a9098');
+      }),
+      N(high, (p) => {
+        p.box(high, white, { edge: 0.25 });
+        if (!p.m.visible('front')) return;
+        p.withFace(high, 'front', (ctx) => {
+          ctx.fillStyle = 'rgba(160,190,200,0.35)';
+          ctx.fillRect(0.08, 0.95, W - 0.16, 0.8);
+          const cols = ['#c9a24a', '#8a1a14', '#3a6a9a', '#e8e4dc', '#4a8a4a'];
+          for (const z of [1.02, 1.3, 1.56]) {
+            ctx.fillStyle = 'rgba(80,90,95,0.7)';
+            ctx.fillRect(0.08, z - 0.02, W - 0.16, 0.015);
+            for (let a = 0.14, i = 0; a < W - 0.2; a += 0.13, i++) {
+              ctx.fillStyle = cols[(i + Math.round(z * 10)) % cols.length];
+              ctx.fillRect(a, z, 0.08, 0.14 + (i % 3) * 0.03);
+            }
+          }
+          // cruz vermelha no alto
+          ctx.fillStyle = red;
+          ctx.fillRect(W / 2 - 0.12, 1.8, 0.24, 0.05);
+          ctx.fillRect(W / 2 - 0.025, 1.76, 0.05, 0.13);
+        });
+      }),
+    ]);
+  },
+
+  divider(def) {
+    const [cloth, metal] = def.colors;
+    const b: LBox = [0.46, 0.54, 0.02, 0.98, 0.12, 1.6];
+    return V([
+      N(b, (p) => {
+        for (const v of [0.05, 0.95]) {
+          p.line([0.5, v, 0], [0.5, v, 1.62], metal, 2);
+          p.line([0.3, v, 0.02], [0.7, v, 0.02], metal, 2);
+        }
+        p.box(b, rgba(cloth, 0.92), { edge: 0.1 });
+        for (const f of ['left', 'right'] as LFace[]) {
+          if (!p.m.visible(f)) continue;
+          p.withFace(b, f, (ctx) => {
+            ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+            ctx.lineWidth = 0.02;
+            for (let a = 0.1; a < 1; a += 0.12) {
+              ctx.beginPath();
+              ctx.moveTo(a, 0.15);
+              ctx.lineTo(a + 0.02, 1.58);
+              ctx.stroke();
+            }
+          });
+        }
+      }),
+    ]);
+  },
+
+  // ---------------------------------------------------------------- arsenal
+  weapon_rack(def) {
+    const [c0, c1] = def.colors;
+    const W = def.width;
+    const back: LBox = [0.04, 0.1, 0, W, 0, 2.0];
+    const sides: LBox[] = [
+      [0.1, 0.62, 0, 0.06, 0, 2.0],
+      [0.1, 0.62, W - 0.06, W, 0, 2.0],
+    ];
+    const drawer: LBox = [0.1, 0.62, 0.06, W - 0.06, 0, 0.45];
+    const nodes: FNode[] = [B(back, shade(c1, -0.1)), ...sides.map((s) => B(s, c0))];
+    nodes.push(
+      N(drawer, (p) => {
+        p.box(drawer, c0, { edge: 0.2 });
+        drawers(p, drawer, 'front', 1, 2, c0, '#8a8f96');
+      }),
+    );
+    // fuzis em pé, apoiados na trava
+    const guns: FNode[] = [];
+    for (let v = 0.3; v < W - 0.15; v += 0.34) {
+      const b: LBox = [0.22, 0.36, v - 0.05, v + 0.05, 0.47, 1.75];
+      guns.push(
+        N(b, (p) => {
+          p.box([0.24, 0.34, v - 0.04, v + 0.04, 0.47, 0.82], '#4a3222', { edge: 0.1 });
+          p.box([0.26, 0.32, v - 0.025, v + 0.025, 0.82, 1.3], '#1c1d20', { edge: 0.2 });
+          p.box([0.27, 0.31, v - 0.012, v + 0.012, 1.3, 1.75], '#2e3035', { edge: 0.2 });
+        }),
+      );
+    }
+    nodes.push(...guns, B([0.1, 0.62, 0.06, W - 0.06, 1.2, 1.24], c0), B([0.04, 0.64, 0, W, 1.96, 2.0], c0, { edge: 0.3 }));
+    return V(nodes);
+  },
+
+  /** Bancada de computadores: dois monitores na borda de trás, teclado e mouse (tela apaga no apagão). */
+  console(def, state, seed) {
+    const [body, edge, glow] = def.colors;
+    const on = state === 0;
+    const W = def.width;
+    const top: LBox = [0.02, 0.98, 0, W, 0.72, 0.78];
+    const cab: LBox = [0.1, 0.9, 0.04, W - 0.04, 0, 0.72];
+    const nodes: FNode[] = [
+      N(cab, (p) => {
+        p.box(cab, body, { edge: 0.15 });
+        if (p.m.visible('front')) p.face(cab, 'front', 0.04, W - 0.04, 0.6, 0.64, edge, true);
+      }),
+      B(top, shade(body, 0.12), { edge: 0.4, faces: { front: edge } }),
+    ];
+    const r = rng(seed + 3);
+    for (const v of [W * 0.28, W * 0.72]) {
+      const scr: LBox = [0.12, 0.2, v - 0.34, v + 0.34, 0.8, 1.22];
+      nodes.push(
+        N(scr, (p) => {
+          p.box([0.18, 0.24, v - 0.04, v + 0.04, 0.78, 0.84], '#141216');
+          p.box(scr, '#141216', { edge: 0.2 });
+          if (!p.m.visible('front')) return;
+          const lit = on && p.power > 0.1;
+          p.face(scr, 'front', v - 0.3, v + 0.3, 0.83, 1.19, lit ? shade(glow, -0.55) : '#08090b', true);
+          if (!lit) return;
+          p.withFace(scr, 'front', (ctx) => {
+            ctx.fillStyle = rgba(glow, 0.7);
+            for (let i = 0; i < 5; i++) ctx.fillRect(v - 0.26, 0.88 + i * 0.06, 0.1 + r() * 0.4, 0.018);
+          });
+        }),
+      );
+    }
+    nodes.push(
+      N([0.45, 0.75, 0.3, W - 0.3, 0.78, 0.81], (p) => {
+        p.box([0.5, 0.7, W / 2 - 0.35, W / 2 + 0.35, 0.78, 0.8], '#1a1a1e', { edge: 0.2 });
+        p.box([0.55, 0.65, W / 2 + 0.5, W / 2 + 0.6, 0.78, 0.8], '#1a1a1e');
+      }),
+    );
+    return V(nodes, lightIf(on, { u: 0.6, v: W / 2, z: 1.0, radius: 110, color: glow, intensity: 0.55, kind: 'electric' }));
+  },
+
+  /** Luminária fluorescente do teto: calha com o tubo aceso, luz fria (apaga no apagão). */
+  fluorescent(def, state, seed) {
+    const [tube] = def.colors;
+    const on = state === 0;
+    return V(
+      [
+        N([0.3, 0.7, 0.05, 0.95, 2.4, 2.75], (p) => {
+          p.line([0.5, 0.2, 2.75], [0.5, 0.2, 2.5], '#141212', 1);
+          p.line([0.5, 0.8, 2.75], [0.5, 0.8, 2.5], '#141212', 1);
+          const housing: LBox = [0.38, 0.62, 0.08, 0.92, 2.44, 2.5];
+          p.box(housing, '#3a3d42', { edge: 0.3 });
+          const lit = on && p.power > 0.1;
+          const tb: LBox = [0.44, 0.56, 0.12, 0.88, 2.4, 2.44];
+          p.box(tb, lit ? tube : '#5a6068', { edge: 0.5, outline: false });
+          if (lit) {
+            const ctx = p.ctx;
+            const [x, y] = p.m.p(0.5, 0.5, 2.4);
+            const g = ctx.createRadialGradient(x, y, 1, x, y, 26);
+            g.addColorStop(0, rgba(tube, 0.45));
+            g.addColorStop(1, rgba(tube, 0));
+            ctx.fillStyle = g;
+            ctx.fillRect(x - 26, y - 26, 52, 52);
+          }
+        }),
+      ],
+      lightIf(on, { u: 0.5, v: 0.5, z: 2.2, radius: 230, color: '#cfe6ff', intensity: 0.9, flicker: (seed % 5) === 0 ? 0.08 : 0.01 }),
+    );
+  },
+
+  // ---------------------------------------------------------------- prisão
+  /** Grade de cela: barras de ferro do chão até 2,2 m, na borda da casa. */
+  bars(def) {
+    const [iron, dark] = def.colors;
+    return V([
+      N([0, 0.12, 0, 1, 0, 2.2], (p) => {
+        p.box([0, 0.12, 0, 1, 0, 0.08], dark, { edge: 0.2 });
+        for (let v = 0.08; v < 1; v += 0.14) p.cyl(0.06, v, 0.022, 0.08, 2.12, iron, { outline: false });
+        p.box([0, 0.12, 0, 1, 1.02, 1.08], iron, { edge: 0.3 });
+        p.box([0, 0.12, 0, 1, 2.12, 2.2], dark, { edge: 0.3 });
+      }),
+    ]);
+  },
+
+  /** Porta de cela: fechada fica no vão (ninguém passa); aberta, vira de lado. */
+  cell_door(def, state) {
+    const [iron, dark, lockC] = def.colors;
+    const open = state === 1;
+    const nodes: FNode[] = [
+      // batentes
+      B([0, 0.12, 0, 0.08, 0, 2.2], dark, { edge: 0.2 }),
+      B([0, 0.12, 0.92, 1, 0, 2.2], dark, { edge: 0.2 }),
+      B([0, 0.12, 0.08, 0.92, 2.12, 2.2], dark, { edge: 0.3 }),
+    ];
+    if (!open)
+      nodes.push(
+        N([0, 0.12, 0.08, 0.92, 0, 2.12], (p) => {
+          p.box([0.02, 0.1, 0.08, 0.92, 0.04, 0.1], iron);
+          for (let v = 0.16; v < 0.9; v += 0.14) p.cyl(0.06, v, 0.02, 0.1, 2.08, iron, { outline: false });
+          p.box([0.02, 0.1, 0.08, 0.92, 1.0, 1.06], iron, { edge: 0.3 });
+          // fechadura
+          p.box([0.0, 0.14, 0.7, 0.86, 0.95, 1.18], lockC, { edge: 0.35 });
+        }),
+      );
+    else
+      nodes.push(
+        N([0.12, 0.9, 0.84, 0.92, 0, 2.12], (p) => {
+          // porta aberta: gira 90° e encosta no batente
+          p.box([0.12, 0.9, 0.86, 0.9, 0.04, 0.1], iron);
+          for (let u = 0.2; u < 0.9; u += 0.14) p.cyl(u, 0.88, 0.02, 0.1, 2.08, iron, { outline: false });
+          p.box([0.12, 0.9, 0.86, 0.9, 1.0, 1.06], iron, { edge: 0.3 });
+          p.box([0.72, 0.88, 0.84, 0.94, 0.95, 1.18], lockC, { edge: 0.35 });
+        }),
+      );
+    return V(nodes);
+  },
+
+  /** Sujeira no chão: mancha, bitucas, tampinhas e um papel amassado. */
+  dirt(def, _s, seed) {
+    const [stain, bits] = def.colors;
+    const r = rng(seed + 13);
+    const spots = Array.from({ length: 3 }, () => ({ u: 0.2 + r() * 0.6, v: 0.2 + r() * 0.6, rx: 0.12 + r() * 0.2, ry: 0.08 + r() * 0.14, a: r() * 3 }));
+    const trash = Array.from({ length: 6 }, () => ({ u: 0.1 + r() * 0.8, v: 0.1 + r() * 0.8, k: r() }));
+    return V([
+      N([0.02, 0.98, 0.02, 0.98, 0, 0.01], (p) =>
+        p.withTop(0.004, (ctx) => {
+          for (const s2 of spots) {
+            ctx.fillStyle = rgba(stain, 0.35);
+            ctx.beginPath();
+            ctx.ellipse(s2.u, s2.v, s2.rx, s2.ry, s2.a, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          for (const t of trash) {
+            ctx.fillStyle = t.k < 0.4 ? bits : t.k < 0.7 ? '#c9c0a4' : '#6a2a1a';
+            ctx.fillRect(t.u, t.v, t.k < 0.4 ? 0.06 : 0.04, t.k < 0.4 ? 0.02 : 0.04);
+          }
+        }),
+      ),
+    ]);
+  },
+
+  // ---------------------------------------------------------------- depósito
+  rubble(def, _s, seed) {
+    const [stone, wood] = def.colors;
+    const r = rng(seed + 77);
+    const chunks: FNode[] = [];
+    for (let i = 0; i < 9; i++) {
+      const u = 0.2 + r() * 1.5;
+      const v = 0.2 + r() * 1.5;
+      const s = 0.15 + r() * 0.25;
+      const hgt = 0.1 + r() * 0.3;
+      const b: LBox = [u, Math.min(1.95, u + s), v, Math.min(1.95, v + s * (0.6 + r() * 0.8)), 0, hgt];
+      chunks.push(B(b, shade(stone, (r() - 0.5) * 0.3), { edge: 0.15 }));
+    }
+    chunks.push(
+      N([0.2, 1.8, 0.2, 1.8, 0, 0.4], (p) => {
+        p.line([0.3, 0.4, 0.35], [1.7, 1.2, 0.08], wood, 4);
+        p.line([0.5, 1.6, 0.25], [1.4, 0.3, 0.05], shade(wood, -0.15), 3);
+      }),
+    );
+    return V(chunks);
+  },
+};
