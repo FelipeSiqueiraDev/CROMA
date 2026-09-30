@@ -2272,7 +2272,8 @@ select.fx-inp {
     transform: none;
     zoom: 1.45;
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    /* colunas sempre iguais: um texto comprido não alarga a ficha além da tela */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1rem;
     padding: 0.6rem 1.8rem 7.4rem;
     grid-template-areas:
@@ -2286,7 +2287,8 @@ select.fx-inp {
       'equip equip'
       'inv inv'
       'tat tat'
-      'comp notas';
+      'comp comp'
+      'notas notas';
   }
   .fx.sem-comp .fx-palco {
     grid-template-areas:
