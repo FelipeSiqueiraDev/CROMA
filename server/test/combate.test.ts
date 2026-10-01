@@ -1109,6 +1109,42 @@ describe('correções da conferência de 01/10 (Veríssimo): o combate', () => {
     assert.equal(combate.custoDaForma(1, r, 'basica', -1), 1);
   });
 
+  test('V-114: desmaiar pelo não letal não tira o dano massivo do golpe letal (LR p. 88)', () => {
+    assert.deepEqual(combate.consequencia({ pv: 12, pvMax: 20 }, 10, 6), { pv: 2, machucado: true, zerou: false, desmaiou: true, massivo: 17 });
+  });
+
+  test('V-116: quem conjura na própria área sofre o dano mental do ritual e o Custo do Paranormal (LR p. 121)', () => {
+    const c = aplicar(aplicar(montado(), { tipo: 'comecar' }), { tipo: 'passar' });
+    const r = combate.aplicar(
+      c,
+      { tipo: 'ritual', ritual: { quem: 2, ritual: 'Presença do Medo', elemento: 'medo', forma: 'basica', qual: 'padrao', pe: 2, alvos: [{ id: 2, dano: dano(4, 'mental') }], medo: true, mental: 3, sanPermanente: 1 } },
+      ctx(),
+    );
+    assert.ok(r.ok);
+    assert.deepEqual(r.vitais, [{ id: 2, san: 13, pe: 3 }]);
+  });
+
+  test('V-117: pagar o sustentado não impede atrasar; o PE gasto volta junto com a vez (LR p. 87, 120)', () => {
+    let c = aplicar(montado(), { tipo: 'comecar' });
+    c = aplicar(c, { tipo: 'gastarPe', quem: 1, pe: 1, motivo: 'sustentar Decadência' });
+    c = aplicar(c, { tipo: 'atrasar', valor: 17 });
+    assert.equal(combate.acoesDe(c, 2).pe ?? 0, 0, 'o Tepes começa com o turno livre');
+    c = aplicar(c, { tipo: 'passar' });
+    assert.equal(vez(c), 'Cora');
+    assert.equal(combate.acoesDe(c, 1).pe, 1, 'o PE do sustentado conta no mesmo turno');
+  });
+
+  test('ritual com dois danos: o mental vai para a SAN e o de Medo para os PV (Presença do Medo, LR p. 139)', () => {
+    const c = aplicar(aplicar(montado(), { tipo: 'comecar' }), { tipo: 'passar' });
+    const r = combate.aplicar(
+      c,
+      { tipo: 'ritual', ritual: { quem: 2, ritual: 'Presença do Medo', elemento: 'medo', forma: 'basica', qual: 'padrao', pe: 2, alvos: [{ id: 11, dano: dano(5, 'mental'), danoExtra: dano(6, 'medo') }] } },
+      ctx(),
+    );
+    assert.ok(r.ok);
+    assert.deepEqual(r.vitais, [{ id: 11, san: 15, pv: 14 }, { id: 2, pe: 3 }]);
+  });
+
   test('V-22: o teste do ataque guarda os dados perdidos à parte (LR p. 11)', () => {
     // Agi 2 caída (−2d20): rola 4d20 e fica o pior
     const t = combate.montarTeste({ dados: 2, bonus: 5, defesaBase: 12, distancia: false, situacoes: ['atacanteCaido'] });

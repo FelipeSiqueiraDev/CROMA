@@ -153,7 +153,7 @@ Os outros modos ficam guardados para depois, se um dia fizerem falta: **CROMA** 
   - Nas rodadas seguintes, vale a nova ordem.
 
 **No CROMA:** botões "atrasar" (com valor, ou "vou agir agora" depois) e "preparar" (com o gatilho escrito). A ordem se reorganiza sozinha e o registro anota.
-- Atrasar é agir mais tarde: só antes de fazer qualquer coisa no turno. Quando a vez volta, o turno não começa de novo (os contadores de morrendo e enlouquecendo, o sustentado e as condições do começo do turno não contam duas vezes).
+- Atrasar é agir mais tarde: só antes de usar a ação padrão, a de movimento ou a completa (pagar o sustentado e outras ações livres não impedem). Quando a vez volta, o turno não começa de novo: os contadores de morrendo e enlouquecendo, o sustentado e as condições do começo do turno não contam duas vezes, e o PE já gasto continua contando no limite do turno.
 
 ## 4. Rodada, turno e duração
 
@@ -516,9 +516,9 @@ O livro não diz em que ordem as coisas do começo do turno acontecem. Proposta 
 6. Tira a RD do tipo e a RD geral. De fontes diferentes, as duas somam.
 7. Tira dos PV (ou da SAN, se for mental). Nunca fica abaixo de 0.
 
-- Com a opção `medoEmJogo`, o dano de medo é sempre no mínimo 1 (seção 21.1).
+- Com a opção `medoEmJogo`, o dano mental que vem do medo é sempre no mínimo 1 (seção 21.1). Não confundir com o dano de Medo, o subtipo paranormal do item seguinte.
 - **Grupos:** a RD, a imunidade e a vulnerabilidade a "físico" valem nos quatro tipos das armas, e as a "paranormal" nos cinco elementos (o dano paranormal sempre tem o subtipo de um, p. 82). O mental não é paranormal.
-- **Dano de Medo** (Lâmina do Medo, Presença do Medo) é paranormal e tira PV; o dano mental é outro tipo e tira SAN (p. 82, 135, 139).
+- **Dano de Medo** é paranormal e tira PV; o dano mental é outro tipo e tira SAN (p. 82). Nos rituais de Medo que ferem: Conhecendo o Medo é mental (p. 127); a Lâmina do Medo é de Medo e ignora as resistências (p. 135); a Presença do Medo dá os dois, mental e de Medo (p. 139). A tela do ritual já vem com o tipo de cada um, marca "Ignora a RD" na Lâmina e tem um segundo dano, de outro tipo, para a Presença.
 - **Dano a mais de outro tipo** ("3d6 de Morte e 1d8 mental", p. 221): a ficha rápida guarda à parte, a tela pede a soma de cada um e cada parte vai para o seu lugar.
 
 ### 8.4 Dano não letal (LR p. 88)

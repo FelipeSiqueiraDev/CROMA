@@ -132,8 +132,14 @@ function comecarTurno(c: Combate, e: Entrada, ctx: Contexto) {
   const ps = ativosDa(c, e);
   c.acoes = {};
   for (const p of ps) c.acoes[String(p.id)] = livre();
-  // quem atrasou volta à vez: o turno já tinha começado nesta rodada, e atrasar é só agir mais tarde (LR p. 87)
+  // quem atrasou volta à vez: o turno já tinha começado nesta rodada, e atrasar é só agir mais tarde (LR p. 87).
+  // O que já tinha usado (o PE do sustentado, ações livres) volta junto: o limite de PE é do turno
   if (c.comecaram?.includes(e.id)) {
+    const guardado = c.atrasados?.[e.id];
+    if (guardado) {
+      for (const p of ps) c.acoes[String(p.id)] = guardado[String(p.id)] ?? livre();
+      delete c.atrasados![e.id];
+    }
     registrar(c, ctx.agora, 'turno', `${nomeEntrada(c, e)} age agora (tinha atrasado a vez).`);
     return;
   }
@@ -223,6 +229,7 @@ function proximo(c: Combate, ctx: Contexto) {
       c.rodada += 1;
       c.agiram = [];
       c.comecaram = [];
+      delete c.atrasados;
       registrar(c, ctx.agora, 'rodada', `Rodada ${c.rodada}.`);
       continue;
     }
@@ -596,6 +603,8 @@ function ritual(c: Combate, x: unknown, ctx: Contexto, e: Entrada | undefined): 
     if (t) registrar(c, ctx.agora, 'acao', `${p.nome}: ${NOME_TESTE_RES[t.nome] ?? 'resistência'} d20 ${t.d20}, total ${t.total}${dt ? ` contra DT ${dt}` : ''} — ${t.passou ? 'passou' : 'falhou'}.`);
     const d = r.dano && typeof r.dano === 'object' ? (r.dano as Record<string, unknown>) : null;
     if (d) aplicarDano(c, p, d, ctx, vitais);
+    const dx = r.danoExtra && typeof r.danoExtra === 'object' ? (r.danoExtra as Record<string, unknown>) : null;
+    if (dx) aplicarDano(c, p, dx, ctx, vitais);
     const cond = texto(r.condicao, 30);
     const def = cond ? condicaoDoCatalogo(cond) : undefined;
     if (def && criatura(ctx, p) && (def.grupo === 'medo' || def.grupo === 'mental')) registrar(c, ctx.agora, 'estado', `${p.nome} é criatura: imune a condições ${def.grupo === 'medo' ? 'de medo' : 'mentais'} (LR p. 180).`);
@@ -617,7 +626,8 @@ function ritual(c: Combate, x: unknown, ctx: Contexto, e: Entrada | undefined): 
     registrar(c, ctx.agora, 'acao', `Custo do Paranormal: Ocultismo d20 ${custo.d20}, total ${custo.total}${custo.dt ? ` contra DT ${custo.dt}` : ''} — ${custo.passou ? 'passou' : 'falhou'}.`, custo.passou ? undefined : ['falhou']);
     if (mental) registrar(c, ctx.agora, 'estado', `${quem.nome} sofre ${mental} de dano mental${perde ? ' e perde 1 de SAN para sempre: ajuste o máximo na ficha' : ''} (LR p. 121).`, perde ? ['perde 1 de SAN para sempre'] : undefined);
   }
-  if (mental && v) minhas.san = Math.max(0, v.san - mental);
+  // parte da SAN que o próprio ritual já tirou de quem conjura, se ele estava na área
+  if (mental && v) minhas.san = Math.max(0, (vitais.find((m) => m.id === quem.id)?.san ?? v.san) - mental);
   if (minhas.pe !== undefined || minhas.san !== undefined) {
     const ja = vitais.find((m) => m.id === quem.id);
     if (ja) Object.assign(ja, minhas);
@@ -730,12 +740,13 @@ export function aplicar(atual: Combate | null, a: AcaoCombate, ctx: Contexto): R
     case 'atrasar': {
       const e = naVez();
       if (!e) return erro('Não há turno em andamento.');
-      // atrasar é agir mais tarde: quem já agiu neste turno não atrasa (LR p. 87)
+      // atrasar é agir mais tarde: depois de usar a padrão, a de movimento ou a completa, não atrasa (LR p. 87).
+      // Ações livres (o PE do sustentado, que se paga no começo do turno, LR p. 120) não impedem
       const agiu = e.participantes.some((id) => {
         const ac = c.acoes[String(id)];
-        return !!ac && (ac.padrao || ac.movimento || ac.completa || (ac.pe ?? 0) > 0);
+        return !!ac && (ac.padrao || ac.movimento || ac.completa);
       });
-      if (agiu) return erro('Já houve ação neste turno: atrasar é agir mais tarde, antes de fazer qualquer coisa (LR p. 87).');
+      if (agiu) return erro('Já houve ação neste turno: atrasar é agir mais tarde, antes de usar a ação padrão, a de movimento ou a completa (LR p. 87).');
       const v = inteiro(a.valor, -99, 999);
       if (v === undefined) return erro('Iniciativa inválida.');
       if (v >= e.valor) return erro(`Para atrasar, a Iniciativa nova precisa ser menor que ${e.valor}.`);
@@ -745,6 +756,8 @@ export function aplicar(atual: Combate | null, a: AcaoCombate, ctx: Contexto): R
       if (v > prox.valor) return erro(`Para agir depois de ${nomeEntrada(c, prox)}, a Iniciativa nova precisa ser ${prox.valor} ou menos.`);
       porIniciativa(c, e, v, v === prox.valor ? prox.desempate - 1 : 0);
       registrar(c, ctx.agora, 'turno', `${nomeEntrada(c, e)} atrasa a vez: Iniciativa ${e.valor} → ${v}.`);
+      // o que já usou fica guardado até a vez voltar (o PE conta no mesmo turno)
+      (c.atrasados ??= {})[e.id] = Object.fromEntries(e.participantes.map((id) => [String(id), { ...acoesDe(c, id) }]));
       proximo(c, ctx);
       return ok();
     }

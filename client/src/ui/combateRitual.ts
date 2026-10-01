@@ -58,8 +58,19 @@ export interface CtxRitual {
 
 export const PASSOS_RITUAL = ['Ação', 'Ritual e forma', 'Alvo ou área', 'Resistências', 'Efeito', 'Custo do Paranormal', 'Confirmar'];
 
-// o dano dos rituais de Medo é dano de Medo, um subtipo do paranormal; o mental tira SAN e o mestre escolhe quando o ritual diz (LR p. 82, 135, 139)
+// o tipo do dano pelo elemento; dano de Medo é paranormal e tira PV, o mental tira SAN (LR p. 82)
 const ELEMENTO_DANO: Partial<Record<Elemento, TipoDano>> = { sangue: 'sangue', morte: 'morte', conhecimento: 'conhecimento', energia: 'energia', medo: 'medo' };
+
+/**
+ * O dano dos rituais de Medo que ferem, pelo livro: Conhecendo o Medo é mental
+ * (LR p. 127); a Lâmina do Medo é de Medo e ignora as resistências (p. 135);
+ * a Presença do Medo dá mental e mais o mesmo tanto de Medo (p. 139).
+ */
+const DANO_RITUAL: Record<string, { tipo: TipoDano; extra?: TipoDano; ignoraRd?: boolean }> = {
+  'conhecendo-o-medo': { tipo: 'mental' },
+  'lamina-do-medo': { tipo: 'medo', ignoraRd: true },
+  'presenca-do-medo': { tipo: 'mental', extra: 'medo' },
+};
 
 interface Estado {
   chave: string;
@@ -73,6 +84,12 @@ interface Estado {
   formula: string;
   tipo: TipoDano | null;
   soma: number | null;
+  /** o dano a mais de outro tipo (Presença do Medo: mental e de Medo) */
+  formula2: string;
+  tipo2: TipoDano | null;
+  soma2: number | null;
+  /** o dano ignora a RD (Lâmina do Medo); null = o que o ritual diz */
+  ignoraRd: boolean | null;
   /** "parcial": o mestre marca quem sofre só a metade */
   metade: Record<string, boolean>;
   condicao: string;
@@ -91,6 +108,10 @@ const novo = (chave: string): Estado => ({
   formula: '',
   tipo: null,
   soma: null,
+  formula2: '',
+  tipo2: null,
+  soma2: null,
+  ignoraRd: null,
   metade: {},
   condicao: '',
   custo: null,
@@ -114,6 +135,7 @@ export class ResolucaoRitual {
     if (r) {
       const f = r.formas.find((q) => q.forma === this.e.forma && !q.motivo) ?? r.formas[0];
       return {
+        id: r.id,
         nome: r.nome,
         elemento: r.elemento,
         qual: r.qual,
@@ -130,6 +152,7 @@ export class ResolucaoRitual {
     }
     const a = this.e.avulso;
     return {
+      id: '',
       nome: a.nome.trim() || 'ritual',
       elemento: a.elemento,
       qual: a.qual,
@@ -156,8 +179,12 @@ export class ResolucaoRitual {
     const r = this.escolhido(x);
     const alvos = this.alvos(x);
     const medo = r.elemento === 'medo';
-    const tipo = this.e.tipo ?? ELEMENTO_DANO[r.elemento] ?? 'paranormal';
+    const doLivro = r.id ? DANO_RITUAL[r.id] : undefined;
+    const tipo = this.e.tipo ?? doLivro?.tipo ?? ELEMENTO_DANO[r.elemento] ?? 'paranormal';
+    const tipo2 = this.e.tipo2 ?? doLivro?.extra ?? tipo;
+    const ignoraRd = this.e.ignoraRd ?? !!doLivro?.ignoraRd;
     const partes = this.e.formula.trim() ? cb.lerDano(this.e.formula) : null;
+    const partes2 = this.e.formula2.trim() ? cb.lerDano(this.e.formula2) : null;
     const linhas = alvos.map((a) => {
       const k = String(a.p.id);
       const res = r.resist;
@@ -174,13 +201,15 @@ export class ResolucaoRitual {
       // anula: passou, nada acontece; metade: metade do dano; parcial: o mestre diz
       const anulou = !!res && passou === true && (res.efeito === 'anula' || res.efeito === 'desacredita');
       const metade = !!res && passou === true && (res.efeito === 'metade' || (res.efeito === 'parcial' && !!this.e.metade[k]));
-      let dano: { conta: cb.ContaDano; previa: ReturnType<typeof cb.previaDano> } | null = null;
-      if (partes && this.e.soma !== null && !anulou && !imune) {
-        const conta = cb.contaDano({ soma: this.e.soma, fixo: partes.fixo, tipo, rd: a.rd, imunidades: a.imunidades, vulnerabilidades: el?.vulneravel ? [...a.vulnerabilidades, tipo] : a.vulnerabilidades, metade });
-        dano = { conta, previa: cb.previaDano(a.vitais, conta.final, { tipo, naoLetalAntes: a.p.naoLetal, agente: a.agente }) };
-      }
+      // cada dano tem a sua conta; "ignora as resistências" tira a RD (Lâmina do Medo, LR p. 135)
+      const contar = (p: cb.PartesDano, soma: number, t: TipoDano) => {
+        const conta = cb.contaDano({ soma, fixo: p.fixo, tipo: t, rd: ignoraRd ? {} : a.rd, imunidades: a.imunidades, vulnerabilidades: el?.vulneravel ? [...a.vulnerabilidades, t] : a.vulnerabilidades, metade });
+        return { conta, previa: cb.previaDano(a.vitais, conta.final, { tipo: t, naoLetalAntes: a.p.naoLetal, agente: a.agente }) };
+      };
+      const dano = partes && this.e.soma !== null && !anulou && !imune ? contar(partes, this.e.soma, tipo) : null;
+      const extra = partes2 && this.e.soma2 !== null && !anulou && !imune ? contar(partes2, this.e.soma2, tipo2) : null;
       const falhou = !imune && (!res || passou === false);
-      return { a, k, base, el, dados, penalidade, d20, total, passou, anulou, metade, dano, falhou, imune, pendente: !!res && !imune && d20 === null };
+      return { a, k, base, el, dados, penalidade, d20, total, passou, anulou, metade, dano, extra, falhou, imune, pendente: !!res && !imune && d20 === null };
     });
     const conc = x.agente ? cb.dtConcentracao(x.condicoesAtor, r.pe) : null;
     const concPassou = conc && this.e.conc !== null && x.vontade ? cb.passouResistencia(this.e.conc, this.e.conc + x.vontade.bonus, conc.dt) : null;
@@ -190,14 +219,14 @@ export class ResolucaoRitual {
       (r.qual === 'padrao' && (x.acoes.padrao || x.acoes.completa)) ||
       (r.qual === 'movimento' && (x.acoes.completa || (x.acoes.movimento && x.acoes.padrao))) ||
       (r.qual === 'completa' && (x.acoes.padrao || x.acoes.movimento || x.acoes.completa));
-    return { r, alvos, linhas, medo, tipo, partes, conc, concPassou, custo, custoRes, semAcao };
+    return { r, alvos, linhas, medo, tipo, tipo2, ignoraRd, partes, partes2, conc, concPassou, custo, custoRes, semAcao };
   }
 
   passo(x: CtxRitual): number {
     const k = this.conta(x);
     if (this.e.modo !== 'nenhum' && !k.alvos.length) return 2;
     if (k.linhas.some((l) => l.pendente)) return 3;
-    if (k.partes && this.e.soma === null) return 4;
+    if ((k.partes && this.e.soma === null) || (k.partes2 && this.e.soma2 === null)) return 4;
     if ((k.conc && this.e.conc === null) || (k.custo && !k.custo.medo && this.e.custo === null)) return 5;
     return 6;
   }
@@ -327,15 +356,33 @@ export class ResolucaoRitual {
       { class: 'fx-inp', 'aria-label': 'Tipo do dano', onchange: (ev: Event) => ((this.e.tipo = (ev.target as HTMLSelectElement).value as TipoDano), x.mudou()) },
       ...cb.TIPOS_DANO.filter((t) => t !== 'todos' && t !== 'fisico').map((t) => h('option', { value: t, selected: t === k.tipo }, cb.NOME_TIPO_DANO[t])),
     );
-    const corpo: HTMLElement[] = [h('div', { class: 'cb-rit-dano' }, formula, tipo)];
-    if (k.partes) {
-      corpo.push(h('div', { class: 'cb-instrucao' }, ic('dados'), h('span', null, cb.textoDano(this.e.formula))), campoDado('soma dos dados', this.e.soma, 999, (n) => ((this.e.soma = n), x.mudou()), 'rit:soma', true));
+    // o dano a mais de outro tipo, rolado à parte (Presença do Medo: mental e de Medo, LR p. 139)
+    const formula2 = h('input', { class: 'fx-inp cb-rit-formula', value: this.e.formula2, maxlength: 20, placeholder: 'e mais: 5d8', 'data-foco': 'rit:formula2', 'aria-label': 'Dano a mais, de outro tipo' });
+    formula2.addEventListener('change', () => ((this.e.formula2 = formula2.value.replace(/[^0-9dD+\-−\s]/g, '')), (this.e.soma2 = null), x.mudou()));
+    const tipo2 = h(
+      'select',
+      { class: 'fx-inp', 'aria-label': 'Tipo do dano a mais', onchange: (ev: Event) => ((this.e.tipo2 = (ev.target as HTMLSelectElement).value as TipoDano), x.mudou()) },
+      ...cb.TIPOS_DANO.filter((t) => t !== 'todos' && t !== 'fisico').map((t) => h('option', { value: t, selected: t === k.tipo2 }, cb.NOME_TIPO_DANO[t])),
+    );
+    const corpo: HTMLElement[] = [h('div', { class: 'cb-rit-dano' }, formula, tipo), h('div', { class: 'cb-rit-dano' }, formula2, tipo2)];
+    if (k.partes || k.partes2)
+      corpo.push(
+        h(
+          'label',
+          { class: 'cb-dlg-check cb-man-check', title: 'O dano ignora as resistências (a Lâmina do Medo, LR p. 135)' },
+          h('input', { type: 'checkbox', class: 'cb-check', checked: k.ignoraRd, onchange: (ev: Event) => ((this.e.ignoraRd = (ev.target as HTMLInputElement).checked), x.mudou()) }),
+          h('span', null, 'Ignora a RD'),
+        ),
+      );
+    if (k.partes) corpo.push(h('div', { class: 'cb-instrucao' }, ic('dados'), h('span', null, cb.textoDano(this.e.formula))), campoDado('soma dos dados', this.e.soma, 999, (n) => ((this.e.soma = n), x.mudou()), 'rit:soma', true));
+    if (k.partes2) corpo.push(h('div', { class: 'cb-instrucao' }, ic('dados'), h('span', null, `${cb.textoDano(this.e.formula2)} (${cb.NOME_TIPO_DANO[k.tipo2]})`)), campoDado(`soma do dano a mais`, this.e.soma2, 999, (n) => ((this.e.soma2 = n), x.mudou()), 'rit:soma2'));
+    if (k.partes || k.partes2)
       for (const l of k.linhas) {
         if (l.imune) corpo.push(h('small', { class: 'cb-rit-linha' }, `${l.a.p.nome}: imune (criatura).`));
         else if (l.anulou) corpo.push(h('small', { class: 'cb-rit-linha' }, `${l.a.p.nome}: anulou.`));
-        else if (l.dano) corpo.push(h('small', { class: 'cb-rit-linha' }, `${l.a.p.nome}: ${l.dano.conta.conta}${l.dano.previa ? ` · ${l.dano.previa.texto}` : ''}`));
+        else
+          for (const d of [l.dano, l.extra]) if (d) corpo.push(h('small', { class: 'cb-rit-linha' }, `${l.a.p.nome}: ${d.conta.conta}${d.previa ? ` · ${d.previa.texto}` : ''}`));
       }
-    }
     const conds = regras.catalogo.CATALOGO.condicoes.filter((c) => !c.automatica);
     corpo.push(
       h(
@@ -390,7 +437,7 @@ export class ResolucaoRitual {
       h('label', { class: 'cb-dlg-check cb-man-check' }, h('input', { type: 'checkbox', class: 'cb-check', checked: sust, onchange: (ev: Event) => ((this.e.sustentado = (ev.target as HTMLInputElement).checked), x.mudou()) }), h('span', null, 'Sustentado')),
     );
     const faltaCusto = (!!k.conc && this.e.conc === null) || (!!k.custo && !k.custo.medo && this.e.custo === null && !!x.ocultismo);
-    const pronto = !k.linhas.some((l) => l.pendente) && !(k.partes && this.e.soma === null) && !faltaCusto && (this.e.ritual >= 0 || !!this.e.avulso.nome.trim()) && (this.e.modo === 'nenhum' || k.alvos.length > 0);
+    const pronto = !k.linhas.some((l) => l.pendente) && !(k.partes && this.e.soma === null) && !(k.partes2 && this.e.soma2 === null) && !faltaCusto && (this.e.ritual >= 0 || !!this.e.avulso.nome.trim()) && (this.e.modo === 'nenhum' || k.alvos.length > 0);
     const desfazer = h(
       'button',
       {
@@ -400,7 +447,7 @@ export class ResolucaoRitual {
         onclick: () => {
           sfx.click();
           this.e.d20 = {};
-          this.e.soma = this.e.custo = this.e.conc = null;
+          this.e.soma = this.e.soma2 = this.e.custo = this.e.conc = null;
           x.mudou();
         },
       },
@@ -433,6 +480,18 @@ export class ResolucaoRitual {
                   },
                 }
               : {}),
+            ...(l.extra
+              ? {
+                  danoExtra: {
+                    formula: cb.textoFormula(k.partes2!),
+                    soma: this.e.soma2!,
+                    total: l.extra.conta.total,
+                    tipo: k.tipo2,
+                    conta: l.extra.conta.conta,
+                    final: l.extra.conta.final,
+                  },
+                }
+              : {}),
             ...(this.e.condicao && l.falhou ? { condicao: this.e.condicao } : {}),
           }));
           const custo = k.custoRes && x.ocultismo && this.e.custo !== null ? { dt: 15 + r.pe, d20: this.e.custo, total: this.e.custo + x.ocultismo.bonus, passou: k.custoRes.passou } : undefined;
@@ -453,7 +512,7 @@ export class ResolucaoRitual {
           };
           x.enviar({ tipo: 'ritual', ritual });
           this.e.d20 = {};
-          this.e.soma = this.e.custo = this.e.conc = null;
+          this.e.soma = this.e.soma2 = this.e.custo = this.e.conc = null;
           this.e.metade = {};
           x.mudou();
         },

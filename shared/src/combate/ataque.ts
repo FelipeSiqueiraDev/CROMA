@@ -365,7 +365,8 @@ export function consequencia(v: { pv: number; pvMax: number }, dano: number, nao
   const pv = Math.max(0, v.pv - Math.max(0, dano));
   const zerou = pv === 0 && dano > 0;
   const desmaiou = !zerou && dano > 0 && naoLetal > 0 && pv - naoLetal <= 0 && v.pv - naoLetal > 0;
-  const massivo = !zerou && !desmaiou && dano > 0 && dano >= v.pvMax / 2 ? dtMassivo(dano) : null;
+  // desmaiar pelo não letal não tira o dano massivo: falhando, vai a 0 PV e fica morrendo (LR p. 88)
+  const massivo = !zerou && dano > 0 && dano >= v.pvMax / 2 ? dtMassivo(dano) : null;
   return { pv, machucado: pv > 0 && pv < v.pvMax / 2, zerou, desmaiou, massivo };
 }
 

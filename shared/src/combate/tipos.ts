@@ -110,6 +110,8 @@ export interface Combate {
    * novo (os contadores e o sustentado não contam duas vezes, LR p. 87–88).
    */
   comecaram?: string[];
+  /** o que cada ser do lugar já tinha usado quando atrasou (PE do sustentado, ações livres): volta com a vez */
+  atrasados?: Record<string, Record<string, AcoesTurno>>;
   participantes: Participante[];
   /** Iniciativa do grupo do mestre: um teste por todos, com o menor bônus (LR p. 83) */
   mestre: { iniciativa: number | null; desempate: number };
@@ -221,6 +223,8 @@ export interface AlvoRitual {
   id: number;
   teste?: { nome: TesteResistencia; dados: number; bonus: number; d20: number; total: number; passou: boolean };
   dano?: DanoConfirmado;
+  /** o dano a mais de outro tipo (Presença do Medo: mental e de Medo, LR p. 139) */
+  danoExtra?: DanoConfirmado;
   /** condição do catálogo que o alvo ganha */
   condicao?: string;
 }
