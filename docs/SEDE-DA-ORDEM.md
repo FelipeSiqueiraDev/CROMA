@@ -27,12 +27,12 @@ O mapa da Sede (Ordo Realitas) já funciona no jogo: os agentes andam, passam de
 - **Portas de cela** abrem e fecham com clique duplo; fechadas, ninguém passa.
 - Tudo isso (cor, partículas, piso, andar) o mestre também ajusta em **Configurar cena**. A quantidade de partículas fica no ☀ **Clima da cena**, junto da névoa e da escuridão.
 
-## Proposta de formato dos móveis
+## Formato dos móveis
 
-- Visão isométrica 2:1, igual ao tabuleiro: cada casa do chão é um losango de **64×32 px**. Entregue no **dobro** (128×64 por casa) para ficar nítido.
-- Escala: **1 m de altura = 57,6 px** (no tamanho normal). Uma pessoa tem ~1,75 m; uma estante, ~2,1 m; uma mesa, ~0,8 m. As alturas estão na lista.
+- Pixel art chibi na **grade 2:1** do tabuleiro (decidido em 30/09, `docs/ARTE.md`): cada casa do chão é um losango de **32×16 pixels de arte** (64×32 na tela, no zoom normal).
+- Escala: **1 m de altura ≈ 29 pixels de arte** (57,6 px na tela), desenhado para o corpo do chibi: a mesa bate na cintura. Uma pessoa tem ~1,75 m; uma estante, ~2,1 m; uma mesa, ~0,8 m. As alturas estão na lista.
 - **Duas imagens por móvel:** frente virada para baixo à esquerda (rotação 4) e costas viradas para cima à direita (rotação 0). As outras duas rotações são essas espelhadas. Móveis que só ficam encostados na parede do fundo precisam só da frente.
-- Fundo transparente, sem sombra no chão (o jogo faz a sombra e a luz). Luz vindo de cima.
+- Fundo transparente, sem sombra no chão (o jogo faz a sombra e a luz). Luz neutra.
 - Móveis com estados (ligado/desligado, aberta/fechada) têm uma imagem por estado.
 - Nome do arquivo = o id da lista (ex.: `beer_fridge.png`, `beer_fridge_costas.png`), na pasta `client/public/arte/moveis/`.
 

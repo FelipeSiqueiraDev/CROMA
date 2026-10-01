@@ -15,11 +15,31 @@ Quem faz a arte entrega **só arquivos de imagem**. Todo o código (encaixar, an
 - **Nomes em minúsculas, sem acento e sem espaço** (use hífen), exatamente como nas tabelas.
 - Tudo vai em **`client/public/arte/`**, nas subpastas abaixo.
 
+## Tabuleiro: o modelo e a grade (decidido em 30/09)
+
+Vale para tudo o que fica no tabuleiro: os bonecos e o mapa (piso, paredes e móveis), que recebem a arte no mesmo estilo.
+
+- **Modelo:** pixel art chibi, com cabeça grande e cerca de 3 cabeças de altura, como o modelo dos quatro agentes aprovado em 30/09 e como os bonecos das referências do mapa e do combate.
+- **Grade 2:1:** 1 pixel da arte = 2 pixels da tela no zoom normal. Tudo no tabuleiro usa o mesmo tamanho de pixel; pixel grosso ao lado de pixel fino não combina.
+
+| Peça | Na arte (pixels) | Na tela, no zoom normal |
+|---|---|---|
+| Casa do chão | losango de 32×16 | 64×32 |
+| 1 m de altura | ~29 | 57,6 |
+| Pessoa (1,75 m) | ~52 de altura | 104 |
+| Porta (2,15 m) | ~62 | 124 |
+| Mesa (0,8 m) | ~23 | 46 |
+
+- **Pixel duro:** cores chapadas, sem anti-aliasing, sem desfoque e sem brilho em volta. Os bonecos têm contorno escuro; o cenário pode ter contorno mais suave, para os bonecos se destacarem.
+- **Luz neutra em tudo:** a luz vem do jogo (escuridão, lamparinas, névoa e o brilho das telas e lâmpadas).
+- **Proporção dos móveis:** desenhados para o corpo do chibi (a mesa bate na cintura, como nas referências). As alturas do jogo se ajustam na primeira leva de móveis.
+- **O que o jogo faz:** desenha a arte sem suavizar e com zoom em múltiplos do pixel (0,5×, 1×, 1,5×, 2×...), para cada pixel da arte ficar inteiro na tela.
+
 ## 1. Personagens
 
 Pasta: `client/public/arte/personagens/<nome>/`, com `<nome>` = `tepes`, `catarina`, `alosi`, `cora-falcao` (ou o nome de um personagem novo).
 
-**Decidido em 30/09:** a folha de sprite de hoje de cada agente (`folha.webp`, pintada) é a **arte de referência** dele: aparece grande na FICHAS e vai para a Hand do jogador (tela que vem depois). O **tabuleiro** vai ganhar uma **folha nova** para cada agente, em estilo 32 bits, mais pixelada, com todos os ângulos e as animações de andar. O formato dessa folha nova entra aqui antes de ser feita.
+**Decidido em 30/09:** a folha de sprite de hoje de cada agente (`folha.webp`, pintada) é a **arte de referência** dele: aparece grande na FICHAS e vai para a Hand do jogador (tela que vem depois). O **tabuleiro** vai ganhar arte nova para cada agente, no modelo chibi e na grade 2:1 (seção acima), com todos os ângulos e as animações de andar. As poses paradas já têm formato ("Poses do tabuleiro", abaixo); o das animações entra aqui antes de ser feito.
 
 ### Poses de referência do tabuleiro — Tepes, estilo 32 bits
 
@@ -36,11 +56,11 @@ Formato: PNG RGBA, 1024×1536, corpo inteiro, frente em três quartos voltada pa
 
 Armado: corrente sem acessório na ponta, enrolada no antebraço e com trecho solto até o início da bota; escudo pequeno, redondo, de madeira, abaixado junto ao corpo. Machucado: cortes, hematoma e roupa rasgada/manchada, preservando a identidade.
 
-Não substituem `folha.webp` nem os `retrato-*.png`. **Desde 30/09 elas já estão no tabuleiro** (na tela do mestre e na mesa): a peça do Tepes usa a pose do estado dela e muda na hora. Ainda sem as outras direções, quadros de piscar ou caminhada: virado para outro lado, ele mostra a mesma pose; andando, ela desliza com um balanço.
+Não substituem `folha.webp` nem os `retrato-*.png`. São do modelo realista, de antes da decisão do chibi: ficam no tabuleiro até chegarem as poses chibi do Tepes, e depois servem de referência (por exemplo, o corpo grande da FICHAS). **Desde 30/09 elas já estão no tabuleiro** (na tela do mestre e na mesa): a peça do Tepes usa a pose do estado dela e muda na hora. Ainda sem as outras direções, quadros de piscar ou caminhada: virado para outro lado, ele mostra a mesma pose; andando, ela desliza com um balanço.
 
 ### Poses do tabuleiro: uma imagem por estado e direção
 
-É o formato das próximas entregas (as outras direções do Tepes e, depois, os outros agentes). Cada imagem é o personagem parado, numa direção e num estado.
+É o formato das próximas entregas: os quatro agentes no modelo chibi, nas 8 direções e nos 4 estados. Cada imagem é o personagem parado, numa direção e num estado.
 
 - **Pasta:** `client/public/arte/personagens/<nome>/tabuleiro-32bits/`.
 - **Nome:** `idle-<estado>-<direção>.png`, com `<estado>` = `desarmado`, `armado`, `desarmado-machucado` ou `armado-machucado`. As quatro imagens sem direção no nome (as entregues) valem como `se`.
@@ -57,11 +77,11 @@ Não substituem `folha.webp` nem os `retrato-*.png`. **Desde 30/09 elas já est�
 | `n` | de costas ↑ (só com 8) |
 | `w` | de lado, olhando para a esquerda ← (só com 8) |
 
-- **A mesma tela das quatro entregues:** PNG RGBA de 1024×1536, corpo inteiro, **na mesma escala e com os pés no mesmo ponto** em todas as direções e estados. O jogo mede a altura das poses sem machucado e usa essa escala em todas; a âncora é o meio da faixa de baixo do corpo (entre os pés).
-- **Fundo transparente de verdade, sem chão, sem sombra, sem anel e sem texto.** Luz neutra, como nas quatro.
+- **Tamanho:** na grade 2:1 (a pessoa com ~52 pixels de altura), corpo inteiro, **na mesma escala e com os pés no mesmo ponto** em todas as direções e estados. O jogo mede a altura das poses sem machucado e usa essa escala em todas; a âncora é o meio da faixa de baixo do corpo (entre os pés).
+- **Como entregar:** pode vir a imagem do gerador como saiu, com os quatro agentes numa grade 2×2 (em cima Catarina e Alosi, embaixo Cora e Tepes) e fundo transparente ou verde puro `#00FF00`. O construtor recorta, acerta a grade de pixel e grava `idle-<estado>-<direção>.png` na pasta de cada um.
+- **Fundo transparente de verdade (ou o verde chapado), sem chão, sem sombra, sem anel e sem texto.** Luz neutra.
 - **Como o jogo escolhe:** o estado vem do botão **Armado** (no painel da peça) e dos PV (**menos da metade = machucado**, como no livro); a direção vem da peça (↺ ↻, Q e E). Faltando uma direção, usa a vizinha; faltando um estado, o mais parecido. No carregamento, o quase transparente em volta some e o corpo fica totalmente opaco.
-- **Tamanho na tela:** no zoom normal a peça tem 104 px de altura. A arte de hoje tem uns 210 "pixels" de altura (cada pixel da arte ≈ 7 px da imagem), então aparece reduzida pela metade: o pixel grosso só aparece de perto (zoom 2× ou 3×).
-- **Peso:** cada PNG de 1024×1536 tem ~1,5 MB; com 4 estados × 4 direções são ~24 MB por agente, pesado para o tablet. Com o conjunto completo, o construtor reduz as imagens (por exemplo, 512×768 em WebP), mantendo os nomes (só a extensão pode virar `.webp`).
+- **As poses realistas do Tepes** (1024×1536, ~1,5 MB cada) aparecem reduzidas pela metade no zoom normal e pesam no tablet. Na grade 2:1, cada pose tem poucos KB.
 
 ### Folha de sprite: `folha.png`
 
@@ -152,7 +172,7 @@ Pasta: `client/public/arte/interface/`; o logo em `client/public/arte/local/` (f
 
 ### A sala do tabuleiro (Sala de Tecnologia)
 
-Formato em [`SEDE-DA-ORDEM.md`](SEDE-DA-ORDEM.md) (casa de 64×32 px, 1 m de altura = 57,6 px, imagem de frente e de costas):
+Formato em [`SEDE-DA-ORDEM.md`](SEDE-DA-ORDEM.md), na grade 2:1 do tabuleiro (casa de 32×16 pixels de arte, 1 m de altura ≈ 29 pixels de arte, imagem de frente e de costas):
 - **Piso:** carpete roxo, uma casa que repete.
 - **Parede:** tijolo escuro, que repete.
 - **Móveis:** porta de madeira escura (fechada e aberta); bancada com 1, 2 e 3 monitores; cadeira de escritório nas 4 direções; lâmpada fluorescente (apagada e acesa).
@@ -235,7 +255,7 @@ Pasta: `client/public/arte/efeitos/`.
 
 **Decidido:** os cenários são montados no jogo (planta, paredes e móveis na grade isométrica), e a arte dos móveis vem depois, para deixar cada cômodo parecido com a referência. Luz, névoa e fumaça são feitas pelo jogo.
 
-A lista dos móveis, cômodo por cômodo, com tamanho, altura e o que desenhar, está em [`SEDE-DA-ORDEM.md`](SEDE-DA-ORDEM.md), junto com a proposta de formato (casa de 64×32 px, 1 m de altura = 57,6 px, duas imagens por móvel: frente e costas). O formato se confirma na primeira leva: comece por um móvel marcado com ✱.
+A lista dos móveis, cômodo por cômodo, com tamanho, altura e o que desenhar, está em [`SEDE-DA-ORDEM.md`](SEDE-DA-ORDEM.md), junto com o formato (pixel art na grade 2:1: casa de 32×16 pixels de arte, 1 m de altura ≈ 29 pixels de arte, duas imagens por móvel: frente e costas). O formato se confirma na primeira leva: comece por um móvel marcado com ✱.
 
 ## Como entregar
 
