@@ -111,10 +111,10 @@ function iconeDoItem(it: regras.ItemFicha): string {
   return e ? ICONE_GRUPO[e.grupo] : 'caixa';
 }
 
-/** O que a linha do item mostra (nome, tipo, dano ou efeito, observações). */
 /** Ícone de linha do item achado no cenário, pelo tipo. */
 const ICONE_CENA: Record<LootKind, string> = { weapon: 'faca', document: 'documento', key: 'cadeado', letter: 'email', potion: 'frasco', tape: 'pendrive', box: 'caixa', misc: 'caixa' };
 
+/** O que a linha do item mostra (nome, tipo, dano ou efeito, observações). */
 export function infoItem(it: regras.ItemFicha, calc: regras.Calculado | null): InfoItem {
   // achado no cenário (um documento, uma chave): o texto do mestre no lugar do efeito
   if (it.tipo === 'cena') {
