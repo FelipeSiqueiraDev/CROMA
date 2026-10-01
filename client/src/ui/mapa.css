@@ -371,6 +371,27 @@
   height: 100% !important;
   object-fit: cover;
 }
+.rp-foto {
+  position: relative;
+}
+.rp-arma {
+  position: absolute;
+  right: 0.3rem;
+  bottom: 0.3rem;
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border: 0.12rem solid #c9a45a;
+  border-radius: 50%;
+  background: #1c1a18;
+  color: #eadfc4;
+  box-shadow: 0 0.2rem 0.4rem rgba(0, 0, 0, 0.5);
+}
+.rp-arma .ic {
+  width: 1.5rem;
+  height: 1.5rem;
+}
 .rp-info {
   display: flex;
   flex-direction: column;

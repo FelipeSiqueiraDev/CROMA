@@ -5,7 +5,7 @@
  * feita) vira um `Escolher`: as opções do motor, travadas com o motivo, o que
  * está escolhido e como gravar. A tela só mostra e chama `aplicar`.
  */
-import { regras } from '@croma/shared';
+import { lootKindLabel, regras, type LootKind } from '@croma/shared';
 
 type Ficha = regras.Ficha;
 type Nex = regras.Nex;
@@ -112,7 +112,22 @@ function iconeDoItem(it: regras.ItemFicha): string {
 }
 
 /** O que a linha do item mostra (nome, tipo, dano ou efeito, observações). */
+/** Ícone de linha do item achado no cenário, pelo tipo. */
+const ICONE_CENA: Record<LootKind, string> = { weapon: 'faca', document: 'documento', key: 'cadeado', letter: 'email', potion: 'frasco', tape: 'pendrive', box: 'caixa', misc: 'caixa' };
+
 export function infoItem(it: regras.ItemFicha, calc: regras.Calculado | null): InfoItem {
+  // achado no cenário (um documento, uma chave): o texto do mestre no lugar do efeito
+  if (it.tipo === 'cena') {
+    const kind = (it.tipoCena ?? 'misc') as LootKind;
+    const obs = [(it.qtd ?? 1) > 1 ? `×${it.qtd}` : '', 'achado na missão'].filter(Boolean).join(' · ');
+    return { nome: it.apelido || it.nome || it.id, tipo: lootKindLabel(kind), categoria: 0, espacos: it.espacos ?? 1, efeito: it.descricao || '—', obs, icone: ICONE_CENA[kind] ?? 'caixa' };
+  }
+  const info = infoDoCatalogo(it, calc);
+  if (it.achado) info.obs = [info.obs, 'achado na missão'].filter(Boolean).join(' · ');
+  return info;
+}
+
+function infoDoCatalogo(it: regras.ItemFicha, calc: regras.Calculado | null): InfoItem {
   const base = regras.baseDoItem(it);
   const nome = it.apelido || base?.nome || it.id;
   const categoria = regras.categoriaDoItem(it);

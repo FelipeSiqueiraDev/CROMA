@@ -110,7 +110,21 @@ Pasta: `client/public/arte/moveis/`. Pixel art chibi na grade 2:1 do tabuleiro (
 - [x] **Claude:** barras de PV, PE e SAN no estilo da referência, com o valor dentro
 - [x] **Você, decisão:** as três barras (PV, PE e SAN) têm − e +
 - [x] **Claude:** − e + nas três barras (Shift: de 5 em 5; clique na barra muda o total)
-- [ ] **Claude:** INTERLÚDIO e ITENS (as abas existem; o conteúdo chega depois)
+- [x] **Claude:** ITENS: a mochila de cada agente (seção 8b)
+- [ ] **Claude:** INTERLÚDIO (a aba existe; o conteúdo chega depois)
+
+## 8b. Aba ITENS (referência `docs/ref-itens.jpg`, fora do git)
+
+- [x] **Claude:** "MOCHILA / ITENS" e os títulos com o traço vermelho, na serifa forte e estreita da referência
+- [x] **Claude:** escolha do agente (retrato e nome; o escolhido em vermelho)
+- [x] **Claude:** cartão do agente: retrato, nome, Carga em espaços com a barra (vermelha quando sobrecarregado, com o −5 e o −3 m), Mãos e os avisos da mochila
+- [x] **Claude:** contadores Consumíveis, Chaves e Ritualísticos
+- [x] **Claude:** EQUIPADO (o que está na mão, a mão livre tracejada e o que está vestido) e MOCHILA em grade, com "x1" e o "+" do catálogo
+- [x] **Claude:** ITEM SELECIONADO: arte (clique inspeciona), nome, texto, Tipo e Espaços, categoria, lugar e página
+- [x] **Claude:** o botão vermelho faz o que o item pede (Empunhar ou Guardar, Abrir o documento, Usar o consumível, Vestir ou Tirar, Inspecionar); Entregar para…, Mover (mão, roupa, mochila, com troca) e Descartar (larga no chão)
+- [x] **Claude:** a arma na mão aparece: pela pose armada da arte (o Tepes) e, sem ela, por um sinal da arma junto da mão no tabuleiro e no canto do retrato do PLAYERS
+- [ ] **Você:** a arte da aba (lista em `docs/CHECKLIST-ARTE.md`, "Aba ITENS")
+- [ ] **Claude:** encaixar as texturas, os botões, os chips e a marca d'água quando chegarem
 
 ## 9. Rodapé
 

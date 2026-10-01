@@ -58,6 +58,8 @@ const P: Record<string, string> = {
   caixa: '<path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><polyline points="3.29 7 12 12 20.71 7"/><path d="m7.5 4.27 9 5.15"/>',
   mao: '<path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>',
   trocar: '<path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/>',
+  mover: '<path d="M12 2v20M2 12h20"/><path d="m9 5 3-3 3 3M9 19l3 3 3-3M5 9l-3 3 3 3M19 9l3 3-3 3"/>',
+  peso: '<path d="M6.5 8h11l3 12H3.5z"/><circle cx="12" cy="5.5" r="2.5"/>',
   link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
   lixo: '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
   copiar: '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
@@ -155,5 +157,27 @@ export function arte(url: string, nome: NomeIcone | string, cls = 'ic'): HTMLEle
   if (lista) {
     if (lista.has(url)) trocar();
   } else void arteCarregada.then((l) => l.has(url) && trocar());
+  return box;
+}
+
+/**
+ * A primeira arte da lista que existir na pasta; sem nenhuma, `reserva` (um
+ * ícone de linha ou um desenho). Ex.: a arte pintada, depois o ícone do item.
+ */
+export function arteOu(urls: string[], reserva: Element, cls = 'ic'): HTMLElement {
+  const box = document.createElement('span');
+  box.className = `arte-ic ${cls}`;
+  box.replaceChildren(reserva);
+  const usar = (l: Set<string>) => {
+    const url = urls.find((u) => l.has(u));
+    if (!url) return;
+    const img = new Image();
+    img.alt = '';
+    img.decoding = 'async';
+    img.onload = () => box.replaceChildren(img);
+    img.src = url;
+  };
+  if (lista) usar(lista);
+  else void arteCarregada.then(usar);
   return box;
 }

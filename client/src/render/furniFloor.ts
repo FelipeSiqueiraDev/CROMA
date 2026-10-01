@@ -997,6 +997,20 @@ const builders: Record<string, Builder> = {
     return V([N([0.3, 0.7, 0.3, 0.7, 0, 0.3], (p) => skull(p, 0.5, 0.5, 0, 1))]);
   },
 
+  // o que alguém largou no chão: uma bolsa de lona com a boca amarrada e um volume ao lado (até chegar a arte)
+  pilha(def) {
+    const [c0, c1] = def.colors;
+    const saco: LBox = [0.3, 0.62, 0.32, 0.64, 0, 0.14];
+    const volume: LBox = [0.6, 0.8, 0.5, 0.72, 0, 0.06];
+    return V([
+      N(saco, (p) => {
+        p.box(saco, c0, { edge: 0.3 });
+        p.box([0.4, 0.52, 0.42, 0.54, 0.14, 0.18], c1, { edge: 0.2 });
+      }),
+      N(volume, (p) => p.box(volume, c1, { edge: 0.25 })),
+    ]);
+  },
+
   books(def, _s, seed) {
     const r = rng(seed + 8);
     const cols = [def.colors[0], def.colors[1], def.colors[2], '#3a2a1a'];

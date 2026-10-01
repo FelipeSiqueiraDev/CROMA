@@ -1,0 +1,495 @@
+/* Aba ITENS da tela MAPA (referência docs/ref-itens.jpg, fora do git): a mochila de cada agente. */
+
+/* títulos como na referência: serifa forte e estreita, com o traço vermelho */
+.rpg-body .it-cab,
+.rpg-body .it-sec {
+  font-family: var(--f-titulo);
+  font-weight: 800;
+  font-stretch: 72%;
+  letter-spacing: 0.01em;
+  color: #1c1915;
+}
+.it-cab {
+  margin: 0 0 1rem;
+  font-size: 1.85rem;
+}
+
+/* escolha do agente */
+.it-ags {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.3rem;
+  margin: 0 0 1.1rem;
+}
+.rpg-body .it-ag {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+  height: 4.2rem;
+  padding: 0.2rem 0.2rem 0.2rem 0.2rem;
+  border: 0.12rem solid #4d4337;
+  border-radius: 0.25rem;
+  background: linear-gradient(#2a2622, #1a1816);
+  color: #e9dcc0;
+  font-family: var(--f-titulo);
+  font-size: 1.1rem;
+  font-stretch: 68%;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+}
+.rpg-body .it-ag canvas {
+  flex: none;
+  width: 2.9rem !important;
+  height: 3.6rem !important;
+  object-fit: cover;
+  border-radius: 0.15rem;
+}
+.rpg-body .it-ag span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rpg-body .it-ag:hover {
+  border-color: #8a7a64;
+}
+.rpg-body .it-ag.on {
+  border-color: #e0463a;
+  background: linear-gradient(#8e1d16, #5c110d);
+  box-shadow: 0 0 0.8rem rgba(224, 70, 58, 0.45), inset 0 0 0 0.1rem rgba(255, 140, 120, 0.25);
+}
+
+/* o agente: retrato, carga e mãos */
+.it-card {
+  display: grid;
+  grid-template-columns: 9.4rem 1fr;
+  gap: 1.2rem;
+  margin: 0 0 1rem;
+  padding: 0.9rem;
+  border: 0.12rem solid rgba(70, 60, 48, 0.35);
+  border-radius: 0.25rem;
+  background: rgba(255, 250, 238, 0.32);
+}
+.it-foto {
+  width: 9.4rem;
+  height: 9.4rem;
+  padding: 0.25rem;
+  border-radius: 0.2rem;
+  background: #1c1a18;
+  box-shadow: 0 0 0 0.15rem #6b5d4c, 0 0.3rem 0.6rem rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+.it-foto canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+}
+.it-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 0;
+}
+.it-nome-ag {
+  font-family: var(--f-titulo);
+  font-size: 1.95rem;
+  line-height: 1.15;
+  color: #1c1915;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.it-carga,
+.it-maos {
+  display: flex;
+  gap: 0.6rem;
+  font-family: var(--f-titulo);
+  font-size: 1.4rem;
+  color: #2a241f;
+}
+.it-maos span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.it-num {
+  font-variant-numeric: tabular-nums;
+}
+.it-barra {
+  height: 1.1rem;
+  border-radius: 0.6rem;
+  background: #8f8676;
+  box-shadow: inset 0 0.1rem 0.2rem rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+.it-barra i {
+  display: block;
+  width: var(--w);
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(#e7a944, #c98322);
+  transition: width 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.it-barra.quase i {
+  background: linear-gradient(#e98a3c, #c25e1c);
+}
+.it-barra.passou i {
+  background: linear-gradient(#e0463a, #a3201a);
+}
+.it-aviso {
+  display: flex;
+  gap: 0.4rem;
+  align-items: flex-start;
+  font-size: 1.15rem;
+  line-height: 1.3;
+  color: #8a5a12;
+}
+.it-aviso.erro {
+  color: #a3201a;
+}
+.it-aviso .ic {
+  flex: none;
+  width: 1.3rem;
+  height: 1.3rem;
+}
+
+/* tipos de item */
+.it-tipos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0 0 1.2rem;
+}
+.it-tipo {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  height: 3.6rem;
+  padding: 0 0.45rem;
+  border: 0.12rem solid rgba(70, 60, 48, 0.35);
+  border-radius: 0.25rem;
+  background: rgba(255, 250, 238, 0.3);
+  font-family: var(--f-titulo);
+  font-size: 1.1rem;
+  font-stretch: 70%;
+  color: #2a241f;
+}
+.it-tipo span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.it-tipo b {
+  font-size: 1.4rem;
+}
+.it-tipo.zero {
+  opacity: 0.55;
+}
+.it-tipo-ic {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  color: #3a2f26;
+}
+/* as cores da referência: frasco escuro, chave dourada, sigilo vermelho */
+.it-tipo:nth-child(2) .it-tipo-ic {
+  color: #b8862b;
+}
+.it-tipo:nth-child(3) .it-tipo-ic {
+  color: #b3261e;
+}
+.it-tipo-ic svg,
+.it-tipo-ic .ic {
+  width: 2rem;
+  height: 2rem;
+}
+
+/* EQUIPADO e MOCHILA */
+.it-sec {
+  margin: 0.4rem 0 0.7rem;
+  font-size: 1.7rem;
+}
+.it-grade {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.6rem 0.5rem;
+  margin: 0 0 1.2rem;
+  padding: 0.6rem;
+  border: 0.12rem solid rgba(70, 60, 48, 0.28);
+  border-radius: 0.25rem;
+  background: rgba(255, 250, 238, 0.22);
+}
+.rpg-body .it-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--f-titulo);
+  color: #2a241f;
+  cursor: pointer;
+}
+.it-arte {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 1;
+  border: 0.12rem solid #5a4e40;
+  border-radius: 0.25rem;
+  background: radial-gradient(circle at 50% 40%, #3a332c, #1a1715);
+  box-shadow: inset 0 0 1rem rgba(0, 0, 0, 0.5);
+  color: #d8c7a6;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+.it-arte img {
+  width: 92%;
+  height: 92%;
+  object-fit: contain;
+}
+.it-arte .ic,
+.it-arte svg {
+  width: 56%;
+  height: 56%;
+}
+.it-nome {
+  width: 100%;
+  font-size: 1.2rem;
+  font-stretch: 75%;
+  line-height: 1.15;
+  text-align: center;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.it-qtd {
+  margin-top: -0.2rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+.rpg-body .it-slot:hover .it-arte {
+  border-color: #8a7a64;
+  transform: translateY(-0.1rem);
+}
+.rpg-body .it-slot.mao .it-arte {
+  border-color: #9a7a3a;
+}
+.rpg-body .it-slot.on .it-arte {
+  border-color: #e0463a;
+  box-shadow: 0 0 0.9rem rgba(224, 70, 58, 0.55), inset 0 0 1rem rgba(0, 0, 0, 0.5);
+}
+.rpg-body .it-slot.vazio {
+  cursor: default;
+}
+.rpg-body .it-slot.vazio .it-arte {
+  border-style: dashed;
+  background: rgba(30, 26, 22, 0.08);
+  box-shadow: none;
+  color: rgba(42, 36, 31, 0.45);
+}
+.rpg-body .it-slot.vazio .it-nome {
+  color: rgba(42, 36, 31, 0.6);
+}
+.rpg-body .it-slot.mais {
+  justify-content: center;
+  aspect-ratio: 1;
+  border: 0.15rem dashed rgba(70, 60, 48, 0.45);
+  border-radius: 0.25rem;
+  color: rgba(42, 36, 31, 0.55);
+}
+.rpg-body .it-slot.mais .ic {
+  width: 2.6rem;
+  height: 2.6rem;
+}
+.rpg-body .it-slot.mais:hover {
+  border-color: #a3201a;
+  color: #a3201a;
+}
+
+/* ITEM SELECIONADO */
+.it-vazio {
+  margin: 0 0 0.8rem;
+}
+.it-det {
+  display: grid;
+  grid-template-columns: 6.6rem 1fr;
+  gap: 1rem;
+  margin: 0 0 0.9rem;
+  padding: 0.8rem;
+  border: 0.12rem solid rgba(70, 60, 48, 0.35);
+  border-radius: 0.25rem;
+  background: rgba(255, 250, 238, 0.32);
+}
+.it-det-arte {
+  display: grid;
+  place-items: center;
+  width: 6.6rem;
+  height: 6.6rem;
+  padding: 0;
+  border: 0.12rem solid #5a4e40;
+  border-radius: 0.25rem;
+  background: radial-gradient(circle at 50% 40%, #3a332c, #1a1715);
+  color: #d8c7a6;
+  cursor: zoom-in;
+}
+.it-det-arte:hover {
+  border-color: #8a7a64;
+}
+.it-det-arte img {
+  width: 92%;
+  height: 92%;
+  object-fit: contain;
+}
+.it-det-arte .ic,
+.it-det-arte svg {
+  width: 58%;
+  height: 58%;
+}
+.it-det-txt {
+  min-width: 0;
+  font-family: var(--f-titulo);
+  color: #2a241f;
+}
+.it-det-txt b {
+  display: block;
+  font-size: 1.8rem;
+  line-height: 1.15;
+  color: #1c1915;
+}
+.it-det-txt p {
+  margin: 0.3rem 0 0;
+  font-size: 1.25rem;
+  line-height: 1.35;
+}
+.it-det-txt .it-efeito {
+  font-weight: 700;
+}
+.it-campos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1.4rem;
+  margin-top: 0.5rem;
+  font-size: 1.25rem;
+  color: #2a241f;
+}
+.it-campos > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.it-campos .ic {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+.it-rot {
+  color: #5a4e40;
+}
+.it-meta {
+  margin-top: 0.3rem;
+  font-size: 1.1rem;
+  color: #6b5d4c;
+}
+
+/* Usar, Entregar para…, Mover, Descartar */
+.it-acoes {
+  display: grid;
+  grid-template-columns: 0.78fr 1.35fr 0.92fr 1.1fr;
+  gap: 0.4rem;
+}
+.rpg-body .it-bt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-width: 0;
+  height: 3.6rem;
+  padding: 0 0.35rem;
+  border: 0.12rem solid #4d4337;
+  border-radius: 0.25rem;
+  background: linear-gradient(#2a2622, #1a1816);
+  color: #e9dcc0;
+  font-family: var(--f-titulo);
+  font-size: 1.1rem;
+  font-stretch: 75%;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 0.2s, filter 0.2s;
+}
+.rpg-body .it-bt span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rpg-body .it-bt .ic {
+  flex: none;
+  width: 1.4rem;
+  height: 1.4rem;
+}
+.rpg-body .it-bt:hover:not(:disabled) {
+  border-color: #8a7a64;
+  filter: brightness(1.15);
+}
+.rpg-body .it-bt.forte {
+  border-color: #e0463a;
+  background: linear-gradient(#b0261d, #7d1711);
+}
+.rpg-body .it-bt:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* menu pequeno (Entregar para…, Mover) */
+.it-menu {
+  position: fixed;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  padding: 0.4rem;
+  border: 0.12rem solid #6b5d4c;
+  border-radius: 0.3rem;
+  background: #221e1a;
+  box-shadow: 0 0.6rem 1.6rem rgba(0, 0, 0, 0.55);
+  animation: it-menu 0.16s ease-out;
+}
+.it-menu button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0.7rem 1rem;
+  border: 0;
+  border-radius: 0.2rem;
+  background: none;
+  color: #e9dcc0;
+  font-family: var(--f-titulo);
+  font-size: 1.35rem;
+  text-align: left;
+  cursor: pointer;
+}
+.it-menu button:hover {
+  background: rgba(224, 70, 58, 0.25);
+}
+.it-menu small {
+  font-size: 1.1rem;
+  color: #b9a888;
+}
+@keyframes it-menu {
+  from {
+    opacity: 0;
+    transform: translateY(-0.4rem);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .it-menu {
+    animation: none;
+  }
+}

@@ -93,6 +93,15 @@ Formato dos móveis: `docs/SEDE-DA-ORDEM.md` (casa de 64×32 px, 1 m de altura =
 | Nome, botão "…", alfinete e a sala onde está | texto, CSS, ícones (já existe a sala) | — |
 | Barras de PV, PE e SAN com o valor dentro, − e + | CSS (já existem; ganham o estilo da referência) | decidido: − e + nas três barras |
 
+### Aba ITENS (a mochila; referência `docs/ref-itens.jpg`, fora do git)
+
+A mochila de cada agente pela ficha (um inventário só: `docs/REGRAS.md`, Mochila). No topo, a escolha do agente; o cartão com Carga (espaços) e Mãos; os contadores Consumíveis, Chaves e Ritualísticos; EQUIPADO (as duas mãos e o que está vestido); a MOCHILA em grade, com o "+" que abre o catálogo do livro; e o ITEM SELECIONADO, com quatro botões:
+
+- **o vermelho**, o que o item pede: Empunhar ou Guardar (arma, escudo, lanterna; com as mãos cheias, troca), Abrir (documento, carta ou mídia achados: o texto do mestre, no papel da inspeção), Usar (o consumível gasta um), Vestir ou Tirar, ou Inspecionar;
+- **Entregar para…** outro agente; **Mover** (para a mão, a roupa ou a mochila); **Descartar**, que larga no chão do cômodo, numa pilha "Itens no Chão" que qualquer um pode pegar.
+
+Clicar na arte do item inspeciona: tipo, categoria, espaços, onde está, ataque ou proteção, as regras curtas e a página do livro. No objeto do tabuleiro (CONTÉM), clicar no item inspeciona (ou lê o documento), e "Pegar" leva o item para a mochila de quem está sob comando.
+
 ## 5. Rodapé
 
 | Elemento | Como faço | Precisa de você |

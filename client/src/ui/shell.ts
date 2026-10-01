@@ -20,9 +20,13 @@ import {
   type VitalKey,
   type Vitals,
   type CampaignState,
+  type FichaSalva,
   type FloorItem,
   type Loot,
   type LootKind,
+  espacosDoItemFicha,
+  kindDoItem,
+  regras,
   type Objective,
   type PartyMember,
   type RoomInfo,
@@ -43,6 +47,9 @@ import { brushize, paperize, textures, unpaint } from './paperArt';
 import { sfx } from './sfx';
 import { CombateScreen } from './combate';
 import { FichasScreen } from './fichas';
+import { AbaItens } from './itens';
+import { infoItem, romano, textoRef } from './fichaRegras';
+import { doCatalogoPeloNome, listaDoCatalogo } from './catalogoItens';
 import { TopBar } from './topbar';
 import { existeArte, ic } from './icons';
 
@@ -304,6 +311,9 @@ export class Shell {
   private kpTyped = { id: 0, value: '' };
   /** painel da direita: controle do RPG */
   private rpgTab: RpgTab = 'PLAYERS';
+  /** aba ITENS: a mochila de cada agente, pela ficha */
+  private abaItens: AbaItens;
+  private fichasMapa: FichaSalva[] = [];
   private rpgTabsEl!: HTMLElement;
   private rpgBody!: HTMLElement;
   private rpgSig = '';
@@ -403,6 +413,7 @@ export class Shell {
     document.addEventListener('click', () => (this.menu.classList.add('hidden'), this.registro.classList.add('hidden')));
     const top = this.topo.el;
     this.fichas = new FichasScreen(app, { jogador: false });
+    this.abaItens = new AbaItens(app, (o) => this.hintViewer.abrirItem(o));
     this.fichas.hide();
     this.combate = new CombateScreen(app);
 
@@ -969,7 +980,7 @@ export class Shell {
   /** Abas da direita e o conteúdo da aba aberta (PLAYERS: a ficha de cada um). */
   private renderRpg(force = false) {
     const party = this.campaign?.party ?? [];
-    const sig = JSON.stringify([this.rpgTab, this.gm, party.map((p) => [p.id, p.name, p.color, p.vitals ?? null, p.roomId, p.look?.charId ?? null])]);
+    const sig = JSON.stringify([this.rpgTab, this.gm, party.map((p) => [p.id, p.name, p.color, p.vitals ?? null, p.roomId, p.look?.charId ?? null, !!p.armed])]);
     if (!force && sig === this.rpgSig) return;
     this.rpgSig = sig;
     clear(this.rpgTabsEl).append(
@@ -993,6 +1004,10 @@ export class Shell {
       ),
     );
     const body = clear(this.rpgBody);
+    if (this.rpgTab === 'ITENS') {
+      this.abaItens.render(body, party, this.fichasMapa, this.gm);
+      return;
+    }
     if (this.rpgTab !== 'PLAYERS') {
       body.append(h('p', { class: 'empty' }, `${this.rpgTab[0]}${this.rpgTab.slice(1).toLowerCase()}: chega nas próximas etapas.`));
       return;
@@ -1009,7 +1024,13 @@ export class Shell {
       const card = h(
         'div',
         { class: 'rpg-player', style: `--c:${p.color}` },
-        h('button', { class: 'rp-foto', title: here ? 'Comandar' : `Ir para ${this.sceneName(p.roomId)}`, onclick: () => this.pickCard(id) }, portraitCanvas(p.look, 96, { dir: 2, armed: !!p.armed, hurt: vitalConditions(p.vitals).machucado })),
+        h(
+          'button',
+          { class: 'rp-foto', title: here ? 'Comandar' : `Ir para ${this.sceneName(p.roomId)}`, onclick: () => this.pickCard(id) },
+          portraitCanvas(p.look, 96, { dir: 2, armed: !!p.armed, hurt: vitalConditions(p.vitals).machucado }),
+          // armado sem retrato armado na arte: o sinal da arma no canto
+          p.armed && !sprites.def(p.look?.charId)?.portraits?.armado ? h('span', { class: 'rp-arma', title: 'Arma na mão' }, ic(this.app.session.session?.characters.find((c) => c.id === -id)?.arma === 'fogo' ? 'pistola' : 'espada')) : null,
+        ),
         h(
           'div',
           { class: 'rp-info' },
@@ -1021,6 +1042,12 @@ export class Shell {
       paperize(card, { seed: 300 + id, tone: '#dfd0b3', burn: 0.7, torn: 0.8, stains: 0.6, pad: 12 });
       body.append(card);
     }
+  }
+
+  /** Fichas do servidor: a aba ITENS mostra a mochila de cada agente por elas. */
+  setFichasMapa(lista: FichaSalva[]) {
+    this.fichasMapa = lista;
+    if (this.rpgTab === 'ITENS') this.renderRpg(true);
   }
 
   /** Abas dos andares acima da planta (só com mais de um andar). */
@@ -1790,6 +1817,9 @@ export class Shell {
   private paneItems(pane: HTMLElement, s: NonNullable<Sel>, loot: Loot[]) {
     const net = this.app.net;
     if (!loot.length && !this.gm) pane.append(h('p', { class: 'empty' }, 'Nada aqui.'));
+    // quem está sob comando pega direto (vai para a mochila da ficha dele)
+    const ativo = this.app.view.users.get(this.app.view.myId ?? 0);
+    const quemPega = ativo && this.fichasMapa.some((f) => f.personagem && f.personagem === ativo.look.charId) ? ativo.name : null;
     loot.forEach((l) => {
       const holder = this.member(l.holder);
       const prev = this.holders.get(l.id);
@@ -1804,23 +1834,36 @@ export class Shell {
           )
         : this.gm
           ? h(
-              'button',
-              {
-                class: `dbtn${this.giveLoot?.lootId === l.id ? ' on' : ''}`,
-                onclick: () => {
-                  sfx.click();
-                  this.giveLoot = this.giveLoot?.lootId === l.id ? null : { itemId: s.item.id, lootId: l.id };
-                  this.renderInspector();
+              'div',
+              { class: 'ic-bts' },
+              quemPega
+                ? h('button', { class: 'dbtn', title: `${quemPega} pega e guarda na mochila`, onclick: () => (sfx.click(), net.send({ t: 'lootGive', itemId: s.item.id, lootId: l.id, to: quemPega })) }, 'Pegar')
+                : null,
+              h(
+                'button',
+                {
+                  class: `dbtn${this.giveLoot?.lootId === l.id ? ' on' : ''}`,
+                  onclick: () => {
+                    sfx.click();
+                    this.giveLoot = this.giveLoot?.lootId === l.id ? null : { itemId: s.item.id, lootId: l.id };
+                    this.renderInspector();
+                  },
                 },
-              },
-              'Entregar',
+                'Entregar',
+              ),
             )
           : null;
       const card = h(
         'div',
-        { class: `icard${this.giveLoot?.lootId === l.id ? ' sel' : ''}${l.revealed || this.gm ? '' : ' dim'}`, 'data-loot': String(l.id) },
+        {
+          class: `icard${this.giveLoot?.lootId === l.id ? ' sel' : ''}${l.revealed || this.gm ? '' : ' dim'}`,
+          'data-loot': String(l.id),
+          title: 'Clique para inspecionar (ou ler)',
+          // inspecionar o item (ou ler o documento): clique fora dos botões
+          onclick: (e: Event) => !(e.target as Element).closest('button') && (sfx.paper(), this.inspecionarLoot(l, s)),
+        },
         h('div', { class: 'ic-icon' }, lootIcon(l.kind, 52)),
-        h('div', { class: 'ic-text' }, h('b', null, l.name), h('small', null, `Espaços: ${fmt(l.espacos)} | ${lootKindLabel(l.kind)}`)),
+        h('div', { class: 'ic-text' }, h('b', null, l.name), h('small', null, `Espaços: ${fmt(l.espacos)} | ${lootKindLabel(l.kind)}${l.item ? ' · do livro' : ''}`)),
         right,
       );
       if (this.gm && !l.holder)
@@ -1834,9 +1877,17 @@ export class Shell {
     });
     if (this.gm) {
       if (this.addingLoot) {
-        const name = h('input', { class: 'mini grow', placeholder: 'Nome do item', maxlength: 40 });
-        const weight = h('input', { class: 'mini num', type: 'number', value: '1', step: '0.5', min: '0', max: '10' });
-        const kind = h('select', { class: 'mini' }, ...LOOT_KINDS.map((k) => h('option', { value: k.id }, k.label)));
+        // um nome do livro (lista do campo) faz do item o do catálogo: espaços, tipo e, para arma, o ataque
+        const name = h('input', { class: 'mini grow', placeholder: 'Nome do item (ou um do livro)', maxlength: 40, list: listaDoCatalogo() }) as HTMLInputElement;
+        const weight = h('input', { class: 'mini num', type: 'number', value: '1', step: '0.5', min: '0', max: '10', 'aria-label': 'Espaços' }) as HTMLInputElement;
+        const kind = h('select', { class: 'mini', 'aria-label': 'Tipo' }, ...LOOT_KINDS.map((k) => h('option', { value: k.id }, k.label))) as HTMLSelectElement;
+        const desc = h('input', { class: 'mini add-desc', placeholder: 'Texto do mestre (opcional)', maxlength: 240 }) as HTMLInputElement;
+        name.addEventListener('change', () => {
+          const c = doCatalogoPeloNome(name.value);
+          if (!c) return;
+          weight.value = String(c.espacos);
+          kind.value = c.kind;
+        });
         const form = h(
           'form',
           {
@@ -1844,7 +1895,9 @@ export class Shell {
             onsubmit: (e: Event) => {
               e.preventDefault();
               if (!name.value.trim()) return;
-              net.send({ t: 'lootAdd', itemId: s.item.id, name: name.value.trim(), espacos: Number(weight.value) || 0, kind: kind.value as LootKind });
+              const c = doCatalogoPeloNome(name.value);
+              const texto = desc.value.trim();
+              net.send({ t: 'lootAdd', itemId: s.item.id, name: name.value.trim(), espacos: Number(weight.value) || 0, kind: kind.value as LootKind, ...(c ? { item: { tipo: c.tipo, id: c.id } } : {}), ...(texto ? { descricao: texto } : {}) });
               this.addingLoot = false;
             },
           },
@@ -1853,12 +1906,34 @@ export class Shell {
           weight,
           kind,
           h('button', { class: 'dbtn', type: 'submit' }, 'OK'),
+          desc,
         );
         pane.append(form);
         enter(form, 'up', 0, 260);
         setTimeout(() => name.focus(), 0);
       } else pane.append(h('button', { class: 'add-item', onclick: () => ((this.addingLoot = true), this.renderInspector()) }, '+ Adicionar item'));
     }
+  }
+
+  /** O que é o item do cenário: o texto do mestre (o documento se lê assim), e os números do livro. */
+  private inspecionarLoot(l: Loot, s: NonNullable<Sel>) {
+    const linhas: Node[] = [];
+    const linha = (rot: string, txt: string) => txt && linhas.push(h('p', { class: 'dossier-linha' }, h('b', null, `${rot} `), txt));
+    let texto = l.descricao ?? '';
+    if (l.item) {
+      const it: regras.ItemFicha = { id: l.item.id, tipo: l.item.tipo };
+      const inf = infoItem(it, null);
+      const base = regras.baseDoItem(it) as { resumo?: string; especial?: string[] } | undefined;
+      texto ||= base?.resumo ?? '';
+      linha('Do livro:', `${inf.tipo} · categoria ${romano(inf.categoria)}`);
+      if (l.item.tipo === 'arma' || l.item.tipo === 'protecao') linha(l.item.tipo === 'arma' ? 'Ataque:' : 'Proteção:', [inf.efeito, inf.obs].filter((x) => x && x !== '—').join(' · '));
+      if (base?.especial?.length) linha('Regras:', base.especial.join(' · '));
+      if (inf.ref) linha('Livro:', textoRef(inf.ref));
+    }
+    linha('Espaços:', `${fmt(l.espacos)}${(l.qtd ?? 1) > 1 ? ` (x${l.qtd})` : ''}`);
+    linha('Onde está:', s.item.hint?.title || anyFurniName(s.item.defId));
+    if (this.gm && !l.revealed) linha('Mestre:', 'os jogadores ainda não sabem deste item.');
+    this.hintViewer.abrirItem({ titulo: l.name, rotulo: lootKindLabel(l.kind), icone: lootIcon(l.kind, 26), texto: texto || (['document', 'letter', 'tape'].includes(l.kind) ? 'Não há nada escrito que dê para ler.' : ''), linhas });
   }
 
   /** Carimbo que bate sobre o cartão e desbota (resultado de um teste). */
@@ -1984,6 +2059,7 @@ export class Shell {
     const color = p?.color ?? u.color;
     const net = this.app.net;
     const carried: { l: Loot; from: string }[] = [];
+    const ficha = this.fichasMapa.find((f) => f.personagem && f.personagem === u.look.charId);
     const map = view.map;
     if (map) for (const it of [...map.allItems(), ...map.allWallItems()]) for (const l of it.loot ?? []) if (l.holder?.toLowerCase() === u.name.toLowerCase()) carried.push({ l, from: anyFurniName(it.defId) });
     const active = view.myId === id;
@@ -2011,7 +2087,7 @@ export class Shell {
       tools.append(
         h('button', { class: 'tool', title: 'Girar para a esquerda (Q)', onclick: () => this.turnToken(id, false) }, '↺ Girar'),
         h('button', { class: 'tool', title: 'Girar para a direita (E)', onclick: () => this.turnToken(id, true) }, 'Girar ↻'),
-        this.stateTool('Armado', !!p?.armed, 'Com a arma na mão (retrato armado)', () => net.send({ t: 'tokenEdit', tokenId: id, armed: !p?.armed })),
+        this.stateTool('Armado', !!p?.armed, ficha ? 'Vem da mão: empunha a arma da mochila ou guarda as armas' : 'Com a arma na mão (retrato armado)', () => net.send({ t: 'tokenEdit', tokenId: id, armed: !p?.armed })),
         tool('Editar', () => this.tokenWin.open({ id, name: u.name, look: u.look, color, capacity: p?.capacity ?? 10 })),
         tool('Remover', async () => (await askNote(`TIRAR ${u.name.toUpperCase()}?`, `${u.name} sai do tabuleiro. Os itens que carrega continuam registrados.`, 'Tirar do tabuleiro', true)) && net.send({ t: 'tokenRemove', tokenId: id })),
       );
@@ -2023,6 +2099,21 @@ export class Shell {
       sc.addEventListener('change', () => sc.value && net.send({ t: 'tokenScene', tokenId: id, roomId: Number(sc.value) }));
       body.append(sc);
     }
+    if (ficha) {
+      // com ficha, a mochila dela (um inventário só): o resto se faz na aba ITENS
+      const inv = ficha.ficha.inventario;
+      body.append(h('div', { class: 'itabs' }, h('span', { class: 'itab on' }, h('span', null, `MOCHILA (${inv.length})`), tabRing())));
+      const pane = h('div', { class: 'ipane' });
+      if (!inv.length) pane.append(h('p', { class: 'empty' }, 'Mochila vazia.'));
+      const lugar = { mao: 'na mão', vestido: 'vestido', mochila: 'na mochila' } as const;
+      for (const it of inv) {
+        const icone = it.tipo === 'cena' ? lootIcon((it.tipoCena as LootKind) || 'misc', 52) : lootIcon(kindDoItem(it), 52);
+        pane.append(h('div', { class: 'icard' }, h('div', { class: 'ic-icon' }, icone), h('div', { class: 'ic-text' }, h('b', null, regras.nomeDoItem(it)), h('small', null, `${fmt(espacosDoItemFicha(it))} esp. | ${lugar[regras.lugarDoItem(it)]}${(it.qtd ?? 1) > 1 ? ` · x${it.qtd}` : ''}`))));
+      }
+      pane.append(h('button', { class: 'add-item', onclick: () => (sfx.paper(), this.abrirItens(id)) }, 'Abrir na aba ITENS'));
+      body.append(pane);
+      return;
+    }
     body.append(h('div', { class: 'itabs' }, h('span', { class: 'itab on' }, h('span', null, `CARREGANDO (${carried.length})`), tabRing())));
     const pane = h('div', { class: 'ipane' });
     if (!carried.length) pane.append(h('p', { class: 'empty' }, 'Nada nas mãos (itens desta cena).'));
@@ -2030,6 +2121,13 @@ export class Shell {
       pane.append(h('div', { class: 'icard' }, h('div', { class: 'ic-icon' }, lootIcon(l.kind, 52)), h('div', { class: 'ic-text' }, h('b', null, l.name), h('small', null, `Espaços: ${fmt(l.espacos)} | ${lootKindLabel(l.kind)} · ${from}`)))),
     );
     body.append(pane);
+  }
+
+  /** Abre a aba ITENS na mochila do agente (id da peça). */
+  private abrirItens(id: number) {
+    this.abaItens.escolher(id);
+    this.rpgTab = 'ITENS';
+    this.renderRpg(true);
   }
 
   /** Botão que liga/desliga um estado do personagem (Armado, Machucado). */

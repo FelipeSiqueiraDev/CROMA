@@ -13,6 +13,7 @@ import { portraitCanvas } from '../render/portrait';
 import type { App } from './app';
 import { CorpoView } from './corpo';
 import { h, toast } from './dom';
+import { adicionarDoCatalogo } from './catalogoItens';
 import { confirmar, escolher, janela, mostrar, perguntarTexto } from './fichaModal';
 import {
   escolherCampo,
@@ -1250,13 +1251,18 @@ export class FichasScreen {
     const apelido = h('input', { class: 'fx-inp', value: it.apelido ?? '', maxlength: 40, placeholder: 'Nome próprio (opcional)', oninput: (e: Event) => (it.apelido = (e.target as HTMLInputElement).value.trim() || undefined) });
     const qtd = h('input', { class: 'fx-inp', type: 'number', min: 1, max: 99, value: String(it.qtd ?? 1), oninput: (e: Event) => (it.qtd = Math.max(1, Math.round(Number((e.target as HTMLInputElement).value) || 1)) || undefined) });
     j.corpo.append(h('label', { class: 'fj-campo' }, h('span', null, 'Apelido'), apelido), h('label', { class: 'fj-campo' }, h('span', null, 'Quantidade'), qtd));
-    if (it.tipo === 'arma') {
-      const cb = h('input', { type: 'checkbox', checked: !!it.empunhado, onchange: (e: Event) => (it.empunhado = (e.target as HTMLInputElement).checked || undefined) });
-      j.corpo.append(h('label', { class: 'fj-check' }, cb, 'Empunhada'));
+    // na mão: armas, escudo e o que se empunha (duas mãos no máximo, LR p. 53)
+    if (regras.maosDoItem(it)) {
+      const cb = h('input', { type: 'checkbox', checked: regras.lugarDoItem(it) === 'mao', onchange: (e: Event) => (it.empunhado = (e.target as HTMLInputElement).checked || undefined) });
+      j.corpo.append(h('label', { class: 'fj-check' }, cb, regras.maosDoItem(it) === 2 ? 'Na mão (as duas)' : 'Na mão'));
     }
-    if (it.tipo === 'protecao') {
+    if (regras.vestivel(it)) {
       const cb = h('input', { type: 'checkbox', checked: it.vestido !== false, onchange: (e: Event) => (it.vestido = (e.target as HTMLInputElement).checked ? undefined : false) });
-      j.corpo.append(h('label', { class: 'fj-check' }, cb, 'Vestida'));
+      j.corpo.append(h('label', { class: 'fj-check' }, cb, 'Vestido'));
+    }
+    if (it.tipo !== 'cena') {
+      const cb = h('input', { type: 'checkbox', checked: !!it.achado, onchange: (e: Event) => (it.achado = (e.target as HTMLInputElement).checked || undefined) });
+      j.corpo.append(h('label', { class: 'fj-check' }, cb, 'Achado na missão (não ocupa vaga da patente)'));
     }
     // modificações e maldições
     const mods = h('div', { class: 'fj-chips' });
@@ -1267,7 +1273,7 @@ export class FichasScreen {
       );
     };
     desenharMods();
-    if (it.tipo !== 'amaldicoado') {
+    if (it.tipo !== 'amaldicoado' && it.tipo !== 'cena') {
       j.corpo.append(
         h('h4', { class: 'fj-sub' }, 'Modificações e maldições'),
         mods,
@@ -1334,14 +1340,20 @@ export class FichasScreen {
     const corpo = this.corpoDe(this.pInv);
     const slots: HTMLElement[] = fs.ficha.inventario.map((it, i) => {
       const inf = infoItem(it, c);
+      const esp = inf.espacos * (it.qtd ?? 1);
+      const lugar = regras.lugarDoItem(it);
       return h(
         'button',
-        { class: `fx-sl${it.empunhado ? ' em-uso' : ''}`, type: 'button', 'data-dica': `${inf.nome} · ${romano(inf.categoria)} · ${inf.espacos} esp.`, 'aria-label': inf.nome, onclick: () => this.detalheItem(i) },
+        { class: `fx-sl${lugar !== 'mochila' ? ' em-uso' : ''}`, type: 'button', 'data-dica': `${inf.nome} · ${romano(inf.categoria)} · ${fmtNum(esp)} esp.${lugar === 'mao' ? ' · na mão' : lugar === 'vestido' ? ' · vestido' : ''}`, 'aria-label': inf.nome, onclick: () => this.detalheItem(i) },
         arte(`/arte/itens/${it.id}.png`, inf.icone, `ic fx-sl-ic ${inf.icone === 'kitMedico' ? 'vermelho' : ''}`),
         (it.qtd ?? 1) > 1 ? h('small', null, `×${it.qtd}`) : null,
+        // espaços do item, quando não é o 1 de sempre (LR p. 53)
+        esp !== 1 ? h('i', { class: 'fx-sl-esp', 'aria-hidden': 'true' }, fmtNum(esp)) : null,
       );
     });
-    const total = Math.max(15, Math.ceil((slots.length + 1) / 5) * 5);
+    // as casas vazias são os espaços que sobram da carga (5 por ponto de Força)
+    const livres = Math.max(1, Math.floor(c.carga.espacos - c.carga.usados));
+    const total = Math.max(15, Math.ceil((slots.length + livres) / 5) * 5);
     for (let i = slots.length; i < total; i++) slots.push(h('button', { class: 'fx-sl vazio', type: 'button', 'aria-label': 'Adicionar item', disabled: i > slots.length, onclick: () => this.adicionarItem() }, i === fs.ficha.inventario.length ? ic('mais') : null));
     corpo.replaceChildren(h('div', { class: 'fx-sl-grade' }, ...slots));
     const lim = c.itens.map((l) => h('span', { class: `fx-lim${l.usados > l.limite ? ' passou' : ''}`, 'data-dica': `Categoria ${romano(l.categoria)}: ${l.usados} de ${l.limite} pela patente.` }, `${romano(l.categoria)} ${l.usados}/${l.limite}`));
@@ -1355,65 +1367,8 @@ export class FichasScreen {
     if (!this.editando) this.entrarEdicao();
     const fs = this.rascunho;
     if (!fs) return;
-    const f = fs.ficha;
-    type Aba = 'arma' | 'protecao' | 'equipamento' | 'amaldicoado';
-    let aba: Aba = 'arma';
-    const j = janela('Adicionar item', 'mochila', () => this.render(), 74);
-    const abas = h('div', { class: 'fj-abas' });
-    const busca = h('input', { class: 'fx-inp fj-busca', type: 'search', placeholder: 'Procurar…' }) as HTMLInputElement;
-    const lista = h('div', { class: 'fj-lista' });
-    const desenhar = () => {
-      const c = regras.calcular(f);
-      abas.replaceChildren(
-        ...(
-          [
-            ['arma', 'Armas'],
-            ['protecao', 'Proteções'],
-            ['equipamento', 'Equipamentos'],
-            ['amaldicoado', 'Amaldiçoados'],
-          ] as [Aba, string][]
-        ).map(([id, nome]) => h('button', { class: `fj-aba${aba === id ? ' on' : ''}`, type: 'button', onclick: () => ((aba = id), desenhar()) }, nome)),
-      );
-      const q = busca.value.trim().toLowerCase();
-      const fonte: { id: string; nome: string; categoria: number; espacos: number; ref: regras.Ref; extra: string }[] =
-        aba === 'arma'
-          ? cat.CATALOGO.armas.map((a) => ({ id: a.id, nome: a.nome, categoria: a.categoria, espacos: a.espacos, ref: a.ref, extra: `${a.dano} · ${a.critico.margem}/x${a.critico.multiplicador} · ${a.proficiencia}` }))
-          : aba === 'protecao'
-            ? cat.CATALOGO.protecoes.map((p) => ({ id: p.id, nome: p.nome, categoria: p.categoria, espacos: p.espacos, ref: p.ref, extra: `Defesa +${p.defesa}` }))
-            : aba === 'equipamento'
-              ? cat.CATALOGO.equipamentos.map((e) => ({ id: e.id, nome: e.nome, categoria: e.categoria, espacos: e.espacos, ref: e.ref, extra: e.resumo ?? '' }))
-              : cat.CATALOGO.amaldicoados.map((x) => ({ id: x.id, nome: x.nome, categoria: x.categoria, espacos: x.espacos, ref: x.ref, extra: NOME_ELEMENTO[x.elemento] }));
-      lista.replaceChildren();
-      for (const x of fonte) {
-        if (!cat.disponivel(x, f.regras)) continue;
-        if (q && !x.nome.toLowerCase().includes(q)) continue;
-        const lim = x.categoria >= 1 ? c.itens.find((l) => l.categoria === x.categoria) : undefined;
-        const aviso = lim && lim.usados >= lim.limite ? `Categoria ${romano(x.categoria)} já no limite da patente (${lim.usados}/${lim.limite}).` : aba === 'amaldicoado' && f.pp < 50 ? 'Itens amaldiçoados só a partir de agente especial (LR p. 144).' : '';
-        const bt = h(
-          'button',
-          {
-            class: 'fo',
-            type: 'button',
-            onclick: () => {
-              f.inventario.push({ id: x.id, tipo: aba });
-              sfx.drop();
-              bt.classList.add('on');
-              setTimeout(() => bt.classList.remove('on'), 500);
-              cont.textContent = `${f.inventario.length} itens na mochila`;
-            },
-          },
-          h('span', { class: 'fo-marca' }, ic('mais')),
-          h('span', { class: 'fo-txt' }, h('span', { class: 'fo-nome' }, x.nome, h('small', null, ` ${romano(x.categoria)} · ${x.espacos} esp. · ${textoRef(x.ref)}`)), x.extra ? h('span', { class: 'fo-resumo' }, x.extra) : null, aviso ? h('div', { class: 'fo-avisos' }, ic('alerta'), aviso) : null),
-        );
-        lista.append(bt);
-      }
-    };
-    const cont = h('span', { class: 'fj-cont' }, `${f.inventario.length} itens na mochila`);
-    j.corpo.append(abas, h('div', { class: 'fj-filtros' }, busca, cont), lista);
-    busca.addEventListener('input', desenhar);
-    j.rodape.append(h('span', { class: 'fj-esp' }), h('button', { class: 'fx-bt forte', type: 'button', onclick: () => j.fechar() }, ic('ok'), h('span', null, 'Pronto')));
-    desenhar();
-    setTimeout(() => busca.focus(), 30);
+    // o item entra no rascunho: Salvar grava
+    adicionarDoCatalogo(fs.ficha, () => {}, () => this.render());
   }
 
   private adicionarRitual() {

@@ -165,3 +165,46 @@ describe('mochila: um inventário só', () => {
     assert.ok(!h.db.rooms.find((x) => x.id === r.id)!.items.some((it) => it.loot?.some((l) => l.id === 9001)));
   });
 });
+
+describe('mochila no combate', () => {
+  const comb = (a: Extract<ClientMsg, { t: 'combate' }>['a']) => gm.send({ t: 'combate', a });
+  const naMao = (nome: string, uid: number) => regras.lugarDoItem(ficha(nome).ficha.inventario.find((x) => x.uid === uid)!) === 'mao';
+
+  test('sacar gasta a ação de movimento e põe a arma na mão; desarmar faz a arma cair no chão; o Desfazer volta tudo', () => {
+    const faca = dar('D.Tepes', { item: { tipo: 'arma', id: 'faca' } });
+    const katana = dar('Catarina Albuquerque', { item: { tipo: 'arma', id: 'katana' } });
+    gm.send({ t: 'mochila', fichaId: ficha('Catarina Albuquerque').id, uid: katana.id, acao: 'empunhar' });
+    const tepes = personagem('D.Tepes').id;
+    const cat = personagem('Catarina Albuquerque').id;
+    comb({ tipo: 'abrir' });
+    comb({ tipo: 'participante', id: tepes, lado: 'agente', iniciativa: 20 });
+    comb({ tipo: 'participante', id: cat, lado: 'agente', iniciativa: 10 });
+    comb({ tipo: 'iniciativaMestre', valor: 5 });
+    comb({ tipo: 'comecar' });
+    hotel.pushNow();
+    assert.equal(gm.last('combate')!.combate!.fase, 'andamento', gm.last('denied')?.reason ?? '');
+    // sacar a faca: ação de movimento, e ela vai para a mão
+    comb({ tipo: 'declarar', qual: 'movimento', texto: 'sacou Faca', quem: tepes, sacar: faca.id });
+    assert.equal(gm.last('denied')?.reason, undefined, 'não recusou');
+    assert.equal(naMao('D.Tepes', faca.id), true);
+    assert.equal(personagem('D.Tepes').armed, true);
+    hotel.pushNow();
+    assert.equal(gm.last('combate')!.combate!.acoes?.[String(tepes)]?.movimento, true, 'gastou o movimento');
+    comb({ tipo: 'desfazer' });
+    assert.equal(naMao('D.Tepes', faca.id), false, 'desfazer guarda de novo');
+    // sem a arma na mochila, não saca
+    comb({ tipo: 'declarar', qual: 'movimento', texto: 'sacou', quem: tepes, sacar: 999999 });
+    assert.equal(gm.last('denied')?.reason, 'Item não encontrado.');
+    // desarmar: a katana cai na casa da Catarina
+    comb({ tipo: 'manobra', manobra: { quem: tepes, alvo: cat, manobra: 'desarmar', qual: 'padrao', teste: { quem: { dados: 2, bonus: 5, d20: 15, total: 20 }, alvo: { dados: 1, bonus: 2, d20: 10, total: 12 } }, venceu: true, diferenca: 8, modificadores: [] } });
+    const room = hotel.rooms.get(sala)!;
+    const pilha = room.map.allItems().find((it) => it.defId === PILHA_CHAO);
+    assert.ok(pilha?.loot?.some((l) => l.id === katana.id), 'a katana está no chão');
+    assert.ok(!ficha('Catarina Albuquerque').ficha.inventario.some((x) => x.uid === katana.id));
+    assert.equal(personagem('Catarina Albuquerque').armed, false);
+    comb({ tipo: 'desfazer' });
+    assert.equal(naMao('Catarina Albuquerque', katana.id), true, 'volta para a mão');
+    assert.ok(!room.map.allItems().some((it) => it.defId === PILHA_CHAO), 'e sai do chão');
+    assert.equal(personagem('Catarina Albuquerque').armed, true);
+  });
+});

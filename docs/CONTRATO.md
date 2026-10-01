@@ -50,13 +50,13 @@ Hoje a tela MAPA ainda usa as mensagens antigas (`roomEnter`, `status`, `campaig
 | `Session` | Tudo o que a tela precisa | `id`, `title`, `subtitle`, `me {name, role}`, `currentSceneId`, `scenes`, `objects`, `characters`, `tokens`, `items`, `objectives`, `events`, `layout` |
 | `Scene` | Um cômodo | `id`, `name` ("Escritório"), `title` ("Mansão Alvarez · Escritório"), `description`, `aspect`, `grid`, `cols`, `rows`, `heightmap`, `exits`, `lightMode`, `fog`, `darkness` |
 | `SceneObject` | Objeto que importa: tem pista, itens ou interações | `id`, `sceneId`, `kind` (`floor`/`wall`), `name`, `description`, `hidden`, `pos`, `top`, `itemIds`, `interactions [{id, label, dt}]` |
-| `Character` | Personagem do grupo | `id`, `name`, `color`, `capacity`, `load`, `look`, `sceneId` |
+| `Character` | Personagem do grupo | `id`, `name`, `color`, `capacity`, `load`, `look`, `sceneId`, `armed`, `arma` (`fogo` ou `branca`, a da mão), `hurt`, `vitals` |
 | `Token` | A peça do personagem no mapa | `id` (= `Character.id`), `sceneId`, `tile`, `pos`, `to?`, `dir` |
-| `Item` | Item guardado num objeto ou com alguém | `id`, `name`, `weight`, `kind`, `kindLabel`, `sceneId`, `objectId`, `holderId`, `holderName`, `revealed` |
+| `Item` | Item guardado num objeto (ou com uma peça sem ficha) | `id`, `name`, `espacos`, `descricao`, `kind`, `kindLabel`, `sceneId`, `objectId`, `holderId`, `holderName`, `revealed` |
 | `Objective` | Objetivo da sessão | `id`, `text`, `done` |
 | `GameEvent` | Linha de "Últimas ações" | `at` (ms), `icon` (`user`/`give`/`scene`/`obj`/`dice`), `text` |
 
-`load` é a soma dos pesos dos itens com o personagem. Passar de `capacity` é permitido: a interface mostra o aviso, o mestre decide.
+Com ficha, `load` e `capacity` são os da mochila, em espaços (5 por ponto de Força, LR p. 53), e o item pego vai para a ficha: um inventário só (`docs/REGRAS.md`, Mochila). Sem ficha, `load` é a soma dos espaços dos itens com a peça. Passar do dobro da carga não deixa; passar da carga é permitido: a interface mostra o aviso, o mestre decide.
 
 ## Posições de 0 a 1
 
@@ -157,6 +157,17 @@ A ficha de cada agente (`FichaSalva`, em `shared/src/fichas.ts`) guarda só as e
 - Ficha ligada a um personagem do tabuleiro (`personagem` = id da folha): os máximos de PV, PE e SAN vão para a peça, e o PV da peça volta para a ficha.
 - `GET /api/arte`: lista da arte que existe em `client/public/arte`. A tela só pede a imagem que está na lista; sem ela, fica o desenho padrão.
 
+## Mochila (30/09/2026)
+
+| Direção | Mensagem | Para quê |
+|---|---|---|
+| cliente → servidor | `{ t: 'mochila', fichaId, uid, acao, para?, trocar? }` | Só o mestre: `empunhar` (com `trocar`, guarda o que for preciso), `guardar`, `vestir`, `tirar`, `usar` (o consumível gasta um), `entregar` (`para` = a outra ficha) e `largar` (no chão do cômodo, numa pilha "Itens no Chão") |
+| cliente → servidor | `{ t: 'mochilaNova', fichaId, tipo, id }` | Só o mestre: item do catálogo novo na mochila (requisitado à Ordem: conta na patente) |
+| cliente → servidor | `{ t: 'lootAdd', ..., espacos, item?, qtd?, descricao? }` | Item novo num objeto; `item` = do catálogo |
+| cliente → servidor | `{ t: 'lootGive', ..., to }` | Entregue a uma peça com ficha, o item sai do objeto e vai para a mochila |
+
+Cada item tem um número (`uid` na ficha = `id` no cenário) que acompanha o item entre a mochila e o cenário. A arma na mão deixa a peça armada (o servidor acompanha a ficha), e o botão Armado de uma peça com ficha empunha a primeira arma da mochila ou guarda as armas.
+
 ## Combate (30/09/2026)
 
 O combate é um por campanha (`combate` em `CampaignData`) e as regras dele ficam em `shared/src/combate/` (`aplicar` recebe uma ação e devolve o combate novo, ou o motivo da recusa). Só o mestre manda; a mesa recebe só o que é público.
@@ -169,4 +180,5 @@ O combate é um por campanha (`combate` em `CampaignData`) e as regras dele fica
 
 - Recusa volta como `{ t: 'denied', action: 'combate', reason }`.
 - O ataque chega com os números que a tela calculou (as mesmas regras de `shared/src/combate/ataque.ts`); o servidor confere a forma, gasta a ação, marca a defesa especial e aplica o dano na peça (os PV da ficha ligada acompanham).
-- `desfazer` volta o último passo, com os PV, PE e SAN que ele mudou (os últimos 40 passos, só na memória do servidor).
+- `desfazer` volta o último passo, com os PV, PE e SAN que ele mudou, a arma sacada e o item que caiu no Desarmar (os últimos 40 passos, só na memória do servidor).
+- `declarar` com `sacar` (o número do item) gasta a ação e põe a arma na mão; a manobra `desarmar` vencida faz o item da mão do alvo (`item`, ou a primeira arma) cair na casa dele.

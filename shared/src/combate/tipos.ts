@@ -199,6 +199,8 @@ export interface ManobraConfirmada {
   dano?: DanoConfirmado;
   /** quebrar: o objeto, os PV dele e se quebrou */
   objeto?: { nome: string; pv: number; quebrou: boolean };
+  /** desarmar: o item da mão do alvo que cai (sem ele, a primeira arma na mão) */
+  item?: number;
 }
 
 /** Um alvo do ritual: o teste de resistência, o dano e a condição que ele ganha. */
@@ -250,9 +252,10 @@ export type AcaoCombate =
   /**
    * Declara uma ação: vai para o registro e gasta o que ela custa. `quem` = qual
    * ser age (no turno do mestre); `especial` = reação de defesa especial
-   * (bloqueio, esquiva, contra-ataque: uma por rodada).
+   * (bloqueio, esquiva, contra-ataque: uma por rodada). `sacar` = o item da
+   * mochila do ser que vai para a mão junto (sacar é ação de movimento, LR p. 54).
    */
-  | { tipo: 'declarar'; qual: TipoAcao; texto: string; quem?: number; especial?: boolean }
+  | { tipo: 'declarar'; qual: TipoAcao; texto: string; quem?: number; especial?: boolean; sacar?: number }
   | { tipo: 'reacao'; id: number; usada: boolean }
   /** alguém chega no meio: age a partir da rodada seguinte */
   | { tipo: 'entrar'; id: number; lado: Lado; iniciativa?: number | null }

@@ -33,6 +33,10 @@ export interface ArmaOpcao {
   notas: string[];
   /** ataques por ação (o "×2" da ameaça) */
   vezes?: number;
+  /** a arma está na mão (da ficha): só assim ataca; a da mochila precisa sacar antes */
+  naMao?: boolean;
+  /** o item da mochila (para sacar) */
+  uid?: number;
 }
 
 export interface AlvoAtaque {
@@ -74,6 +78,8 @@ export interface CtxAtaque {
   nevoa: 'nenhuma' | 'camuflagem' | 'espessa';
   acoes: cb.AcoesTurno;
   enviar: (a: cb.AcaoCombate) => void;
+  /** saca a arma da mochila (gasta a ação de movimento) */
+  sacar?: (a: ArmaOpcao) => void;
   /** pede para desenhar de novo (mudou uma escolha) */
   mudou: () => void;
 }
@@ -158,8 +164,15 @@ export class ResolucaoAtaque {
   /** Zera a rolagem quando muda quem age, o alvo ou a rodada. */
   private sincronizar(x: CtxAtaque) {
     const chave = `${x.combate.rodada}|${x.combate.vez}|${x.ator.id}|${x.alvo?.p.id ?? 0}`;
-    if (chave === this.e.chave) return;
-    this.e = { chave, arma: Math.min(this.e.arma, Math.max(0, x.armas.length - 1)), reacao: 'nenhuma', manual: {}, defesaManual: null, d20: null, d10: null, soma: null };
+    // a escolhida tem de estar na mão (a da mochila precisa sacar)
+    const naMao = (i: number) => x.armas[i] && x.armas[i].naMao !== false;
+    if (chave === this.e.chave) {
+      if (!naMao(this.e.arma)) this.e.arma = Math.max(0, x.armas.findIndex((a) => a.naMao !== false));
+      return;
+    }
+    let arma = Math.min(this.e.arma, Math.max(0, x.armas.length - 1));
+    if (!naMao(arma)) arma = Math.max(0, x.armas.findIndex((a) => a.naMao !== false));
+    this.e = { chave, arma, reacao: 'nenhuma', manual: {}, defesaManual: null, d20: null, d10: null, soma: null };
   }
 
   /** Arma escolhida (a tela usa para o anel de alcance). */
@@ -269,8 +282,30 @@ export class ResolucaoAtaque {
   }
 
   private colArma(x: CtxAtaque): HTMLElement {
+    const movimentoUsado = x.acoes.movimento || x.acoes.completa;
     const cards = x.armas.map((a, i) =>
-      h(
+      a.naMao === false
+        ? // na mochila: não ataca; sacar gasta a ação de movimento (LR p. 54)
+          h(
+            'div',
+            { class: 'cb-arma fora' },
+            h('span', { class: 'cb-arma-ic' }, ic(a.pericia === 'pontaria' ? 'pistola' : 'faca')),
+            h('span', { class: 'cb-arma-txt' }, h('b', null, a.nome), h('small', null, `na mochila · ${a.dano}`)),
+            x.sacar && a.uid !== undefined
+              ? h(
+                  'button',
+                  {
+                    class: 'cb-sacar',
+                    type: 'button',
+                    disabled: movimentoUsado,
+                    title: movimentoUsado ? 'A ação de movimento já foi usada nesta rodada.' : 'Sacar: a arma vai para a mão (ação de movimento)',
+                    onclick: () => (sfx.click(), x.sacar!(a)),
+                  },
+                  'Sacar',
+                )
+              : null,
+          )
+        : h(
         'button',
         {
           class: `cb-arma${i === this.e.arma ? ' on' : ''}`,

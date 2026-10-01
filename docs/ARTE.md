@@ -129,6 +129,19 @@ Pasta: `client/public/arte/itens/`.
 
 Os ícones são objetos soltos, sem moldura e sem o quadrado do inventário (o jogo desenha o quadrado).
 
+### Arte pintada dos itens (aba ITENS do MAPA)
+
+A aba ITENS (referência `docs/ref-itens.jpg`, fora do git) mostra cada item como uma **ilustração pintada**: o fuzil, a faca, o colete, o amuleto, o kit médico, o pendrive, a munição, o livro, a chave, a lanterna, o frasco. É outro estilo do ícone de traço da FICHAS, então tem pasta própria:
+
+| Arquivo | Tamanho | O que é |
+|---|---|---|
+| `pintados/<id>.png` | 256×256 | Item do livro, pelo id do catálogo (ex.: `pintados/fuzil-de-caca.png`, `pintados/protecao-leve.png`) |
+| `pintados/<nome-do-item>.png` | 256×256 | Item achado no cenário, pelo nome em minúsculas e com hífen (ex.: `pintados/chave-do-arsenal.png`, `pintados/diario-do-maluco.png`) |
+| `pintados/tipo-<tipo>.png` | 256×256 | O item do cenário sem desenho próprio, pelo tipo: `arma`, `documento`, `chave`, `carta`, `consumivel`, `midia`, `caixa`, `item` |
+
+- Fundo transparente, sem moldura e sem a casa escura (o jogo põe a casa). O objeto sozinho, em três quartos, ocupando ~80% do quadro, com luz quente vinda de cima, como na referência.
+- O jogo procura nesta ordem: a pintada, o ícone de traço (`itens/<id>.png`) e, sem nenhum, o desenho de linha. Entram sozinhos.
+
 ## 3. Interface (a tela MAPA) — referência nova, 16:9
 
 A referência de 29/09 (`docs/referencias/mapa.webp`) é **16:9**: a tela passa a ser desenhada em **1920×1080**. Os tamanhos abaixo são em 1920×1080; entregue no **dobro** as peças que ficam na frente (papéis, botões, molduras). Os números são aproximados, medidos na referência: o construtor ajusta no encaixe.

@@ -38,6 +38,7 @@ import {
   ACOES_MOCHILA,
   itemParaLoot,
   lootParaItem,
+  noCatalogo,
   type AcaoMochila,
   type Loot,
 } from '@croma/shared';
@@ -72,6 +73,7 @@ const GM_ONLY = new Set([
   'fichaApagar',
   'fichaLink',
   'mochila',
+  'mochilaNova',
   'place',
   'placeWall',
   'moveItem',
@@ -216,7 +218,7 @@ export class Hotel implements HotelApi {
 
   // ---------- combate (docs/COMBATE.md) ----------
   /** estados anteriores do combate de cada campanha, para o "Desfazer" (só na memória), com os PV/PE/SAN que cada passo mudou */
-  private desfazeres = new Map<number, { combate: string; vitais: { id: number; antes: Vitals }[] }[]>();
+  private desfazeres = new Map<number, { combate: string; vitais: { id: number; antes: Vitals }[]; mochilas?: { fichaId: number; inventario: regras.ItemFicha[] }[]; largados?: number[] }[]>();
 
   /** Peças da campanha e os PV/SAN delas, para as regras do combate. */
   private contextoCombate(group: number[], cena: number): cmb.Contexto {
@@ -252,21 +254,52 @@ export class Hotel implements HotelApi {
       const volta = JSON.parse(passo.combate) as cmb.Combate | null;
       if (volta) camp.combate = volta;
       else delete camp.combate;
-      // o que o passo mudou nas peças volta também
+      // o que o passo mudou nas peças volta também: PV, o item que caiu no chão e a mochila
       for (const x of passo.vitais) this.mudarVitaisPeca(group, x.id, x.antes);
+      for (const uid of passo.largados ?? []) for (const id of group) if (this.rooms.get(id)?.retirarLoot(uid)) break;
+      for (const x of passo.mochilas ?? []) {
+        const f = (this.db.fichas ?? []).find((y) => y.id === x.fichaId);
+        if (!f) continue;
+        this.trocarMochila(f, x.inventario);
+        this.fichaMudou(f);
+      }
       this.save();
       this.touch();
       return;
     }
     const antes = camp.combate ?? null;
+    // sacar: confere a mão antes de gastar a ação de movimento
+    let sacar: { f: FichaSalva; inventario: regras.ItemFicha[] } | null = null;
+    if (a.tipo === 'declarar' && typeof a.sacar === 'number') {
+      const f = this.fichaDaPeca(group, a.quem);
+      if (!f) return c.send({ t: 'denied', action: 'combate', reason: 'Sem ficha: não há mochila para sacar.' });
+      const e = regras.empunhar(f.ficha.inventario, a.sacar, true);
+      if (!e.ok) return c.send({ t: 'denied', action: 'combate', reason: e.motivo });
+      sacar = { f, inventario: e.inventario };
+    }
     const r = cmb.aplicar(antes, a, this.contextoCombate(group, room.data.id));
     if (!r.ok) return c.send({ t: 'denied', action: 'combate', reason: r.motivo });
+    const mochilas: { fichaId: number; inventario: regras.ItemFicha[] }[] = [];
+    const largados: number[] = [];
+    if (sacar) {
+      mochilas.push({ fichaId: sacar.f.id, inventario: sacar.f.ficha.inventario });
+      this.trocarMochila(sacar.f, sacar.inventario);
+      this.fichaMudou(sacar.f);
+    }
+    // desarmar: o item da mão do alvo cai no chão, na casa dele (LR p. 85)
+    if (a.tipo === 'manobra' && a.manobra.manobra === 'desarmar' && a.manobra.venceu) {
+      const caiu = this.desarmar(group, a.manobra.alvo, a.manobra.item);
+      if (caiu) {
+        mochilas.push(caiu.antes);
+        largados.push(caiu.uid);
+      }
+    }
     const mudou: { id: number; antes: Vitals }[] = [];
     for (const m of r.vitais ?? []) {
       const velho = this.mudarVitaisPeca(group, m.id, m);
       if (velho) mudou.push({ id: m.id, antes: velho });
     }
-    pilha.push({ combate: JSON.stringify(antes), vitais: mudou });
+    pilha.push({ combate: JSON.stringify(antes), vitais: mudou, ...(mochilas.length ? { mochilas } : {}), ...(largados.length ? { largados } : {}) });
     if (pilha.length > MAX_DESFAZER) pilha.splice(0, pilha.length - MAX_DESFAZER);
     if (r.combate) camp.combate = r.combate;
     else delete camp.combate;
@@ -275,6 +308,33 @@ export class Hotel implements HotelApi {
     if (a.tipo === 'encerrar' && antes?.fase === 'andamento') this.log(room.data.id, 'dice', `Combate encerrado na rodada ${antes.rodada}.`);
     this.save();
     this.touch();
+  }
+
+  /** Ficha do ser do combate (o id é o da peça). */
+  private fichaDaPeca(group: number[], tokenId: number | undefined): FichaSalva | undefined {
+    if (typeof tokenId !== 'number') return undefined;
+    for (const id of group) {
+      const t = this.rooms.get(id)?.tokensLive().find((x) => x.token.id === tokenId);
+      if (t) return this.fichaDoPersonagem(t.look?.charId);
+    }
+    return undefined;
+  }
+
+  /** O item da mão do alvo (o escolhido ou a primeira arma) cai no chão, na casa dele. */
+  private desarmar(group: number[], alvo: number, uid: number | undefined): { antes: { fichaId: number; inventario: regras.ItemFicha[] }; uid: number } | null {
+    const f = this.fichaDaPeca(group, alvo);
+    if (!f?.personagem) return null;
+    const inv = f.ficha.inventario;
+    const naMao = inv.filter((it) => regras.lugarDoItem(it) === 'mao');
+    const it = naMao.find((x) => x.uid === uid) ?? naMao.find((x) => x.tipo === 'arma') ?? naMao[0];
+    if (!it || !Number.isInteger(it.uid)) return null;
+    const s = regras.retirar(inv, it.uid!);
+    if (!s.ok) return null;
+    const sala = group.map((id) => this.rooms.get(id)).find((r) => r?.temPersonagem(f.personagem!));
+    if (!sala || sala.largarNoChao(f.personagem, itemParaLoot(s.item))) return null;
+    this.trocarMochila(f, s.inventario);
+    this.fichaMudou(f);
+    return { antes: { fichaId: f.id, inventario: inv }, uid: it.uid! };
   }
 
   /** PV, PE ou SAN de uma peça da campanha (procura a cena em que ela está). Devolve os de antes. */
@@ -367,6 +427,13 @@ export class Hotel implements HotelApi {
     this.save();
     this.enviarFichas();
     this.touch();
+  }
+
+  /** A arma na mão da ficha: de fogo (fogo e disparo) ou branca. */
+  private armaNaMao(f: FichaSalva): 'fogo' | 'branca' {
+    const it = f.ficha.inventario.find((x) => x.tipo === 'arma' && regras.lugarDoItem(x) === 'mao');
+    const tipo = it ? regras.catalogo.arma(it.id)?.tipo : undefined;
+    return tipo === 'fogo' || tipo === 'disparo' ? 'fogo' : 'branca';
   }
 
   /** Cabe na carga? Passar do dobro não dá (LR p. 53). null = cabe. */
@@ -493,6 +560,17 @@ export class Hotel implements HotelApi {
     }
     if (!r.ok) return err(r.motivo);
     if (r.inventario !== inv) this.trocarMochila(f, r.inventario);
+    this.fichaMudou(f);
+  }
+
+  /** Item do catálogo novo na mochila (requisitado à Ordem: conta na patente). */
+  private mochilaNova(c: Client, m: Record<string, unknown>) {
+    const f = (this.db.fichas ?? []).find((x) => x.id === m.fichaId);
+    if (!f || !noCatalogo(m.tipo, m.id)) return c.send({ t: 'error', msg: 'Item não encontrado.' });
+    const it: regras.ItemFicha = { id: m.id as string, tipo: m.tipo, uid: this.nextItemId() };
+    const erro = this.naoCabe(f, it);
+    if (erro) return c.send({ t: 'error', msg: erro });
+    this.trocarMochila(f, [...f.ficha.inventario, it]);
     this.fichaMudou(f);
   }
 
@@ -760,6 +838,7 @@ export class Hotel implements HotelApi {
           look: t.look,
           sceneId: r.data.id,
           armed: !!t.armed,
+          ...(fc && t.armed ? { arma: this.armaNaMao(fc) } : {}),
           hurt: !!t.hurt,
           vitals: t.vitals,
         });
@@ -1295,6 +1374,9 @@ export class Hotel implements HotelApi {
         return;
       case 'mochila':
         this.mochila(c, m);
+        return;
+      case 'mochilaNova':
+        this.mochilaNova(c, m);
         return;
       case 'fichaLink':
         this.fichaLink(m);

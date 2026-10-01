@@ -33,7 +33,7 @@ import { Particles } from '../render/particles';
 import { boxSilhouette, Mapper, Painter, pointInPoly, type WBox } from '../render/painter';
 import { buildStatic, doorClipPath, roomBounds, type StaticLayer } from '../render/roomStatic';
 import { cmp, sortDrawables, type Drawable } from '../render/sort';
-import { drawPose, drawSprite, framesFor, poseFor, sprites } from '../render/sprites';
+import { drawPose, drawSprite, drawWeaponMark, framesFor, poseFor, sprites, temPoseArmada } from '../render/sprites';
 import { sfx } from '../ui/sfx';
 
 export interface ClientUser {
@@ -174,6 +174,8 @@ export class RoomView {
   combate: MarcasCombate | null = null;
   /** estado de cada peça (com a arma, machucada): escolhe a pose do tabuleiro, quando o personagem tem (null = desarmado) */
   estadoDe: ((id: number) => PortraitState | null) | null = null;
+  /** arma na mão de cada peça (pela ficha): sem arte armada, o tabuleiro mostra um sinal junto da mão */
+  armaDe: ((id: number) => 'fogo' | 'branca' | null) | null = null;
   /** clique numa peça: devolve true quando a tela usou o clique (escolher o alvo sem trocar a peça comandada) */
   aoClicarPeca: ((id: number) => boolean) | null = null;
   /** clique numa casa para uma ferramenta (medir, área): devolve true quando usou o clique */
@@ -1052,10 +1054,29 @@ export class RoomView {
           }
           const deitada = !!marcas?.deitadas.has(u.id);
           if (!seated) {
-            ctx.fillStyle = 'rgba(0,0,0,0.38)';
+            // sombra de contato: escura embaixo dos pés e sumindo para fora, mais larga que o corpo (o personagem pisa no chão)
+            const rx = deitada ? 30 : 19;
+            const ry = deitada ? 10 : 8;
+            const sombra = ctx.createRadialGradient(sx, sy, 0, sx, sy, rx);
+            sombra.addColorStop(0, 'rgba(0,0,0,0.66)');
+            sombra.addColorStop(0.45, 'rgba(0,0,0,0.42)');
+            sombra.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.save();
+            ctx.translate(sx, sy);
+            ctx.scale(1, ry / rx);
+            ctx.translate(-sx, -sy);
+            ctx.fillStyle = sombra;
             ctx.beginPath();
-            ctx.ellipse(sx, sy, deitada ? 26 : 14, deitada ? 9 : 7, 0, 0, Math.PI * 2);
+            ctx.arc(sx, sy, rx, 0, Math.PI * 2);
             ctx.fill();
+            ctx.restore();
+            // onde as botas tocam o chão: o escuro mais fechado
+            if (!deitada) {
+              ctx.fillStyle = 'rgba(0,0,0,0.5)';
+              ctx.beginPath();
+              ctx.ellipse(sx, sy + 0.5, 10, 3.6, 0, 0, Math.PI * 2);
+              ctx.fill();
+            }
             // anel na cor do personagem (no combate, na cor do lado); a peça ativa pulsa
             const active = u.id === this.myId;
             const pulse = active ? 1 + Math.sin(now / 260) * 0.08 : 1;
@@ -1080,7 +1101,7 @@ export class RoomView {
           if (turning) {
             const k = 0.35 + 0.65 * (1 - Math.pow(1 - tt, 3));
             ctx.save();
-            ctx.translate(sx, fy - Math.sin(tt * Math.PI) * 4);
+            ctx.translate(sx, fy - Math.sin(tt * Math.PI) * 2);
             ctx.scale(k, 1 + (1 - k) * 0.08);
             ctx.translate(-sx, -fy);
           }
@@ -1104,6 +1125,9 @@ export class RoomView {
             });
           if (deitada) ctx.restore();
           if (turning) ctx.restore();
+          // a arma aparece: pela pose armada da arte ou, sem ela, pelo sinal junto da mão
+          const arma = !deitada && !seated ? this.armaDe?.(u.id) : null;
+          if (arma && !(lp && temPoseArmada(lp))) drawWeaponMark(ctx, sx, fy + dance, H, arma, u.dir);
           if (wave && sp) this.drawEmote(sx, fy - H - 14, now);
           if (clip) ctx.restore();
         },
@@ -1114,7 +1138,8 @@ export class RoomView {
         id: u.id,
         test: (x, y) => x >= sx - 16 && x <= sx + 16 && y >= sy - H - 4 && y <= sy + 6,
       });
-      lights.push({ x: sx, y: sy - H * 0.45, radius: 80, color: '#ffe2b8', intensity: u.id === this.myId ? 0.45 : 0.32, kind: 'personal' });
+      // a luz da peça desce até as pernas: ilumina o chão em volta junto com o corpo (sem parecer colado por cima)
+      lights.push({ x: sx, y: sy - H * 0.22, radius: 88, color: '#ffe2b8', intensity: u.id === this.myId ? 0.42 : 0.3, kind: 'personal' });
     }
 
     // cursor do piso

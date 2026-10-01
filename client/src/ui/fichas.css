@@ -1318,6 +1318,15 @@ button.fx-tab-l:hover {
   font-size: 1.1rem;
   color: #cfc7b9;
 }
+.fx-sl-esp {
+  position: absolute;
+  left: 0.4rem;
+  top: 0.2rem;
+  font-style: normal;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #b9a888;
+}
 .fx-sl.vazio {
   background: #262628;
   color: #6e6c69;

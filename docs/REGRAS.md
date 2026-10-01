@@ -203,6 +203,7 @@ São 28. ✱ = só treinada (sem treino não pode usar); (c) = sofre penalidade 
 - **Proteções:** leve +5 na Defesa (cat. I, 2 espaços); pesada +10 (cat. II, 5 espaços, RD 2 contra balístico, corte, impacto e perfuração, −5 nas perícias de carga); escudo +2 (cat. 0, 2 espaços, numa mão). Proteção sem proficiência: −2d20 em testes de For e Agi.
 - **Munição:** abstrata, por cena. Balas curtas duram 2 cenas; balas longas, cartuchos e combustível, 1 cena; flechas, a missão inteira; foguete, 1 tiro. Contar tiro a tiro é regra opcional.
 - Itens amaldiçoados só para agente especial ou acima, a partir de 50 PP (LR p. 144; patentes na p. 52).
+- **No CROMA (30/09):** um inventário só. O item achado no cenário entra na mochila da ficha ao ser pego (achado na missão: não ocupa vaga da patente, que limita o que a Ordem fornece), e o do livro vira o item de verdade (a faca da gaveta ataca). Os itens do cenário ocupam espaços, como os da ficha. Cada item está na mão, vestido ou na mochila (`shared/src/regras/mochila.ts`): duas mãos no máximo (a arma de duas mãos ocupa as duas; escudo e itens "empunhado", uma); o escudo vale na mão; o item que se empunha só faz efeito na mão (a soqueira). Arma na mão deixa a peça armada (retrato, pose e mesa). Passar do dobro da carga não deixa; o limite da patente avisa e o mestre decide. Largar deixa o item no chão do cômodo, numa pilha. No combate, a arma da mochila aparece com "Sacar" (ação de movimento) e o Desarmar faz o item cair na casa do alvo; o Desfazer volta os dois.
 
 ## 4. Combate (p. 82–91)
 

@@ -71,7 +71,9 @@ function show(o: NoteOpts): Promise<string[] | null> {
           ? [{ transform: 'translateY(0) rotate(0)', opacity: 1 }, { transform: 'translateY(-4rem) rotate(4deg) scale(0.92)', opacity: 0 }]
           : [{ transform: 'rotate(0) scale(1)', opacity: 1 }, { transform: 'translateY(3rem) rotate(-14deg) scale(0.55)', opacity: 0 }];
         back.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, delay: 60, fill: 'forwards' });
-        await paper.animate(out, { duration: 320, easing: 'cubic-bezier(.5,0,.8,.4)', fill: 'forwards' }).finished.catch(() => {});
+        // com a aba fora da frente a animação para: não espera mais que meio segundo
+        const anim = paper.animate(out, { duration: 320, easing: 'cubic-bezier(.5,0,.8,.4)', fill: 'forwards' }).finished.catch(() => {});
+        await Promise.race([anim, new Promise((r) => setTimeout(r, 500))]);
       }
       back.remove();
       if (open === back) open = null;

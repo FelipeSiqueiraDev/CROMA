@@ -59,6 +59,20 @@ Pasta `interface/`:
 - [ ] **Cartões da sala e dos players**: `local.png` (marcador de lugar), `andar.png` (camadas), `mais-opcoes.png` (os três pontos)
 - [ ] **Lista "Contém" do objeto**: `conteudo-documento.png`, `conteudo-email.png`, `conteudo-banco-de-dados.png`
 
+### Aba ITENS (a mochila de cada agente, referência `docs/ref-itens.jpg`)
+
+Formato em [ARTE.md](ARTE.md) (Itens, "Arte pintada dos itens"). O que está marcado "entra sozinho" aparece na hora; o resto o Claude encaixa quando chegar.
+- [ ] ✱ **Arte pintada de cada item** (a casa escura de EQUIPADO, MOCHILA e ITEM SELECIONADO): `itens/pintados/<id>.png`, 256×256 · entram sozinhos. Comece pelos que os agentes carregam: `corrente`, `katana`, `fuzil-de-caca`, `faca`, `arma-improvisada` (o pé de mesa), `protecao-leve`, `mochila-militar`, `celular`, `algemas`, `corda`, `isqueiro`, `cao-adestrado`, `granada-de-fumaca`, `granada-de-fragmentacao`, `kit-de-ladrao`, `componentes-ritualisticos-de-elemento`, `bandoleira`, `cranio-espiral`, `amuleto-sagrado`, `alarme-de-movimento`, `balas-longas`, `coagulante`
+- [ ] ✱ **Itens do cenário pelo tipo**: `itens/pintados/tipo-documento.png`, `tipo-chave.png`, `tipo-carta.png`, `tipo-consumivel.png`, `tipo-midia.png` (pendrive, fita), `tipo-caixa.png`, `tipo-arma.png`, `tipo-item.png`, 256×256 · entram sozinhos. Os que têm desenho próprio vão pelo nome (`itens/pintados/chave-do-arsenal.png`)
+- [ ] **Ícones dos contadores** do topo: `icones/tipo-consumiveis.png` (frasco escuro), `icones/tipo-chaves.png` (chave dourada), `icones/tipo-ritualisticos.png` (um sigilo próprio, vermelho: nunca um símbolo oficial), 64×64
+- [ ] **Ícones dos botões**: `icones/item-usar.png` (engrenagem), `item-entregar.png` (pessoa), `item-mover.png` (quatro setas), `item-descartar.png` (lixeira), `item-empunhar.png` (mão), `item-guardar.png` (mochila), `item-abrir.png` (documento), `item-inspecionar.png` (lupa), `item-peso.png` (o peso do campo Espaços), 64×64, traço claro
+- [ ] **Textura da casa do item**: `interface/casa-item.png` (o quadrado escuro com vinheta e borda gasta, 160×160) e `interface/casa-item-vazia.png` (a casa tracejada da mão livre e do "+")
+- [ ] **Botões**: `interface/botao-item.png` (escuro) e `interface/botao-item-forte.png` (vermelho, o do Usar), 220×80, borda gasta; 24 px de borda sem detalhe único (o jogo estica o meio)
+- [ ] **Chip de cada agente** na escolha do topo: `interface/chip-agente.png` (escuro) e `interface/chip-agente-on.png` (vermelho, o escolhido), 200×100
+- [ ] **Marca d'água** bem apagada no fundo da aba, atrás das grades: `interface/marca-itens.png`, 300×300, um símbolo próprio (nunca o emblema oficial: o repositório é público)
+- [ ] **Pilha no chão**, no tabuleiro, quando alguém larga um item: `moveis/pilha_chao.png`, a bolsa largada, pixel art na grade 2:1 (1 casa)
+- [ ] **Retrato armado** de cada agente (`personagens/<nome>/retrato-armado.png`, formato na seção 1 do ARTE.md): sem ele, o retrato do PLAYERS mostra só um sinal da arma no canto
+
 ## 3. Tela FICHAS
 
 - [ ] **O fundo atrás do personagem grande**: na referência é uma sala escura com caixas e luz fria de cima; hoje é azul liso. `interface/fundo-personagem.jpg`, 620×1140, bem desfocado

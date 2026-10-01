@@ -262,4 +262,16 @@ export class HintViewer {
     this.win.setTitle(hint.title || 'Inspeção');
     this.win.open();
   }
+
+  /** Um item (documento lido, item inspecionado), no mesmo papel da inspeção. */
+  abrirItem(o: { titulo: string; rotulo: string; icone: Element; texto: string; linhas?: Node[] }) {
+    const b = clear(this.win.body);
+    b.append(
+      h('div', { class: 'dossier-head' }, h('div', { class: 'dossier-icon' }, o.icone), h('div', null, h('small', null, o.rotulo.toUpperCase()), h('h3', null, o.titulo))),
+      h('p', { class: 'dossier-text' }, o.texto || 'Nada escrito.'),
+      ...(o.linhas ?? []),
+    );
+    this.win.setTitle(o.titulo);
+    this.win.open();
+  }
 }

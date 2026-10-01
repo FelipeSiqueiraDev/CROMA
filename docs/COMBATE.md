@@ -274,7 +274,7 @@ O livro não diz em que ordem as coisas do começo do turno acontecem. Proposta 
 | **Levantar-se** | sai do caído. Com Acrobacia treinada, pode testar DT 20 para levantar como ação livre (precisa ter a ação de movimento disponível; se falhar, gasta a ação e continua caído) | p. 41, 87 |
 | **Manipular item** | pegar da mochila, abrir ou fechar porta, jogar uma corda, jogar um item para alguém pegar | p. 87 |
 | **Mirar** | só com Pontaria treinada: tira o −5 de atirar em quem está em corpo a corpo, contra aquele alvo. Com fuzil de precisão e Pontaria veterana, +5 na margem de ameaça | p. 58, 87 |
-| **Sacar ou guardar** | um item. Sacar arma de arremesso também gasta esta ação. A bandoleira (uma vez por rodada) e a modificação tática deixam livre | p. 54, 60, 65, 87 |
+| **Sacar ou guardar** | um item. Sacar arma de arremesso também gasta esta ação. A bandoleira (uma vez por rodada) e a modificação tática deixam livre. No CROMA, o "Sacar" da arma da mochila gasta a ação e põe a arma na mão | p. 54, 60, 65, 87 |
 | **Recarregar** | besta, balestra e bazuca, a cada disparo. Na contagem de munição, qualquer arma quando esvazia | p. 58, 174 |
 | **Reempunhar arma de duas mãos** | apoiar no chão para soltar uma mão é livre | p. 54 |
 | **Apoiar a metralhadora** | no tripé; sem isso e sem Força 4, −5 no ataque | p. 59 |

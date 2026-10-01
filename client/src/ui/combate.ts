@@ -411,7 +411,10 @@ export class CombateScreen {
   private armasDe(p: Participante): ArmaOpcao[] {
     const calc = this.calcDe(p.id);
     if (calc)
-      return calc.ataques.map((a) => ({
+      // a arma na mão primeiro (e o desarmado); a da mochila por último, para sacar
+      return [...calc.ataques].sort((x, y) => Number(y.naMao) - Number(x.naMao)).map((a) => ({
+        naMao: a.naMao,
+        ...(a.uid !== undefined ? { uid: a.uid } : {}),
         nome: a.nome,
         pericia: a.pericia === 'pontaria' ? 'pontaria' : 'luta',
         dados: a.dados + a.penalidadeDados,
@@ -503,6 +506,7 @@ export class CombateScreen {
       ...this.clima(),
       acoes: cb.acoesDe(c, ator.id),
       enviar: (a) => this.acao(a),
+      sacar: (arma) => arma.uid !== undefined && this.acao({ tipo: 'declarar', qual: 'movimento', texto: `sacou ${arma.nome}`, quem: ator.id, sacar: arma.uid }),
       mudou: () => (this.sigs.delete('res'), this.renderRes(), this.atualizarMarcas()),
     };
   }

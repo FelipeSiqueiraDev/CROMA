@@ -106,6 +106,8 @@ export interface Character {
   sceneId: number;
   /** com a arma e machucado: escolhem o retrato (ver PortraitState) */
   armed: boolean;
+  /** a arma na mão (pela ficha): de fogo ou branca */
+  arma?: 'fogo' | 'branca';
   hurt: boolean;
   /** PV, PE e SAN (atual e total); machucado = menos da metade dos PV */
   vitals?: Vitals;

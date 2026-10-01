@@ -269,6 +269,8 @@ export type ClientMsg =
   | { t: 'fichaSalvar'; ficha: FichaSalva }
   /** mexe num item da mochila (só o mestre): mão, roupa, usar, entregar a outra ficha ou largar no chão */
   | { t: 'mochila'; fichaId: number; uid: number; acao: AcaoMochila; para?: number; trocar?: boolean }
+  /** item do catálogo novo na mochila (só o mestre): requisitado à Ordem, conta na patente */
+  | { t: 'mochilaNova'; fichaId: number; tipo: TipoItemCatalogo; id: string }
   | { t: 'fichaApagar'; id: number }
   /** gera (ou troca) o link do jogador para a ficha (só o mestre) */
   | { t: 'fichaLink'; id: number }

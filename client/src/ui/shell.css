@@ -1459,6 +1459,21 @@ html {
   gap: 0.6rem;
   margin-top: 0.4rem;
 }
+.add-row .add-desc {
+  flex: 1 1 100%;
+}
+.ic-bts {
+  display: flex;
+  gap: 0.4rem;
+}
+.icard[data-loot] {
+  cursor: zoom-in;
+}
+.dossier-linha {
+  margin: 0.3rem 0 0;
+  font-size: 1.3rem;
+  line-height: 1.4;
+}
 .mini {
   height: 3.2rem;
   padding: 0 0.8rem;

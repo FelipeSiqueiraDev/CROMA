@@ -424,14 +424,46 @@ export function poseFor(lp: LoadedPoses, estado: PortraitState, dir: number): Sp
   return null;
 }
 
+/** O personagem tem pose armada (a arma aparece pela arte)? */
+export function temPoseArmada(lp: LoadedPoses): boolean {
+  return Object.keys(lp.frames).some((k) => k.startsWith('armado'));
+}
+
+/** Os mesmos desenhos dos ícones de pistola e faca (viewBox 24). */
+const MARCA_ARMA: Record<'fogo' | 'branca', string> = {
+  fogo: 'M3 7h16l2 2-1 2h-6l-1 3h-3l-.5 2H6.5L8 11H3z M9.5 11v2.5',
+  branca: 'M3 21 12.5 11.5 M14 10 21 3l-1 5.5-6 6z m10.5 13.5 2 2',
+};
+let marcas: Record<'fogo' | 'branca', Path2D> | null = null;
+
+/** Arma na mão sem arte armada: o desenho da arma (fogo ou branca) junto da mão. */
+export function drawWeaponMark(ctx: CanvasRenderingContext2D, x: number, y: number, h: number, arma: 'fogo' | 'branca', dir: number) {
+  marcas ??= { fogo: new Path2D(MARCA_ARMA.fogo), branca: new Path2D(MARCA_ARMA.branca) };
+  const lado = [0, 1, 2].includes(((dir % 8) + 8) % 8) ? 1 : -1;
+  const k = 16 / 24;
+  ctx.save();
+  ctx.translate(x + lado * 16, y - h * 0.36);
+  ctx.scale(k * lado, k);
+  ctx.translate(-12, -12);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = 'rgba(10,8,6,0.88)';
+  ctx.stroke(marcas[arma]);
+  ctx.lineWidth = 2.2;
+  ctx.strokeStyle = '#e6dfcf';
+  ctx.stroke(marcas[arma]);
+  ctx.restore();
+}
+
 /** Desenha a pose do tabuleiro com os pés em (x, y). Parada; andando, balança como a folha sem quadros de andar. */
 export function drawPose(ctx: CanvasRenderingContext2D, f: SpriteFrame, x: number, y: number, t: number, pose: SpritePose, alpha = 1): number {
   paint(ctx, f, x, y + (pose === 'walk' ? balanco(t) : 0), pose === 'sit', alpha);
   return f.h;
 }
 
-/** Sobe e desce do passo, sem quadros de andar. */
-const balanco = (t: number) => -Math.abs(Math.sin((t * Math.PI) / 250)) * 3;
+/** Sobe e desce do passo, sem quadros de andar: pequeno, para não parecer que flutua. */
+const balanco = (t: number) => -Math.abs(Math.sin((t * Math.PI) / 250)) * 1.4;
 
 /** Pinta o quadro com os pés em (x, y). sit = sem quadro de sentado: abaixa o corpo e esconde as pernas atrás do assento. */
 function paint(ctx: CanvasRenderingContext2D, f: SpriteFrame, x: number, y: number, sit: boolean, alpha: number) {

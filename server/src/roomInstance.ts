@@ -1193,6 +1193,28 @@ export class RoomInstance {
     return mudou;
   }
 
+  /** Tira do cenário o item com esse número (o Desfazer de quem largou ou foi desarmado). true = achou. */
+  retirarLoot(id: number): boolean {
+    for (const it of this.map.allItems()) {
+      const loot = it.loot ?? [];
+      if (!loot.some((l) => l.id === id)) continue;
+      const fica = loot.filter((l) => l.id !== id);
+      if (it.defId === PILHA_CHAO && !fica.length) {
+        this.map.removeItem(it.id);
+        this.broadcast({ t: 'itemRemove', id: it.id });
+      } else {
+        const next: FloorItem = { ...it };
+        if (fica.length) next.loot = fica;
+        else delete next.loot;
+        this.map.updateItem(next);
+        this.broadcastFloor('itemUpdate', next);
+      }
+      this.persist();
+      return true;
+    }
+    return false;
+  }
+
   /** A peça do personagem está nesta cena? */
   temPersonagem(personagem: number): boolean {
     return [...this.users.values()].some((u) => u.client.look?.charId === personagem);

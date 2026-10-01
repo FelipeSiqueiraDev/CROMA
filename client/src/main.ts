@@ -5,6 +5,7 @@ import './ui/tema.css';
 import './ui/mapa.css';
 import './ui/fichas.css';
 import './ui/combate.css';
+import './ui/itens.css';
 import { anyFurniName, getFurni, getWallFurni, portraitState, vitalConditions, type ServerMsg } from '@croma/shared';
 import { Net } from './net';
 import { clearIconCache } from './render/bubbles';
@@ -112,6 +113,11 @@ app.view = view;
 view.estadoDe = (id) => {
   const ch = app.session.session?.characters.find((c) => c.id === -id);
   return ch ? portraitState(ch.armed, vitalConditions(ch.vitals).machucado) : null;
+};
+// a arma na mão (da ficha, pelo servidor): sem arte armada, o tabuleiro mostra um sinal junto da mão
+view.armaDe = (id) => {
+  const ch = app.session.session?.characters.find((c) => c.id === -id);
+  return ch?.armed ? (ch.arma ?? 'branca') : null;
 };
 if (import.meta.env.DEV) (window as unknown as { __croma: App }).__croma = app;
 
@@ -264,6 +270,7 @@ net.onMessage = (m: ServerMsg) => {
       break;
     case 'fichas':
       shell?.fichas.setFichas(m.fichas, m.nova);
+      shell?.setFichasMapa(m.fichas);
       shell?.combate.setFichas(m.fichas);
       telaFicha?.fichas.setFichas(m.fichas, m.nova);
       break;

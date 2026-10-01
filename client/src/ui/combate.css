@@ -2609,3 +2609,30 @@ button.cb-barra {
   flex-wrap: wrap;
   gap: 0.4rem 1.2rem;
 }
+
+/* arma na mochila: não ataca; Sacar gasta a ação de movimento */
+.cb-arma.fora {
+  opacity: 0.72;
+  cursor: default;
+}
+.cb-arma.fora .cb-arma-txt small {
+  font-style: italic;
+}
+.cb-sacar {
+  margin-left: auto;
+  align-self: center;
+  padding: 0.3rem 0.8rem;
+  border: 0.12rem solid #8a7a64;
+  border-radius: 0.25rem;
+  background: #1f1c19;
+  color: #e9dcc0;
+  font-size: 1.15rem;
+  cursor: pointer;
+}
+.cb-sacar:hover:not(:disabled) {
+  border-color: #e0463a;
+}
+.cb-sacar:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
