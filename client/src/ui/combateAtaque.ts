@@ -494,7 +494,7 @@ export class ResolucaoAtaque {
         }
       }
     }
-    return h('section', { class: 'cb-col cb-col-rol' }, h('h4', null, h('span', null, '3.'), ' ROLAGEM'), h('div', { class: 'cb-col-corpo' }, ...corpo));
+    return h('section', { class: 'cb-col cb-col-rol' }, h('h4', null, h('span', null, '3.'), ' ROLAGEM'), h('div', { class: 'cb-col-corpo cb-rola' }, ...corpo));
   }
 
   private carimbo(r: cb.ResultadoAtaque, mult: number): HTMLElement {

@@ -2592,7 +2592,8 @@ button.cb-barra {
   font-size: 1.25rem;
   line-height: 1.3;
 }
-.cb-rit .cb-col-rol .cb-col-corpo {
+/* a coluna 3 rola quando a defesa especial, o carimbo e o dado da falha não cabem: nada passa por cima do Confirmar */
+.cb-col-rol .cb-col-corpo {
   overflow-y: auto;
 }
 .cb-rit-custo {
