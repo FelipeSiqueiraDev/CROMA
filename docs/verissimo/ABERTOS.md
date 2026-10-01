@@ -8,29 +8,29 @@ Caminhos curtos: `regras/` é `shared/src/regras/`, `dados/` é `shared/src/regr
 
 | Id | Data | Onde | Achado | Página | Estado |
 |---|---|---|---|---|---|
-| V-1 | 2026-10-01 | `combate/turnos.ts:339-373`, `combate/ataque.ts:329` | Erro: dano mental tira PV, e não SAN | LR p. 82, 88 | aberto |
-| V-2 | 2026-10-01 | `combate/turnos.ts:339-373, 144-156` | Erro: dano não letal leva a morrendo; devia somar só para desmaiar | LR p. 88 | aberto |
-| V-3 | 2026-10-01 | `combate/turnos.ts:678-692` | Erro: atrasar roda o começo do turno duas vezes (morrendo +2, sustentado e em chamas duas vezes, turno a mais) | LR p. 87–88 | aberto |
-| V-4 | 2026-10-01 | `combate/ataque.ts:188` | Erro: 75% de falha vira 80% no d10 | LR p. 313 | aberto |
-| V-5 | 2026-10-01 | `regras/calcular.ts:498-501`, `combate/ataque.ts:299-311` | Erro: a RD paranormal não reduz dano de nenhum elemento | LR p. 35, 82 | aberto |
-| V-6 | 2026-10-01 | `regras/calcular.ts:468-488`, `dados/paranormais.ts:36` | Erro: o +2 da Precognição nos testes de resistência some | LR p. 114 | aberto |
-| V-7 | 2026-10-01 | `combate/ameaca.ts:123-143`, `combate/ataque.ts:287-317` | Erro: criaturas sem imunidade a dano mental, a condições mentais e de medo e a rituais de Medo | LR p. 180 | aberto |
-| V-8 | 2026-10-01 | `client/src/ui/combateAmeaca.ts:110-129, 220` | Erro: a imunidade a todo dano não sai da ficha rápida quando o enigma é resolvido | LR p. 180–181 | aberto |
-| V-9 | 2026-10-01 | `combate/ameacasLivro.ts:102, 107, 113, 130` | Erro: "–2O" virou `dados: -2` (rola 4d20 e fica o pior; é 2d20) | LR p. 75 | aberto |
-| V-10 | 2026-10-01 | `combate/ameacasLivro.ts:84` | Erro: Aracnasita sem a imunidade e sem o enigma | LR p. 209 | aberto |
-| V-11 | 2026-10-01 | `combate/ameacasLivro.ts:91` | Erro: Múmia Xipófaga, Vomitar Lodo sem o 1d8 mental | LR p. 221 | aberto |
-| V-12 | 2026-10-01 | `regras/calcular.ts:391-407` | Erro: preço da maldição uma vez por elemento; é 2 SAN por maldição, cumulativo | LR p. 145, 148 | aberto |
-| V-13 | 2026-10-01 | `regras/calcular.ts:474-480, 496-503` | Erro: bônus de itens diferentes se somam (RD, perícias) | LR p. 144, 312–313 | aberto |
-| V-14 | 2026-10-01 | `regras/calcular.ts:338-339` | Erro: proteção ou escudo sem proficiência só avisa; o −2d20 não entra | LR p. 62 | aberto |
-| V-15 | 2026-10-01 | `dados/armas.ts:101-102, 148-149`, `regras/calcular.ts:544` | Erro: arco composto e estilingue sem a Força no dano | LR p. 58; SaH p. 37 | aberto |
-| V-16 | 2026-10-01 | `dados/armas.ts:97-99, 130-132`, `regras/calcular.ts:535-542` | Erro: moto-serra sem o −2 e metralhadora sem o −5 no ataque | LR p. 59 | aberto |
-| V-17 | 2026-10-01 | `dados/armas.ts:168-169` | Erro: pistola pesada sem o −1d20 de uma mão | SaH p. 37 | aberto |
-| V-18 | 2026-10-01 | `shared/src/itens.ts:44-56`, `regras/mochila.ts:70` | Erro: item vestível pego do cenário entra vestido, sem a ação de vestir | LR p. 53, 63; SaH p. 44 | aberto |
-| V-19 | 2026-10-01 | `dados/poderes.ts:69`, `regras/calcular.ts:138` | Erro: Golpe Pesado vale no ataque desarmado | LR p. 25, 57 | aberto |
-| V-20 | 2026-10-01 | `client/src/ui/combate.ts:589` | Erro: o combate libera a forma de afinidade sem olhar `afinidadeAtiva` | LR p. 110, 114 | aberto |
-| V-21 | 2026-10-01 | `regras/calcular.ts:596`, `combate/ritual.ts:13-16` | Erro: custo do ritual travado em 1 PE antes de somar a forma | LR p. 34, 78, 121 | aberto |
-| V-22 | 2026-10-01 | `docs/REGRAS.md:75`, `client/src/ui/fichaRegras.ts:30-35`, `docs/COMBATE.md:69-72` (DC-1), `combate/ataque.ts:136, 173` | Erro: "menos de 1 dado" contra a regra do livro (rola atributo + ganhos + perdidos, fica o pior) | LR p. 11, 14, 75 | aberto |
-| V-23 | 2026-10-01 | `client/src/ui/fichaRegras.ts:403-408`, `regras/estado.ts:482-483` | Erro: Saber Ampliado e Grimório, o ritual a mais tem de ser do círculo novo (a tela trava o círculo novo; o motor aceita qualquer um até ele) | LR p. 35 | aberto |
+| V-1 | 2026-10-01 | `combate/turnos.ts:339-373`, `combate/ataque.ts:329` | Erro: dano mental tira PV, e não SAN | LR p. 82, 88 | resolvido (2026-10-01) |
+| V-2 | 2026-10-01 | `combate/turnos.ts:339-373, 144-156` | Erro: dano não letal leva a morrendo; devia somar só para desmaiar | LR p. 88 | resolvido (2026-10-01) |
+| V-3 | 2026-10-01 | `combate/turnos.ts:678-692` | Erro: atrasar roda o começo do turno duas vezes (morrendo +2, sustentado e em chamas duas vezes, turno a mais) | LR p. 87–88 | resolvido (2026-10-01) |
+| V-4 | 2026-10-01 | `combate/ataque.ts:188` | Erro: 75% de falha vira 80% no d10 | LR p. 313 | resolvido (2026-10-01) |
+| V-5 | 2026-10-01 | `regras/calcular.ts:498-501`, `combate/ataque.ts:299-311` | Erro: a RD paranormal não reduz dano de nenhum elemento | LR p. 35, 82 | resolvido (2026-10-01) |
+| V-6 | 2026-10-01 | `regras/calcular.ts:468-488`, `dados/paranormais.ts:36` | Erro: o +2 da Precognição nos testes de resistência some | LR p. 114 | resolvido (2026-10-01) |
+| V-7 | 2026-10-01 | `combate/ameaca.ts:123-143`, `combate/ataque.ts:287-317` | Erro: criaturas sem imunidade a dano mental, a condições mentais e de medo e a rituais de Medo | LR p. 180 | resolvido (2026-10-01) |
+| V-8 | 2026-10-01 | `client/src/ui/combateAmeaca.ts:110-129, 220` | Erro: a imunidade a todo dano não sai da ficha rápida quando o enigma é resolvido | LR p. 180–181 | resolvido (2026-10-01) |
+| V-9 | 2026-10-01 | `combate/ameacasLivro.ts:102, 107, 113, 130` | Erro: "–2O" virou `dados: -2` (rola 4d20 e fica o pior; é 2d20) | LR p. 75 | resolvido (2026-10-01) |
+| V-10 | 2026-10-01 | `combate/ameacasLivro.ts:84` | Erro: Aracnasita sem a imunidade e sem o enigma | LR p. 209 | resolvido (2026-10-01) |
+| V-11 | 2026-10-01 | `combate/ameacasLivro.ts:91` | Erro: Múmia Xipófaga, Vomitar Lodo sem o 1d8 mental | LR p. 221 | resolvido (2026-10-01) |
+| V-12 | 2026-10-01 | `regras/calcular.ts:391-407` | Erro: preço da maldição uma vez por elemento; é 2 SAN por maldição, cumulativo | LR p. 145, 148 | resolvido (2026-10-01) |
+| V-13 | 2026-10-01 | `regras/calcular.ts:474-480, 496-503` | Erro: bônus de itens diferentes se somam (RD, perícias) | LR p. 144, 312–313 | resolvido (2026-10-01) |
+| V-14 | 2026-10-01 | `regras/calcular.ts:338-339` | Erro: proteção ou escudo sem proficiência só avisa; o −2d20 não entra | LR p. 62 | resolvido (2026-10-01) |
+| V-15 | 2026-10-01 | `dados/armas.ts:101-102, 148-149`, `regras/calcular.ts:544` | Erro: arco composto e estilingue sem a Força no dano | LR p. 58; SaH p. 37 | resolvido (2026-10-01) |
+| V-16 | 2026-10-01 | `dados/armas.ts:97-99, 130-132`, `regras/calcular.ts:535-542` | Erro: moto-serra sem o −2 e metralhadora sem o −5 no ataque | LR p. 59 | resolvido (2026-10-01) |
+| V-17 | 2026-10-01 | `dados/armas.ts:168-169` | Erro: pistola pesada sem o −1d20 de uma mão | SaH p. 37 | resolvido (2026-10-01) |
+| V-18 | 2026-10-01 | `shared/src/itens.ts:44-56`, `regras/mochila.ts:70` | Erro: item vestível pego do cenário entra vestido, sem a ação de vestir | LR p. 53, 63; SaH p. 44 | resolvido (2026-10-01) |
+| V-19 | 2026-10-01 | `dados/poderes.ts:69`, `regras/calcular.ts:138` | Erro: Golpe Pesado vale no ataque desarmado | LR p. 25, 57 | resolvido (2026-10-01) |
+| V-20 | 2026-10-01 | `client/src/ui/combate.ts:589` | Erro: o combate libera a forma de afinidade sem olhar `afinidadeAtiva` | LR p. 110, 114 | resolvido (2026-10-01) |
+| V-21 | 2026-10-01 | `regras/calcular.ts:596`, `combate/ritual.ts:13-16` | Erro: custo do ritual travado em 1 PE antes de somar a forma | LR p. 34, 78, 121 | resolvido (2026-10-01) |
+| V-22 | 2026-10-01 | `docs/REGRAS.md:75`, `client/src/ui/fichaRegras.ts:30-35`, `docs/COMBATE.md:69-72` (DC-1), `combate/ataque.ts:136, 173` | Erro: "menos de 1 dado" contra a regra do livro (rola atributo + ganhos + perdidos, fica o pior) | LR p. 11, 14, 75 | resolvido (2026-10-01) |
+| V-23 | 2026-10-01 | `client/src/ui/fichaRegras.ts:403-408`, `regras/estado.ts:482-483` | Erro: Saber Ampliado e Grimório, o ritual a mais tem de ser do círculo novo (a tela trava o círculo novo; o motor aceita qualquer um até ele) | LR p. 35 | resolvido (2026-10-01) |
 | V-24 | 2026-10-01 | `combate/turnos.ts:280, 388, 487` | Aviso: reações fora do turno recusadas (contra-ataque, ação preparada, Ataque de Oportunidade, rituais de reação) | LR p. 25, 86, 88, 124, 129 | aberto |
 | V-25 | 2026-10-01 | `combate/turnos.ts:694-705` | Aviso: preparar não confere nem gasta a ação padrão | LR p. 86 | aberto |
 | V-26 | 2026-10-01 | `combate/turnos.ts:223, 301-305, 744-781` | Aviso: condições que tiram ações ou reações não pesam; o turno de quem está morrendo não passa sozinho | LR p. 85, 310–311 | aberto |
@@ -47,7 +47,7 @@ Caminhos curtos: `regras/` é `shared/src/regras/`, `dados/` é `shared/src/regr
 | V-37 | 2026-10-01 | `combate/turnos.ts:395, 512` | Aviso: atropelar livre fora da investida; ritual livre sem o limite de um por rodada | LR p. 86–87, 119 | aberto |
 | V-38 | 2026-10-01 | `combate/manobra.ts:98-114`, `docs/COMBATE.md`, seção 9 | Aviso: Tab. 4.5 sem o ônibus e a cabana de madeira | LR p. 90 | aberto |
 | V-39 | 2026-10-01 | `combate/tipos.ts:24-50`, `combate/turnos.ts:910-928` | Aviso: sem os contadores de estabilizado e acalmado na cena (DT +5 a cada vez) | LR p. 44, 46 | aberto |
-| V-40 | 2026-10-01 | `combate/tipos.ts:354-376`, `combate/ameaca.ts:123-143` | Aviso: a ficha rápida descarta Iniciativa, Percepção, sentidos e imunidades a condições | LR p. 83, 178, 180 | aberto |
+| V-40 | 2026-10-01 | `combate/tipos.ts:354-376`, `combate/ameaca.ts:123-143` | Aviso: a ficha rápida descarta Iniciativa, Percepção, sentidos e imunidades a condições | LR p. 83, 178, 180 | aberto (em parte: desde 2026-10-01 a criatura é imune às condições de medo e mentais; as outras imunidades a condição continuam fora) |
 | V-41 | 2026-10-01 | `client/src/ui/combate.ts:509`, `client/src/ui/combateAtaque.ts:288`, `server/src/hotel.ts:271-288` | Aviso: sacar sempre gasta movimento (sem bandoleira, Tática, coldre, Saque Rápido); a troca guarda de graça; o servidor aceita qualquer ação | LR p. 25, 60, 65, 87; SaH p. 42 | aberto |
 | V-42 | 2026-10-01 | `combate/ataque.ts:116-133` | Aviso: falta o petrificado como indefeso; o `inclui` das condições não é expandido | LR p. 311 | aberto |
 | V-43 | 2026-10-01 | `combate/turnos.ts:430, 528, 533`, `combate/ritual.ts:73`, `combate/ataque.ts:97`, `combate/tipos.ts:256`, `server/test/combate.test.ts:846` | Aviso: páginas trocadas (concentração p. 119; atirar em corpo a corpo p. 85; sacar p. 84 e 87; agarrado p. 310) | LR p. 84–87, 119, 310 | aberto |
@@ -56,7 +56,7 @@ Caminhos curtos: `regras/` é `shared/src/regras/`, `dados/` é `shared/src/regr
 | V-46 | 2026-10-01 | `combate/ameacasLivro.ts` (13 fichas e as 5 facetas) | Aviso: falta o selo de Medo; a ficha rápida nem tem o campo | LR p. 178, 209–276 | aberto |
 | V-47 | 2026-10-01 | `combate/ameacasLivro.ts:116` | Aviso: garras do Tempestuoso são corpo a corpo que alcança até o curto; tratadas como à distância | LR p. 271 | aberto |
 | V-48 | 2026-10-01 | `combate/ameacasLivro.ts:79` | Aviso: Mulher Afogada sem a forma líquida (RD 20 nos quatro físicos até o enigma) | LR p. 199 | aberto |
-| V-49 | 2026-10-01 | `combate/ameaca.ts:124` | Aviso: o que o enigma muda só vira nota na ficha imune a todo dano | LR p. 186, 207, 212, 222, 234, 244, 263, 272 | aberto |
+| V-49 | 2026-10-01 | `combate/ameaca.ts:124` | Aviso: o que o enigma muda só vira nota na ficha imune a todo dano | LR p. 186, 207, 212, 222, 234, 244, 263, 272 | aberto (em parte: o campo `notaEnigma` existe desde 2026-10-01, só na Aracnasita) |
 | V-50 | 2026-10-01 | `combate/ameacasLivro.ts:72, 76, 91, 96, 134` | Aviso: teste impresso de agarrar, acorrentar ou derrubar diferente da manobra calculada | LR p. 182, 193, 221, 234, 284 | aberto |
 | V-51 | 2026-10-01 | `combate/ameacasLivro.ts` (campo `acoes`) | Aviso: ações com número faltando em 11 fichas, nas reações de Aniquilação e Carente e no Reescrever Realidade | LR p. 186–287 | aberto |
 | V-52 | 2026-10-01 | `regras/calcular.ts:366-381`, `client/src/ui/fichas.ts:1306-1313` | Aviso: requisitos de modificação em texto não conferidos | LR p. 60, 62 | aberto |
@@ -99,7 +99,7 @@ Caminhos curtos: `regras/` é `shared/src/regras/`, `dados/` é `shared/src/regr
 | V-89 | 2026-10-01 | `regras/calcular.ts:103-107`, `docs/AUDITORIA-REGRAS.md:31` | Aviso: a mesma habilidade vinda de lugares diferentes conta duas vezes | LR p. 312 | aberto |
 | V-90 | 2026-10-01 | `docs/REGRAS.md:74` | Aviso: "circunstância extrema ±2d20" não está no livro | LR p. 76 | aberto |
 | V-91 | 2026-10-01 | `docs/REGRAS.md:378` | Aviso: a imunidade a dano mental vale só para as criaturas, não para as pessoas | LR p. 180 | aberto |
-| V-92 | 2026-10-01 | `regras/calcular.ts:580, 632`, `docs/AUDITORIA-REGRAS.md:32`, `docs/CRIACAO-DE-PERSONAGEM.md:107` | Aviso: páginas (Tab. 5.2 na p. 119; a ficha nas p. 319–320) | LR p. 119, 319–320 | aberto |
+| V-92 | 2026-10-01 | `regras/calcular.ts:580, 632`, `docs/AUDITORIA-REGRAS.md:32`, `docs/CRIACAO-DE-PERSONAGEM.md:107` | Aviso: páginas (Tab. 5.2 na p. 119; a ficha nas p. 319–320) | LR p. 119, 319–320 | aberto (em parte: `calcular.ts` e `fichaRegras.ts` corrigidos em 2026-10-01; faltam `AUDITORIA-REGRAS.md:32` e `CRIACAO-DE-PERSONAGEM.md:107`) |
 | V-93 | 2026-10-01 | `shared/src/fichas.ts:86` | Aviso: PV atual aceito até −999; não existem PV negativos | LR p. 88 | aberto |
 | V-94 | 2026-10-01 | `docs/AUDITORIA-REGRAS.md:44`, `regras/calcular.ts:319` | Aviso: o item 6 diz "aviso", mas o efeito de categoria do item escolhido é ignorado sem aviso | AUDITORIA, item 6 | aberto |
 | V-95 | 2026-10-01 | `server/test/regras.test.ts:96, 127, 212` | Aviso: os títulos dos testes prometem mais do que eles conferem | LR p. 29, 53 | aberto |
@@ -121,3 +121,11 @@ Caminhos curtos: `regras/` é `shared/src/regras/`, `dados/` é `shared/src/regr
 | V-111 | 2026-10-01 | `combate/ameacasLivro.ts:125-128` | Dúvida: as formas da Degolificada perderam o Medo | LR p. 279–281 | aberto (mestre decide) |
 | V-112 | 2026-10-01 | `combate/ameacasLivro.ts:83, 106` | Dúvida: testes impressos do Diabo e da Máscara fora da Potência; falta a nota | LR p. 206, 252 | aberto (mestre decide) |
 | V-113 | 2026-10-01 | `combate/ameacasLivro.ts` (Carniçal Preto da Morte, Existido) | Dúvida: números estranhos impressos, sem nota | LR p. 211, 238 | aberto (mestre decide) |
+| V-114 | 2026-10-01 | `combate/ataque.ts:367-368` | Erro: o golpe letal que faz desmaiar pela soma com o não letal não pede o dano massivo (falhando, iria a 0 PV e morrendo) | LR p. 88 | aberto |
+| V-115 | 2026-10-01 | `client/src/ui/combateRitual.ts:61-62, 159`, `docs/COMBATE.md:519, 521` | Aviso: rituais de Medo com o tipo "Medo" marcado: Conhecendo o Medo é mental; Presença do Medo é mental e de Medo (a tela leva um tipo só); a Lâmina do Medo ignora a RD | LR p. 127, 135, 139; SaH p. 87–88 | aberto |
+| V-116 | 2026-10-01 | `combate/turnos.ts:620-625` | Aviso: o Custo do Paranormal sobrescreve a SAN que o ritual tirou do próprio conjurador quando ele está na área | LR p. 121 | aberto |
+| V-117 | 2026-10-01 | `combate/turnos.ts:733-738`, `client/src/ui/combate.ts:1082` | Aviso: pagar o sustentado conta como ter agido e impede atrasar | LR p. 87, 120 | aberto |
+| V-118 | 2026-10-01 | `regras/calcular.ts:578-581` | Dúvida: o +2 da Precognição nos testes de resistência entra na esquiva e no bloqueio? (o CROMA tira) | LR p. 77, 88, 114 | aberto (mestre decide) |
+| V-119 | 2026-10-01 | `combate/ataque.ts:381-386`, `combate/turnos.ts:989-1006`, `docs/COMBATE.md:533-534` | Dúvida: não letal, dano massivo (inconsciente sem morrendo) e cura de 1 PV (o CROMA só acorda com PV acima do não letal) | LR p. 88 | aberto (mestre decide) |
+| V-120 | 2026-10-01 | `combate/turnos.ts:379-388`, `shared/src/vitals.ts:31` | Dúvida: dano mental em pessoas e animais, que não têm SAN na ficha (sai da SAN 20 padrão da peça) | LR p. 180, 282–289 | aberto (mestre decide) |
+| V-121 | 2026-10-01 | `client/src/ui/combateAtaque.ts:273-279` | Dúvida: no crítico, o dano a mais de outro tipo (1d8 mental do Vomitar Lodo) multiplica? | LR p. 82, 221 | aberto (mestre decide) |

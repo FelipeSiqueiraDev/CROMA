@@ -7,7 +7,7 @@ Já conferido antes, e que vale como fonte:
 - `docs/COMBATE.md`: a mecânica do combate, conferida com o livro de regras e o *Sobrevivendo ao Horror* em 30/09/2026;
 - `docs/AUDITORIA-REGRAS.md`: a conferência dos catálogos e das fichas dos Marcados em 29/09/2026.
 
-Os achados que contradizem esses documentos estão em `docs/verissimo/ABERTOS.md` (a conferência completa de 01/10/2026 abriu V-1 a V-113). Enquanto um achado estiver aberto, vale o que está aqui.
+Os achados que contradizem esses documentos estão em `docs/verissimo/ABERTOS.md` (a conferência completa de 01/10/2026 abriu V-1 a V-113; V-1 a V-23 foram corrigidos no mesmo dia, e a conferência das correções abriu V-114 a V-121). Enquanto um achado estiver aberto, vale o que está aqui.
 
 ## Livros
 
@@ -37,7 +37,7 @@ Os achados que contradizem esses documentos estão em `docs/verissimo/ABERTOS.md
 - Defesa = 10 + Agilidade + habilidades, equipamento e condições (LR p. 36).
 - Deslocamento padrão 9 m, 6 quadrados (LR p. 36).
 - DT de habilidade ou item = 10 + limite de PE + o atributo indicado (LR p. 78). DT de ritual = 10 + limite de PE + Presença (LR p. 121). O exemplo da LR p. 78 (Vigor 3 em NEX 55%, DT 18) não bate com a fórmula da mesma página, que dá 24; os exemplos da p. 121 (14 e 35) batem.
-- Esquiva (Reflexos treinada): soma o bônus de Reflexos na Defesa. Bloqueio (Fortitude treinada): RD igual ao bônus de Fortitude, só contra corpo a corpo. Contra-ataque: Luta treinada (LR p. 88).
+- Esquiva (Reflexos treinada): soma o bônus de Reflexos na Defesa. Bloqueio (Fortitude treinada): RD igual ao bônus de Fortitude, só contra corpo a corpo. Contra-ataque: Luta treinada (LR p. 88). O livro escreve "modificador de Reflexos" na esquiva e "bônus de Fortitude" no bloqueio; nenhum dos dois é teste (p. 88).
 - Não existem PV nem SAN negativos (LR p. 88).
 - PE: sempre dá para usar uma habilidade no custo mínimo uma vez por turno, mesmo acima do limite (LR p. 23). O PE é gasto mesmo na falha; reduções de custo não acumulam, e o custo final nunca fica abaixo de 1 PE; custo variável vai, no máximo, até o limite por uso (LR p. 78). O Ritual Predileto acumula com outras reduções, por texto (LR p. 34).
 - Intelecto: cada ponto a mais dá uma perícia treinada (LR p. 15), fora os aumentos temporários (p. 39). Sagacidade não dá perícia, e Carisma não dá PE (p. 147).
@@ -53,6 +53,7 @@ Os achados que contradizem esses documentos estão em `docs/verissimo/ABERTOS.md
 - Penalidade de carga: Acrobacia, Crime e Furtividade; Atletismo só na natação (LR p. 41–43). A penalidade "total" (p. 40) junta a sobrecarga (−5, p. 53) e a proteção pesada (−5, p. 62).
 - Sem kit: −5 (LR p. 40). Pedem kit: arrombar e sabotar, de Crime (p. 44); disfarce, de Enganação (p. 44); Medicina toda (p. 46; em si mesmo, mais −5); operar dispositivo, de Tecnologia (p. 49).
 - Teste de ataque é um tipo de teste de perícia: bônus em "testes de perícia" valem no ataque (LR p. 82).
+- Testes de resistência: todo teste de Fortitude, Reflexos ou Vontade tem esse nome (LR p. 77). Fortitude também mede o fôlego (p. 45); Vontade também serve para conjurar em condição adversa (p. 49).
 - Primeiros socorros: Medicina DT 20, +5 a cada estabilização na mesma cena, ação padrão, em alguém adjacente; deixa com 1 PV (LR p. 46).
 - Acalmar: Diplomacia treinada DT 20, +5 a cada vez na cena, ação padrão, em alguém adjacente; deixa com SAN 1 (LR p. 44). Religião também serve (p. 48).
 - Fintar: Enganação treinada, ação padrão, contra Reflexos, em alcance curto (LR p. 44). Assustar: Intimidação treinada, ação padrão, contra Vontade, em alcance curto; o abalado não acumula; vencendo por 10 ou mais, apavorado por 1 rodada (p. 45).
@@ -86,6 +87,7 @@ Os achados que contradizem esses documentos estão em `docs/verissimo/ABERTOS.md
 - Elementos (LR p. 118): Sangue vence Conhecimento, Conhecimento vence Energia, Energia vence Morte e Morte vence Sangue; o Medo é neutro. Contra o elemento que vence o seu: −2d20 na resistência e vulnerável ao dano do ritual; contra o mesmo elemento: +2d20.
 - A lista por círculo (LR p. 122–123) tem 26 rituais de 1º, 21 de 2º, 17 de 3º e 17 de 4º (81). Forma Monstruosa está no 3º na lista e no 2º no cabeçalho (p. 133). "Ligação Telepática" da lista é um efeito do Invadir Mente (p. 134). Na Proteção contra Rituais, a lista diz +2 e a descrição diz +5 (p. 139). Arma Atroz discente: +2 PE na descrição (p. 125), +3 no exemplo (p. 121).
 - Só a Lâmina do Medo pede poder de trilha para ser aprendida (LR p. 135); os outros rituais de Medo de 4º círculo não têm essa trava (p. 125, 127, 135, 139).
+- Dano dos rituais de Medo: Lâmina do Medo, 10d8 de Medo, que ignora as resistências (LR p. 135); Presença do Medo, 5d8 mental e 5d8 de Medo (p. 139); Conhecendo o Medo, 10d6 mental (p. 127).
 - SaH: 16 rituais, quatro por elemento: Sangue p. 48–50, Morte p. 50–52, Conhecimento p. 53–54, Energia p. 55–56. Nenhum é de Medo (sumário na SaH p. 3).
 
 ## Itens
@@ -120,12 +122,15 @@ Os achados que contradizem esses documentos estão em `docs/verissimo/ABERTOS.md
 - Agredir (LR p. 85): corpo a corpo a até 1,5 m; à distância, até o alcance, ou até o dobro com −5; atirar em quem está a 1,5 m de um inimigo: −5. Alcances: 9, 18, 36 e 90 m (LR p. 55).
 - Manobras (LR p. 85): teste de ataque corpo a corpo oposto, o alvo com Luta, empate repete; agarrado tem −2 no ataque aqui (o apêndice, p. 310, diz −1d20); derrubar e desarmar vencendo por 5 ou mais empurram 1 quadrado (no desarmar, o item cai na casa do alvo e vai mais 1 quadrado na direção que o atacante escolher); empurrar: 1,5 m e mais 1,5 m a cada 5; só se agarra desarmado; à distância contra quem está numa manobra agarrar, 50% de acertar o outro.
 - Preparar é ação padrão: a Iniciativa passa a ficar logo acima de onde a ação aconteceu; não usada até o próximo turno, perde (LR p. 86). Atrasar é livre, com limite de 0 − bônus de Iniciativa; vários atrasando: o de maior bônus age antes na mesma contagem, e depois quando um quer agir após o outro (LR p. 87).
+- Atrasar (LR p. 87) baixa a Iniciativa pelo resto do combate; quando a contagem nova chega, age normalmente. O livro não diz se dá para atrasar depois de uma ação livre, nem o que acontece com os efeitos do começo do turno.
 - Investida (LR p. 87): até 2× o deslocamento (mínimo 3 m), +1d20 no ataque e −5 na Defesa até o próximo turno; atropelar é livre, mas não no mesmo alvo. Golpe de misericórdia: crítico automático; morte com 1 no d4 (personagens e NPC importantes) ou de 1 a 3 (secundários).
 - Defesas especiais (LR p. 88): uma por rodada, declaradas antes do teste de ataque do inimigo; bloqueio dá RD igual ao bônus de Fortitude, só contra corpo a corpo; esquiva soma Reflexos na Defesa; contra-ataque quando um ataque corpo a corpo erra. Ameaças não usam nenhuma (LR p. 179).
 - 0 PV (LR p. 88): inconsciente e morrendo; morre ao iniciar 3 turnos morrendo na mesma cena. Dano massivo: dano igual ou maior que a metade dos PV totais, sem zerar, pede Fortitude DT 15, +2 a cada 10 de dano; falhou, cai a 0 PV.
 - Não letal (LR p. 88): soma para desmaiar e não para morrendo, e a cura tira primeiro o dano não letal. Não letal com arma letal, ou letal com desarmado ou arma não letal: −5.
-- SAN 0 (LR p. 88): enlouquecendo; ao iniciar 3 turnos assim na cena, fica insano e vira NPC do mestre; sai com Diplomacia DT 20 ou com 1 de SAN curada.
+- Inconsciente pelo 0 PV: acaba com qualquer cura de pelo menos 1 PV; morrendo, só com Medicina DT 20 ou efeito próprio (LR p. 88). O dano massivo não fala do não letal (p. 88).
+- SAN 0 (LR p. 88): enlouquecendo; ao iniciar 3 turnos assim na cena, fica insano e vira NPC do mestre; sai com Diplomacia DT 20 ou com 1 de SAN curada. Não existe dano massivo para o dano mental (p. 88).
 - Dano mental reduz a Sanidade; dano paranormal sempre tem o subtipo de um elemento (LR p. 82).
+- Tipos de dano (LR p. 82): balístico, corte, eletricidade, fogo, frio, impacto, mental, paranormal (sempre com um subtipo: Conhecimento, Energia, Medo, Morte ou Sangue), perfuração e químico. Dano de Medo é paranormal; o mental é outro tipo.
 - Tab. 4.4 (LR p. 89): atacante caído −2d20, cego 50%, elevado +1d20, flanqueando +1d20 (só corpo a corpo; o texto da p. 90 diz +2), invisível +2d20 (não contra alvo cego), ofuscado −1d20. Alvo caído −5 contra corpo a corpo e +5 contra distância, cego −5, desprevenido −5, camuflagem 20%, camuflagem total 50%, cobertura +5, cobertura total não pode ser atacado.
 - Chance de falha: um d10 junto do ataque; camuflagem falha de 1 a 2, total de 1 a 5 (LR p. 89). De fontes diferentes, soma até 75%, e sempre sobra 1 em 4 de acertar (LR p. 313).
 - Crítico (LR p. 82): acerto com o d20 dentro da margem; multiplica só os dados da arma, não os bônus nem os dados extras; imune a crítico sofre o dano normal (a p. 54 só fala do 20 natural).
@@ -139,12 +144,13 @@ Os achados que contradizem esses documentos estão em `docs/verissimo/ABERTOS.md
 - Tab. 7.1 (LR p. 179): espaço e alcance natural de 1,5 m até o Médio, 3 m no Grande, 4,5 m no Enorme e 9 m no Colossal. Nas manobras: Minúsculo −5, Pequeno −2, Médio 0, Grande +2, Enorme +5, Colossal +10; na Furtividade, o inverso.
 - Habilidades (LR p. 179–180): percepção às cegas e visão na penumbra valem em alcance curto, visão no escuro em médio; RD e cura acelerada têm exceções depois da barra ("RD 10/morte" vale contra tudo, menos Morte); vulnerabilidade dobra o dano.
 - Criaturas (LR p. 180): não têm SAN; são imunes a dano mental, a condições mentais e de medo e a rituais de Medo. As pessoas da lista de ameaças não têm essa imunidade.
+- Pessoas e animais (LR p. 282–289): a ficha traz PV e machucado, sem SAN (ex.: p. 285). O livro não diz o que o dano mental faz neles.
 - Presença perturbadora (LR p. 180): Vontade contra a DT; falhou, sofre o dano cheio; passou, metade. Quem tem o NEX indicado é imune. Com várias criaturas, vale a de maior VD, +1d6 por criatura a mais.
 - Notação (LR p. 182–289): "–2O" no lugar de um teste é atributo 0, ou seja, 2d20 e fica o pior (p. 75).
 - Selo de Medo (desenho, só se vê na imagem): Aniquilação 186, Dama 190, Mulher Afogada 199, Diabo 206, Aracnasita 209, Ceifador 213, Escutado 216, Nidere 224, Anjo 234, Estrangeiro 241, Parasita 244, Máscara 252, Anomalia 259, Ciborgue 263, Telopsia 269, Viajante 272, Anfitrião 276. Não têm o selo: Deus da Morte 230, Bicho-Papão 237, Ocioso 242.
 - Caixa de enigma de medo: LR p. 186, 190, 198, 207, 209, 212, 216, 222, 231, 234, 241, 244, 253, 259, 263, 269, 272, 276, 280. Bicho-Papão e Ocioso são imunes a dano e não têm enigma.
 - O que alguns enigmas mudam em número: o Diabo fica sem a imunidade, com Defesa 30 e +20 nas resistências (p. 207); dano de fogo tira a imunidade da Aracnasita até o próximo turno dela (p. 209); a Mulher Afogada perde a forma líquida, que dá RD 20 nos quatro tipos físicos (p. 199); o Ciborgue sem estados fica com Defesa 10 e deslocamento 0 (p. 263).
-- Ataques: o Vomitar Lodo da Múmia Xipófaga dá 3d6 de Morte e 1d8 mental (p. 221); as garras do Tempestuoso são corpo a corpo e alcançam até o curto (p. 271).
+- Ataques: o Vomitar Lodo da Múmia Xipófaga dá 3d6 de Morte e 1d8 mental, os dois na mesma linha de dano do ataque (p. 221); as garras do Tempestuoso são corpo a corpo e alcançam até o curto (p. 271).
 - Anfitrião (p. 276): no Ato 1, 5 facetas, cada uma com 250 PV e RD 20.
 
 ## Outros
