@@ -7,6 +7,7 @@ import * as cat from './dados';
 import { BONUS_GRAU, CREDITOS, ELEMENTO_OPRIME, ITENS_NEX_ZERO, PENALIDADE_CARGA, PRECO_MALDICAO, patentePorPP } from './dados';
 import { montarEstado, type Estado, type PoderObtido, type Problema, type Pendencia, type RitualObtido } from './estado';
 import type { Ficha, ItemFicha } from './ficha';
+import { lugarDoItem, maosDoItem, maosOcupadas, MAOS, vestivel } from './mochila';
 import { limitePeDoNex, patamar } from './nex';
 import { NOME_ATRIBUTO } from './requisitos';
 import type { AlvoModificacao, Arma, AtributoId, Categoria, ClasseId, Efeito, Elemento, Escopo, Grau, Nex, PericiaId, Proficiencia, TipoDano, Valor } from './tipos';
@@ -38,6 +39,10 @@ export interface Ataque {
   alcance?: string;
   tipoDano: TipoDano[];
   notas: string[];
+  /** a arma está na mão (o desarmado, sempre): só assim ataca */
+  naMao: boolean;
+  /** o item da mochila (sem ele, o ataque desarmado) */
+  uid?: number;
 }
 
 export interface LimiteItens {
@@ -178,6 +183,9 @@ export function categoriaDoItem(it: ItemFicha, reducao = 0): number {
 
 export function baseDoItem(it: ItemFicha): { nome: string; categoria: Categoria; espacos: number } | undefined {
   switch (it.tipo) {
+    case 'cena':
+      // achado no cenário: fora do catálogo, sem categoria
+      return { nome: it.nome || it.id, categoria: 0, espacos: it.espacos ?? 1 };
     case 'arma':
       return cat.arma(it.id);
     case 'protecao':
@@ -211,7 +219,9 @@ function efeitosDaMochila(f: Ficha, nex: Nex, problemas: Problema[], st: Estado)
   for (const it of f.inventario) {
     const base = baseDoItem(it);
     if (!base) continue;
-    const emUso = it.vestido !== false && it.empunhado !== false;
+    // em uso: o que se empunha, na mão; o que se veste, vestido; o resto, na mochila
+    const lugar = lugarDoItem(it);
+    const emUso = maosDoItem(it) ? lugar === 'mao' : vestivel(it) ? lugar === 'vestido' : true;
     if (it.tipo === 'amaldicoado') {
       const a = cat.amaldicoado(it.id);
       if (a && emUso && !vistos.has(a.id)) {
@@ -249,7 +259,7 @@ function efeitosDaMochila(f: Ficha, nex: Nex, problemas: Problema[], st: Estado)
       // Cinética: RD 2 na proteção leve, 5 na pesada (LR p. 147)
       if (m.id === 'cinetica') por(`${base.nome} (${m.nome})`, [{ alvo: 'resistencia', dano: 'fisico', valor: cat.protecao(it.id)?.tipo === 'pesada' ? 5 : 2 }]);
     }
-    if (it.tipo === 'protecao' && it.vestido !== false)
+    if (it.tipo === 'protecao' && emUso)
       for (const mId of it.modificacoes ?? []) {
         const m = cat.modificacao(mId);
         if (m) por(`${base.nome} (${m.nome})`, m.efeitos?.filter((e) => e.alvo !== 'defesa'));
@@ -308,7 +318,8 @@ export function calcular(f: Ficha): Calculado {
   let reducaoFavorita = 0;
   for (const x of doTipo('categoria')) if (x.efeito.item === 'favorita') reducaoFavorita = Math.max(reducaoFavorita, x.efeito.valor);
 
-  const itensVestidos = f.inventario.filter((it) => it.tipo === 'protecao' && it.vestido !== false);
+  // proteção vestida; o escudo vale na mão (LR p. 62)
+  const itensVestidos = f.inventario.filter((it) => it.tipo === 'protecao' && lugarDoItem(it) !== 'mochila');
   let protDef = 0;
   let escudoDef = 0;
   let pesada = false;
@@ -368,10 +379,13 @@ export function calcular(f: Ficha): Calculado {
       for (const x of m.incompativel ?? []) if (mods.includes(x) && mods.indexOf(x) > i) problemas.push({ nex, onde: 'Mochila', texto: `${b?.nome ?? it.id}: ${m.nome} não combina com ${cat.modificacao(x)?.nome ?? x}.`, severidade: 'erro' });
     }
   }
+  // mãos: no máximo dois itens empunhados; a arma de duas mãos ocupa as duas (LR p. 53)
+  const naMao = maosOcupadas(f.inventario);
+  if (naMao > MAOS) problemas.push({ nex, onde: 'Mochila', texto: `Mãos: ${naMao} ocupadas, o máximo é ${MAOS} (LR p. 53).`, severidade: 'erro' });
   // vestimentas: só duas dão bônus ao mesmo tempo (LR p. 63)
   let maxVest = 2;
   for (const x of doTipo('vestimentas')) maxVest += x.efeito.valor;
-  const vestidas = f.inventario.filter((it) => it.tipo === 'equipamento' && cat.equipamento(it.id)?.grupo === 'vestimenta' && it.vestido !== false).length;
+  const vestidas = f.inventario.filter((it) => it.tipo === 'equipamento' && cat.equipamento(it.id)?.grupo === 'vestimenta' && lugarDoItem(it) === 'vestido').length;
   if (vestidas > maxVest) problemas.push({ nex, onde: 'Mochila', texto: `${vestidas} vestimentas: só ${maxVest} dão bônus ao mesmo tempo (LR p. 63).`, severidade: 'aviso' });
   // o preço das maldições: falhar num teste do atributo do elemento custa Sanidade (LR p. 145)
   const precos = new Set<string>();
@@ -404,7 +418,8 @@ export function calcular(f: Ficha): Calculado {
   const usadosCat: Record<1 | 2 | 3 | 4, number> = { 1: 0, 2: 0, 3: 0, 4: 0 };
   for (const it of f.inventario) {
     const b = baseDoItem(it);
-    if (!b) continue;
+    // o achado na missão não foi fornecido pela Ordem: não ocupa vaga da patente (LR p. 53)
+    if (!b || it.achado) continue;
     const c = categoriaDoItem(it, it.tipo === 'arma' && it.id === favorita ? reducaoFavorita : 0);
     if (c > 4) problemas.push({ nex, onde: 'Mochila', texto: `${b.nome}: categoria acima de IV.`, severidade: 'erro' });
     else if (c >= 1) usadosCat[c as 1 | 2 | 3 | 4] += it.qtd ?? 1;
@@ -412,7 +427,7 @@ export function calcular(f: Ficha): Calculado {
   const itens: LimiteItens[] = ([1, 2, 3, 4] as const).map((k) => ({ categoria: k, usados: usadosCat[k], limite: limites[k] }));
   for (const l of itens) if (l.usados > l.limite) problemas.push({ nex, onde: 'Mochila', texto: `Itens de categoria ${'I'.repeat(l.categoria).replace('IIII', 'IV')}: ${l.usados} de ${l.limite}.`, severidade: 'erro' });
   if (nex > 0) {
-    const temAmaldicoado = f.inventario.some((it) => it.tipo === 'amaldicoado' || (it.maldicoes ?? []).length);
+    const temAmaldicoado = f.inventario.some((it) => !it.achado && (it.tipo === 'amaldicoado' || (it.maldicoes ?? []).length));
     if (temAmaldicoado && f.pp < 50) problemas.push({ nex, onde: 'Mochila', texto: 'Itens amaldiçoados só a partir de agente especial (50 PP).', severidade: 'aviso' });
   }
 
@@ -551,6 +566,8 @@ export function calcular(f: Ficha): Calculado {
       alcance: a.alcance,
       tipoDano: a.tipoDano,
       notas,
+      naMao: it.id === 'ataque-desarmado' || lugarDoItem(it) === 'mao',
+      uid: it.uid,
     });
   }
 

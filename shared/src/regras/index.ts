@@ -6,5 +6,6 @@ export * from './nex';
 export * from './estado';
 export * from './requisitos';
 export * from './calcular';
+export * from './mochila';
 export * from './opcoes';
 export * as catalogo from './dados';

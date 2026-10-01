@@ -298,10 +298,13 @@ describe('mochila', () => {
     assert.equal(des.dano, '1d3+2');
   });
 
-  test('soqueira: +1 no dano desarmado', () => {
+  test('soqueira: +1 no dano desarmado, só na mão', () => {
     const f = combatente();
     f.inventario = [{ id: 'soqueira', tipo: 'equipamento' }];
-    assert.equal(calcular(f).ataques.find((a) => a.item === 'ataque-desarmado')!.dano, '1d3+3');
+    const desarmado = () => calcular(f).ataques.find((a) => a.item === 'ataque-desarmado')!.dano;
+    assert.equal(desarmado(), '1d3+2', 'guardada na mochila');
+    f.inventario[0].empunhado = true;
+    assert.equal(desarmado(), '1d3+3');
   });
 
   test('cão adestrado: +2 em Investigação e Percepção, só com Adestramento treinado', () => {
@@ -384,5 +387,122 @@ describe('contas finas', () => {
     const r = calcular(f).resistencias;
     assert.equal(r.sangue, 20);
     assert.equal(r.morte, 10);
+  });
+});
+
+describe('mochila: mãos, vestidos e o que se achou', () => {
+  const { empunhar, guardar, vestir, tirar, usar, retirar, armado, lugarDoItem, maosOcupadas, numerarItens } = regras;
+  const item = (id: string, tipo: regras.ItemFicha['tipo'], uid: number, extra: Partial<regras.ItemFicha> = {}): regras.ItemFicha => ({ id, tipo, uid, ...extra });
+
+  test('duas mãos: a katana ocupa as duas; sem mão livre recusa, com troca guarda a outra arma', () => {
+    let inv = [item('katana', 'arma', 1), item('faca', 'arma', 2), item('lanterna-tatica', 'equipamento', 3)];
+    let r = empunhar(inv, 1);
+    assert.ok(r.ok);
+    inv = r.inventario;
+    assert.equal(maosOcupadas(inv), 2);
+    assert.ok(armado(inv));
+    r = empunhar(inv, 3);
+    assert.deepEqual(r, { ok: false, motivo: 'Mãos ocupadas: Katana.' });
+    r = empunhar(inv, 2, true);
+    assert.ok(r.ok);
+    inv = r.inventario;
+    assert.deepEqual(inv.map(lugarDoItem), ['mochila', 'mao', 'mochila']);
+    // faca numa mão e lanterna na outra; trocar de arma mantém a lanterna
+    r = empunhar(inv, 3);
+    assert.ok(r.ok);
+    inv = r.inventario;
+    r = empunhar(inv, 1, true);
+    assert.ok(r.ok);
+    assert.deepEqual(r.inventario.map(lugarDoItem), ['mao', 'mochila', 'mochila'], 'a katana precisa das duas: guarda faca e lanterna');
+    const so = guardar(r.inventario, 1);
+    assert.ok(so.ok && !armado(so.inventario));
+    const luz = empunhar(so.inventario, 3);
+    assert.ok(luz.ok && !armado(luz.inventario), 'lanterna na mão não deixa armado');
+    assert.equal(empunhar(inv, 99).ok, false);
+    assert.deepEqual(empunhar(inv, 0), { ok: false, motivo: 'Item não encontrado.' });
+  });
+
+  test('o escudo vale na mão (LR p. 62); a proteção, vestida', () => {
+    const f = combatente();
+    f.pp = 20;
+    f.inventario = [item('escudo', 'protecao', 1), item('protecao-leve', 'protecao', 2), item('corrente', 'arma', 3)];
+    assert.equal(calcular(f).defesa, 17, 'proteção leve vestida (+5); escudo guardado');
+    const r = empunhar(f.inventario, 1);
+    assert.ok(r.ok);
+    f.inventario = r.inventario;
+    assert.equal(calcular(f).defesa, 19);
+    const r2 = empunhar(f.inventario, 3);
+    assert.ok(r2.ok, 'corrente numa mão, escudo na outra');
+    f.inventario = r2.inventario;
+    const t = tirar(f.inventario, 2);
+    assert.ok(t.ok);
+    f.inventario = t.inventario;
+    assert.equal(calcular(f).defesa, 14, 'tirou a proteção: só o escudo');
+    const v = vestir(f.inventario, 2);
+    assert.ok(v.ok && lugarDoItem(v.inventario[1]) === 'vestido');
+    assert.equal(vestir(f.inventario, 3).ok, false, 'corrente não se veste');
+  });
+
+  test('ficha com três mãos ocupadas acusa o erro', () => {
+    const f = combatente();
+    f.inventario = [item('katana', 'arma', 1, { empunhado: true }), item('faca', 'arma', 2, { empunhado: true })];
+    assert.ok(erros(f).some((e) => e.startsWith('Mãos: 3 ocupadas')));
+  });
+
+  test('ataca só com o que está na mão; o desarmado está sempre', () => {
+    const f = combatente();
+    f.inventario = [item('faca', 'arma', 7), item('corrente', 'arma', 8, { empunhado: true })];
+    const c = calcular(f);
+    const na = (id: string) => c.ataques.find((a) => a.item === id)!;
+    assert.equal(na('faca').naMao, false);
+    assert.equal(na('corrente').naMao, true);
+    assert.equal(na('corrente').uid, 8);
+    assert.equal(na('ataque-desarmado').naMao, true);
+  });
+
+  test('o achado na missão não ocupa vaga da patente; o item do cenário ocupa espaço', () => {
+    const f = combatente();
+    const cat1 = catalogo.CATALOGO.armas.filter((a) => a.categoria === 1).slice(0, 3);
+    f.inventario = cat1.map((a, i) => item(a.id, 'arma', i + 1, i === 2 ? { achado: true } : {}));
+    assert.ok(!erros(f).some((e) => e.startsWith('Itens de categoria I:')));
+    assert.equal(calcular(f).itens[0].usados, 2);
+    const g = combatente();
+    g.inventario = [item('chave', 'cena', 1, { nome: 'Chave do Arsenal', espacos: 1, tipoCena: 'key' })];
+    let c = calcular(g);
+    assert.equal(c.carga.usados, 1);
+    assert.equal(c.defesa, 12);
+    assert.equal(regras.nomeDoItem(g.inventario[0]), 'Chave do Arsenal');
+    g.inventario.push(item('caixote', 'cena', 2, { nome: 'Caixote', espacos: 10 }));
+    c = calcular(g);
+    assert.ok(c.carga.sobrecarregado, '11 de 10 espaços');
+    assert.equal(c.defesa, 7);
+    assert.equal(c.deslocamento, 6);
+  });
+
+  test('usar gasta o consumível; retirar tira da mão e da roupa', () => {
+    let inv = [item('granada-de-fumaca', 'equipamento', 1, { qtd: 2 }), item('corda', 'equipamento', 2), item('protecao-leve', 'protecao', 3)];
+    let r = usar(inv, 1);
+    assert.ok(r.ok && r.gastou);
+    inv = r.inventario;
+    assert.equal(inv[0].qtd, 1);
+    r = usar(inv, 1);
+    assert.ok(r.ok);
+    inv = r.inventario;
+    assert.deepEqual(inv.map((x) => x.id), ['corda', 'protecao-leve'], 'a última granada sai da mochila');
+    const corda = usar(inv, 2);
+    assert.ok(corda.ok && corda.gastou === false, 'corda não gasta');
+    const sai = retirar(inv, 3);
+    assert.ok(sai.ok);
+    assert.equal(sai.item.vestido, false, 'quem recebe guarda na mochila');
+    assert.equal(sai.inventario.length, 1);
+    assert.equal(regras.consumivel(item('pocao', 'cena', 9, { tipoCena: 'potion' })), true);
+  });
+
+  test('numera os itens que ainda não têm número', () => {
+    const inv: regras.ItemFicha[] = [{ id: 'faca', tipo: 'arma' }, { id: 'corda', tipo: 'equipamento', uid: 5 }];
+    let n = 10;
+    assert.equal(numerarItens(inv, () => n++), true);
+    assert.deepEqual(inv.map((x) => x.uid), [10, 5]);
+    assert.equal(numerarItens(inv, () => n++), false);
   });
 });

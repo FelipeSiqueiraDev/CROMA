@@ -1191,7 +1191,7 @@ export class FichasScreen {
   private renderEquip(fs: FichaSalva, c: Calc) {
     const corpo = this.corpoDe(this.pEquip);
     const cab = h('div', { class: 'fx-tab-cab' }, h('span'), h('span', null, 'ITEM'), h('span', null, 'TIPO'), h('span', null, 'DANO / EFEITO'), h('span', null, 'OBS.'), h('span'));
-    const ordem: Record<regras.ItemFicha['tipo'], number> = { arma: 0, protecao: 1, amaldicoado: 2, equipamento: 3 };
+    const ordem: Record<regras.ItemFicha['tipo'], number> = { arma: 0, protecao: 1, amaldicoado: 2, equipamento: 3, cena: 4 };
     const itens = fs.ficha.inventario.map((it, i) => ({ it, i })).sort((a, b) => ordem[a.it.tipo] - ordem[b.it.tipo] || a.i - b.i);
     const linhas = itens.map(({ it, i }) => {
       const inf = infoItem(it, c);
@@ -1237,7 +1237,7 @@ export class FichasScreen {
       h('p', { class: 'fj-texto' }, `${inf.tipo} · categoria ${romano(inf.categoria)} · ${inf.espacos} espaço${inf.espacos === 1 ? '' : 's'}${inf.ref ? ` · ${textoRef(inf.ref)}` : ''}`),
       h('p', { class: 'fj-texto' }, h('b', null, inf.efeito), inf.obs ? ` · ${inf.obs}` : ''),
     ];
-    const base = it.tipo === 'arma' ? cat.arma(it.id) : it.tipo === 'protecao' ? cat.protecao(it.id) : it.tipo === 'equipamento' ? cat.equipamento(it.id) : cat.amaldicoado(it.id);
+    const base = it.tipo === 'cena' ? undefined : it.tipo === 'arma' ? cat.arma(it.id) : it.tipo === 'protecao' ? cat.protecao(it.id) : it.tipo === 'equipamento' ? cat.equipamento(it.id) : cat.amaldicoado(it.id);
     const resumo = (base as { resumo?: string } | undefined)?.resumo;
     if (resumo) linhas.push(h('p', { class: 'fj-dica' }, resumo));
     const esp = (base as { especial?: string[] } | undefined)?.especial;

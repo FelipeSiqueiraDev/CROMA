@@ -52,20 +52,34 @@ export interface EscolhasNex {
   parametros?: Record<string, ValorEscolha>;
 }
 
-/** Item na mochila. */
+/** Tipo de item do catálogo (o do cenário fica fora: `'cena'`). */
+export type TipoItemCatalogo = 'arma' | 'protecao' | 'equipamento' | 'amaldicoado';
+
+/** Item na mochila: do catálogo ou achado no cenário (`'cena'`: um documento, uma chave). */
 export interface ItemFicha {
-  /** id do catálogo */
+  /** id do catálogo; no item do cenário, um texto livre */
   id: string;
-  tipo: 'arma' | 'protecao' | 'equipamento' | 'amaldicoado';
+  tipo: TipoItemCatalogo | 'cena';
+  /** número do item, único entre as fichas (entregar, largar, mãos); o servidor dá */
+  uid?: number;
   qtd?: number;
   /** ids de modificações */
   modificacoes?: string[];
   /** ids de maldições */
   maldicoes?: string[];
+  /** na mão (armas, escudo e itens "empunhado"); sem isso, guardado */
   empunhado?: boolean;
+  /** vestido (proteções e itens "vestido"); sem isso, vestido */
   vestido?: boolean;
   /** nome próprio (ex.: "Katana do avô") */
   apelido?: string;
+  /** achado na missão: não ocupa vaga da patente, que limita o que a Ordem fornece (LR p. 53) */
+  achado?: boolean;
+  /** item do cenário: nome, espaços, tipo (o ícone) e o texto do mestre */
+  nome?: string;
+  espacos?: number;
+  tipoCena?: string;
+  descricao?: string;
 }
 
 /** Regras em uso nesta ficha (vêm da campanha). */
