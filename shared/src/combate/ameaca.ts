@@ -30,9 +30,16 @@ const tipoDano = (v: unknown): TipoDano | null => (typeof v === 'string' && (TIP
 const ELEMENTOS: Elemento[] = ['sangue', 'morte', 'conhecimento', 'energia', 'medo'];
 const elemento = (v: unknown): Elemento | null => (typeof v === 'string' && (ELEMENTOS as string[]).includes(v) ? (v as Elemento) : null);
 
+/**
+ * d20 de um teste da ficha. O livro imprime "–2O" no lugar do teste quando o
+ * atributo é 0: rola 2d20 e fica o pior (LR p. 75). Aqui isso é `dados: 0`; um
+ * número negativo (copiado do livro) vira 0.
+ */
+const dadosDoTeste = (v: unknown, padrao: number) => int(v, 0, 10, padrao);
+
 function teste(v: unknown): TesteAmeaca {
   const o = (v && typeof v === 'object' ? v : {}) as Record<string, unknown>;
-  return { dados: int(o.dados, -5, 10, 1), bonus: int(o.bonus, -20, 60, 0) };
+  return { dados: dadosDoTeste(o.dados, 1), bonus: int(o.bonus, -20, 60, 0) };
 }
 
 function ataque(v: unknown): AtaqueAmeaca | null {
@@ -42,10 +49,13 @@ function ataque(v: unknown): AtaqueAmeaca | null {
   const dano = txt(o.dano, 30).replace(/[^0-9dD+\-−\s]/g, '');
   if (!nome || !/\d/.test(dano)) return null;
   const alcance = txt(o.alcance, 12);
+  const ex = o.extra && typeof o.extra === 'object' ? (o.extra as Record<string, unknown>) : null;
+  const exDano = ex ? txt(ex.dano, 20).replace(/[^0-9dD+\-−\s]/g, '') : '';
+  const exTipo = ex ? tipoDano(ex.tipo) : null;
   return {
     nome,
     pericia: o.pericia === 'pontaria' ? 'pontaria' : 'luta',
-    dados: int(o.dados, -5, 10, 1),
+    dados: dadosDoTeste(o.dados, 1),
     bonus: int(o.bonus, -20, 60, 0),
     dano,
     tipo: tipoDano(o.tipo) ?? 'impacto',
@@ -53,7 +63,13 @@ function ataque(v: unknown): AtaqueAmeaca | null {
     multiplicador: int(o.multiplicador, 2, 6, 2),
     ...(alcance ? { alcance } : {}),
     ...(int(o.vezes, 1, 6, 1) > 1 ? { vezes: int(o.vezes, 1, 6, 1) } : {}),
+    ...(/\d/.test(exDano) && exTipo ? { extra: { dano: exDano, tipo: exTipo } } : {}),
   };
+}
+
+/** Imunidades a dano para a conta: as da ficha e, na criatura, o dano mental (LR p. 180). */
+export function imunidadesDaAmeaca(f: Pick<FichaAmeaca, 'imunidades' | 'elemento'>): TipoDano[] {
+  return f.elemento && !f.imunidades.includes('mental') ? [...f.imunidades, 'mental'] : f.imunidades;
 }
 
 function presenca(v: unknown): PresencaAmeaca | null {
@@ -118,10 +134,13 @@ export const GRUPOS_LIVRO: { nome: string; ameacas: AmeacaLivro[] }[] = [
 
 /**
  * A ficha rápida do combate a partir da ficha do livro (os PV vão para a
- * peça). As notas guardam a página e o que muda com o enigma.
+ * peça). As notas guardam a página e o que muda com o enigma. A criatura já
+ * sai imune a dano mental (LR p. 180).
  */
 export function fichaDoLivro(a: AmeacaLivro): FichaAmeaca {
-  const notas = [`LR p. ${a.pagina}`, a.enigma ? 'imune a todo dano até resolver o enigma de medo' : '', a.duvida ?? ''].filter(Boolean).join(' · ');
+  const enigma = a.enigma ? `imune a todo dano até resolver o enigma de medo${a.notaEnigma ? `; ${a.notaEnigma}` : ''}` : '';
+  const criatura = a.elemento ? 'criatura: imune a dano mental, a condições mentais e de medo e a rituais de Medo' : '';
+  const notas = [`LR p. ${a.pagina}`, enigma, criatura, a.duvida ?? ''].filter(Boolean).join(' · ');
   const f: FichaAmeaca = {
     tipo: a.elemento && a.tipo === 'Criatura' ? `Criatura de ${NOME_ELEMENTO[a.elemento]}` : a.tipo,
     ...(a.vd !== undefined ? { vd: a.vd } : {}),
@@ -130,7 +149,7 @@ export function fichaDoLivro(a: AmeacaLivro): FichaAmeaca {
     reflexos: { ...a.reflexos },
     vontade: { ...a.vontade },
     rd: { ...a.rd },
-    imunidades: [...a.imunidades],
+    imunidades: a.elemento ? imunidadesDaAmeaca({ imunidades: [...a.imunidades], elemento: a.elemento }) : [...a.imunidades],
     vulnerabilidades: [...a.vulnerabilidades],
     ataques: a.ataques.map((x) => ({ ...x })),
     ...(a.tamanho !== 'medio' ? { tamanho: a.tamanho } : {}),

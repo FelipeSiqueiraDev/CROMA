@@ -9,10 +9,14 @@ import type { Elemento, Ritual } from '../regras/tipos';
 export type FormaRitual = 'basica' | 'discente' | 'verdadeira';
 export const NOME_FORMA: Record<FormaRitual, string> = { basica: 'básica', discente: 'discente', verdadeira: 'verdadeira' };
 
-/** PE da forma: o custo do ritual (com os poderes) mais o da forma avançada (LR p. 121). */
-export function custoDaForma(base: number, r: Pick<Ritual, 'discente' | 'verdadeiro'>, forma: FormaRitual): number {
+/**
+ * PE da forma: o custo do círculo, mais o da forma avançada, mais o que os
+ * poderes mudam (`ajuste`; negativo = reduz). O mínimo de 1 PE vale para o
+ * custo final, já com a forma (LR p. 78, 121).
+ */
+export function custoDaForma(base: number, r: Pick<Ritual, 'discente' | 'verdadeiro'>, forma: FormaRitual, ajuste = 0): number {
   const extra = forma === 'discente' ? (r.discente?.custoExtra ?? 0) : forma === 'verdadeira' ? (r.verdadeiro?.custoExtra ?? 0) : 0;
-  return Math.max(1, base + extra);
+  return Math.max(1, base + extra + ajuste);
 }
 
 /**

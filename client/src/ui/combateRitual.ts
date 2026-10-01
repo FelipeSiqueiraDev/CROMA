@@ -39,14 +39,14 @@ export interface CtxRitual {
   agente: boolean;
   condicoesAtor: string[];
   rituais: RitualOpcao[];
-  ocultismo: { dados: number; bonus: number } | null;
-  vontade: { dados: number; bonus: number } | null;
+  ocultismo: { dados: number; bonus: number; penalidade?: number } | null;
+  vontade: { dados: number; bonus: number; penalidade?: number } | null;
   limite: number | null;
   gasto: number;
   alvo: AlvoAtaque | null;
   /** quem está na área desenhada no tabuleiro (ferramenta Área) */
   naArea: AlvoAtaque[] | null;
-  testeDe: (p: cb.Participante, t: cb.TesteResistencia) => { dados: number; bonus: number } | null;
+  testeDe: (p: cb.Participante, t: cb.TesteResistencia) => { dados: number; bonus: number; penalidade?: number } | null;
   elementoDe: (p: cb.Participante) => Elemento | null;
   /** metros até o alvo (null = em outra cena) */
   metrosAte: (p: cb.Participante) => number | null;
@@ -58,7 +58,8 @@ export interface CtxRitual {
 
 export const PASSOS_RITUAL = ['Ação', 'Ritual e forma', 'Alvo ou área', 'Resistências', 'Efeito', 'Custo do Paranormal', 'Confirmar'];
 
-const ELEMENTO_DANO: Partial<Record<Elemento, TipoDano>> = { sangue: 'sangue', morte: 'morte', conhecimento: 'conhecimento', energia: 'energia', medo: 'mental' };
+// o dano dos rituais de Medo é dano de Medo, um subtipo do paranormal; o mental tira SAN e o mestre escolhe quando o ritual diz (LR p. 82, 135, 139)
+const ELEMENTO_DANO: Partial<Record<Elemento, TipoDano>> = { sangue: 'sangue', morte: 'morte', conhecimento: 'conhecimento', energia: 'energia', medo: 'medo' };
 
 interface Estado {
   chave: string;
@@ -160,22 +161,26 @@ export class ResolucaoRitual {
     const linhas = alvos.map((a) => {
       const k = String(a.p.id);
       const res = r.resist;
-      const base = res ? x.testeDe(a.p, res.teste) : null;
+      // a criatura é imune a rituais de Medo (LR p. 180): nem testa
+      const imune = medo && !!x.elementoDe(a.p);
+      const base = res && !imune ? x.testeDe(a.p, res.teste) : null;
       const el = cb.elementoContra(r.elemento, x.elementoDe(a.p));
-      const dados = base ? base.dados + (el?.dados ?? 0) : null;
+      // dados ganhos e perdidos separados: o elemento que vence o da criatura tira 2d20 (LR p. 11, 118)
+      const dados = base ? base.dados + Math.max(0, el?.dados ?? 0) : null;
+      const penalidade = base ? (base.penalidade ?? 0) + Math.min(0, el?.dados ?? 0) : 0;
       const d20 = this.e.d20[k] ?? null;
       const total = d20 !== null && base ? d20 + base.bonus : null;
       const passou = res && d20 !== null && total !== null ? cb.passouResistencia(d20, total, r.dt) : null;
       // anula: passou, nada acontece; metade: metade do dano; parcial: o mestre diz
       const anulou = !!res && passou === true && (res.efeito === 'anula' || res.efeito === 'desacredita');
       const metade = !!res && passou === true && (res.efeito === 'metade' || (res.efeito === 'parcial' && !!this.e.metade[k]));
-      let dano: { conta: cb.ContaDano; q: cb.Consequencia | null } | null = null;
-      if (partes && this.e.soma !== null && !anulou) {
+      let dano: { conta: cb.ContaDano; previa: ReturnType<typeof cb.previaDano> } | null = null;
+      if (partes && this.e.soma !== null && !anulou && !imune) {
         const conta = cb.contaDano({ soma: this.e.soma, fixo: partes.fixo, tipo, rd: a.rd, imunidades: a.imunidades, vulnerabilidades: el?.vulneravel ? [...a.vulnerabilidades, tipo] : a.vulnerabilidades, metade });
-        dano = { conta, q: a.vitais ? cb.consequencia(a.vitais, conta.final) : null };
+        dano = { conta, previa: cb.previaDano(a.vitais, conta.final, { tipo, naoLetalAntes: a.p.naoLetal, agente: a.agente }) };
       }
-      const falhou = !res || passou === false;
-      return { a, k, base, el, dados, d20, total, passou, anulou, metade, dano, falhou, pendente: !!res && d20 === null };
+      const falhou = !imune && (!res || passou === false);
+      return { a, k, base, el, dados, penalidade, d20, total, passou, anulou, metade, dano, falhou, imune, pendente: !!res && !imune && d20 === null };
     });
     const conc = x.agente ? cb.dtConcentracao(x.condicoesAtor, r.pe) : null;
     const concPassou = conc && this.e.conc !== null && x.vontade ? cb.passouResistencia(this.e.conc, this.e.conc + x.vontade.bonus, conc.dt) : null;
@@ -296,9 +301,10 @@ export class ResolucaoRitual {
     for (const l of k.linhas) {
       const res = r.resist;
       const linha = h('div', { class: 'cb-rit-alvo' }, h('b', null, l.a.p.nome));
-      if (res) {
+      if (l.imune) linha.append(h('small', null, 'criatura: imune a rituais de Medo (LR p. 180)'));
+      else if (res) {
         linha.append(
-          h('small', null, l.base && l.dados !== null ? `${cb.NOME_TESTE[res.teste]} ${textoTeste(l.dados, l.base.bonus)}${l.el ? ` (${l.el.dados > 0 ? '+' : '−'}2d20)` : ''}` : 'sem ficha: bônus 0'),
+          h('small', null, l.base && l.dados !== null ? `${cb.NOME_TESTE[res.teste]} ${textoTeste(l.dados, l.base.bonus, l.penalidade)}${l.el ? ` (${l.el.dados > 0 ? '+' : '−'}2d20)` : ''}` : 'sem ficha: bônus 0'),
           campoDado('d20', l.d20, 20, (n) => ((this.e.d20[l.k] = n && n >= 1 ? n : null), x.mudou()), `rit:${l.k}`),
           l.passou === null ? h('span') : h('span', { class: `cb-rit-marca ${l.passou ? 'bom' : 'ruim'}` }, l.passou ? 'passou' : 'falhou'),
         );
@@ -325,12 +331,9 @@ export class ResolucaoRitual {
     if (k.partes) {
       corpo.push(h('div', { class: 'cb-instrucao' }, ic('dados'), h('span', null, cb.textoDano(this.e.formula))), campoDado('soma dos dados', this.e.soma, 999, (n) => ((this.e.soma = n), x.mudou()), 'rit:soma', true));
       for (const l of k.linhas) {
-        if (l.anulou) corpo.push(h('small', { class: 'cb-rit-linha' }, `${l.a.p.nome}: anulou.`));
-        else if (l.dano) {
-          const v = l.a.vitais;
-          const q = l.dano.q;
-          corpo.push(h('small', { class: 'cb-rit-linha' }, `${l.a.p.nome}: ${l.dano.conta.conta}${q && v ? ` · PV ${v.pv} → ${q.pv}` : ''}`));
-        }
+        if (l.imune) corpo.push(h('small', { class: 'cb-rit-linha' }, `${l.a.p.nome}: imune (criatura).`));
+        else if (l.anulou) corpo.push(h('small', { class: 'cb-rit-linha' }, `${l.a.p.nome}: anulou.`));
+        else if (l.dano) corpo.push(h('small', { class: 'cb-rit-linha' }, `${l.a.p.nome}: ${l.dano.conta.conta}${l.dano.previa ? ` · ${l.dano.previa.texto}` : ''}`));
       }
     }
     const conds = regras.catalogo.CATALOGO.condicoes.filter((c) => !c.automatica);
@@ -360,7 +363,7 @@ export class ResolucaoRitual {
         h(
           'div',
           { class: 'cb-rit-custo' },
-          h('small', null, `Concentração: Vontade ${x.vontade ? textoTeste(x.vontade.dados, x.vontade.bonus) : ''} DT ${k.conc.dt} (${k.conc.motivo})`),
+          h('small', null, `Concentração: Vontade ${x.vontade ? textoTeste(x.vontade.dados, x.vontade.bonus, x.vontade.penalidade) : ''} DT ${k.conc.dt} (${k.conc.motivo})`),
           campoDado('d20', this.e.conc, 20, (n) => ((this.e.conc = n && n >= 1 ? n : null), x.mudou()), 'rit:conc'),
           k.concPassou === null ? h('span') : h('span', { class: `cb-rit-marca ${k.concPassou ? 'bom' : 'ruim'}` }, k.concPassou ? 'passou' : 'falhou: não sai'),
         ),
@@ -373,7 +376,7 @@ export class ResolucaoRitual {
         h(
           'div',
           { class: 'cb-rit-custo' },
-          h('small', null, `Ocultismo ${x.ocultismo ? textoTeste(x.ocultismo.dados, x.ocultismo.bonus) : '—'} contra DT ${k.custo.dt}`),
+          h('small', null, `Ocultismo ${x.ocultismo ? textoTeste(x.ocultismo.dados, x.ocultismo.bonus, x.ocultismo.penalidade) : '—'} contra DT ${k.custo.dt}`),
           campoDado('d20', this.e.custo, 20, (n) => ((this.e.custo = n && n >= 1 ? n : null), x.mudou()), 'rit:custo'),
           k.custoRes === null
             ? h('span')
@@ -414,6 +417,7 @@ export class ResolucaoRitual {
         onclick: () => {
           sfx.click();
           const concentracao = k.conc && this.e.conc !== null && x.vontade ? { dt: k.conc.dt, d20: this.e.conc, total: this.e.conc + x.vontade.bonus, passou: !!k.concPassou } : undefined;
+          // a criatura imune ao ritual de Medo vai só com o id: o servidor escreve que ela é imune
           const alvos: cb.AlvoRitual[] = k.linhas.map((l) => ({
             id: l.a.p.id,
             ...(r.resist && l.d20 !== null && l.base && l.total !== null ? { teste: { nome: r.resist.teste, dados: l.dados ?? l.base.dados, bonus: l.base.bonus, d20: l.d20, total: l.total, passou: !!l.passou } } : {}),
@@ -435,6 +439,7 @@ export class ResolucaoRitual {
           const ritual: cb.RitualConfirmado = {
             quem: x.ator.id,
             ritual: r.nome,
+            elemento: r.elemento,
             forma: r.forma,
             qual: r.qual,
             pe: x.agente ? r.pe : 0,

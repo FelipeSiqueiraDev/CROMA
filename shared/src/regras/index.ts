@@ -8,4 +8,5 @@ export * from './requisitos';
 export * from './calcular';
 export * from './mochila';
 export * from './opcoes';
+export * from './rolagem';
 export * as catalogo from './dados';

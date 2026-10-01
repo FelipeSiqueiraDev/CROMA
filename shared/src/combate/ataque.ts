@@ -4,6 +4,7 @@
  * de falha, o crítico, o dano e o que vem depois. Funções puras: a tela usa
  * para mostrar a conta, e o servidor para escrever o registro.
  */
+import { rolagem } from '../regras/rolagem';
 import type { TipoDano } from '../regras/tipos';
 import type { ResultadoAtaque } from './tipos';
 
@@ -133,8 +134,10 @@ export const SITUACAO_DA_CONDICAO: { alvo: Record<string, SituacaoId>; atacante:
 };
 
 export interface Teste {
-  /** quantos d20 (menos de 1: rola 2 − n e fica o menor, DC-1) */
+  /** d20 do atributo e os ganhos */
   dados: number;
+  /** d20 perdidos (0 ou negativo); a conta de "menos de 1 dado" usa os dois (LR p. 11) */
+  penalidade: number;
   bonus: number;
   /** Defesa final do alvo e as partes (base + modificadores) */
   defesa: number;
@@ -149,15 +152,18 @@ export interface Teste {
  * Soma o que as situações mudam no ataque e na Defesa. Efeitos iguais não
  * somam: desprevenido, vulnerável e indefeso valem o pior (LR p. 311, 313).
  */
-export function montarTeste(o: { dados: number; bonus: number; defesaBase: number; distancia: boolean; situacoes: SituacaoId[] }): Teste {
+export function montarTeste(o: { dados: number; penalidade?: number; bonus: number; defesaBase: number; distancia: boolean; situacoes: SituacaoId[] }): Teste {
   const ativas = SITUACOES.filter((s) => o.situacoes.includes(s.id) && (!s.so || (s.so === 'distancia') === o.distancia));
   let dados = o.dados;
+  let penalidade = Math.min(0, o.penalidade ?? 0);
   let bonus = o.bonus;
   let falha = 0;
   const partesDefesa: { nome: string; valor: number }[] = [];
   let pior: Situacao | null = null;
   for (const s of ativas) {
-    dados += s.dados ?? 0;
+    // dados ganhos e perdidos ficam separados (LR p. 11)
+    if ((s.dados ?? 0) > 0) dados += s.dados!;
+    else penalidade += s.dados ?? 0;
     bonus += s.bonus ?? 0;
     falha += s.falha ?? 0;
     if (s.id === 'alvoCaido') partesDefesa.push({ nome: s.nome, valor: o.distancia ? 5 : -5 });
@@ -167,15 +173,19 @@ export function montarTeste(o: { dados: number; bonus: number; defesaBase: numbe
   }
   if (pior) partesDefesa.push({ nome: pior.nome, valor: pior.defesa ?? 0 });
   const defesa = o.defesaBase + partesDefesa.reduce((t, p) => t + p.valor, 0);
-  return { dados, bonus, defesa, partesDefesa, falha: Math.min(75, falha), ativas };
+  return { dados, penalidade, bonus, defesa, partesDefesa, falha: Math.min(75, falha), ativas };
 }
 
-/** "Role 3d20, fique com o maior, +5" (menos de 1 dado: rola 2 − n e fica o menor, DC-1). */
-export function textoRolagem(dados: number, bonus: number): string {
+/**
+ * "Role 3d20, fique com o maior, +5". Se a penalidade deixaria menos de 1
+ * dado, rola como se ela fosse bônus e fica o menor (LR p. 11).
+ */
+export function textoRolagem(dados: number, bonus: number, penalidade = 0): string {
   const b = bonus ? `, ${sinal(bonus)}` : '';
-  if (dados < 1) return `Role ${2 - dados}d20, fique com o menor${b}`;
-  if (dados === 1) return `Role 1d20${b}`;
-  return `Role ${dados}d20, fique com o maior${b}`;
+  const r = rolagem(dados, penalidade);
+  if (r.fica === 'menor') return `Role ${r.dados}d20, fique com o menor${b}`;
+  if (r.dados === 1) return `Role 1d20${b}`;
+  return `Role ${r.dados}d20, fique com o maior${b}`;
 }
 
 /** "20 (15 + 5)" */
@@ -184,8 +194,18 @@ export function textoDefesa(t: Teste, base: number): string {
   return `${t.defesa} (${base}${t.partesDefesa.map((p) => ` ${p.valor >= 0 ? '+' : '−'} ${Math.abs(p.valor)}`).join('')})`;
 }
 
-/** Com a chance de falha, quais resultados do d10 falham: 20% = 1 ou 2, 50% = 1 a 5. */
-export const falhaNoD10 = (chance: number) => Math.round(chance / 10);
+/**
+ * O dado da chance de falha e até que número falha: no d10, 20% = 1 ou 2 e
+ * 50% = 1 a 5 (LR p. 89). Somadas, as chances param em 75% (LR p. 313), que
+ * não cabe no d10: 75% = 1 a 3 no d4.
+ */
+export function dadoDaFalha(chance: number): { faces: number; ate: number } {
+  for (const faces of [10, 4, 20, 100]) {
+    const ate = (chance * faces) / 100;
+    if (Number.isInteger(ate)) return { faces, ate };
+  }
+  return { faces: 100, ate: Math.round(chance) };
+}
 
 export interface Resolucao {
   total: number;
@@ -204,7 +224,8 @@ export interface Resolucao {
 export function resolver(o: { d20: number; bonus: number; defesa: number; margem: number; falha: number; d10?: number | null }): Resolucao {
   const total = o.d20 + o.bonus;
   const acertou = o.d20 >= 20 || total >= o.defesa;
-  const falhou = acertou && o.falha > 0 && o.d10 != null && o.d10 >= 1 && o.d10 <= falhaNoD10(o.falha);
+  // `d10` = o dado da falha (d10, ou d4 nos 75%)
+  const falhou = acertou && o.falha > 0 && o.d10 != null && o.d10 >= 1 && o.d10 <= dadoDaFalha(o.falha).ate;
   const critico = acertou && !falhou && o.d20 >= o.margem;
   return { total, acertou, critico, falhou, resultado: !acertou || falhou ? 'erro' : critico ? 'critico' : 'acerto' };
 }
@@ -270,6 +291,10 @@ export const NOME_TIPO_DANO: Record<TipoDano, string> = {
 };
 
 const FISICOS: TipoDano[] = ['balistico', 'corte', 'impacto', 'perfuracao'];
+/** O dano paranormal tem sempre o subtipo de um elemento (LR p. 82). */
+const PARANORMAIS: TipoDano[] = ['sangue', 'morte', 'conhecimento', 'energia', 'medo'];
+/** O grupo do tipo ("físico" ou "paranormal"), que a RD, a imunidade e a vulnerabilidade também cobrem. */
+const grupoDe = (t: TipoDano): TipoDano | null => (FISICOS.includes(t) ? 'fisico' : PARANORMAIS.includes(t) ? 'paranormal' : null);
 
 export interface ContaDano {
   /** soma dos dados + fixo */
@@ -281,8 +306,8 @@ export interface ContaDano {
 
 /**
  * Aplica imunidade, metade, vulnerabilidade e RD, nessa ordem (LR p. 312–313;
- * COMBATE.md 8.3). A RD do tipo soma com a de "físico" (nos quatro tipos das
- * armas) e com a geral.
+ * COMBATE.md 8.3). A RD do tipo soma com a do grupo ("físico" nos quatro tipos
+ * das armas, "paranormal" nos cinco elementos) e com a geral.
  */
 export function contaDano(o: {
   soma: number;
@@ -295,20 +320,22 @@ export function contaDano(o: {
 }): ContaDano {
   const total = Math.max(0, o.soma + o.fixo);
   const nome = NOME_TIPO_DANO[o.tipo] ?? o.tipo;
-  // "imune a dano" = a todo dano; "físico" = os quatro tipos das armas
+  const grupo = grupoDe(o.tipo);
+  const cobre = (lista: TipoDano[] | undefined) => !!lista && (lista.includes(o.tipo) || (!!grupo && lista.includes(grupo)));
+  // "imune a dano" = a todo dano
   if (o.imunidades?.includes('todos')) return { total, final: 0, conta: 'imune a todo dano: 0' };
-  if (o.imunidades?.includes(o.tipo) || (FISICOS.includes(o.tipo) && o.imunidades?.includes('fisico'))) return { total, final: 0, conta: `imune a ${nome}: 0` };
+  if (cobre(o.imunidades)) return { total, final: 0, conta: `imune a ${nome}: 0` };
   let v = total;
   let conta = String(total);
   if (o.metade) {
     v = Math.floor(v / 2);
     conta += ` ÷ 2 = ${v}`;
   }
-  if (o.vulnerabilidades?.includes(o.tipo)) {
+  if (cobre(o.vulnerabilidades)) {
     v *= 2;
     conta += ` × 2 (vulnerável) = ${v}`;
   }
-  const rd = (o.rd?.[o.tipo] ?? 0) + (FISICOS.includes(o.tipo) ? (o.rd?.fisico ?? 0) : 0) + (o.rd?.todos ?? 0);
+  const rd = (o.rd?.[o.tipo] ?? 0) + (grupo ? (o.rd?.[grupo] ?? 0) : 0) + (o.rd?.todos ?? 0);
   if (rd > 0) {
     v = Math.max(0, v - rd);
     conta = `${conta} − RD ${nome} ${rd} = ${v}`;
@@ -321,14 +348,78 @@ export interface Consequencia {
   machucado: boolean;
   /** chegou a 0 PV */
   zerou: boolean;
+  /** com o dano não letal que já tinha, desmaiou sem chegar a 0 PV (inconsciente, sem morrendo) */
+  desmaiou: boolean;
   /** dano massivo: Fortitude com esta DT (LR p. 88) */
   massivo: number | null;
 }
 
-/** PV depois do dano, machucado, 0 PV e dano massivo (≥ metade dos PV totais sem zerar; DT 15 +2 a cada 10). */
-export function consequencia(v: { pv: number; pvMax: number }, dano: number): Consequencia {
+const dtMassivo = (dano: number) => 15 + 2 * Math.floor(dano / 10);
+
+/**
+ * Dano letal: PV depois, machucado, 0 PV e dano massivo (≥ metade dos PV
+ * totais sem zerar; DT 15 +2 a cada 10). O não letal que o ser já tem soma
+ * para desmaiar, mas não para morrendo (LR p. 88).
+ */
+export function consequencia(v: { pv: number; pvMax: number }, dano: number, naoLetal = 0): Consequencia {
   const pv = Math.max(0, v.pv - Math.max(0, dano));
   const zerou = pv === 0 && dano > 0;
-  const massivo = !zerou && dano > 0 && dano >= v.pvMax / 2 ? 15 + 2 * Math.floor(dano / 10) : null;
-  return { pv, machucado: pv > 0 && pv < v.pvMax / 2, zerou, massivo };
+  const desmaiou = !zerou && dano > 0 && naoLetal > 0 && pv - naoLetal <= 0 && v.pv - naoLetal > 0;
+  const massivo = !zerou && !desmaiou && dano > 0 && dano >= v.pvMax / 2 ? dtMassivo(dano) : null;
+  return { pv, machucado: pv > 0 && pv < v.pvMax / 2, zerou, desmaiou, massivo };
+}
+
+export interface ConsequenciaNaoLetal {
+  /** dano não letal acumulado depois */
+  naoLetal: number;
+  /** PV − não letal chegou a 0 agora: inconsciente, sem morrendo */
+  desmaiou: boolean;
+  /** dano massivo: Fortitude com esta DT; se falhar, desmaia (o não letal não deixa morrendo) */
+  massivo: number | null;
+}
+
+/** Dano não letal: soma ao que o ser já tem; desmaia quando passa dos PV atuais (LR p. 88). */
+export function consequenciaNaoLetal(v: { pv: number; pvMax: number }, antes: number, dano: number): ConsequenciaNaoLetal {
+  const naoLetal = Math.max(0, antes) + Math.max(0, dano);
+  const desmaiou = dano > 0 && v.pv - naoLetal <= 0 && v.pv - antes > 0;
+  const massivo = !desmaiou && v.pv - naoLetal > 0 && dano > 0 && dano >= v.pvMax / 2 ? dtMassivo(dano) : null;
+  return { naoLetal, desmaiou, massivo };
+}
+
+export interface ConsequenciaMental {
+  san: number;
+  perturbado: boolean;
+  /** chegou a SAN 0: enlouquecendo */
+  zerou: boolean;
+}
+
+/** Dano mental: tira da Sanidade, não dos PV (LR p. 82, 88). */
+export function consequenciaMental(v: { san: number; sanMax: number }, dano: number): ConsequenciaMental {
+  const san = Math.max(0, v.san - Math.max(0, dano));
+  return { san, perturbado: san > 0 && san < v.sanMax / 2, zerou: san === 0 && dano > 0 };
+}
+
+/**
+ * O que um dano faz em quem sofre, para a tela mostrar antes de confirmar
+ * (as mesmas contas que o servidor faz): "PV 20 → 12 (machucado)", "SAN 10 → 4
+ * (perturbado)", "não letal 0 → 8 (PV 20)". Sem PV marcados, `null`.
+ */
+export function previaDano(
+  v: { pv: number; pvMax: number; san: number; sanMax: number } | undefined,
+  final: number,
+  o: { tipo: string; naoLetal?: boolean; naoLetalAntes?: number; agente?: boolean },
+): { texto: string; massivo: number | null } | null {
+  if (!v) return null;
+  if (o.tipo === 'mental') {
+    const q = consequenciaMental(v, final);
+    return { texto: `SAN ${v.san} → ${q.san}${q.zerou ? ' (enlouquecendo)' : q.perturbado ? ' (perturbado)' : ''}`, massivo: null };
+  }
+  const antes = o.naoLetalAntes ?? 0;
+  if (o.naoLetal) {
+    const q = consequenciaNaoLetal(v, antes, final);
+    return { texto: `não letal ${antes} → ${q.naoLetal} (PV ${v.pv})${q.desmaiou ? ': desmaia, sem morrendo' : ''}`, massivo: q.massivo };
+  }
+  const q = consequencia(v, final, antes);
+  const estado = q.zerou ? (o.agente ? ' (inconsciente e morrendo)' : ' (0 PV)') : q.desmaiou ? ' (desmaia, sem morrendo)' : q.machucado ? ' (machucado)' : '';
+  return { texto: `PV ${v.pv} → ${q.pv}${estado}`, massivo: q.massivo };
 }

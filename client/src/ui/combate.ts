@@ -19,7 +19,7 @@ import { PASSOS_RITUAL, ResolucaoRitual, type CtxRitual, type RitualOpcao } from
 import { h, toast } from './dom';
 import { confirmar, janela, perguntarTexto } from './fichaModal';
 import { textoTeste } from './fichaRegras';
-import { NOME_DANO } from './fichas';
+import { NOME_DANO, resistenciasParaMostrar } from './fichas';
 import { ic, type NomeIcone } from './icons';
 import { paperize } from './paperArt';
 import { sfx } from './sfx';
@@ -417,7 +417,8 @@ export class CombateScreen {
         ...(a.uid !== undefined ? { uid: a.uid } : {}),
         nome: a.nome,
         pericia: a.pericia === 'pontaria' ? 'pontaria' : 'luta',
-        dados: a.dados + a.penalidadeDados,
+        dados: a.dados,
+        penalidade: a.penalidadeDados,
         bonus: a.bonus,
         dano: a.dano,
         tipo: a.tipoDano[0] ?? 'impacto',
@@ -438,6 +439,7 @@ export class CombateScreen {
       faixa: cb.faixaArma(a.alcance),
       notas: [],
       ...(a.vezes ? { vezes: a.vezes } : {}),
+      ...(a.extra ? { extra: a.extra } : {}),
     }));
   }
 
@@ -449,7 +451,8 @@ export class CombateScreen {
       agente: p.lado === 'agente',
       defesa: calc?.defesa ?? f?.defesa ?? null,
       rd: calc?.resistencias ?? f?.rd ?? {},
-      imunidades: f?.imunidades ?? [],
+      // a criatura é imune a dano mental mesmo na ficha feita à mão (LR p. 180)
+      imunidades: f ? cb.imunidadesDaAmeaca(f) : [],
       vulnerabilidades: f?.vulnerabilidades ?? [],
       vitais: this.vitais(p.id),
       reacoes: p.lado === 'agente' && calc ? calc.reacoes : null,
@@ -517,7 +520,7 @@ export class CombateScreen {
   private lutaDe(p: Participante): TesteLuta | null {
     const calc = this.calcDe(p.id);
     const l = calc?.pericias.luta;
-    if (l) return { dados: l.dados, bonus: l.bonus, origem: 'da ficha' };
+    if (l) return { dados: l.dados, bonus: l.bonus, penalidade: l.penalidadeDados, origem: 'da ficha' };
     const f = this.ameacaDe(p.id);
     if (f?.luta) return { ...f.luta, origem: 'da ficha da ameaça' };
     const golpe = f?.ataques.find((a) => a.pericia === 'luta');
@@ -584,9 +587,11 @@ export class CombateScreen {
     const ficha = this.fichaDe(p.id)?.ficha;
     if (!calc || !ficha) return [];
     const circuloMax = ficha.classe ? regras.circuloMaximo(ficha.classe, ficha.nex) : 0;
+    // a afinidade escolhida em 50% só vale depois do próximo poder paranormal (LR p. 110, 114)
     let afinidade: regras.Elemento | null = null;
     try {
-      afinidade = regras.montarEstado(ficha).afinidade;
+      const st = regras.montarEstado(ficha);
+      afinidade = st.afinidadeAtiva ? st.afinidade : null;
     } catch {
       afinidade = null;
     }
@@ -594,10 +599,11 @@ export class CombateScreen {
     for (const r of calc.rituais) {
       const d = regras.catalogo.ritual(r.id);
       if (!d) continue;
-      const custo = calc.custoRituais[r.id] ?? { pe: 1, dt: calc.dtRituais };
+      const custo = calc.custoRituais[r.id] ?? { pe: 1, dt: calc.dtRituais, base: 1, ajuste: 0 };
+      // o mínimo de 1 PE vale no custo final, com a forma (LR p. 78, 121)
       const formas = (['basica', 'discente', 'verdadeira'] as cb.FormaRitual[])
         .filter((f) => f === 'basica' || (f === 'discente' ? d.discente : d.verdadeiro))
-        .map((f) => ({ forma: f, pe: cb.custoDaForma(custo.pe, d, f), motivo: cb.formaLiberada(d, f, circuloMax, afinidade) }));
+        .map((f) => ({ forma: f, pe: cb.custoDaForma(custo.base, d, f, custo.ajuste), motivo: cb.formaLiberada(d, f, circuloMax, afinidade) }));
       const exec = d.execucao;
       out.push({
         id: d.id,
@@ -636,15 +642,15 @@ export class CombateScreen {
       agente: ator.lado === 'agente' && !!calc,
       condicoesAtor: this.condicoesDe(c, ator),
       rituais: this.rituaisDe(ator),
-      ocultismo: calc ? { dados: calc.pericias.ocultismo.dados, bonus: calc.pericias.ocultismo.bonus } : null,
-      vontade: calc ? { dados: calc.pericias.vontade.dados, bonus: calc.pericias.vontade.bonus } : null,
+      ocultismo: calc ? { dados: calc.pericias.ocultismo.dados, bonus: calc.pericias.ocultismo.bonus, penalidade: calc.pericias.ocultismo.penalidadeDados } : null,
+      vontade: calc ? { dados: calc.pericias.vontade.dados, bonus: calc.pericias.vontade.bonus, penalidade: calc.pericias.vontade.penalidadeDados } : null,
       limite: calc ? (calc.limitePeRituais ?? calc.limitePe) : null,
       gasto: ac.pe ?? 0,
       alvo: alvoP && !alvoP.fora ? this.alvoAtaque(c, alvoP) : null,
       naArea: this.naAreaDoCombate(c, ator),
       testeDe: (p, t) => {
         const pc = this.calcDe(p.id)?.pericias[t];
-        if (pc) return { dados: pc.dados, bonus: pc.bonus };
+        if (pc) return { dados: pc.dados, bonus: pc.bonus, penalidade: pc.penalidadeDados };
         const f = this.ameacaDe(p.id);
         return f ? { ...f[t] } : null;
       },
@@ -1225,7 +1231,7 @@ export class CombateScreen {
         };
         inp.addEventListener('change', enviar);
         inp.addEventListener('keydown', (ev) => ev.key === 'Enter' && inp.blur());
-        campo = h('label', { class: 'cb-ini-campo' }, inp, h('small', null, ini ? `rola ${textoTeste(ini.dados, ini.bonus)}` : 'sem ficha'));
+        campo = h('label', { class: 'cb-ini-campo' }, inp, h('small', null, ini ? `rola ${textoTeste(ini.dados, ini.bonus, ini.penalidadeDados)}` : 'sem ficha'));
       } else campo = h('span', { class: 'cb-ini-mestre' }, p ? (this.ameacaDe(ch.id) ? 'no grupo do mestre' : 'no grupo do mestre · sem ficha') : '');
       return h(
         'div',
@@ -1608,13 +1614,14 @@ export class CombateScreen {
       : h('div', { class: 'cb-alvo-pv' }, botao('Marcar PV', 'coracao', editarPv, 'cb-mini'));
     const caixa = (rot: string, val: string) => h('span', { class: 'cb-caixa' }, h('small', null, rot), h('b', null, val));
     const res = (per: 'fortitude' | 'reflexos' | 'vontade', rot: string) => {
-      const x = calc?.pericias[per] ?? am?.[per];
-      return caixa(rot, x ? textoTeste(x.dados, x.bonus) : '—');
+      const pc = calc?.pericias[per];
+      const x = pc ? { dados: pc.dados, bonus: pc.bonus, penalidade: pc.penalidadeDados } : am?.[per];
+      return caixa(rot, x ? textoTeste(x.dados, x.bonus, 'penalidade' in x ? x.penalidade : 0) : '—');
     };
     // RD numa linha, como no livro: os tipos com o mesmo valor juntos ("balístico, impacto e perfuração 5 · Sangue 10")
     const rdFonte: Partial<Record<string, number>> = calc?.resistencias ?? am?.rd ?? {};
     const porValor = new Map<number, string[]>();
-    for (const [t, n] of Object.entries(rdFonte)) if (n) porValor.set(n, [...(porValor.get(n) ?? []), t === 'todos' ? 'todo dano' : (NOME_DANO[t] ?? t).toLowerCase()]);
+    for (const [t, n] of resistenciasParaMostrar(rdFonte)) porValor.set(n, [...(porValor.get(n) ?? []), t === 'todos' ? 'todo dano' : (NOME_DANO[t] ?? t).toLowerCase()]);
     const junta = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} e ${xs.at(-1)}` : xs[0]);
     const rdTexto = [...porValor].map(([n, ts]) => `${junta(ts)} ${n}`).join(' · ');
     const defesa = calc?.defesa ?? am?.defesa;
@@ -1663,6 +1670,16 @@ export class CombateScreen {
       ].filter((x): x is HTMLButtonElement => !!x),
     );
     const semFicha = lado !== 'agente' && !am ? h('p', { class: 'cb-alvo-nota aviso' }, ic('lapis'), h('span', null, 'Sem ficha: no lápis do cabeçalho, escolha uma ameaça do livro ou preencha à mão.')) : null;
+    // dano não letal: fica à parte dos PV; desmaia quando passa deles, sem morrendo (LR p. 88)
+    const naoLetal = p?.naoLetal
+      ? h(
+          'div',
+          { class: 'cb-alvo-ritual nl', title: 'Dano não letal: soma com o letal para desmaiar, mas não deixa morrendo. A cura tira primeiro ele (LR p. 88).' },
+          ic('punho'),
+          h('span', null, `Dano não letal ${p.naoLetal}${vit && vit.pv - p.naoLetal <= 0 ? ' · desmaiado' : ''}`),
+          podeMexer ? botao('Mudar', null, () => void this.editarNaoLetal(p), 'cb-mini') : null,
+        )
+      : null;
     this.alvoCorpo.replaceChildren(
       h(
         'div',
@@ -1670,6 +1687,7 @@ export class CombateScreen {
         h('span', { class: 'cb-foto alvo' }, this.retrato(ch.id, 132)),
         h('div', { class: 'cb-alvo-id' }, h('b', null, ch.name), h('small', null, c && !noCombate && c.fase !== 'montando' ? `${tipo} · fora do combate` : tipo), pv),
       ),
+      naoLetal ?? '',
       linhaDefesa,
       h('div', { class: 'cb-alvo-linha tres' }, res('fortitude', 'Fortitude'), res('reflexos', 'Reflexos'), res('vontade', 'Vontade')),
       rdTexto ? h('small', { class: 'cb-alvo-nota rd' }, h('b', null, 'RD '), rdTexto) : '',
@@ -1746,6 +1764,15 @@ export class CombateScreen {
     this.mandarPv(id, Math.min(a, max), max);
   }
 
+  /** Dano não letal do ser: a cura tira primeiro ele (LR p. 88), e o mestre ajusta aqui. */
+  private async editarNaoLetal(p: Participante) {
+    const t = await perguntarTexto(`NÃO LETAL · ${p.nome.toUpperCase()}`, 'Dano não letal (a cura tira primeiro ele)', String(p.naoLetal ?? 0), 4);
+    if (t === null) return;
+    const n = numero(t);
+    if (typeof n !== 'number' || n < 0) return toast('Escreva um número.', 'error');
+    this.acao({ tipo: 'naoLetal', id: p.id, valor: n, motivo: 'cura ou ajuste' });
+  }
+
   /** PV da peça direto no tabuleiro (fora do desfazer do combate, como na tela MAPA). */
   private mandarPv(id: number, pv: number, pvMax: number) {
     this.app.net.send({ t: 'vitals', tokenId: -id, key: 'pv', max: pvMax });
@@ -1817,7 +1844,7 @@ export class CombateScreen {
       const agente = lado.value === 'agente';
       const grupoTem = c.mestre.iniciativa !== null;
       campoIni.classList.toggle('hidden', !agente && grupoTem);
-      dica.textContent = agente ? (calc ? `Rola ${textoTeste(calc.dados, calc.bonus)}.` : 'Sem ficha: o mestre diz o número.') : grupoTem ? '' : 'O grupo do mestre ainda não tem Iniciativa: esta vira a do grupo.';
+      dica.textContent = agente ? (calc ? `Rola ${textoTeste(calc.dados, calc.bonus, calc.penalidadeDados)}.` : 'Sem ficha: o mestre diz o número.') : grupoTem ? '' : 'O grupo do mestre ainda não tem Iniciativa: esta vira a do grupo.';
     };
     const desenhar = () => {
       lista.replaceChildren(

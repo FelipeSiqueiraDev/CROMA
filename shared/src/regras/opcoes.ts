@@ -109,7 +109,8 @@ export function opcoesParanormal(f: Ficha, nex: Nex): Opcao[] {
 }
 
 /** Rituais que podem ser aprendidos no NEX (círculo liberado, ainda não conhecidos). */
-export function opcoesRitual(f: Ficha, nex: Nex, circuloMax?: number): Opcao[] {
+/** Rituais para escolher. Com `exato`, só os desse círculo (o ritual do círculo novo, LR p. 35). */
+export function opcoesRitual(f: Ficha, nex: Nex, circuloMax?: number, exato?: number): Opcao[] {
   const st = montarEstado(f, nex, { nex, lugar: 'ritual' });
   const max = circuloMax ?? circuloMaximo(st.classe, nex);
   const sabe = new Set(st.rituais.map((r) => r.id));
@@ -120,6 +121,7 @@ export function opcoesRitual(f: Ficha, nex: Nex, circuloMax?: number): Opcao[] {
       if (sabe.has(r.id)) motivos.push('Já conhecido.');
       if (r.concedidoPor) motivos.push(`Só vem de ${r.concedidoPor}.`);
       if (r.circulo > max) motivos.push(max ? `É de ${r.circulo}º círculo; agora só até o ${max}º.` : 'Ainda não conjura rituais.');
+      else if (exato && r.circulo !== exato) motivos.push(`É de ${r.circulo}º círculo; o do círculo novo tem de ser do ${exato}º.`);
       return { id: r.id, nome: r.nome, ref: r.ref, ok: !motivos.length, motivos, avisos: [] };
     });
 }

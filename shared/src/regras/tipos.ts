@@ -184,7 +184,10 @@ export type Valor = number | AtributoId;
 /** A que armas um bônus vale. Armas de fogo contam como armas de disparo (LR p. 59). */
 export type Escopo =
   | 'todos'
+  /** ataques corpo a corpo, o desarmado incluído */
   | 'corpoACorpo'
+  /** armas corpo a corpo: o desarmado fica de fora (LR p. 57) */
+  | 'armasCorpoACorpo'
   | 'distancia'
   | 'disparo'
   | 'fogo'
@@ -424,6 +427,12 @@ export interface Arma {
   municao?: Municao;
   /** d20 a menos nos testes de ataque (arma improvisada: −1, LR p. 57) */
   penalidadeAtaque?: number;
+  /** número somado aos testes de ataque (moto-serra: −2, LR p. 59) */
+  bonusAtaque?: number;
+  /** penalidade no ataque de quem tem menos Força que a pedida (metralhadora: −5 sem Força 4, LR p. 59) */
+  forcaMinima?: { forca: number; bonus: number; nota: string };
+  /** soma a Força no dano mesmo sendo de disparo (arco composto, LR p. 58; estilingue, SaH p. 37) */
+  somaForca?: boolean;
   /** outras regras da arma, em palavras curtas (ex.: "arremessável", "duas mãos: 1d10") */
   especial?: string[];
   resumo?: string;

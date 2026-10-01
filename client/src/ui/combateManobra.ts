@@ -16,6 +16,8 @@ import { sfx } from './sfx';
 export interface TesteLuta {
   dados: number;
   bonus: number;
+  /** d20 perdidos (0 ou negativo) */
+  penalidade?: number;
   origem: string;
 }
 
@@ -164,7 +166,11 @@ export class ResolucaoManobra {
     modsA.push({ id: 'a:flanq', nome: 'Flanqueando +1d20', dados: 1, auto: !!tab?.flanqueia });
     modsA.push({ id: 'a:elev', nome: 'Posição elevada +1d20', dados: 1, auto: !!tab?.elevado });
     const base = arma ?? null;
-    const dadosA = (base?.dados ?? 1) + modsA.filter(on).reduce((t, m) => t + (m.dados ?? 0), 0);
+    // dados ganhos e perdidos separados: a conta de "menos de 1 dado" usa os dois (LR p. 11)
+    const ganhos = (ms: Mod[]) => ms.filter(on).reduce((t, m) => t + Math.max(0, m.dados ?? 0), 0);
+    const perdidos = (ms: Mod[]) => ms.filter(on).reduce((t, m) => t + Math.min(0, m.dados ?? 0), 0);
+    const dadosA = (base?.dados ?? 1) + ganhos(modsA);
+    const penalidadeA = (base?.penalidade ?? 0) + perdidos(modsA);
     const bonusA = (base?.bonus ?? 0) + modsA.filter(on).reduce((t, m) => t + (m.bonus ?? 0), 0) + this.e.outrosA;
     // quem resiste: Luta, tamanho e condições
     const luta = alvo ? x.lutaDe(alvo.p) : null;
@@ -176,7 +182,8 @@ export class ResolucaoManobra {
       if (tB) modsB.push({ id: 'b:tam', nome: `${cb.NOME_TAMANHO[tam]} ${cb.sinal(tB)}`, bonus: tB, auto: true });
       modsB.push(...this.modsCondicao(alvo.condicoes, 'b'));
     }
-    const dadosB = lutaUsada ? lutaUsada.dados + modsB.filter(on).reduce((t, m) => t + (m.dados ?? 0), 0) : null;
+    const dadosB = lutaUsada ? lutaUsada.dados + ganhos(modsB) : null;
+    const penalidadeB = lutaUsada ? (lutaUsada.penalidade ?? 0) + perdidos(modsB) : 0;
     const bonusB = lutaUsada ? lutaUsada.bonus + modsB.filter(on).reduce((t, m) => t + (m.bonus ?? 0), 0) + this.e.outrosB : null;
     const op = alvo && bonusB !== null && this.e.d20a !== null && this.e.d20b !== null ? cb.resolverOposto({ d20: this.e.d20a, bonus: bonusA }, { d20: this.e.d20b, bonus: bonusB }) : null;
     const venceu = op?.vencedor === 'a';
@@ -184,13 +191,14 @@ export class ResolucaoManobra {
     const empurrao = !venceu || !op ? 0 : def.id === 'empurrar' ? cb.casasEmpurrao(op.diferenca) : def.id === 'derrubar' && cb.empurraUmQuadrado(op.diferenca) ? 2 : 0;
     // dano: esmagar (no alvo) e quebrar (no objeto)
     const precisaDano = venceu && (def.id === 'esmagar' || def.id === 'quebrar') && !!arma;
-    let dano: { partes: cb.PartesDano; conta: cb.ContaDano; q: cb.Consequencia | null; naoLetal: boolean } | null = null;
+    let dano: { partes: cb.PartesDano; conta: cb.ContaDano; previa: ReturnType<typeof cb.previaDano>; naoLetal: boolean } | null = null;
     let objeto: { o: cb.Objeto; r: ReturnType<typeof cb.danoNoObjeto>; total: number } | null = null;
     if (precisaDano && this.e.soma !== null && arma && alvo) {
       const partes = cb.lerDano(arma.dano);
       if (def.id === 'esmagar') {
         const conta = cb.contaDano({ soma: this.e.soma, fixo: partes.fixo, tipo: arma.tipo, rd: alvo.rd, imunidades: alvo.imunidades, vulnerabilidades: alvo.vulnerabilidades });
-        dano = { partes, conta, q: alvo.vitais ? cb.consequencia(alvo.vitais, conta.final) : null, naoLetal: arma.notas.some((n) => /não letal/i.test(n)) };
+        const naoLetal = arma.notas.some((n) => /não letal/i.test(n));
+        dano = { partes, conta, previa: cb.previaDano(alvo.vitais, conta.final, { tipo: arma.tipo, naoLetal, naoLetalAntes: alvo.p.naoLetal, agente: alvo.agente }), naoLetal };
       } else {
         const o = cb.objeto(this.e.objeto) ?? cb.OBJETOS[0];
         const total = Math.max(0, this.e.soma + partes.fixo);
@@ -198,7 +206,7 @@ export class ResolucaoManobra {
       }
     }
     const semAcao = x.acoes.completa || (x.acoes.padrao && !(def.id === 'atropelar' && this.e.livre));
-    return { def, armas, arma, alvo, tab, modsA, modsB, on, dadosA, bonusA, luta, lutaUsada, dadosB, bonusB, op, venceu, empurrao, precisaDano, dano, objeto, semAcao };
+    return { def, armas, arma, alvo, tab, modsA, modsB, on, dadosA, penalidadeA, bonusA, luta, lutaUsada, dadosB, penalidadeB, bonusB, op, venceu, empurrao, precisaDano, dano, objeto, semAcao };
   }
 
   /** Em que passo está (para a barra de passos). */
@@ -314,9 +322,9 @@ export class ResolucaoManobra {
                 x.mudou();
               },
             },
-            ...k.armas.map((a, i) => h('option', { value: String(i), selected: a === k.arma }, `${a.nome} · ${textoTeste(a.dados, a.bonus)}`)),
+            ...k.armas.map((a, i) => h('option', { value: String(i), selected: a === k.arma }, `${a.nome} · ${textoTeste(a.dados, a.bonus, a.penalidade)}`)),
           )
-        : h('small', null, k.arma ? `Luta com ${k.arma.nome}: ${textoTeste(k.arma.dados, k.arma.bonus)}` : 'Sem ataque corpo a corpo: use os outros.');
+        : h('small', null, k.arma ? `Luta com ${k.arma.nome}: ${textoTeste(k.arma.dados, k.arma.bonus, k.arma.penalidade)}` : 'Sem ataque corpo a corpo: use os outros.');
     const cab = (nome: string, outros: HTMLElement) => h('div', { class: 'cb-man-cab' }, h('b', null, nome), outros);
     const colA = h(
       'div',
@@ -329,7 +337,7 @@ export class ResolucaoManobra {
     if (!alvo) colB.append(h('p', { class: 'cb-vazio' }, this.e.manobra === 'soltarse' ? 'Ninguém agarra quem age.' : 'Escolha o alvo: clique na peça ou no nome da ordem.'));
     else {
       const luta = k.luta
-        ? h('small', null, `Luta ${textoTeste(k.luta.dados, k.luta.bonus)} (${k.luta.origem})`)
+        ? h('small', null, `Luta ${textoTeste(k.luta.dados, k.luta.bonus, k.luta.penalidade)} (${k.luta.origem})`)
         : h(
             'div',
             { class: 'cb-man-luta', title: 'Sem Luta na ficha: digite quantos d20 e o bônus' },
@@ -362,16 +370,16 @@ export class ResolucaoManobra {
     else if (k.dadosB === null || k.bonusB === null) corpo.push(h('p', { class: 'cb-vazio' }, `Digite a Luta de ${alvo.p.nome}.`));
     else {
       // cada lado: o que rolar e o d20 que ficou, na mesma linha
-      const lado = (nome: string, dados: number, bonus: number, valor: number | null, fn: (n: number | null) => void, foco: string) =>
+      const lado = (nome: string, dados: number, penalidade: number, bonus: number, valor: number | null, fn: (n: number | null) => void, foco: string) =>
         h(
           'div',
           { class: 'cb-man-rol' },
-          h('div', { class: 'cb-instrucao' }, ic('dados'), h('span', null, h('b', null, nome), h('br'), cb.textoRolagem(dados, bonus))),
+          h('div', { class: 'cb-instrucao' }, ic('dados'), h('span', null, h('b', null, nome), h('br'), cb.textoRolagem(dados, bonus, penalidade))),
           campoDado('d20', valor, 20, fn, foco, true),
         );
       corpo.push(
-        lado(x.ator.nome, k.dadosA, k.bonusA, this.e.d20a, (n) => ((this.e.d20a = n && n >= 1 ? n : null), (this.e.soma = null), x.mudou()), 'man:a'),
-        lado(alvo.p.nome, k.dadosB, k.bonusB, this.e.d20b, (n) => ((this.e.d20b = n && n >= 1 ? n : null), (this.e.soma = null), x.mudou()), 'man:b'),
+        lado(x.ator.nome, k.dadosA, k.penalidadeA, k.bonusA, this.e.d20a, (n) => ((this.e.d20a = n && n >= 1 ? n : null), (this.e.soma = null), x.mudou()), 'man:a'),
+        lado(alvo.p.nome, k.dadosB, k.penalidadeB, k.bonusB, this.e.d20b, (n) => ((this.e.d20b = n && n >= 1 ? n : null), (this.e.soma = null), x.mudou()), 'man:b'),
       );
       const op = k.op;
       if (op) {
@@ -441,10 +449,8 @@ export class ResolucaoManobra {
             );
           partes.push(campoDado('soma dos dados', this.e.soma, 999, (n) => ((this.e.soma = n), x.mudou()), 'man:dano', true));
           if (k.dano) {
-            const q = k.dano.q;
-            const v = alvo.vitais;
             linhas.push(h('span', null, k.dano.conta.conta));
-            if (q && v) linhas.push(h('span', { class: 'alerta' }, `${nome}: PV ${v.pv} → ${q.pv}${q.zerou ? ' (0 PV)' : q.machucado ? ' (machucado)' : ''}`));
+            if (k.dano.previa) linhas.push(h('span', { class: 'alerta' }, `${nome}: ${k.dano.previa.texto}`));
           }
           if (k.objeto) linhas.push(h('span', null, `${k.objeto.o.nome}: ${k.objeto.r.conta}`), h('span', { class: 'alerta' }, k.objeto.r.quebrou ? 'Quebrou.' : 'Aguentou.'));
           break;

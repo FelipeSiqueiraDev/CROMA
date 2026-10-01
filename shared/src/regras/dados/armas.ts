@@ -94,11 +94,11 @@ export const ARMAS: Arma[] = [
   { id: 'montante', nome: 'Montante', ref: LR(57), categoria: 1, proficiencia: 'tatica', tipo: 'corpoACorpo', empunhadura: 'duasMaos', dano: '2d6', critico: crit(19, 2), tipoDano: ['corte'], espacos: 2,
     resumo: 'Espadão de cerca de 1,5 m, das armas mais fortes de sua época.' },
   // nome da tabela; a descrição escreve "Motoserra" e o texto, "motosserra"
-  { id: 'moto-serra', nome: 'Moto-serra', ref: LR(57), categoria: 1, proficiencia: 'tatica', tipo: 'corpoACorpo', empunhadura: 'duasMaos', dano: '3d6', critico: crit(20, 2), tipoDano: ['corte'], espacos: 2,
+  { id: 'moto-serra', nome: 'Moto-serra', ref: LR(57), categoria: 1, proficiencia: 'tatica', tipo: 'corpoACorpo', empunhadura: 'duasMaos', dano: '3d6', critico: crit(20, 2), tipoDano: ['corte'], espacos: 2, bonusAtaque: -2,
     especial: ['−2 nos testes de ataque', 'cada 6 num dado de dano: role mais um dado', 'ligar: ação de movimento'],
     resumo: 'Ferramenta motorizada e desajeitada: −2 no ataque, e cada 6 no dano rola mais um dado. Ligá-la custa uma ação de movimento.' },
   // disparo, duas mãos
-  { id: 'arco-composto', nome: 'Arco composto', ref: LR(57), categoria: 1, proficiencia: 'tatica', tipo: 'disparo', empunhadura: 'duasMaos', dano: '1d10', critico: crit(20, 3), alcance: 'medio', tipoDano: ['perfuracao'], espacos: 2, municao: 'flechas',
+  { id: 'arco-composto', nome: 'Arco composto', ref: LR(57), categoria: 1, proficiencia: 'tatica', tipo: 'disparo', empunhadura: 'duasMaos', dano: '1d10', critico: crit(20, 3), alcance: 'medio', tipoDano: ['perfuracao'], espacos: 2, municao: 'flechas', somaForca: true,
     especial: ['soma Força no dano'],
     resumo: 'Arco moderno de roldanas e materiais de alta tensão. Diferente das outras armas de disparo, soma a Força no dano.' },
   { id: 'balestra', nome: 'Balestra', ref: LR(57), categoria: 1, proficiencia: 'tatica', tipo: 'disparo', empunhadura: 'duasMaos', dano: '1d12', critico: crit(19, 2), alcance: 'medio', tipoDano: ['perfuracao'], espacos: 2, municao: 'flechas',
@@ -127,7 +127,7 @@ export const ARMAS: Arma[] = [
   { id: 'lanca-chamas', nome: 'Lança-chamas', ref: LR(57), categoria: 3, proficiencia: 'pesada', tipo: 'fogo', empunhadura: 'duasMaos', dano: '6d6', critico: crit(20, 2), alcance: 'curto', tipoDano: ['fogo'], espacos: 2, municao: 'combustivel',
     especial: ['linha de 1,5 m de largura até o alcance curto (não passa dele)', 'um só teste de ataque contra a Defesa de cada ser na linha', 'quem é atingido fica em chamas'],
     resumo: 'Esguicha líquido inflamável numa linha até alcance curto: um só ataque contra todos na linha, e quem é atingido pega fogo.' },
-  { id: 'metralhadora', nome: 'Metralhadora', ref: LR(57), categoria: 2, proficiencia: 'pesada', tipo: 'fogo', empunhadura: 'duasMaos', dano: '2d12', critico: crit(19, 3), alcance: 'medio', tipoDano: ['balistico'], espacos: 2, automatica: true, municao: 'balas-longas',
+  { id: 'metralhadora', nome: 'Metralhadora', ref: LR(57), categoria: 2, proficiencia: 'pesada', tipo: 'fogo', empunhadura: 'duasMaos', dano: '2d12', critico: crit(19, 3), alcance: 'medio', tipoDano: ['balistico'], espacos: 2, automatica: true, municao: 'balas-longas', forcaMinima: { forca: 4, bonus: -5, nota: 'apoiada no tripé (ação de movimento), sem o −5' },
     especial: ['rajada', '−5 nos ataques, a menos que tenha Força 4 ou mais ou a apoie no tripé (ação de movimento)', 'capacidade 50 (contagem de munição, p. 174)'],
     resumo: 'Arma de fogo pesada e automática, de uso militar. Sem Força 4 nem apoio no tripé, −5 nos ataques.' },
 
@@ -145,7 +145,7 @@ export const ARMAS: Arma[] = [
   // simples
   { id: 'pregador-pneumatico', nome: 'Pregador pneumático', ref: SAH(38), categoria: 0, proficiencia: 'simples', tipo: 'disparo', empunhadura: 'umaMao', dano: '1d4', critico: crit(20, 4), alcance: 'curto', tipoDano: ['perfuracao'], espacos: 1,
     especial: ['conta como arma de fogo para poderes', 'rolo de 300 pregos dura a missão'] },
-  { id: 'estilingue', nome: 'Estilingue', ref: SAH(38), categoria: 0, proficiencia: 'simples', tipo: 'disparo', empunhadura: 'duasMaos', dano: '1d4', critico: crit(20, 2), alcance: 'curto', tipoDano: ['impacto'], espacos: 1, municao: 'bolinhas',
+  { id: 'estilingue', nome: 'Estilingue', ref: SAH(38), categoria: 0, proficiencia: 'simples', tipo: 'disparo', empunhadura: 'duasMaos', dano: '1d4', critico: crit(20, 2), alcance: 'curto', tipoDano: ['impacto'], espacos: 1, municao: 'bolinhas', somaForca: true,
     especial: ['soma Força no dano', 'lança granadas em alcance longo'] },
   // tipo P como impresso na Tab. 1.4 (conferido na página; não é B)
   { id: 'revolver-compacto', nome: 'Revólver compacto', ref: SAH(38), categoria: 1, proficiencia: 'simples', tipo: 'fogo', empunhadura: 'leve', dano: '2d4', critico: crit(19, 3), alcance: 'curto', tipoDano: ['perfuracao'], espacos: 1, municao: 'balas-curtas',
@@ -165,7 +165,7 @@ export const ARMAS: Arma[] = [
   // a tabela não dá empunhadura; lançada com uma mão
   { id: 'shuriken', nome: 'Shuriken', ref: SAH(38), categoria: 1, proficiencia: 'tatica', tipo: 'arremesso', empunhadura: 'leve', dano: '1d4', critico: crit(20, 2), alcance: 'curto', tipoDano: ['perfuracao'], espacos: 0.5,
     especial: ['cada shuriken é um pacote para 2 cenas', 'com a contagem de munição (LR p. 174), cada shuriken vale 10', 'veterano em Pontaria: 1x/rodada, 1 PE para outro ataque de shuriken no mesmo alvo'] },
-  { id: 'pistola-pesada', nome: 'Pistola pesada', ref: SAH(38), categoria: 1, proficiencia: 'tatica', tipo: 'fogo', empunhadura: 'umaMao', dano: '2d8', critico: crit(18, 2), alcance: 'curto', tipoDano: ['balistico'], espacos: 1, municao: 'balas-curtas',
+  { id: 'pistola-pesada', nome: 'Pistola pesada', ref: SAH(38), categoria: 1, proficiencia: 'tatica', tipo: 'fogo', empunhadura: 'umaMao', dano: '2d8', critico: crit(18, 2), alcance: 'curto', tipoDano: ['balistico'], espacos: 1, municao: 'balas-curtas', penalidadeAtaque: -1,
     especial: ['−1d20 no ataque, anulado empunhando com as duas mãos', 'capacidade 10 (contagem de munição, LR p. 174)'] },
   { id: 'espingarda-cano-duplo', nome: 'Espingarda cano duplo', ref: SAH(38), categoria: 2, proficiencia: 'tatica', tipo: 'fogo', empunhadura: 'duasMaos', dano: '4d6', critico: crit(20, 3), alcance: 'curto', tipoDano: ['balistico'], espacos: 2, municao: 'cartuchos',
     especial: ['1 cartucho por cano; recarregar os dois: ação de movimento', 'os dois canos no mesmo alvo: −1d20 no ataque e dano 6d6', 'capacidade 2 (contagem de munição, LR p. 174)'] },

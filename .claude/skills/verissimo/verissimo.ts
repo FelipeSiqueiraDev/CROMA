@@ -243,7 +243,7 @@ function resumoDe(f: Ficha): Resumo {
   for (const k of regras.ATRIBUTOS) por(`DT habilidades ${k.toUpperCase()}`, String(c.dtHabilidades[k]));
   // todas as perícias: um atributo que sobe muda os dados até das destreinadas
   for (const [id, p] of Object.entries(c.pericias))
-    por(`perícia ${id}`, `${p.grau}, ${p.dados}d20${p.bonus >= 0 ? '+' : ''}${p.bonus} (${p.atributo})${p.podeUsar ? '' : ', não pode usar'}`);
+    por(`perícia ${id}`, `${p.grau}, ${p.dados}d20${p.bonus >= 0 ? '+' : ''}${p.bonus}${p.penalidadeDados ? ` (${p.penalidadeDados}d20)` : ''} (${p.atributo})${p.podeUsar ? '' : ', não pode usar'}`);
   for (const [tipo, v] of Object.entries(c.resistencias)) por(`resistência ${tipo}`, String(v));
   por('esquiva', c.reacoes.esquiva === null ? '—' : String(c.reacoes.esquiva));
   por('bloqueio', c.reacoes.bloqueio === null ? '—' : String(c.reacoes.bloqueio));

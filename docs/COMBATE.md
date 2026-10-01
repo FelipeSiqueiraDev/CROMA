@@ -66,10 +66,11 @@ Tudo o que a aba COMBATE precisa saber para uma luta andar sem travar: começo d
 - **Dois tipos de modificador:**
   - em dados (+1d20, −1d20): mudam quantos d20 se rolam;
   - em número (+2, −5): somam no total.
-- **Menos de 1 dado:** o livro só fala do atributo 0. O CROMA segue a conta do REGRAS.md:
+- **Menos de 1 dado** (p. 11): se uma penalidade deixaria menos de 1 dado, rola os dados que rolaria se ela fosse bônus e fica o pior. O CROMA guarda os dados ganhos e os perdidos separados (`shared/src/regras/rolagem.ts`):
   - n = atributo + dados ganhos − dados perdidos;
   - com n ≥ 1, rola n e fica o maior;
-  - com n ≤ 0, rola 2 − n e fica o menor (DC-1).
+  - com n < 1, rola atributo + dados ganhos + dados perdidos e fica o menor (Agi 2 com −3d20: 5d20, o pior);
+  - com atributo 0 e nenhum dado ganho, rola 2d20 e fica o pior, e cada dado perdido soma mais um (DC-1).
 - **20 natural** no dado que ficou: passa sempre (p. 76). O 1 não é falha automática; a chave `falhaNo1` muda isso só no ataque.
 - **Teste oposto:** o maior total vence. No empate, os dois rolam de novo (p. 75). Se só um lado tirou 20 natural, ele vence (decisão do REGRAS.md, seção 12).
 - **DT das habilidades e itens:** 10 + limite de PE + o atributo indicado (p. 78). **DT dos rituais:** 10 + limite de PE + Presença (p. 121).
@@ -152,6 +153,7 @@ Os outros modos ficam guardados para depois, se um dia fizerem falta: **CROMA** 
   - Nas rodadas seguintes, vale a nova ordem.
 
 **No CROMA:** botões "atrasar" (com valor, ou "vou agir agora" depois) e "preparar" (com o gatilho escrito). A ordem se reorganiza sozinha e o registro anota.
+- Atrasar é agir mais tarde: só antes de fazer qualquer coisa no turno. Quando a vez volta, o turno não começa de novo (os contadores de morrendo e enlouquecendo, o sustentado e as condições do começo do turno não contam duas vezes).
 
 ## 4. Rodada, turno e duração
 
@@ -472,7 +474,7 @@ O livro não diz em que ordem as coisas do começo do turno acontecem. Proposta 
   - óculos de visão térmica tiram a penalidade da camuflagem (p. 60, 66);
   - faro, visão na penumbra, visão no escuro e percepção às cegas das ameaças (seção 17).
 
-**No CROMA:** rola (ou pede) o d10 junto do ataque e só depois mostra acerto ou erro.
+**No CROMA:** rola (ou pede) o d10 junto do ataque e só depois mostra acerto ou erro. Os 75% (o teto da soma) não cabem no d10: pede o d4, e falha de 1 a 3.
 
 ## 8. Dano e cura
 
@@ -515,6 +517,9 @@ O livro não diz em que ordem as coisas do começo do turno acontecem. Proposta 
 7. Tira dos PV (ou da SAN, se for mental). Nunca fica abaixo de 0.
 
 - Com a opção `medoEmJogo`, o dano de medo é sempre no mínimo 1 (seção 21.1).
+- **Grupos:** a RD, a imunidade e a vulnerabilidade a "físico" valem nos quatro tipos das armas, e as a "paranormal" nos cinco elementos (o dano paranormal sempre tem o subtipo de um, p. 82). O mental não é paranormal.
+- **Dano de Medo** (Lâmina do Medo, Presença do Medo) é paranormal e tira PV; o dano mental é outro tipo e tira SAN (p. 82, 135, 139).
+- **Dano a mais de outro tipo** ("3d6 de Morte e 1d8 mental", p. 221): a ficha rápida guarda à parte, a tela pede a soma de cada um e cada parte vai para o seu lugar.
 
 ### 8.4 Dano não letal (LR p. 88)
 
@@ -522,9 +527,12 @@ O livro não diz em que ordem as coisas do começo do turno acontecem. Proposta 
 - A cura tira primeiro o não letal.
 
 **No CROMA:**
-- a ficha guarda o dano não letal à parte;
-- PV atual − não letal ≤ 0: inconsciente, sem morrendo;
-- PV 0 por dano letal: morrendo.
+- o combate guarda o dano não letal de cada ser à parte (`naoLetal`); os PV da peça só caem com o letal;
+- PV atual − não letal ≤ 0: inconsciente e caído, sem morrendo;
+- PV 0 por dano letal: morrendo;
+- dano massivo com o não letal: Fortitude como sempre; se falhar, fica inconsciente, sem morrendo (o não letal não deixa morrendo);
+- a cura tira primeiro o não letal: o mestre muda o número no cartão do alvo ("Dano não letal · Mudar"), e quem estava desmaiado acorda (continua caído);
+- ao encerrar o combate, o registro lembra quem ainda tem dano não letal.
 
 ### 8.5 Dano massivo (LR p. 88)
 
@@ -939,7 +947,8 @@ As estatísticas já trazem os modificadores de tamanho e equipamento.
 
 **No CROMA:**
 - catálogo de fichas de ameaça (nome, números e página, sem o texto: as 74 do livro de regras, em `shared/src/combate/ameacasLivro.ts`) e ficha avulsa, criada pelo mestre;
-- "imune a dano" na ficha do livro vale para todo dano; nas criaturas de Medo, cai quando o enigma é resolvido (o mestre tira na ficha);
+- "imune a dano" na ficha do livro vale para todo dano; nas criaturas de Medo, cai quando o enigma é resolvido (o mestre desmarca "todo dano" nas imunidades da ficha);
+- teste impresso como "–2O" no lugar dos dados: atributo 0, rola 2d20 e fica o pior (p. 75); na ficha rápida, d20 = 0;
 - cada ameaça no combate é uma instância, com PV, condições e usos gastos.
 
 ### 17.2 Regras das ameaças
@@ -948,6 +957,7 @@ As estatísticas já trazem os modificadores de tamanho e equipamento.
 - **Defesas especiais:** as ameaças não usam bloqueio, esquiva nem contra-ataque (p. 179).
 - **"×2" na ação:** dois ataques por ação.
 - **Origem paranormal** (criaturas, p. 180): sem SAN; imunes a dano mental, a condições mentais e de medo, e a rituais de Medo.
+  - **No CROMA:** a ameaça com elemento é criatura. A conta do dano soma o mental às imunidades dela, o combate recusa as condições de medo e mentais nela, e o ritual de Medo não a afeta (o registro diz que é imune).
 - **Presença perturbadora** (p. 180):
   - quando o personagem vê a criatura, faz Vontade contra a DT dela; se falhar, sofre o dano mental cheio; se passar, metade;
   - com o NEX indicado ou mais, é imune;
@@ -1263,7 +1273,7 @@ Os seis primeiros já estão no REGRAS.md (seção 13). Os outros são do combat
 
 | # | Decisão | Proposta |
 |---|---|---|
-| DC-1 | Menos de 1 dado | rolar 2 − n e ficar com o menor (a conta do REGRAS.md) |
+| DC-1 | Atributo 0 com dados perdidos | o livro dá 2d20, o pior, para o atributo 0 (p. 14, 75) e, para o resto, a conta da p. 11 (seção 2.1); com atributo 0, cada dado perdido soma mais um ao 2d20 |
 | DC-2 | Ajudar alguém em combate | ação padrão do ajudante, com o teste de ajuda (DT 10) |
 | DC-3 | Modo de rolar | decidido (30/09): sempre dados físicos na mesa, também os das ameaças e os sorteios pequenos; só o mestre digita (seção 2.2) |
 | DC-4 | O que os jogadores veem | nada de Defesa, DT e PV das ameaças; só "machucada" e "fora de combate", e o resultado que o mestre anunciar |

@@ -39,6 +39,12 @@ export interface Participante {
   /** turnos começados morrendo e enlouquecendo nesta cena (LR p. 88) */
   morrendo: number;
   enlouquecendo: number;
+  /**
+   * Dano não letal sofrido: soma com o letal para desmaiar, mas não deixa
+   * morrendo; a cura tira primeiro ele (LR p. 88). Os PV da peça só caem com
+   * o letal.
+   */
+  naoLetal?: number;
   /** já usou a defesa especial (bloqueio, esquiva ou contra-ataque) desde o começo do próprio turno */
   reacao: boolean;
   /** condições marcadas no combate (ids do catálogo). As dos agentes ficam na ficha deles. */
@@ -99,6 +105,11 @@ export interface Combate {
   vez: string | null;
   /** entradas que já tiveram o turno nesta rodada */
   agiram: string[];
+  /**
+   * Entradas que já começaram o turno nesta rodada: quem atrasa não começa de
+   * novo (os contadores e o sustentado não contam duas vezes, LR p. 87–88).
+   */
+  comecaram?: string[];
   participantes: Participante[];
   /** Iniciativa do grupo do mestre: um teste por todos, com o menor bônus (LR p. 83) */
   mestre: { iniciativa: number | null; desempate: number };
@@ -145,12 +156,14 @@ export interface AtaqueConfirmado {
   teste: { dados: number; bonus: number; d20: number; total: number; defesa: number };
   /** situações que pesaram (nomes curtos, para o registro) */
   situacoes: string[];
-  /** chance de falha (camuflagem): a chance, o d10 e se falhou */
+  /** chance de falha (camuflagem): a chance, o dado (d10; d4 nos 75%) e se falhou */
   falha?: { chance: number; d10: number; falhou: boolean };
   resultado: ResultadoAtaque;
   multiplicador?: number;
   /** o dano: a fórmula rolada, a soma dos dados, o total e o que ficou depois de resistência e RD */
   dano?: DanoConfirmado;
+  /** o dano a mais de outro tipo (Vomitar Lodo: e 1d8 mental, LR p. 221) */
+  danoExtra?: DanoConfirmado;
   /** defesa especial que o alvo usou */
   reacao?: 'esquiva' | 'bloqueio';
   /** errou um golpe corpo a corpo e o alvo pode contra-atacar (lembrete no registro) */
@@ -216,6 +229,8 @@ export interface AlvoRitual {
 export interface RitualConfirmado {
   quem: number;
   ritual: string;
+  /** elemento do ritual: as criaturas são imunes aos de Medo (LR p. 180) */
+  elemento?: Elemento;
   forma: FormaRitual;
   /** a execução do ritual (o que gasta do turno) */
   qual: TipoAcao;
@@ -277,6 +292,8 @@ export type AcaoCombate =
   | { tipo: 'sustentar'; id: number; ritual: string | null }
   /** muda PV, PE ou SAN de um ser (cura, socorro, dano de fora do ataque), com o motivo no registro */
   | { tipo: 'vitais'; id: number; pv?: number; pe?: number; san?: number; motivo: string }
+  /** muda o dano não letal de um ser (a cura tira primeiro ele, LR p. 88) */
+  | { tipo: 'naoLetal'; id: number; valor: number; motivo?: string }
   | { tipo: 'encerrar' }
   | { tipo: 'fechar' }
   | { tipo: 'desfazer' };
@@ -337,6 +354,8 @@ export interface AtaqueAmeaca {
   alcance?: string;
   /** ataques por ação (o "×2" da ficha) */
   vezes?: number;
+  /** dano a mais de outro tipo, rolado à parte ("3d6 Morte e 1d8 mental") */
+  extra?: { dano: string; tipo: TipoDano };
 }
 
 /** Presença perturbadora: NEX que dá imunidade, DT e o dano mental (LR p. 180). */

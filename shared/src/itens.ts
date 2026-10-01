@@ -6,7 +6,7 @@
  */
 import * as cat from './regras/dados';
 import type { ItemFicha, TipoItemCatalogo } from './regras/ficha';
-import { nomeDoItem } from './regras/mochila';
+import { nomeDoItem, vestivel } from './regras/mochila';
 import type { Loot, LootKind } from './rpg';
 
 const TIPOS: TipoItemCatalogo[] = ['arma', 'protecao', 'equipamento', 'amaldicoado'];
@@ -40,6 +40,7 @@ export function espacosDoItemFicha(it: ItemFicha): number {
 /**
  * Item do cenário que alguém pegou: entra na mochila com o mesmo número, como
  * achado na missão (o que a Ordem forneceu e foi largado continua da Ordem).
+ * O que se veste entra guardado: vestir é uma ação à parte (LR p. 53, 63).
  */
 export function lootParaItem(l: Loot): ItemFicha {
   const extra: Partial<ItemFicha> = { uid: l.id };
@@ -50,6 +51,7 @@ export function lootParaItem(l: Loot): ItemFicha {
     const it: ItemFicha = { ...l.item, ...extra };
     // o nome que o mestre deu no cenário ("Faca de Cozinha") fica como apelido
     if (l.name && l.name !== nomeDoItem({ id: l.item.id, tipo: l.item.tipo })) it.apelido = l.name;
+    if (vestivel(it)) it.vestido = false;
     return it;
   }
   return { id: l.name, tipo: 'cena', nome: l.name, espacos: l.espacos, tipoCena: l.kind, ...extra };

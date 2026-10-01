@@ -66,7 +66,7 @@ export const PODERES: Poder[] = [
   },
   {
     id: 'golpe-pesado', nome: 'Golpe Pesado', ref: LR(25), classes: ['combatente'],
-    efeitos: [{ alvo: 'dano', escopo: 'corpoACorpo', dadoExtra: 1 }],
+    efeitos: [{ alvo: 'dano', escopo: 'armasCorpoACorpo', dadoExtra: 1 }],
     resumo: 'Armas corpo a corpo causam um dado de dano a mais, do mesmo tipo que já rolam.',
   },
   {

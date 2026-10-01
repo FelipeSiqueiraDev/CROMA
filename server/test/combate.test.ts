@@ -486,8 +486,8 @@ describe('ataque: medidas e situações', () => {
   });
 
   test('consequência: machucado, 0 PV e dano massivo (LR p. 88)', () => {
-    assert.deepEqual(combate.consequencia({ pv: 42, pvMax: 42 }, 36), { pv: 6, machucado: true, zerou: false, massivo: 21 });
-    assert.deepEqual(combate.consequencia({ pv: 18, pvMax: 18 }, 21), { pv: 0, machucado: false, zerou: true, massivo: null });
+    assert.deepEqual(combate.consequencia({ pv: 42, pvMax: 42 }, 36), { pv: 6, machucado: true, zerou: false, desmaiou: false, massivo: 21 });
+    assert.deepEqual(combate.consequencia({ pv: 18, pvMax: 18 }, 21), { pv: 0, machucado: false, zerou: true, desmaiou: false, massivo: null });
     assert.equal(combate.consequencia({ pv: 30, pvMax: 40 }, 8).massivo, null);
   });
 });
@@ -649,9 +649,11 @@ describe('combate: manobras', () => {
     c = ate(aplicar(c, { tipo: 'passar' }), 'Cora');
     const r = combate.aplicar(c, man(1, 10, 'esmagar', { dano: { formula: '1d3+2', soma: 2, total: 4, tipo: 'impacto', conta: '4', final: 4, naoLetal: true } }), ctx());
     assert.ok(r.ok);
-    assert.deepEqual(r.vitais, [{ id: 10, pv: 16 }]);
+    // o não letal não tira PV: fica à parte e soma para desmaiar (LR p. 88)
+    assert.deepEqual(r.vitais, []);
     c = r.combate!;
-    assert.equal(c.registro.at(-1)?.texto, 'Dano não letal 1d3+2: 4. Ocultista: PV 20 → 16.');
+    assert.equal(combate.participante(c, 10)?.naoLetal, 4);
+    assert.equal(c.registro.at(-1)?.texto, 'Dano não letal 1d3+2: 4. Ocultista: não letal 0 → 4 (PV 20).');
     c = aplicar(c, { tipo: 'soltar', id: 1 });
     assert.equal(combate.participante(c, 10)?.condicoes, undefined);
     assert.equal(c.registro.at(-1)?.texto, 'Cora solta Ocultista (ação livre, LR p. 85).');
@@ -965,5 +967,153 @@ describe('MAPA: anotações na planta e área da cena', () => {
     assert.equal(gm.last('roomUpdate')?.room.area, 'Área técnica');
     gm.send({ t: 'roomSettings', name: r.name, description: r.description, darkness: r.darkness, publicBuild: r.publicBuild, area: '' });
     assert.equal(gm.last('roomUpdate')?.room.area, undefined);
+  });
+});
+
+describe('correções da conferência de 01/10 (Veríssimo): o combate', () => {
+  const dano = (final: number, tipo = 'impacto', extra: Partial<combate.DanoConfirmado> = {}): combate.DanoConfirmado => ({ formula: '1d6', soma: final, total: final, tipo, conta: String(final), final, ...extra });
+  const golpe = (quem: number, alvo: number, d: combate.DanoConfirmado | undefined, extra: Partial<combate.AtaqueConfirmado> = {}): Acao => ({
+    tipo: 'ataque',
+    ataque: { quem, alvo, arma: 'Golpe', qual: 'padrao', teste: { dados: 1, bonus: 5, d20: 15, total: 20, defesa: 10 }, situacoes: [], resultado: 'acerto', ...(d ? { dano: d } : {}), ...extra },
+  });
+  const criatura = (): combate.FichaAmeaca => ({ ...combate.fichaAmeacaVazia(), tipo: 'Criatura de Sangue', elemento: 'sangue' });
+  const comAmeaca = (fichas: Record<number, combate.FichaAmeaca>): combate.Contexto => ({ ...ctx(), ameaca: (id) => fichas[id] ?? null });
+  const texto = (c: Combate) => c.registro.map((l) => l.texto);
+
+  test('V-1: dano mental tira SAN, não PV; a SAN 0, enlouquecendo (LR p. 82, 88)', () => {
+    vitais.set(2, { san: 6, sanMax: 20 });
+    const c = aplicar(montado(), { tipo: 'comecar' });
+    const r = combate.aplicar(c, golpe(1, 2, dano(7, 'mental')), ctx());
+    assert.ok(r.ok);
+    assert.deepEqual(r.vitais, [{ id: 2, san: 0 }]);
+    assert.ok(texto(r.combate!).includes('Dano mental 1d6: 7. Tepes: SAN 6 → 0 (enlouquecendo).'));
+    assert.ok(texto(r.combate!).some((t) => t.startsWith('Tepes fica enlouquecendo')));
+  });
+
+  test('V-2: não letal fica à parte dos PV, desmaia sem morrendo e o mestre tira na cura (LR p. 88)', () => {
+    vitais.set(3, { pv: 10, pvMax: 20 });
+    let c = aplicar(montado(), { tipo: 'comecar' });
+    c = aplicar(c, golpe(1, 3, dano(6, 'impacto', { naoLetal: true })));
+    assert.equal(combate.participante(c, 3)?.naoLetal, 6);
+    assert.equal(combate.participante(c, 3)?.condicoes, undefined);
+    c = aplicar(aplicar(c, { tipo: 'passar' }), golpe(2, 3, dano(5, 'impacto', { naoLetal: true })));
+    assert.equal(combate.participante(c, 3)?.naoLetal, 11);
+    assert.deepEqual(combate.participante(c, 3)?.condicoes, ['inconsciente', 'caido']);
+    assert.ok(texto(c).includes('Catarina cai inconsciente: o dano não letal passou dos PV, sem morrendo (LR p. 88).'));
+    // o turno dela começa sem contar morrendo: os PV continuam 10
+    c = aplicar(aplicar(c, { tipo: 'passar' }), { tipo: 'passar' });
+    assert.equal(vez(c), 'Catarina');
+    assert.equal(combate.participante(c, 3)?.morrendo, 0);
+    // a cura tira primeiro o não letal: o mestre ajusta, e ela acorda
+    c = aplicar(c, { tipo: 'naoLetal', id: 3, valor: 4, motivo: 'cura' });
+    assert.equal(combate.participante(c, 3)?.naoLetal, 4);
+    assert.deepEqual(combate.participante(c, 3)?.condicoes, ['caido']);
+    assert.ok(texto(c).includes('Catarina acorda (continua caído).'));
+    c = aplicar(c, { tipo: 'encerrar' });
+    assert.ok(texto(c).some((t) => t.startsWith('Dano não letal que fica até a cura: Catarina 4')));
+  });
+
+  test('V-2: o letal com o não letal acumulado desmaia sem morrendo; o massivo do não letal não deixa morrendo', () => {
+    assert.deepEqual(combate.consequencia({ pv: 10, pvMax: 20 }, 5, 6), { pv: 5, machucado: true, zerou: false, desmaiou: true, massivo: null });
+    assert.deepEqual(combate.consequenciaNaoLetal({ pv: 20, pvMax: 20 }, 0, 10), { naoLetal: 10, desmaiou: false, massivo: 17 });
+    assert.equal(combate.previaDano({ pv: 20, pvMax: 20, san: 20, sanMax: 20 }, 6, { tipo: 'mental' })?.texto, 'SAN 20 → 14');
+  });
+
+  test('V-3: quem atrasa não começa o turno de novo; quem já agiu não atrasa (LR p. 87–88)', () => {
+    vitais.set(1, { pv: 0 });
+    let c = aplicar(montado(), { tipo: 'comecar' });
+    assert.equal(combate.participante(c, 1)?.morrendo, 1);
+    c = aplicar(c, { tipo: 'atrasar', valor: 17 });
+    assert.equal(vez(c), 'Tepes');
+    c = aplicar(c, { tipo: 'passar' });
+    assert.equal(vez(c), 'Cora');
+    assert.equal(combate.participante(c, 1)?.morrendo, 1, 'o turno já tinha começado nesta rodada');
+    assert.equal(c.registro.at(-1)?.texto, 'Cora age agora (tinha atrasado a vez).');
+    // na rodada seguinte, conta de novo (a Iniciativa dela ficou em 17, depois do Tepes)
+    for (let i = 0; i < 4; i++) c = aplicar(c, { tipo: 'passar' });
+    assert.equal(c.rodada, 2);
+    assert.equal(vez(c), 'Cora');
+    assert.equal(combate.participante(c, 1)?.morrendo, 2);
+    vitais.clear();
+    let d = aplicar(montado(), { tipo: 'comecar' });
+    d = aplicar(d, { tipo: 'declarar', qual: 'padrao', texto: 'abre a porta', quem: 1 });
+    assert.match(recusa(d, { tipo: 'atrasar', valor: 17 }), /atrasar é agir mais tarde/);
+  });
+
+  test('V-4: a falha soma até 75%, que é 1 a 3 no d4 (LR p. 89, 313)', () => {
+    assert.deepEqual(combate.dadoDaFalha(20), { faces: 10, ate: 2 });
+    assert.deepEqual(combate.dadoDaFalha(70), { faces: 10, ate: 7 });
+    assert.deepEqual(combate.dadoDaFalha(75), { faces: 4, ate: 3 });
+    const r = (d10: number) => combate.resolver({ d20: 15, bonus: 5, defesa: 10, margem: 20, falha: 75, d10 });
+    assert.equal(r(3).falhou, true);
+    assert.equal(r(4).falhou, false);
+    const c = aplicar(aplicar(montado(), { tipo: 'comecar' }), golpe(1, 10, undefined, { resultado: 'erro', falha: { chance: 75, d10: 2, falhou: true } }));
+    assert.ok(texto(c).some((t) => t.includes('falha 75%: d4 2, falhou')));
+  });
+
+  test('V-5: RD e imunidade paranormal valem nos cinco elementos; o mental fica de fora (LR p. 82)', () => {
+    assert.equal(combate.contaDano({ soma: 20, fixo: 0, tipo: 'sangue', rd: { paranormal: 10 } }).final, 10);
+    assert.equal(combate.contaDano({ soma: 20, fixo: 0, tipo: 'medo', rd: { paranormal: 10 } }).final, 10);
+    assert.equal(combate.contaDano({ soma: 20, fixo: 0, tipo: 'mental', rd: { paranormal: 10 } }).final, 20);
+    assert.equal(combate.contaDano({ soma: 20, fixo: 0, tipo: 'morte', imunidades: ['paranormal'] }).final, 0);
+  });
+
+  test('V-7: a criatura é imune a dano mental, a condições mentais e de medo e a rituais de Medo (LR p. 180)', () => {
+    assert.deepEqual(combate.imunidadesDaAmeaca(criatura()), ['mental']);
+    assert.deepEqual(combate.imunidadesDaAmeaca(combate.fichaAmeacaVazia()), []);
+    const fichas = { 10: criatura() };
+    let c = aplicar(montado(), { tipo: 'comecar' });
+    const r = combate.aplicar(c, { tipo: 'condicao', id: 10, condicao: 'abalado', ativa: true }, comAmeaca(fichas));
+    assert.equal(r.ok, false);
+    assert.match((r as { motivo: string }).motivo, /imune a condições de medo/);
+    assert.ok(combate.aplicar(c, { tipo: 'condicao', id: 11, condicao: 'abalado', ativa: true }, comAmeaca(fichas)).ok, 'a pessoa fica abalada');
+    c = aplicar(c, { tipo: 'passar' });
+    const rit = combate.aplicar(
+      c,
+      { tipo: 'ritual', ritual: { quem: 2, ritual: 'Lâmina do Medo', elemento: 'medo', forma: 'basica', qual: 'padrao', pe: 1, alvos: [{ id: 10, dano: dano(30, 'medo') }, { id: 11, dano: dano(8, 'medo') }] } },
+      comAmeaca(fichas),
+    );
+    assert.ok(rit.ok);
+    assert.deepEqual(rit.vitais, [{ id: 11, pv: 12 }, { id: 2, pe: 4 }]);
+    assert.ok(texto(rit.combate!).includes('Ocultista é criatura: imune a rituais de Medo (LR p. 180).'));
+  });
+
+  test('V-9, V-10, V-11: as ameaças do livro', () => {
+    const a = (id: string) => combate.ameacaLivro(id)!;
+    // "–2O" é atributo 0: 2d20, fica o pior (LR p. 75)
+    assert.equal(a('anarquico').fortitude.dados, 0);
+    assert.equal(a('parasita-de-culpa').iniciativa?.dados, 0);
+    assert.equal(combate.lerFichaAmeaca({ ...combate.fichaAmeacaVazia(), vontade: { dados: -2, bonus: 0 } })!.vontade.dados, 0);
+    // Aracnasita: imune a dano até o enigma; o fogo tira a imunidade (LR p. 209)
+    const ar = combate.fichaDoLivro(a('aracnasita'));
+    assert.ok(ar.imunidades.includes('todos'));
+    assert.ok(ar.imunidades.includes('mental'));
+    assert.match(ar.notas ?? '', /fogo/);
+    // Múmia Xipófaga: Vomitar Lodo dá 3d6 de Morte e 1d8 mental (LR p. 221)
+    assert.deepEqual(a('mumia-xipofaga').ataques.find((x) => x.nome === 'Vomitar Lodo')?.extra, { dano: '1d8', tipo: 'mental' });
+  });
+
+  test('V-11: o dano a mais de outro tipo vai junto: Morte nos PV, mental na SAN', () => {
+    vitais.set(1, { pv: 30, pvMax: 30, san: 15, sanMax: 15 });
+    let c = aplicar(montado(), { tipo: 'comecar' });
+    c = aplicar(aplicar(c, { tipo: 'passar' }), { tipo: 'passar' });
+    assert.equal(vez(c), 'Turno do mestre');
+    const r = combate.aplicar(c, golpe(10, 1, dano(9, 'morte'), { danoExtra: dano(5, 'mental') }), ctx());
+    assert.ok(r.ok);
+    assert.deepEqual(r.vitais, [{ id: 1, pv: 21, san: 10 }]);
+  });
+
+  test('V-21: o mínimo de 1 PE vale depois da forma (Mestre em Elemento e Arma Atroz discente: 2, LR p. 78, 121)', () => {
+    const r = { discente: { custoExtra: 2 } };
+    assert.equal(combate.custoDaForma(1, r, 'discente', -1), 2);
+    assert.equal(combate.custoDaForma(1, r, 'basica', -1), 1);
+  });
+
+  test('V-22: o teste do ataque guarda os dados perdidos à parte (LR p. 11)', () => {
+    // Agi 2 caída (−2d20): rola 4d20 e fica o pior
+    const t = combate.montarTeste({ dados: 2, bonus: 5, defesaBase: 12, distancia: false, situacoes: ['atacanteCaido'] });
+    assert.deepEqual({ dados: t.dados, penalidade: t.penalidade }, { dados: 2, penalidade: -2 });
+    assert.equal(combate.textoRolagem(t.dados, t.bonus, t.penalidade), 'Role 4d20, fique com o menor, +5');
+    assert.equal(combate.textoRolagem(3, 0, -1), 'Role 2d20, fique com o maior');
   });
 });

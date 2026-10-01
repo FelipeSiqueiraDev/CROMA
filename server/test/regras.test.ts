@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
+import { lootParaItem } from '../../shared/src/itens';
 import * as regras from '../../shared/src/regras';
 
 const { calcular, catalogo, escolhasDe, montarEstado, novaFicha, opcoesPoder, opcoesRitual, opcoesTrilha, slug } = regras;
@@ -504,5 +505,164 @@ describe('mochila: mãos, vestidos e o que se achou', () => {
     assert.equal(numerarItens(inv, () => n++), true);
     assert.deepEqual(inv.map((x) => x.uid), [10, 5]);
     assert.equal(numerarItens(inv, () => n++), false);
+  });
+});
+
+describe('correções da conferência de 01/10 (Veríssimo): a ficha', () => {
+  /** Ocultista acadêmico com os 3 rituais do NEX 5%. */
+  function ocultista(): Ficha {
+    const f = novaFicha('Ocultista');
+    f.atributos = { agi: 1, for: 1, int: 3, pre: 3, vig: 1 };
+    f.origem = 'academico';
+    f.classe = 'ocultista';
+    f.pericias.livres = ['atualidades', 'ciencias', 'diplomacia', 'intuicao', 'medicina', 'percepcao'];
+    return f;
+  }
+  const rituaisDo = (circulo: number) => catalogo.CATALOGO.rituais.filter((r) => r.circulo === circulo && !r.concedidoPor && r.ref.fonte === 'LR').map((r) => r.id);
+
+  test('V-5: RD paranormal vale nos cinco elementos (Jaqueta de Veríssimo 15, LR p. 82)', () => {
+    const f = combatente();
+    f.pp = 50;
+    f.inventario = [{ id: 'jaqueta-de-verissimo', tipo: 'amaldicoado' }];
+    const r = calcular(f).resistencias;
+    for (const t of ['sangue', 'morte', 'conhecimento', 'energia', 'medo'] as const) assert.equal(r[t], 15, t);
+    assert.equal(r.paranormal, undefined);
+    assert.equal(r.mental, undefined);
+  });
+
+  test('V-13: RD de itens diferentes não soma; a do mesmo item soma (LR p. 144, 312–313)', () => {
+    const f = combatente();
+    f.pp = 50;
+    f.inventario = [
+      { id: 'jaqueta-de-verissimo', tipo: 'amaldicoado' },
+      { id: 'protecao-leve', tipo: 'protecao', maldicoes: ['regenerativa'] },
+    ];
+    // Jaqueta (paranormal 15) e Regenerativa (Sangue 10) em itens diferentes: vale a maior
+    assert.equal(calcular(f).resistencias.sangue, 15);
+    // a proteção pesada (RD 2) e a Cinética dela (RD 5 na pesada): o mesmo item soma
+    f.inventario = [{ id: 'protecao-pesada', tipo: 'protecao', maldicoes: ['cinetica'] }];
+    assert.equal(calcular(f).resistencias.balistico, 7);
+  });
+
+  test('V-13: bônus de itens diferentes na mesma perícia não somam (Sombria e Pé de Morto: +5, LR p. 63, 312)', () => {
+    const f = combatente();
+    f.pp = 50;
+    const sem = calcular(f).pericias.furtividade.bonus;
+    f.inventario = [{ id: 'pe-de-morto', tipo: 'equipamento' }];
+    assert.equal(calcular(f).pericias.furtividade.bonus - sem, 5);
+    f.inventario.push({ id: 'protecao-leve', tipo: 'protecao', maldicoes: ['sombria'] });
+    assert.equal(calcular(f).pericias.furtividade.bonus - sem, 5);
+  });
+
+  test('V-6: Precognição soma +2 em Fortitude, Reflexos e Vontade; a esquiva e o bloqueio não (LR p. 88, 114)', () => {
+    const f = combatente();
+    f.nex = 15;
+    f.progressao = { 15: { poder: { id: 'transcender', escolha: { poder: 'sensitivo' } } }, 30: { poder: { id: 'transcender', escolha: { poder: 'precognicao' } } } };
+    const antes = calcular(f);
+    f.nex = 30;
+    const depois = calcular(f);
+    assert.ok(!erros(f).some((e) => e.includes('Precognição')), erros(f).join(' | '));
+    for (const p of ['fortitude', 'reflexos', 'vontade'] as const) assert.equal(depois.pericias[p].bonus - antes.pericias[p].bonus, 2, p);
+    assert.equal(depois.defesa - antes.defesa, 2);
+    assert.equal(depois.reacoes.bloqueio, antes.reacoes.bloqueio);
+  });
+
+  test('V-12: preço da maldição: 2 de SAN por maldição do elemento, somando (LR p. 145, 148)', () => {
+    const f = combatente();
+    f.pp = 50;
+    const morte = catalogo.CATALOGO.amaldicoados.filter((a) => a.elemento === 'morte').slice(0, 2);
+    f.inventario = morte.map((a) => ({ id: a.id, tipo: 'amaldicoado' as const }));
+    const preco = calcular(f).condicionais.filter((c) => c.origem === 'Preço de morte');
+    assert.equal(preco.length, 1);
+    assert.match(preco[0].texto, /custa 4 de Sanidade \(2 maldições de morte\)/);
+  });
+
+  test('V-14: proteção sem proficiência: −2d20 nos testes de Força e Agilidade e nos ataques (LR p. 62)', () => {
+    const f = combatente();
+    f.pp = 20;
+    f.inventario = [{ id: 'protecao-pesada', tipo: 'protecao' }];
+    const c = calcular(f);
+    assert.equal(c.pericias.atletismo.penalidadeDados, -2);
+    assert.equal(c.pericias.acrobacia.penalidadeDados, -2);
+    assert.equal(c.pericias.luta.penalidadeDados, -2);
+    assert.equal(c.pericias.investigacao.penalidadeDados, 0);
+    const des = c.ataques.find((a) => a.item === 'ataque-desarmado')!;
+    assert.equal(des.penalidadeDados, -2);
+    assert.ok(des.notas.some((n) => n.includes('sem proficiência')));
+    // o escudo conta como proteção pesada para a proficiência
+    f.inventario = [{ id: 'escudo', tipo: 'protecao', empunhado: true }];
+    assert.equal(calcular(f).pericias.atletismo.penalidadeDados, -2);
+    // guardada na mochila, não pesa
+    f.inventario = [{ id: 'protecao-pesada', tipo: 'protecao', vestido: false }];
+    assert.equal(calcular(f).pericias.atletismo.penalidadeDados, 0);
+  });
+
+  test('V-15, V-16, V-17: arco composto e estilingue somam a Força; moto-serra −2; metralhadora −5 sem Força 4; pistola pesada −1d20', () => {
+    const f = combatente();
+    f.pp = 200;
+    const atk = (id: string) => {
+      f.inventario = [{ id, tipo: 'arma' }];
+      return calcular(f).ataques.find((a) => a.item === id)!;
+    };
+    assert.equal(atk('arco-composto').dano, '1d10+2');
+    assert.equal(atk('estilingue').dano, '1d4+2');
+    const c = calcular(f);
+    assert.equal(atk('moto-serra').bonus, c.pericias.luta.bonus - 2);
+    const met = atk('metralhadora');
+    assert.equal(met.bonus, c.pericias.pontaria.bonus - 5);
+    assert.ok(met.notas.some((n) => n.includes('tripé')));
+    f.atributos = { agi: 2, for: 4, int: 1, pre: 1, vig: 3 };
+    assert.equal(atk('metralhadora').bonus, calcular(f).pericias.pontaria.bonus);
+    assert.equal(atk('pistola-pesada').penalidadeDados, -1);
+  });
+
+  test('V-18: item que se veste, pego do cenário, entra guardado (vestir é uma ação, LR p. 53, 63)', () => {
+    const it = lootParaItem({ id: 7, name: 'Colete', espacos: 2, kind: 'misc', revealed: true, item: { id: 'protecao-leve', tipo: 'protecao' } });
+    assert.equal(it.vestido, false);
+    assert.equal(regras.lugarDoItem(it), 'mochila');
+  });
+
+  test('V-19: Golpe Pesado vale nas armas corpo a corpo, não no desarmado (LR p. 25, 57)', () => {
+    const f = combatente();
+    f.nex = 15;
+    f.progressao = { 15: { poder: { id: 'golpe-pesado' } } };
+    f.inventario = [{ id: 'faca', tipo: 'arma' }];
+    const c = calcular(f);
+    assert.equal(c.ataques.find((a) => a.item === 'faca')!.dano, '2d4+2');
+    assert.equal(c.ataques.find((a) => a.item === 'ataque-desarmado')!.dano, '1d3+2');
+  });
+
+  test('V-21: o custo guarda o do círculo e o ajuste dos poderes, para a forma somar antes do mínimo de 1 PE', () => {
+    const f = ocultista();
+    const r1 = rituaisDo(1).slice(0, 3);
+    escolhasDe(f, 5).parametros = { 'escolhido-pelo-outro-lado': { rituais: r1 } };
+    const custo = calcular(f).custoRituais[r1[0]];
+    assert.deepEqual({ pe: custo.pe, base: custo.base, ajuste: custo.ajuste }, { pe: 1, base: 1, ajuste: 0 });
+  });
+
+  test('V-22: menos de 1 dado: rola como se a penalidade fosse bônus e fica o pior (LR p. 11)', () => {
+    assert.deepEqual(regras.rolagem(2, -3), { dados: 5, fica: 'menor' });
+    assert.deepEqual(regras.rolagem(1, -1), { dados: 2, fica: 'menor' });
+    assert.deepEqual(regras.rolagem(3, -1), { dados: 2, fica: 'maior' });
+    // atributo 0: 2d20, fica o pior (LR p. 75); cada dado perdido soma um (DC-1)
+    assert.deepEqual(regras.rolagem(0), { dados: 2, fica: 'menor' });
+    assert.deepEqual(regras.rolagem(0, -1), { dados: 3, fica: 'menor' });
+  });
+
+  test('V-23: Saber Ampliado: o ritual a mais do círculo novo tem de ser desse círculo (LR p. 35)', () => {
+    const f = ocultista();
+    f.trilha = 'graduado';
+    f.nex = 25;
+    const r1 = rituaisDo(1);
+    const r2 = rituaisDo(2);
+    escolhasDe(f, 5).parametros = { 'escolhido-pelo-outro-lado': { rituais: r1.slice(0, 3) } };
+    escolhasDe(f, 10).parametros = { 'saber-ampliado': { rituais: [r1[3]] } };
+    escolhasDe(f, 25).parametros = { 'saber-ampliado': { rituais: [r1[4]] } };
+    assert.ok(erros(f).some((e) => e.includes('o ritual do círculo novo tem de ser do 2º')), erros(f).join(' | '));
+    escolhasDe(f, 25).parametros = { 'saber-ampliado': { rituais: [r2[0]] } };
+    assert.ok(!erros(f).some((e) => e.includes('círculo novo')), erros(f).join(' | '));
+    const ops = opcoesRitual(f, 25, 2, 2);
+    assert.ok(ops.find((o) => o.id === r1[5])!.motivos.some((m) => m.includes('círculo novo')));
+    assert.ok(ops.find((o) => o.id === r2[1])!.ok);
   });
 });

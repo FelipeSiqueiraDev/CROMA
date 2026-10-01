@@ -307,15 +307,18 @@ export function montarEstado(f: Ficha, ate: Nex = f.nex, excluir?: Exclusao): Es
 
   /** Habilidades com rituais a mais por círculo novo (Saber Ampliado, Grimório). */
   const extras: Habilidade[] = [];
-  /** Pede `qtd` rituais escolhidos nos parâmetros da habilidade, neste NEX. */
-  const pedirRituais = (h: Habilidade, nex: Nex, qtd: number, circuloMax: number) => {
+  /**
+   * Pede `qtd` rituais escolhidos nos parâmetros da habilidade, neste NEX. Com
+   * `exato`, o ritual tem de ser desse círculo (o do círculo novo, LR p. 35).
+   */
+  const pedirRituais = (h: Habilidade, nex: Nex, qtd: number, circuloMax: number, exato?: number) => {
     const rs = f.progressao[nex]?.parametros?.[h.id]?.rituais ?? [];
     if (rs.length < qtd) falta(nex, 'ritual', `${h.nome}: escolha ${qtd - rs.length} ritual${qtd - rs.length > 1 ? 'is' : ''}.`, h.id);
     if (rs.length > qtd) erro(nex, h.nome, `${h.nome}: são ${qtd} rituais aqui.`);
-    for (const id of rs) aprenderRitual(id, nex, circuloMax, h.nome, 'trilha');
+    for (const id of rs) aprenderRitual(id, nex, circuloMax, h.nome, 'trilha', exato);
   };
 
-  const aprenderRitual = (id: string, nex: Nex, circuloMax: number | undefined, onde: string, via: RitualObtido['via']) => {
+  const aprenderRitual = (id: string, nex: Nex, circuloMax: number | undefined, onde: string, via: RitualObtido['via'], exato?: number) => {
     const r = cat.ritual(id);
     if (!r) {
       erro(nex, onde, `Ritual desconhecido: ${id}.`);
@@ -324,6 +327,7 @@ export function montarEstado(f: Ficha, ate: Nex = f.nex, excluir?: Exclusao): Es
     if (!cat.disponivel(r, f.regras)) erro(nex, onde, `${r.nome} é do Sobrevivendo ao Horror, que esta campanha não usa.`);
     const max = circuloMax ?? circuloMaximo(st.classe, nex);
     if (r.circulo > max) erro(nex, onde, `${r.nome} é de ${r.circulo}º círculo; em NEX ${nex}% só até o ${max}º.`);
+    else if (exato && r.circulo !== exato) erro(nex, onde, `${r.nome} é de ${r.circulo}º círculo; o ritual do círculo novo tem de ser do ${exato}º (LR p. 35).`);
     if (r.concedidoPor && via !== 'trilha') erro(nex, onde, `${r.nome} só vem de ${r.concedidoPor}.`);
     if (st.rituais.some((x) => x.id === id)) erro(nex, onde, `${r.nome} já é conhecido.`);
     st.rituais.push({ id, nex, via });
@@ -480,7 +484,7 @@ export function montarEstado(f: Ficha, ate: Nex = f.nex, excluir?: Exclusao): Es
     st.nex = nex;
     const circuloAgora = f.classe ? circuloMaximo(f.classe, nex) : 0;
     if (circuloAgora > circuloAntes && circuloAntes > 0)
-      for (const h of extras) if (h.rituaisExtras?.porCirculoNovo) pedirRituais(h, nex, 1, circuloAgora);
+      for (const h of extras) if (h.rituaisExtras?.porCirculoNovo) pedirRituais(h, nex, 1, circuloAgora, circuloAgora);
     circuloAntes = circuloAgora;
     const e = f.progressao[nex] ?? {};
     const ganhos = ganhosDoNex(f.classe, nex, f.comecouMundano).sort((a, b) => ORDEM.indexOf(a.tipo) - ORDEM.indexOf(b.tipo));

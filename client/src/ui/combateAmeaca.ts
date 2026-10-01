@@ -106,15 +106,16 @@ export function editarAmeaca(
   };
   for (const [t, v] of Object.entries(f.rd) as [TipoDano, number][]) addRd(t, v);
 
-  // imunidades e vulnerabilidades
-  const marcas = (rotulo: string, lista: TipoDano[]) => {
-    const sel = new Set(lista);
+  // imunidades e vulnerabilidades. "Todo dano" fica nas imunidades: resolvido o
+  // enigma de medo, o mestre desmarca e a criatura volta a sofrer dano (LR p. 180–181)
+  const marcas = (rotulo: string, lista: TipoDano[], todoDano: boolean) => {
+    const sel = new Set(todoDano ? lista : lista.filter((t) => t !== 'todos'));
     const el = h(
       'div',
       { class: 'cb-fa-marcas' },
       h('small', null, rotulo),
-      ...cb.TIPOS_DANO.filter((t) => t !== 'todos').map((t) => {
-        const b = h('button', { class: `cb-fa-marca${sel.has(t) ? ' on' : ''}`, type: 'button', 'aria-pressed': String(sel.has(t)) }, cb.NOME_TIPO_DANO[t]);
+      ...cb.TIPOS_DANO.filter((t) => todoDano || t !== 'todos').map((t) => {
+        const b = h('button', { class: `cb-fa-marca${sel.has(t) ? ' on' : ''}`, type: 'button', 'aria-pressed': String(sel.has(t)), ...(t === 'todos' ? { title: 'Imune a todo dano (criaturas de Medo, até o enigma ser resolvido)' } : {}) }, t === 'todos' ? 'todo dano' : cb.NOME_TIPO_DANO[t]);
         b.addEventListener('click', () => {
           if (sel.has(t)) sel.delete(t);
           else sel.add(t);
@@ -126,8 +127,8 @@ export function editarAmeaca(
     );
     return { el, sel };
   };
-  const imu = marcas('Imune a', f.imunidades);
-  const vul = marcas('Vulnerável a', f.vulnerabilidades);
+  const imu = marcas('Imune a', f.imunidades, true);
+  const vul = marcas('Vulnerável a', f.vulnerabilidades, false);
 
   // ataques
   const atkLista = h('div', { class: 'cb-fa-ataques' });
@@ -158,6 +159,8 @@ export function editarAmeaca(
               multiplicador: num(iX, 2),
               ...(alc.value ? { alcance: alc.value } : {}),
               ...(num(iV, 1) > 1 ? { vezes: num(iV, 1) } : {}),
+              // o dano a mais de outro tipo vem do livro e fica como está
+              ...(a.extra ? { extra: a.extra } : {}),
             }
           : null,
     };
@@ -199,7 +202,7 @@ export function editarAmeaca(
       vul.el,
       h('div', { class: 'cb-fa-bloco' }, h('div', { class: 'cb-fa-cab' }, h('b', null, 'Ataques'), botao('Ataque', 'mais', 'mini', () => addAtk({ nome: '', pericia: 'luta', dados: 2, bonus: 0, dano: '1d6', tipo: 'corte', margem: 20, multiplicador: 2 }))), atkLista),
       h('label', { class: 'fj-campo' }, h('span', null, 'Notas'), notas),
-      h('p', { class: 'fj-texto' }, 'Escolha no livro ou copie os números (LR p. 178–181). As contas do ataque, do dano e das manobras usam esta ficha; o texto das habilidades fica no livro.'),
+      h('p', { class: 'fj-texto' }, 'Escolha no livro ou copie os números (LR p. 178–181). As contas do ataque, do dano e das manobras usam esta ficha; o texto das habilidades fica no livro. Teste impresso como "–2O" (atributo 0): d20 = 0, rola 2d20 e fica o pior.'),
     ),
   );
 

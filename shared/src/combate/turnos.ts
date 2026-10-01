@@ -4,7 +4,7 @@
  * e devolvem uma cópia mudada, ou o motivo da recusa.
  */
 import { condicao as condicaoDoCatalogo } from '../regras/dados';
-import { consequencia, METROS_POR_CASA, textoMetros } from './ataque';
+import { consequencia, consequenciaMental, consequenciaNaoLetal, dadoDaFalha, METROS_POR_CASA, textoMetros } from './ataque';
 import { casasEmpurrao, empurraUmQuadrado, manobra as defManobra, type ManobraId } from './manobra';
 import {
   LADOS,
@@ -124,15 +124,22 @@ function registrar(c: Combate, agora: number, tipo: TipoRegistro, t: string, des
   if (c.registro.length > MAX_REGISTRO) c.registro.splice(0, c.registro.length - MAX_REGISTRO);
 }
 
+/** A criatura (ameaça com elemento) não tem SAN e é imune a dano mental, a condições mentais e de medo e a rituais de Medo (LR p. 180). */
+const criatura = (ctx: Contexto, p: Participante) => p.lado !== 'agente' && !!ctx.ameaca?.(p.id)?.elemento;
+
 /** Começo do turno de um lugar (COMBATE.md, seção 4.3). */
 function comecarTurno(c: Combate, e: Entrada, ctx: Contexto) {
   const ps = ativosDa(c, e);
   c.acoes = {};
-  for (const p of ps) {
-    c.acoes[String(p.id)] = livre();
-    // a defesa especial volta no começo do próprio turno (DC-7)
-    p.reacao = false;
+  for (const p of ps) c.acoes[String(p.id)] = livre();
+  // quem atrasou volta à vez: o turno já tinha começado nesta rodada, e atrasar é só agir mais tarde (LR p. 87)
+  if (c.comecaram?.includes(e.id)) {
+    registrar(c, ctx.agora, 'turno', `${nomeEntrada(c, e)} age agora (tinha atrasado a vez).`);
+    return;
   }
+  (c.comecaram ??= []).push(e.id);
+  // a defesa especial volta no começo do próprio turno (DC-7)
+  for (const p of ps) p.reacao = false;
   registrar(c, ctx.agora, 'turno', e.mestre ? `Turno do mestre: ${ps.map((p) => p.nome).join(', ')}.` : `Vez de ${nomeEntrada(c, e)}.`);
   // ação preparada que não foi usada até aqui se perde (LR p. 86)
   const i = c.preparadas.findIndex((x) => x.entrada === e.id);
@@ -215,6 +222,7 @@ function proximo(c: Combate, ctx: Contexto) {
       }
       c.rodada += 1;
       c.agiram = [];
+      c.comecaram = [];
       registrar(c, ctx.agora, 'rodada', `Rodada ${c.rodada}.`);
       continue;
     }
@@ -318,9 +326,10 @@ function ataque(c: Combate, x: unknown, ctx: Contexto, e: Entrada | undefined): 
   let linha = `${quem.nome} ataca ${alvo.nome} com ${arma}${golpe}${reacao ? ` (${alvo.nome} usa ${reacao})` : ''}: d20 ${d20}, total ${total} contra Defesa ${defesa}`;
   if (sits.length) linha += ` (${sits.join(', ')})`;
   const f = o.falha && typeof o.falha === 'object' ? (o.falha as Record<string, unknown>) : null;
-  const d10 = f ? inteiro(f.d10, 1, 10) : undefined;
+  const d10 = f ? inteiro(f.d10, 1, 100) : undefined;
   const chance = f ? inteiro(f.chance, 0, 100) : undefined;
-  if (d10 !== undefined && chance) linha += `; falha ${chance}%: d10 ${d10}${f!.falhou ? ', falhou' : ''}`;
+  // o dado da falha: d10, ou d4 nos 75% (LR p. 89, 313)
+  if (d10 !== undefined && chance) linha += `; falha ${chance}%: d${dadoDaFalha(chance).faces} ${d10}${f!.falhou ? ', falhou' : ''}`;
   const rotulo = resultado === 'erro' ? 'errou' : resultado === 'critico' ? `acerto crítico ×${mult}` : 'acertou';
   registrar(c, ctx.agora, 'acao', `${linha} — ${rotulo}.`, resultado === 'erro' ? undefined : [rotulo]);
   if (resultado === 'erro' && o.contraAtaque === true) registrar(c, ctx.agora, 'estado', `${alvo.nome} pode contra-atacar (Luta treinada, uma defesa especial por rodada; LR p. 88).`);
@@ -328,47 +337,82 @@ function ataque(c: Combate, x: unknown, ctx: Contexto, e: Entrada | undefined): 
   const vitais: MudancaVitais[] = [];
   const d = o.dano && typeof o.dano === 'object' ? (o.dano as Record<string, unknown>) : null;
   if (resultado !== 'erro' && d) aplicarDano(c, alvo, d, ctx, vitais);
+  // o dano a mais de outro tipo (ex.: "e 1d8 mental"), contado à parte
+  const dx = o.danoExtra && typeof o.danoExtra === 'object' ? (o.danoExtra as Record<string, unknown>) : null;
+  if (resultado !== 'erro' && dx) aplicarDano(c, alvo, dx, ctx, vitais);
   c.ultimo = { quem: quem.id, alvo: alvo.id, resultado, ...(mult ? { multiplicador: mult } : {}), em: ctx.agora };
   return { ok: true, combate: c, vitais };
 }
 
+/** Guarda o valor novo de PV, PE ou SAN de um ser na lista de mudanças. */
+function mudar(vitais: MudancaVitais[], id: number, k: 'pv' | 'pe' | 'san', n: number) {
+  const m = vitais.find((x) => x.id === id);
+  if (m) m[k] = n;
+  else vitais.push({ id, [k]: n });
+}
+
 /**
- * Aplica um dano que a tela já contou: PV novos, machucado, dano massivo e 0
- * PV (LR p. 88). A 0 PV a peça deita (DC-19); a ameaça sai pelo mestre (DC-16).
+ * Aplica um dano que a tela já contou (LR p. 82, 88):
+ * - letal: PV novos, machucado, dano massivo e 0 PV. A 0 PV a peça deita
+ *   (DC-19); a ameaça sai pelo mestre (DC-16);
+ * - não letal: não tira PV; soma no `naoLetal` do ser, e quando passa dos PV
+ *   ele desmaia, sem morrendo;
+ * - mental: tira SAN, não PV. SAN 0 deixa enlouquecendo.
  */
 function aplicarDano(c: Combate, alvo: Participante, d: Record<string, unknown>, ctx: Contexto, vitais: MudancaVitais[]) {
   const final = inteiro(d.final, 0, 9999) ?? 0;
   const conta = texto(d.conta, 90);
   const formula = texto(d.formula, 30);
-  const naoLetal = d.naoLetal === true;
+  const mental = texto(d.tipo, 20) === 'mental';
+  const naoLetal = d.naoLetal === true && !mental;
+  const nome = mental ? 'Dano mental' : naoLetal ? 'Dano não letal' : 'Dano';
   const v = ctx.vitais(alvo.id);
   if (!v) {
-    registrar(c, ctx.agora, 'acao', `Dano ${formula}: ${conta}. ${alvo.nome} não tem PV marcados na peça.`);
+    registrar(c, ctx.agora, 'acao', `${nome} ${formula}: ${conta}. ${alvo.nome} não tem ${mental ? 'SAN marcada' : 'PV marcados'} na peça.`);
     return;
   }
-  // danos seguidos na mesma ação (ex.: mais de um alvo) partem dos PV já mudados
-  const antes = vitais.find((m) => m.id === alvo.id)?.pv ?? v.pv;
-  const q = consequencia({ pv: antes, pvMax: v.pvMax }, final);
-  const estado = q.zerou ? '0 PV' : q.machucado ? 'machucado' : '';
-  registrar(c, ctx.agora, 'acao', `Dano${naoLetal ? ' não letal' : ''} ${formula}: ${conta}. ${alvo.nome}: PV ${antes} → ${q.pv}${estado ? ` (${estado})` : ''}.`, estado ? [estado] : undefined);
-  if (q.pv !== antes) {
-    const m = vitais.find((x) => x.id === alvo.id);
-    if (m) m.pv = q.pv;
-    else vitais.push({ id: alvo.id, pv: q.pv });
+  if (final <= 0) {
+    registrar(c, ctx.agora, 'acao', `${nome} ${formula}: ${conta}. ${alvo.nome} não sofre dano.`);
+    return;
   }
+  const ja = vitais.find((m) => m.id === alvo.id);
+  if (mental) {
+    // danos seguidos na mesma ação partem dos valores já mudados
+    const antes = ja?.san ?? v.san;
+    const q = consequenciaMental({ san: antes, sanMax: v.sanMax }, final);
+    const estado = q.zerou ? 'enlouquecendo' : q.perturbado ? 'perturbado' : '';
+    registrar(c, ctx.agora, 'acao', `${nome} ${formula}: ${conta}. ${alvo.nome}: SAN ${antes} → ${q.san}${estado ? ` (${estado})` : ''}.`, estado ? [estado] : undefined);
+    if (q.san !== antes) mudar(vitais, alvo.id, 'san', q.san);
+    if (q.zerou && alvo.lado === 'agente') registrar(c, ctx.agora, 'estado', `${alvo.nome} fica enlouquecendo: no 3º turno começado assim nesta cena, fica insano (LR p. 88).`);
+    return;
+  }
+  const pv = ja?.pv ?? v.pv;
+  if (naoLetal) {
+    const antes = alvo.naoLetal ?? 0;
+    const q = consequenciaNaoLetal({ pv, pvMax: v.pvMax }, antes, final);
+    alvo.naoLetal = q.naoLetal;
+    registrar(c, ctx.agora, 'acao', `${nome} ${formula}: ${conta}. ${alvo.nome}: não letal ${antes} → ${q.naoLetal} (PV ${pv}${q.desmaiou ? ', inconsciente' : ''}).`, q.desmaiou ? ['inconsciente'] : undefined);
+    if (q.massivo) registrar(c, ctx.agora, 'estado', `Dano massivo: ${alvo.nome} faz Fortitude DT ${q.massivo}; se falhar, cai inconsciente, sem morrendo (o não letal não deixa morrendo; LR p. 88).`);
+    if (q.desmaiou) {
+      comCondicao(alvo, 'inconsciente');
+      comCondicao(alvo, 'caido');
+      registrar(c, ctx.agora, 'estado', `${alvo.nome} cai inconsciente: o dano não letal passou dos PV, sem morrendo (LR p. 88).`);
+    }
+    return;
+  }
+  const q = consequencia({ pv, pvMax: v.pvMax }, final, alvo.naoLetal ?? 0);
+  const estado = q.zerou ? '0 PV' : q.desmaiou ? 'inconsciente' : q.machucado ? 'machucado' : '';
+  registrar(c, ctx.agora, 'acao', `${nome} ${formula}: ${conta}. ${alvo.nome}: PV ${pv} → ${q.pv}${estado ? ` (${estado})` : ''}.`, estado ? [estado] : undefined);
+  if (q.pv !== pv) mudar(vitais, alvo.id, 'pv', q.pv);
   if (q.massivo) registrar(c, ctx.agora, 'estado', `Dano massivo: ${alvo.nome} faz Fortitude DT ${q.massivo}; se falhar, vai a 0 PV (LR p. 88).`);
+  if (q.desmaiou) {
+    comCondicao(alvo, 'inconsciente');
+    comCondicao(alvo, 'caido');
+    registrar(c, ctx.agora, 'estado', `${alvo.nome} cai inconsciente: com o dano não letal, os PV acabaram, mas sem morrendo (LR p. 88).`);
+  }
   if (q.zerou) {
     comCondicao(alvo, 'caido');
-    registrar(
-      c,
-      ctx.agora,
-      'estado',
-      alvo.lado === 'agente'
-        ? naoLetal
-          ? `${alvo.nome} cai inconsciente (dano não letal, sem morrendo; LR p. 88).`
-          : `${alvo.nome} cai inconsciente e morrendo (LR p. 88).`
-        : `${alvo.nome} chegou a 0 PV: tire do combate (morte ou fora de combate, DC-16).`,
-    );
+    registrar(c, ctx.agora, 'estado', alvo.lado === 'agente' ? `${alvo.nome} cai inconsciente e morrendo (LR p. 88).` : `${alvo.nome} chegou a 0 PV: tire do combate (morte ou fora de combate, DC-16).`);
   }
 }
 
@@ -537,18 +581,25 @@ function ritual(c: Combate, x: unknown, ctx: Contexto, e: Entrada | undefined): 
   }
   // cada alvo: resistência, dano e condição
   const alvos = Array.isArray(o.alvos) ? o.alvos.slice(0, 20) : [];
+  const deMedo = o.elemento === 'medo' || o.medo === true;
   for (const a of alvos) {
     if (!a || typeof a !== 'object') continue;
     const r = a as Record<string, unknown>;
     const p = participante(c, inteiro(r.id, 1, 1e9) ?? 0);
     if (!p || p.fora) continue;
+    // criaturas são imunes a rituais de Medo (LR p. 180)
+    if (deMedo && criatura(ctx, p)) {
+      registrar(c, ctx.agora, 'estado', `${p.nome} é criatura: imune a rituais de Medo (LR p. 180).`);
+      continue;
+    }
     const t = lado(r.teste);
     if (t) registrar(c, ctx.agora, 'acao', `${p.nome}: ${NOME_TESTE_RES[t.nome] ?? 'resistência'} d20 ${t.d20}, total ${t.total}${dt ? ` contra DT ${dt}` : ''} — ${t.passou ? 'passou' : 'falhou'}.`);
     const d = r.dano && typeof r.dano === 'object' ? (r.dano as Record<string, unknown>) : null;
     if (d) aplicarDano(c, p, d, ctx, vitais);
     const cond = texto(r.condicao, 30);
     const def = cond ? condicaoDoCatalogo(cond) : undefined;
-    if (def) {
+    if (def && criatura(ctx, p) && (def.grupo === 'medo' || def.grupo === 'mental')) registrar(c, ctx.agora, 'estado', `${p.nome} é criatura: imune a condições ${def.grupo === 'medo' ? 'de medo' : 'mentais'} (LR p. 180).`);
+    else if (def) {
       comCondicao(p, cond);
       registrar(c, ctx.agora, 'estado', `${p.nome} entra na condição ${def.nome.toLowerCase()}.`);
     }
@@ -654,6 +705,7 @@ export function aplicar(atual: Combate | null, a: AcaoCombate, ctx: Contexto): R
       c.fase = 'andamento';
       c.rodada = 1;
       c.agiram = [];
+      c.comecaram = [];
       c.inicio = ctx.agora;
       const ordem = entradas(c)
         .map((e) => `${nomeEntrada(c, e)} ${e.valor}`)
@@ -678,6 +730,12 @@ export function aplicar(atual: Combate | null, a: AcaoCombate, ctx: Contexto): R
     case 'atrasar': {
       const e = naVez();
       if (!e) return erro('Não há turno em andamento.');
+      // atrasar é agir mais tarde: quem já agiu neste turno não atrasa (LR p. 87)
+      const agiu = e.participantes.some((id) => {
+        const ac = c.acoes[String(id)];
+        return !!ac && (ac.padrao || ac.movimento || ac.completa || (ac.pe ?? 0) > 0);
+      });
+      if (agiu) return erro('Já houve ação neste turno: atrasar é agir mais tarde, antes de fazer qualquer coisa (LR p. 87).');
       const v = inteiro(a.valor, -99, 999);
       if (v === undefined) return erro('Iniciativa inválida.');
       if (v >= e.valor) return erro(`Para atrasar, a Iniciativa nova precisa ser menor que ${e.valor}.`);
@@ -863,6 +921,7 @@ export function aplicar(atual: Combate | null, a: AcaoCombate, ctx: Contexto): R
       const id = texto(a.condicao, 30);
       const cond = condicaoDoCatalogo(id);
       if (!cond) return erro('Condição desconhecida.');
+      if (a.ativa && criatura(ctx, p) && (cond.grupo === 'medo' || cond.grupo === 'mental')) return erro(`${p.nome} é criatura: imune a condições ${cond.grupo === 'medo' ? 'de medo' : 'mentais'} (LR p. 180).`);
       const s = new Set(p.condicoes ?? []);
       if (a.ativa ? s.has(id) : !s.has(id)) return ok();
       if (a.ativa) s.add(id);
@@ -927,6 +986,26 @@ export function aplicar(atual: Combate | null, a: AcaoCombate, ctx: Contexto): R
       return { ok: true, combate: c, vitais: [m] };
     }
 
+    case 'naoLetal': {
+      // o mestre ajusta o dano não letal (a cura tira primeiro ele, LR p. 88)
+      const p = participante(c, inteiro(a.id, 1, 1e9) ?? 0);
+      if (!p) return erro('Essa peça não está no combate.');
+      const n = inteiro(a.valor, 0, 9999);
+      if (n === undefined) return erro('Valor inválido.');
+      const antes = p.naoLetal ?? 0;
+      if (n === antes) return erro('Nada para mudar.');
+      if (n) p.naoLetal = n;
+      else delete p.naoLetal;
+      registrar(c, ctx.agora, 'estado', `${p.nome}: dano não letal ${antes} → ${n} (${texto(a.motivo, 80) || 'ajuste'}).`);
+      // desmaiado pelo não letal que voltou a ter PV acima dele: acorda (qualquer cura de 1 PV encerra o inconsciente, LR p. 88)
+      const v = ctx.vitais(p.id);
+      if (v && v.pv > 0 && v.pv - n > 0 && p.condicoes?.includes('inconsciente')) {
+        semCondicao(p, 'inconsciente');
+        registrar(c, ctx.agora, 'estado', `${p.nome} acorda (continua caído).`);
+      }
+      return ok();
+    }
+
     case 'encerrar': {
       if (c.fase === 'montando') return { ok: true, combate: null };
       if (c.fase === 'encerrado') return erro('O combate já acabou.');
@@ -934,6 +1013,9 @@ export function aplicar(atual: Combate | null, a: AcaoCombate, ctx: Contexto): R
       c.vez = null;
       c.acoes = {};
       registrar(c, ctx.agora, 'estado', `Combate encerrado na rodada ${c.rodada}.`);
+      // o dano não letal fica até ser curado (LR p. 88): o resumo lembra quem tem
+      const nl = c.participantes.filter((p) => p.naoLetal);
+      if (nl.length) registrar(c, ctx.agora, 'estado', `Dano não letal que fica até a cura: ${nl.map((p) => `${p.nome} ${p.naoLetal}`).join(', ')} (a cura tira primeiro ele, LR p. 88).`);
       return ok();
     }
 
@@ -956,6 +1038,7 @@ const TIPOS = new Set<AcaoCombate['tipo']>([
   'gastarPe',
   'sustentar',
   'vitais',
+  'naoLetal',
   'abrir',
   'participante',
   'iniciativaMestre',

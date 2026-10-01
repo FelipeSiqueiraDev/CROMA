@@ -689,9 +689,7 @@ export class FichasScreen {
 
   private renderDeriv(c: Calc) {
     const corpo = this.corpoDe(this.pDeriv);
-    const res = Object.entries(c.resistencias)
-      .filter(([, v]) => v)
-      .map(([t, v]) => `${nomeDano(t)} ${v}`);
+    const res = resistenciasParaMostrar(c.resistencias).map(([t, v]) => `${nomeDano(t)} ${v}`);
     const caixa = (icone: NomeIcone, rotulo: string, valor: string, dica: string, url: string) =>
       h('div', { class: 'fx-dv', 'data-dica': dica }, h('span', { class: 'fx-dv-ic' }, arte(url, icone)), h('span', { class: 'fx-dv-t' }, h('span', { class: 'fx-dv-r' }, rotulo), h('b', { class: 'fx-dv-v' }, valor)));
     corpo.replaceChildren(
@@ -804,7 +802,7 @@ export class FichasScreen {
           h('span', { class: 'fx-tab-n' }, nome),
           h('span', { class: `fx-grau ${pc.grau}` }, GRAU_CURTO[pc.grau]),
           h('span', null, NOME_ATR[pc.atributo]),
-          h('b', null, pc.podeUsar ? textoTeste(pc.dados, pc.bonus) : '—'),
+          h('b', null, pc.podeUsar ? textoTeste(pc.dados, pc.bonus, pc.penalidadeDados) : '—'),
         ),
       );
     }
@@ -1020,7 +1018,7 @@ export class FichasScreen {
       const cel = (rotulo: string, valor: string, dica: string) => h('div', { class: 'fx-tc', 'data-dica': dica }, h('span', null, rotulo), h('b', null, valor));
       const profs = c.proficiencias.map(nomeProf).join(', ') || '—';
       corpo.append(
-        cel('INICIATIVA', textoTeste(ini.dados, ini.bonus), 'Teste de Iniciativa (Agilidade).'),
+        cel('INICIATIVA', textoTeste(ini.dados, ini.bonus, ini.penalidadeDados), 'Teste de Iniciativa (Agilidade).'),
         cel('ESQUIVA', c.reacoes.esquiva !== null ? String(c.reacoes.esquiva) : '—', 'Reação (treinado em Reflexos): Defesa + bônus de Reflexos contra um ataque.'),
         cel('BLOQUEIO', c.reacoes.bloqueio !== null ? `RD ${c.reacoes.bloqueio}` : '—', 'Reação (treinado em Fortitude): resistência a dano igual ao bônus de Fortitude contra um ataque corpo a corpo.'),
         cel('CONTRA-ATAQUE', c.reacoes.contraAtaque ? 'Sim' : '—', 'Reação (treinado em Luta): quando um ataque corpo a corpo erra você.'),
@@ -1218,7 +1216,7 @@ export class FichasScreen {
           h('span', { class: 'fx-tab-n' }, des.nome),
           h('span', null, 'Desarmado'),
           h('span', null, des.dano),
-          h('span', { class: 'fx-eq-obs' }, [`Luta ${textoTeste(des.dados + des.penalidadeDados, des.bonus)}`, `${des.critico.margem}/x${des.critico.multiplicador}`, ...des.notas].join(' · ')),
+          h('span', { class: 'fx-eq-obs' }, [`Luta ${textoTeste(des.dados, des.bonus, des.penalidadeDados)}`, `${des.critico.margem}/x${des.critico.multiplicador}`, ...des.notas].join(' · ')),
           h('span'),
         ),
       );
@@ -1502,6 +1500,20 @@ export const NOME_DANO: Record<string, string> = {
 };
 function nomeDano(t: string) {
   return NOME_DANO[t] ?? t;
+}
+
+/** RD para mostrar: os quatro tipos físicos iguais viram "Físico"; os cinco elementos iguais, "Paranormal". */
+export function resistenciasParaMostrar(res: Partial<Record<string, number>>): [string, number][] {
+  const r = { ...res };
+  const grupo = (tipos: string[], nome: string) => {
+    const v = r[tipos[0]];
+    if (!v || !tipos.every((t) => r[t] === v)) return;
+    for (const t of tipos) delete r[t];
+    r[nome] = (r[nome] ?? 0) + v;
+  };
+  grupo(['balistico', 'corte', 'impacto', 'perfuracao'], 'fisico');
+  grupo(['sangue', 'morte', 'conhecimento', 'energia', 'medo'], 'paranormal');
+  return (Object.entries(r) as [string, number | undefined][]).filter((x): x is [string, number] => !!x[1]);
 }
 
 const NOME_PROF: Record<regras.Proficiencia, string> = {
