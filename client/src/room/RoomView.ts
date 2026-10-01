@@ -6,6 +6,7 @@ import {
   playerColorFor,
   RoomMap,
   TICK_MS,
+  Z_PER_M,
   type AvatarLook,
   type ChatKind,
   type FloorItem,
@@ -26,14 +27,28 @@ import { furniVisual } from '../render/furniFloor';
 import { drawWallFurni, wallLights } from '../render/furniWall';
 import { drawHintGlyph, drawHintIcon } from '../render/hints';
 import { iso } from '../render/iso';
-import { hash, rgba } from '../render/color';
+import { hash, hexToRgb, rgba } from '../render/color';
 import { Fog } from '../render/fog';
 import { Lighting, type Light } from '../render/lighting';
 import { Particles } from '../render/particles';
 import { boxSilhouette, Mapper, Painter, pointInPoly, type WBox } from '../render/painter';
 import { buildStatic, doorClipPath, roomBounds, type StaticLayer } from '../render/roomStatic';
 import { cmp, sortDrawables, type Drawable } from '../render/sort';
-import { drawPose, drawSprite, drawWeaponMark, framesFor, poseFor, sprites, temPoseArmada } from '../render/sprites';
+import {
+  drawPose,
+  drawSombraProjetada,
+  drawSprite,
+  drawWeaponMark,
+  framesFor,
+  passosFor,
+  poseFor,
+  quadroDaFolha,
+  quadroDaPose,
+  sprites,
+  temPoseArmada,
+  type LuzNaPeca,
+  type SpriteFrame,
+} from '../render/sprites';
 import { sfx } from '../ui/sfx';
 
 export interface ClientUser {
@@ -53,10 +68,105 @@ export interface ClientUser {
   color: string;
   /** virou parado neste instante (efeito de giro) */
   turnAt?: number;
+  /** começou a andar neste instante: o passo segue contínuo de casa em casa */
+  andandoDesde?: number;
 }
 
 /** Duração do efeito de giro da peça parada. */
 const TURN_MS = 240;
+
+/** Sombras de contato prontas, por tamanho. */
+const sombrasPes = new Map<string, HTMLCanvasElement>();
+
+/**
+ * Sombra de contato embaixo das botas, em pixel duro como o resto do
+ * tabuleiro: um elipse escuro de borda firme, com o miolo mais fechado.
+ */
+function desenharSombraPes(ctx: CanvasRenderingContext2D, x: number, y: number, rx: number, ry: number) {
+  const k = `${rx}x${ry}`;
+  let c = sombrasPes.get(k);
+  if (!c) {
+    c = document.createElement('canvas');
+    c.width = rx * 2 + 1;
+    c.height = ry * 2 + 1;
+    const g = c.getContext('2d')!;
+    const img = g.createImageData(c.width, c.height);
+    for (let j = 0; j < c.height; j++)
+      for (let i = 0; i < c.width; i++) {
+        const dx = (i - rx) / rx;
+        const dy = (j - ry) / ry;
+        const d = dx * dx + dy * dy;
+        if (d > 1) continue;
+        img.data[(j * c.width + i) * 4 + 3] = d < 0.45 ? 158 : 102;
+      }
+    g.putImageData(img, 0, 0);
+    sombrasPes.set(k, c);
+  }
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(c, Math.round(x - rx), Math.round(y - ry));
+  ctx.restore();
+}
+
+/** Sombra projetada por uma luz: para onde vai no chão (casas), a que distância a luz está e quão escura é. */
+interface SombraDaLuz {
+  D: [number, number];
+  dist: number;
+  a: number;
+}
+
+/**
+ * As luzes do cenário que alcançam a peça: a cor que bate no corpo (a média,
+ * pelo peso de cada uma) e as sombras que ela projeta (as duas luzes mais
+ * fortes, cada sombra para o lado oposto ao da sua luz). (mx, my) = o meio do
+ * corpo na tela; (cx, cy) = os pés no cômodo.
+ */
+function luzesDaPeca(luzes: { L: Light; i: number }[], mx: number, my: number, cx: number, cy: number): { luz: LuzNaPeca | null; sombras: SombraDaLuz[] } {
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  let soma = 0;
+  const sombras: SombraDaLuz[] = [];
+  for (const { L, i } of luzes) {
+    const d = Math.hypot(L.x - mx, L.y - my);
+    if (d >= L.radius || !L.mundo) continue;
+    const w = i * (1 - d / L.radius) ** 2;
+    const [cr, cg, cb] = hexToRgb(L.color);
+    if (Number.isFinite(cr + cg + cb)) {
+      r += cr * w;
+      g += cg * w;
+      b += cb * w;
+      soma += w;
+    }
+    const dx = cx - L.mundo[0];
+    const dy = cy - L.mundo[1];
+    const dist = Math.hypot(dx, dy);
+    // luz bem em cima da peça: a sombra fica embaixo dela (a de contato)
+    if (dist > 0.35) sombras.push({ D: [dx / dist, dy / dist], dist, a: w });
+  }
+  sombras.sort((p, q) => q.a - p.a);
+  return {
+    luz: soma > 0 ? { rgb: [r / soma, g / soma, b / soma], forca: Math.min(1, soma * 1.6) } : null,
+    sombras: sombras.slice(0, 2),
+  };
+}
+
+/** Na tela, um passo no chão do cômodo (em casas). */
+const telaDoChao = (x: number, y: number): [number, number] => [(x - y) * 32, (x + y) * 16];
+
+/**
+ * Vetores da sombra projetada (por pixel do quadro): a largura do corpo vai de
+ * través no chão e a altura vai na direção D, encurtada por `comprimento`. Na
+ * tela, o corpo tem a largura de um passo na diagonal do chão (45,25 pixels por casa).
+ */
+function vetoresDaSombra(D: [number, number], comprimento: number): { lado: [number, number]; comp: [number, number] } {
+  const K = Math.SQRT2 / 64;
+  let lado = telaDoChao(D[1], -D[0]);
+  // sem espelhar: o lado direito da peça fica à direita na sombra
+  if (lado[0] < 0) lado = [-lado[0], -lado[1]];
+  const c = telaDoChao(D[0], D[1]);
+  return { lado: [lado[0] * K, lado[1] * K], comp: [c[0] * K * comprimento, c[1] * K * comprimento] };
+}
 
 export type Selection = { kind: 'floor' | 'wall' | 'user'; id: number } | null;
 export type FloorPlacement = { kind: 'floor'; defId: string; rot: number; invId?: number; moveId?: number };
@@ -811,8 +921,13 @@ export class RoomView {
       ctx.strokeRect(-2, -2, def.w + 4, def.h + 4);
     }
     ctx.restore();
-    for (const L of wallLights(def, it.state))
-      lights.push({ x: ox + L.x, y: oy + k * L.x + L.y, radius: L.radius, color: L.color, intensity: L.intensity * alpha, flicker: L.flicker, pulse: L.pulse, kind: L.kind, seed: it.id });
+    for (const L of wallLights(def, it.state)) {
+      // no cômodo: ao longo da parede, um pouco para dentro dela, na altura da luz
+      const ao = (L.x - def.w / 2) / 32;
+      const alt = it.z + (def.h - L.y) / 32;
+      const mundo: [number, number, number] = it.wall === 'l' ? [it.plane + 0.2, it.pos - ao, alt] : [it.pos + ao, it.plane + 0.2, alt];
+      lights.push({ x: ox + L.x, y: oy + k * L.x + L.y, radius: L.radius, color: L.color, intensity: L.intensity * alpha, flicker: L.flicker, pulse: L.pulse, kind: L.kind, seed: it.id, mundo });
+    }
     return { ox, oy, k };
   }
 
@@ -979,7 +1094,8 @@ export class RoomView {
       }
       for (const L of vis.lights) {
         const [lx, ly] = m.p(L.u, L.v, L.z);
-        lights.push({ x: lx, y: ly, radius: L.radius, color: L.color, intensity: L.intensity * alpha, flicker: L.flicker, kind: L.kind, seed: it.id });
+        const [wx, wy] = m.xy(L.u, L.v);
+        lights.push({ x: lx, y: ly, radius: L.radius, color: L.color, intensity: L.intensity * alpha, flicker: L.flicker, kind: L.kind, seed: it.id, mundo: [wx, wy, m.oz + L.z * Z_PER_M] });
       }
       return topZ;
     };
@@ -1016,6 +1132,20 @@ export class RoomView {
       }
     }
 
+    // luzes do cenário que alcançam as peças (as das peças e a do cursor, não), conforme o clima:
+    // a cor delas tinge o corpo e cada uma projeta a sombra da peça no chão
+    const energia = lm === 'flicker' ? flickerLevel(t) : 1;
+    const luzesCena: { L: Light; i: number }[] = [];
+    for (const L of lights) {
+      if (!L.mundo) continue;
+      const kind = L.kind ?? 'electric';
+      if (lm === 'blackout' && kind === 'electric') continue;
+      const i = lm === 'flicker' && kind === 'electric' ? L.intensity * energia : L.intensity;
+      if (i > 0.02) luzesCena.push({ L, i });
+    }
+    // o que fica no chão embaixo das peças (sombras e anel) vai antes de tudo que fica em pé: o que está na frente tapa
+    const chaoPecas: (() => void)[] = [];
+
     // avatares
     for (const u of this.users.values()) {
       const p = this.userPos(u, now);
@@ -1025,7 +1155,12 @@ export class RoomView {
       // pose do tabuleiro (arte em 32 bits) no estado da peça; sem ela, a folha
       const cdef = sprites.def(u.look.charId);
       const lp = cdef ? sprites.poses(cdef) : null;
-      const pf = lp ? poseFor(lp, this.estadoDe?.(u.id) ?? 'desarmado', u.dir) : null;
+      const estado = this.estadoDe?.(u.id) ?? 'desarmado';
+      const pf = lp ? poseFor(lp, estado, u.dir) : null;
+      // o relógio do passo: começa quando a peça sai andando e segue de casa em casa até parar
+      if (p.moving) u.andandoDesde ??= now;
+      else delete u.andandoDesde;
+      const passos = lp && p.moving ? passosFor(lp, estado, u.dir) : null;
       // folha sem pose de sentar: fica de pé no chão, junto do assento (não em cima dele)
       const standBy = !!sp && u.sit === 1 && !p.moving && !framesFor(sp.lc, u.dir, 'sit');
       const seated = u.sit === 1 && !standBy;
@@ -1038,6 +1173,73 @@ export class RoomView {
       const wave = u.waveUntil > now;
       // ~1,75 m de altura para a ordem de desenho
       const box: WBox = { x0: cx - half, x1: cx + half, y0: cy - half, y1: cy + half, z0: baseZ, z1: baseZ + 3.2 };
+      const deitada = !!marcas?.deitadas.has(u.id);
+      // a peça pisa no meio da casa: o centro da pegada das botas fica no centro dela, e não a ponta
+      // da bota (sem isso, a sombra e o anel aparecem na frente dos pés e ela parece flutuar)
+      const afunda = (pf || sp) && !deitada && !seated && u.sit !== 2 ? Math.round(H * 0.05) : 0;
+      const fy = u.sit === 2 ? sy - 8 : sy;
+      const door = this.door;
+      const clip = !!door && (door.seg.wall === 'l' ? cx < door.seg.plane : cy < door.seg.plane);
+      const sPose = pose === 'sit' ? 'sit' : pose;
+      const andando = now - (u.andandoDesde ?? now);
+      // o quadro que vai à tela agora (andando, o do passo): a sombra projetada é a silhueta dele
+      const quadro: SpriteFrame | null = pf
+        ? quadroDaPose(pf, now, sPose, passos, andando).q
+        : sp
+          ? (quadroDaFolha(sp.def, sp.lc, u.dir, now, u.phase, sPose)?.q ?? null)
+          : null;
+      const { luz, sombras } = luzesDaPeca(luzesCena, sx, sy - H * 0.5, cx, cy);
+      if (!seated)
+        chaoPecas.push(() => {
+          if (clip) {
+            ctx.save();
+            ctx.clip(door!.path, 'evenodd');
+          }
+          {
+            const pes = pf?.pes ? Math.max(15, Math.min(26, pf.pes + 4)) : 19;
+            const rx = deitada ? 30 : pes;
+            const ry = deitada ? 10 : Math.max(6, Math.round(pes * 0.42));
+            // em volta: o chão escurece um pouco, sumindo para fora (o corpo tapa a luz)
+            const amb = ctx.createRadialGradient(sx, sy, 0, sx, sy, rx * 1.35);
+            amb.addColorStop(0, 'rgba(0,0,0,0.42)');
+            amb.addColorStop(0.6, 'rgba(0,0,0,0.2)');
+            amb.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.save();
+            ctx.translate(sx, sy);
+            ctx.scale(1, ry / rx);
+            ctx.translate(-sx, -sy);
+            ctx.fillStyle = amb;
+            ctx.beginPath();
+            ctx.arc(sx, sy, rx * 1.35, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+            // a sombra que cada luz por perto joga no chão, do lado oposto a ela: mais longa quanto mais longe a luz
+            if (quadro && !deitada && u.sit !== 2)
+              for (const s of sombras) {
+                const v = vetoresDaSombra(s.D, Math.max(0.4, Math.min(0.85, 0.3 + 0.25 * s.dist)));
+                drawSombraProjetada(ctx, quadro, sx, sy + afunda, v.lado, v.comp, Math.min(0.45, s.a * 2));
+              }
+            // embaixo das botas: a sombra de contato, escura e de borda firme, como no pixel art
+            if (!deitada) desenharSombraPes(ctx, sx, sy, Math.round(rx * 0.86), Math.round(ry * 0.86));
+            // anel na cor do personagem (no combate, na cor do lado): fino, em volta da sombra; a peça ativa pulsa
+            const active = u.id === this.myId;
+            const pulse = active ? 1 + Math.sin(now / 260) * 0.06 : 1;
+            const corBase = marcas?.bases.get(u.id) ?? u.color;
+            ctx.lineWidth = active ? 1.8 : 1.2;
+            ctx.strokeStyle = rgba(corBase, active ? 0.78 : 0.5);
+            ctx.beginPath();
+            ctx.ellipse(sx, sy, (rx + 3) * pulse, (ry + 2) * pulse, 0, 0, Math.PI * 2);
+            ctx.stroke();
+            if (isSel || active) {
+              ctx.lineWidth = 1;
+              ctx.strokeStyle = 'rgba(255,255,255,0.38)';
+              ctx.beginPath();
+              ctx.ellipse(sx, sy, (rx + 6) * pulse, (ry + 3.5) * pulse, 0, 0, Math.PI * 2);
+              ctx.stroke();
+            }
+          }
+          if (clip) ctx.restore();
+        });
       const d: Drawable = {
         box,
         sx0: sx - 40,
@@ -1045,54 +1247,9 @@ export class RoomView {
         sy0: sy - H - 30,
         sy1: sy + 16,
         draw: () => {
-          const fy = u.sit === 2 ? sy - 8 : sy;
-          const door = this.door;
-          const clip = !!door && (door.seg.wall === 'l' ? cx < door.seg.plane : cy < door.seg.plane);
           if (clip) {
             ctx.save();
             ctx.clip(door!.path, 'evenodd');
-          }
-          const deitada = !!marcas?.deitadas.has(u.id);
-          if (!seated) {
-            // sombra de contato: escura embaixo dos pés e sumindo para fora, mais larga que o corpo (o personagem pisa no chão)
-            const rx = deitada ? 30 : 19;
-            const ry = deitada ? 10 : 8;
-            const sombra = ctx.createRadialGradient(sx, sy, 0, sx, sy, rx);
-            sombra.addColorStop(0, 'rgba(0,0,0,0.66)');
-            sombra.addColorStop(0.45, 'rgba(0,0,0,0.42)');
-            sombra.addColorStop(1, 'rgba(0,0,0,0)');
-            ctx.save();
-            ctx.translate(sx, sy);
-            ctx.scale(1, ry / rx);
-            ctx.translate(-sx, -sy);
-            ctx.fillStyle = sombra;
-            ctx.beginPath();
-            ctx.arc(sx, sy, rx, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-            // onde as botas tocam o chão: o escuro mais fechado
-            if (!deitada) {
-              ctx.fillStyle = 'rgba(0,0,0,0.5)';
-              ctx.beginPath();
-              ctx.ellipse(sx, sy + 0.5, 10, 3.6, 0, 0, Math.PI * 2);
-              ctx.fill();
-            }
-            // anel na cor do personagem (no combate, na cor do lado); a peça ativa pulsa
-            const active = u.id === this.myId;
-            const pulse = active ? 1 + Math.sin(now / 260) * 0.08 : 1;
-            const corBase = marcas?.bases.get(u.id) ?? u.color;
-            ctx.lineWidth = active ? 2.6 : 1.8;
-            ctx.strokeStyle = rgba(corBase, active ? 0.95 : 0.8);
-            ctx.beginPath();
-            ctx.ellipse(sx, sy, 19 * pulse, 9.5 * pulse, 0, 0, Math.PI * 2);
-            ctx.stroke();
-            if (isSel || active) {
-              ctx.lineWidth = 1;
-              ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-              ctx.beginPath();
-              ctx.ellipse(sx, sy, 22 * pulse, 11 * pulse, 0, 0, Math.PI * 2);
-              ctx.stroke();
-            }
           }
           const dance = u.dance ? -Math.abs(Math.sin((now * Math.PI) / 320 + u.phase)) * 4 : 0;
           // giro: afina de lado e volta, com um pulinho, a partir dos pés
@@ -1113,8 +1270,8 @@ export class RoomView {
             ctx.scale(0.92, 1);
             ctx.translate(-sx, -fy);
           }
-          if (pf) drawPose(ctx, pf, sx, fy + dance, now, pose === 'sit' ? 'sit' : pose);
-          else if (sp) drawSprite(ctx, sp.def, sp.lc, u.dir, sx, fy + dance, now, u.phase, pose === 'sit' ? 'sit' : pose);
+          if (pf) drawPose(ctx, pf, sx, fy + afunda + dance, now, sPose, 1, passos, andando, luz);
+          else if (sp) drawSprite(ctx, sp.def, sp.lc, u.dir, sx, fy + afunda + dance, now, u.phase, sPose, 1, luz);
           else
             drawPixelAvatar(ctx, u.look, sx, fy, u.dir, u.headDir, {
               pose,
@@ -1127,7 +1284,7 @@ export class RoomView {
           if (turning) ctx.restore();
           // a arma aparece: pela pose armada da arte ou, sem ela, pelo sinal junto da mão
           const arma = !deitada && !seated ? this.armaDe?.(u.id) : null;
-          if (arma && !(lp && temPoseArmada(lp))) drawWeaponMark(ctx, sx, fy + dance, H, arma, u.dir);
+          if (arma && !(lp && temPoseArmada(lp))) drawWeaponMark(ctx, sx, fy + afunda + dance, H, arma, u.dir);
           if (wave && sp) this.drawEmote(sx, fy - H - 14, now);
           if (clip) ctx.restore();
         },
@@ -1136,7 +1293,7 @@ export class RoomView {
       hitOf.set(d, {
         kind: 'user',
         id: u.id,
-        test: (x, y) => x >= sx - 16 && x <= sx + 16 && y >= sy - H - 4 && y <= sy + 6,
+        test: (x, y) => x >= sx - 16 && x <= sx + 16 && y >= sy - H && y <= sy + 10,
       });
       // a luz da peça desce até as pernas: ilumina o chão em volta junto com o corpo (sem parecer colado por cima)
       lights.push({ x: sx, y: sy - H * 0.22, radius: 88, color: '#ffe2b8', intensity: u.id === this.myId ? 0.42 : 0.3, kind: 'personal' });
@@ -1194,6 +1351,8 @@ export class RoomView {
         ctx.stroke();
       }
     }
+    // embaixo das peças: as sombras e o anel, por cima do chão e por baixo de tudo que fica em pé
+    for (const f of chaoPecas) f();
     for (const d of sortDrawables(drawables)) {
       d.draw();
       const h = hitOf.get(d);

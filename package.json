@@ -20,7 +20,8 @@
     "banco": "docker compose up -d --wait banco",
     "banco:parar": "docker compose stop banco",
     "banco:backup": "node scripts/banco.mjs backup",
-    "banco:restaurar": "node scripts/banco.mjs restaurar"
+    "banco:restaurar": "node scripts/banco.mjs restaurar",
+    "arte:poses": "python scripts/poses.py"
   },
   "devDependencies": {
     "concurrently": "^10.0.5",

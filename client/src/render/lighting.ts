@@ -13,6 +13,8 @@ export interface Light {
   seed?: number;
   /** usado pelo clima do quarto (apagão/piscando) */
   kind?: 'fire' | 'electric' | 'natural' | 'emergency' | 'personal';
+  /** onde a luz fica no cômodo (casas: x, y e a altura): só a luz do cenário tem, e só ela projeta a sombra das peças */
+  mundo?: [number, number, number];
 }
 
 /** Mapa de luz: escurece a cena e "fura" a escuridão onde há luz, depois soma um brilho colorido. */

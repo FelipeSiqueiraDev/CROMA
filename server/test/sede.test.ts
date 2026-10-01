@@ -6,7 +6,7 @@ import { beforeEach, describe, test } from 'node:test';
 import { applyVital, DEFAULT_VITALS, findPath, getFurni, vitalConditions, Z_PER_M, type ClientMsg, type FloorItem, type ServerMsg } from '@croma/shared';
 import type { RoomData } from '../src/db';
 import { Hotel } from '../src/hotel';
-import { findPortraits, findPoses, refreshPortraits } from '../src/portraits';
+import { findPassos, findPortraits, findPoses, refreshPortraits } from '../src/portraits';
 import { restackRoom, seedDb, upgradeDb } from '../src/seed';
 import { rebuildSede, SEDE, SEDE_CODE } from '../src/seedSede';
 
@@ -354,6 +354,26 @@ describe('poses do tabuleiro (32 bits)', () => {
     fs.rmSync(pasta, { recursive: true, force: true });
     assert.equal(refreshPortraits([def], dir), true);
     assert.equal(def.poses, undefined);
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  test('acha os quadros de andar por estado e direção, em ordem, e para no primeiro que falta', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'croma-'));
+    const pasta = path.join(dir, 'alosi', 'tabuleiro-32bits');
+    fs.mkdirSync(pasta, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'alosi', 'folha.webp'), '');
+    for (const f of ['idle-desarmado-se.png', 'andar-desarmado-se-2.png', 'andar-desarmado-se-1.png', 'andar-desarmado-se-4.png', 'andar-armado-n-1.webp', 'andar-desarmado-x-1.png']) fs.writeFileSync(path.join(pasta, f), '');
+    const url = (f: string) => `/arte/personagens/alosi/tabuleiro-32bits/${f}`;
+    assert.deepEqual(findPassos('/arte/personagens/alosi/folha.webp', dir), {
+      desarmado: { se: [url('andar-desarmado-se-1.png'), url('andar-desarmado-se-2.png')] },
+      armado: { n: [url('andar-armado-n-1.webp')] },
+    });
+    assert.equal(findPassos('/uploads/abc.png', dir), undefined);
+    // o personagem ganha os passos junto com as poses
+    const def = { id: 3, name: 'Alosi Walker', owner: '', sheet: '/arte/personagens/alosi/folha.webp', cols: 4, rows: 4, dirs: [], height: 104, fps: 4, sequence: [], removeBg: false } as Parameters<typeof refreshPortraits>[0][number];
+    assert.equal(refreshPortraits([def], dir), true);
+    assert.equal(def.passos?.desarmado?.se?.length, 2);
+    assert.equal(def.poses?.desarmado?.se, url('idle-desarmado-se.png'));
     fs.rmSync(dir, { recursive: true, force: true });
   });
 });

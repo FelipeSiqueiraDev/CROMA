@@ -29,8 +29,8 @@ O mapa da Sede (Ordo Realitas) já funciona no jogo: os agentes andam, passam de
 
 ## Formato dos móveis
 
-- Pixel art chibi na **grade 2:1** do tabuleiro (decidido em 30/09, `docs/ARTE.md`): cada casa do chão é um losango de **32×16 pixels de arte** (64×32 na tela, no zoom normal).
-- Escala: **1 m de altura ≈ 29 pixels de arte** (57,6 px na tela), desenhado para o corpo do chibi: a mesa bate na cintura. Uma pessoa tem ~1,75 m; uma estante, ~2,1 m; uma mesa, ~0,8 m. As alturas estão na lista.
+- Pixel art chibi na **grade 1:1** do tabuleiro (revista em 01/10, `docs/ARTE.md`): cada casa do chão é um losango de **64×32 pixels de arte** (64×32 na tela, no zoom normal).
+- Escala: **1 m de altura ≈ 58 pixels de arte** (57,6 px na tela), desenhado para o corpo do chibi: a mesa bate na cintura. Uma pessoa tem ~1,75 m; uma estante, ~2,1 m; uma mesa, ~0,8 m. As alturas estão na lista.
 - **Duas imagens por móvel:** frente virada para baixo à esquerda (rotação 4) e costas viradas para cima à direita (rotação 0). As outras duas rotações são essas espelhadas. Móveis que só ficam encostados na parede do fundo precisam só da frente.
 - Fundo transparente, sem sombra no chão (o jogo faz a sombra e a luz). Luz neutra.
 - Móveis com estados (ligado/desligado, aberta/fechada) têm uma imagem por estado.

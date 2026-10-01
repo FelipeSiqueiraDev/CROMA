@@ -126,6 +126,13 @@ export interface CharacterDef {
    * idle-<estado>-<direção>.png (sem a direção, é `se`). Sem elas, o tabuleiro usa a folha.
    */
   poses?: Partial<Record<PortraitState, Partial<Record<DirKey, string>>>>;
+  /**
+   * Quadros de andar do tabuleiro, por estado e direção, achados na mesma
+   * pasta: andar-<estado>-<direção>-<n>.png (n = 1, 2, 3..., em ordem). Com o
+   * mesmo tamanho e os pés no mesmo ponto da pose parada da direção. Sem eles,
+   * a pose parada desliza com um balanço.
+   */
+  passos?: Partial<Record<PortraitState, Partial<Record<DirKey, string[]>>>>;
 }
 
 export type CharacterPatch = Partial<Pick<CharacterDef, 'name' | 'cols' | 'rows' | 'dirs' | 'anims' | 'height' | 'fps' | 'sequence' | 'removeBg'>>;

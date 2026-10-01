@@ -90,7 +90,7 @@ Cartas do grupo (embaixo):
 
 ## 7. Sala de Tecnologia (o que está no tabuleiro)
 
-Pasta: `client/public/arte/moveis/`. Pixel art chibi na grade 2:1 do tabuleiro (`docs/ARTE.md`): casa = losango de 32×16 pixels de arte; 1 m de altura ≈ 29 pixels de arte. Duas imagens por móvel: frente (virada para baixo à esquerda) e `_costas`. Sem sombra no chão. Formato completo em `docs/SEDE-DA-ORDEM.md`.
+Pasta: `client/public/arte/moveis/`. Pixel art chibi na grade 1:1 do tabuleiro (`docs/ARTE.md`): casa = losango de 64×32 pixels de arte; 1 m de altura ≈ 58 pixels de arte. Duas imagens por móvel: frente (virada para baixo à esquerda) e `_costas`. Sem sombra no chão. Formato completo em `docs/SEDE-DA-ORDEM.md`.
 
 - [ ] **Você:** `console.png` e `console_costas.png`: bancada 2×1 casas, 0,78 m, dois monitores azuis acesos e teclado
 - [ ] **Você:** `console_desligado.png` e `console_desligado_costas.png`: a mesma bancada desligada

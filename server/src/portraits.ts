@@ -68,17 +68,48 @@ export function findPoses(sheet: string, dir = ART_DIR): CharacterDef['poses'] {
   return Object.keys(out).length ? out : undefined;
 }
 
-/** Atualiza os retratos e as poses do tabuleiro de todos os personagens. Devolve true se algo mudou. */
+/** Quadros de um passo por personagem: o bastante para um ciclo bem desenhado. */
+const MAX_QUADROS = 16;
+
+/**
+ * Quadros de andar do tabuleiro por estado e direção, na mesma pasta das
+ * poses: andar-<estado>-<direção>-<n>.png, com n = 1, 2, 3... em ordem (para
+ * no primeiro que falta).
+ */
+export function findPassos(sheet: string, dir = ART_DIR): CharacterDef['passos'] {
+  const find = finder(sheet, dir, POSES_DIR);
+  if (!find) return undefined;
+  const out: Partial<Record<PortraitState, Partial<Record<DirKey, string[]>>>> = {};
+  for (const s of PORTRAIT_STATES) {
+    const dirs: Partial<Record<DirKey, string[]>> = {};
+    for (const k of DIR_KEYS) {
+      const lista: string[] = [];
+      for (let n = 1; n <= MAX_QUADROS; n++) {
+        const url = find(`andar-${s}-${k}-${n}`);
+        if (!url) break;
+        lista.push(url);
+      }
+      if (lista.length) dirs[k] = lista;
+    }
+    if (Object.keys(dirs).length) out[s] = dirs;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
+/** Atualiza os retratos, as poses e os passos do tabuleiro de todos os personagens. Devolve true se algo mudou. */
 export function refreshPortraits(list: CharacterDef[], dir = ART_DIR): boolean {
   let changed = false;
   for (const def of list) {
     const portraits = findPortraits(def.sheet, dir);
     const poses = findPoses(def.sheet, dir);
-    if (JSON.stringify([portraits, poses]) === JSON.stringify([def.portraits, def.poses])) continue;
+    const passos = findPassos(def.sheet, dir);
+    if (JSON.stringify([portraits, poses, passos]) === JSON.stringify([def.portraits, def.poses, def.passos])) continue;
     if (portraits) def.portraits = portraits;
     else delete def.portraits;
     if (poses) def.poses = poses;
     else delete def.poses;
+    if (passos) def.passos = passos;
+    else delete def.passos;
     changed = true;
   }
   return changed;

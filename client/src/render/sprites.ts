@@ -1,4 +1,4 @@
-import { PORTRAIT_STATES, portraitState, sheetDirFor, type AnimKey, type CharacterDef, type PortraitState } from '@croma/shared';
+import { PORTRAIT_STATES, portraitState, sheetDirFor, TICK_MS, type AnimKey, type CharacterDef, type PortraitState } from '@croma/shared';
 
 /** Quadro pronto para desenhar. w/h/ax/ay em pixels de mundo (zoom 1). */
 export interface SpriteFrame {
@@ -8,6 +8,10 @@ export interface SpriteFrame {
   /** âncora (pés) dentro do quadro */
   ax: number;
   ay: number;
+  /** pixel art: aumentando, desenha sem suavizar e no pixel inteiro da tela */
+  pixel?: boolean;
+  /** meia largura dos pés, em pixels de mundo (a sombra acompanha) */
+  pes?: number;
 }
 
 export interface LoadedChar {
@@ -17,10 +21,15 @@ export interface LoadedChar {
   sheet: HTMLCanvasElement;
 }
 
-/** Poses do tabuleiro prontas: um quadro por "estado:direção" (ex.: "armado:se"). */
+/** Poses do tabuleiro prontas: um quadro por "estado:direção" (ex.: "armado:se"), e os quadros de andar. */
 export interface LoadedPoses {
   frames: Record<string, SpriteFrame>;
+  /** quadros de andar por "estado:direção", em ordem (um ciclo = dois passos) */
+  passos: Record<string, SpriteFrame[]>;
 }
+
+/** Até esta altura (em pixels da imagem), a pose é pixel art: vai sem cortar e sem reescalar. */
+const ALTURA_PIXEL_ART = 200;
 
 /** Superamostragem para ficar nítido no zoom 2 / telas retina. */
 const RES = 2.5;
@@ -243,42 +252,92 @@ function limparAlfa(d: Uint8ClampedArray) {
   }
 }
 
+interface PoseLida {
+  key: string;
+  /** -1 = a pose parada; 0, 1, 2... = quadro de andar */
+  n: number;
+  machucado: boolean;
+  canvas: HTMLCanvasElement;
+  b: Caixa;
+}
+
+/** Carrega a imagem num canvas, com o alfa arrumado, e acha a caixa do corpo. */
+async function lerPose(p: { key: string; n: number; url: string; machucado: boolean }): Promise<PoseLida> {
+  const img = await loadImage(p.url);
+  const canvas = document.createElement('canvas');
+  canvas.width = img.naturalWidth;
+  canvas.height = img.naturalHeight;
+  const x = canvas.getContext('2d', { willReadFrequently: true })!;
+  x.drawImage(img, 0, 0);
+  const data = x.getImageData(0, 0, canvas.width, canvas.height);
+  limparAlfa(data.data);
+  x.putImageData(data, 0, 0);
+  const b = caixa(data.data, canvas.width, 0, 0, canvas.width, canvas.height);
+  if (!b) throw new Error('Pose vazia: ' + p.url);
+  return { key: p.key, n: p.n, machucado: p.machucado, canvas, b };
+}
+
+/** Meia largura dos pés (a faixa de baixo do corpo), em pixels da imagem. */
+function meiaLarguraPes(c: HTMLCanvasElement, b: Caixa): number {
+  const d = c.getContext('2d')!.getImageData(0, 0, c.width, c.height).data;
+  const band = Math.max(2, Math.round((b.y1 - b.y0) * 0.06));
+  let x0 = Infinity;
+  let x1 = -1;
+  for (let y = b.y1 - band; y <= b.y1; y++)
+    for (let x = b.x0; x <= b.x1; x++)
+      if (d[(y * c.width + x) * 4 + 3] > 96) {
+        if (x < x0) x0 = x;
+        if (x > x1) x1 = x;
+      }
+  return x1 < 0 ? (b.x1 - b.x0) / 2 : (x1 - x0 + 1) / 2;
+}
+
 /**
- * Poses do tabuleiro (CharacterDef.poses): uma imagem por estado e direção,
- * todas desenhadas na mesma escala e com os pés no mesmo ponto. A escala vem
- * das poses sem machucado (a machucada pode curvar o corpo) e vale para todas.
+ * Poses do tabuleiro (CharacterDef.poses e .passos): uma imagem por estado e
+ * direção, e os quadros de andar, todos na mesma escala e com os pés no mesmo
+ * ponto. Dois jeitos:
+ * - pixel art (imagens pequenas, até ALTURA_PIXEL_ART): a imagem vai inteira,
+ *   numa escala inteira (cada pixel da arte vira 1, 2... pixels de mundo), e a
+ *   âncora é a da pose parada da direção, também nos quadros de andar (que têm
+ *   o mesmo tamanho);
+ * - arte grande (as poses realistas do Tepes): recortada no corpo e reduzida,
+ *   com a escala das poses sem machucado (a machucada pode curvar o corpo).
  */
 async function processPoses(def: CharacterDef): Promise<LoadedPoses> {
-  const pedidos: { key: string; url: string; machucado: boolean }[] = [];
+  const pedidos: { key: string; n: number; url: string; machucado: boolean }[] = [];
   for (const [estado, dirs] of Object.entries(def.poses ?? {}))
-    for (const [dir, url] of Object.entries(dirs ?? {})) if (url) pedidos.push({ key: `${estado}:${dir}`, url, machucado: estado.endsWith('machucado') });
-  const lidas = await Promise.allSettled(
-    pedidos.map(async (p) => {
-      const img = await loadImage(p.url);
-      const canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      const x = canvas.getContext('2d', { willReadFrequently: true })!;
-      x.drawImage(img, 0, 0);
-      const data = x.getImageData(0, 0, canvas.width, canvas.height);
-      limparAlfa(data.data);
-      x.putImageData(data, 0, 0);
-      const b = caixa(data.data, canvas.width, 0, 0, canvas.width, canvas.height);
-      if (!b) throw new Error('Pose vazia: ' + p.url);
-      return { ...p, canvas, b };
-    }),
-  );
-  const poses: { key: string; machucado: boolean; canvas: HTMLCanvasElement; b: Caixa }[] = [];
+    for (const [dir, url] of Object.entries(dirs ?? {})) if (url) pedidos.push({ key: `${estado}:${dir}`, n: -1, url, machucado: estado.endsWith('machucado') });
+  for (const [estado, dirs] of Object.entries(def.passos ?? {}))
+    for (const [dir, urls] of Object.entries(dirs ?? {})) (urls ?? []).forEach((url, n) => pedidos.push({ key: `${estado}:${dir}`, n, url, machucado: estado.endsWith('machucado') }));
+  const lidas = await Promise.allSettled(pedidos.map(lerPose));
+  const todas: PoseLida[] = [];
   for (const r of lidas) {
-    if (r.status === 'fulfilled') poses.push(r.value);
+    if (r.status === 'fulfilled') todas.push(r.value);
     else console.warn('[sprites]', r.reason);
   }
+  const poses = todas.filter((p) => p.n < 0);
   if (!poses.length) throw new Error('Nenhuma pose carregou');
   const inteiras = poses.filter((p) => !p.machucado);
-  const s = def.height / mediana((inteiras.length ? inteiras : poses).map((p) => p.b.y1 - p.b.y0 + 1));
+  const altura = mediana((inteiras.length ? inteiras : poses).map((p) => p.b.y1 - p.b.y0 + 1));
   const frames: Record<string, SpriteFrame> = {};
-  for (const p of poses) frames[p.key] = quadro(p.canvas, p.b, s, RES_POSE);
-  return { frames };
+  const passos: Record<string, SpriteFrame[]> = {};
+  if (altura <= ALTURA_PIXEL_ART) {
+    // pixel art: escala inteira, a imagem inteira, a âncora da pose parada
+    const s = Math.max(1, Math.round(def.height / altura));
+    const ancora = new Map<string, { ax: number; ay: number; pes: number }>();
+    for (const p of poses) ancora.set(p.key, { ax: (p.b.fx + 0.5) * s, ay: (p.b.y1 + 1) * s, pes: meiaLarguraPes(p.canvas, p.b) * s });
+    const inteiro = (p: PoseLida): SpriteFrame => {
+      const a = ancora.get(p.key) ?? { ax: (p.b.fx + 0.5) * s, ay: (p.b.y1 + 1) * s, pes: meiaLarguraPes(p.canvas, p.b) * s };
+      return { canvas: p.canvas, w: p.canvas.width * s, h: p.canvas.height * s, ...a, pixel: true };
+    };
+    for (const p of poses) frames[p.key] = inteiro(p);
+    for (const p of todas.filter((x) => x.n >= 0).sort((a, b) => a.n - b.n)) (passos[p.key] ??= []).push(inteiro(p));
+  } else {
+    const s = def.height / altura;
+    for (const p of poses) frames[p.key] = quadro(p.canvas, p.b, s, RES_POSE);
+    for (const p of todas.filter((x) => x.n >= 0).sort((a, b) => a.n - b.n)) (passos[p.key] ??= []).push(quadro(p.canvas, p.b, s, RES_POSE));
+  }
+  return { frames, passos };
 }
 
 export function spriteKey(def: CharacterDef) {
@@ -330,7 +389,7 @@ class SpriteStore {
   /** Poses do tabuleiro do personagem; null enquanto carregam (ou se ele não tem). */
   poses(def: CharacterDef): LoadedPoses | null {
     if (!def.poses) return null;
-    const key = JSON.stringify([def.poses, def.height]);
+    const key = JSON.stringify([def.poses, def.passos ?? null, def.height]);
     const c = this.poseCache.get(key);
     if (c && c !== 'loading' && c !== 'error') return c;
     if (!c) {
@@ -377,6 +436,32 @@ export function framesFor(lc: LoadedChar, dir: number, anim: AnimKey = 'idle'): 
 
 export type SpritePose = 'stand' | 'walk' | 'sit';
 
+/** A luz do cenário que bate na peça: a cor (média das luzes por perto) e o quanto pesa (0..1). */
+export interface LuzNaPeca {
+  rgb: [number, number, number];
+  forca: number;
+}
+
+/** O quadro da folha que vai à tela agora, quanto ele sobe e se é o sentado improvisado. */
+export function quadroDaFolha(def: CharacterDef, lc: LoadedChar, dir: number, t: number, phase: number, pose: SpritePose): { q: SpriteFrame; dy: number; sit: boolean } | null {
+  // linhas próprias de andar/sentar, se a folha tiver
+  const own = pose === 'stand' ? null : framesFor(lc, dir, pose);
+  const frames = own ?? framesFor(lc, dir);
+  if (!frames) return null;
+  let f: SpriteFrame;
+  if (own) {
+    // animação dedicada: toca os quadros em ordem (andar ~8 qps)
+    const fps = pose === 'walk' ? 8 : def.fps;
+    f = own[Math.floor((t / 1000 + phase) * fps) % own.length];
+  } else {
+    const seq = def.sequence.length ? def.sequence : [0];
+    const fps = pose === 'walk' ? def.fps * 1.5 : def.fps;
+    const idx = seq[Math.floor((t / 1000 + phase) * fps) % seq.length] % frames.length;
+    f = frames[idx] ?? frames[0];
+  }
+  return { q: f, dy: pose === 'walk' && !own ? balanco(t) : 0, sit: pose === 'sit' && !own };
+}
+
 /** Desenha o personagem com os pés em (x, y). Retorna a altura desenhada. */
 export function drawSprite(
   ctx: CanvasRenderingContext2D,
@@ -389,25 +474,12 @@ export function drawSprite(
   phase: number,
   pose: SpritePose,
   alpha = 1,
+  luz?: LuzNaPeca | null,
 ): number {
-  // linhas próprias de andar/sentar, se a folha tiver
-  const own = pose === 'stand' ? null : framesFor(lc, dir, pose);
-  const frames = own ?? framesFor(lc, dir);
-  if (!frames) return 0;
-  let f: SpriteFrame;
-  if (own) {
-    // animação dedicada: toca os quadros em ordem (andar ~8 qps)
-    const fps = pose === 'walk' ? 8 : def.fps;
-    f = own[Math.floor((t / 1000 + phase) * fps) % own.length];
-  } else {
-    const seq = def.sequence.length ? def.sequence : [0];
-    const fps = pose === 'walk' ? def.fps * 1.5 : def.fps;
-    const idx = seq[Math.floor((t / 1000 + phase) * fps) % seq.length] % frames.length;
-    f = frames[idx] ?? frames[0];
-  }
-  const bob = pose === 'walk' && !own ? balanco(t) : 0;
-  paint(ctx, f, x, y + bob, pose === 'sit' && !own, alpha);
-  return f.h;
+  const r = quadroDaFolha(def, lc, dir, t, phase, pose);
+  if (!r) return 0;
+  paint(ctx, r.q, x, y + r.dy, r.sit, alpha, luz);
+  return r.q.h;
 }
 
 /**
@@ -423,6 +495,30 @@ export function poseFor(lp: LoadedPoses, estado: PortraitState, dir: number): Sp
   }
   return null;
 }
+
+/**
+ * Quadros de andar para o estado e a direção, do mesmo jeito que a pose parada
+ * (poseFor) escolhe: o estado mais parecido e a direção vizinha. null = sem
+ * quadros de andar nessa direção (a pose parada desliza com o balanço).
+ */
+export function passosFor(lp: LoadedPoses, estado: PortraitState, dir: number): SpriteFrame[] | null {
+  const armado = estado.startsWith('armado');
+  const machucado = estado.endsWith('machucado');
+  for (const e of [estado, portraitState(armado, false), portraitState(!armado, machucado), ...PORTRAIT_STATES]) {
+    // a direção dos passos é a mesma da pose parada desse estado
+    const k = sheetDirFor(dir, (d) => !!lp.frames[`${e}:${d}`]);
+    if (!k) continue;
+    const q = lp.passos[`${e}:${k}`];
+    return q?.length ? q : null;
+  }
+  return null;
+}
+
+/**
+ * Um ciclo de andar são dois passos, e são dois passos por casa (como no Habbo): cada quadro dura
+ * 1 casa ÷ quadros. Com um passo só por casa, o pé que apoia escorregava no chão junto com o corpo.
+ */
+export const passoMs = (quadros: number) => TICK_MS / Math.max(1, quadros);
 
 /** O personagem tem pose armada (a arma aparece pela arte)? */
 export function temPoseArmada(lp: LoadedPoses): boolean {
@@ -456,27 +552,175 @@ export function drawWeaponMark(ctx: CanvasRenderingContext2D, x: number, y: numb
   ctx.restore();
 }
 
-/** Desenha a pose do tabuleiro com os pés em (x, y). Parada; andando, balança como a folha sem quadros de andar. */
-export function drawPose(ctx: CanvasRenderingContext2D, f: SpriteFrame, x: number, y: number, t: number, pose: SpritePose, alpha = 1): number {
-  paint(ctx, f, x, y + (pose === 'walk' ? balanco(t) : 0), pose === 'sit', alpha);
-  return f.h;
+/**
+ * Desenha a pose do tabuleiro com os pés em (x, y). Andando, toca os quadros
+ * de andar (`passos`) desde `andando` ms; sem eles, balança como a folha sem
+ * quadros de andar.
+ */
+export function drawPose(
+  ctx: CanvasRenderingContext2D,
+  f: SpriteFrame,
+  x: number,
+  y: number,
+  t: number,
+  pose: SpritePose,
+  alpha = 1,
+  passos?: SpriteFrame[] | null,
+  andando = 0,
+  luz?: LuzNaPeca | null,
+): number {
+  const { q, dy } = quadroDaPose(f, t, pose, passos, andando);
+  paint(ctx, q, x, y + dy, pose === 'sit', alpha, luz);
+  return q.h;
+}
+
+/** O quadro da pose que vai à tela agora (andando, o do passo) e quanto ele sobe. */
+export function quadroDaPose(f: SpriteFrame, t: number, pose: SpritePose, passos?: SpriteFrame[] | null, andando = 0): { q: SpriteFrame; dy: number } {
+  if (pose === 'walk' && passos?.length) return { q: passos[Math.floor(andando / passoMs(passos.length)) % passos.length], dy: 0 };
+  return { q: f, dy: pose === 'walk' ? balanco(t) : 0 };
 }
 
 /** Sobe e desce do passo, sem quadros de andar: pequeno, para não parecer que flutua. */
 const balanco = (t: number) => -Math.abs(Math.sin((t * Math.PI) / 250)) * 1.4;
 
+const pesNoChao = new WeakMap<SpriteFrame, HTMLCanvasElement>();
+
+/**
+ * O quadro com os pés escurecendo perto do chão (o próprio corpo e o chão tapam
+ * a luz ali): a peça assenta no piso em vez de parecer colada por cima. Na pixel
+ * art, em degraus de linha inteira; na arte grande, em degradê.
+ */
+function comPesNoChao(f: SpriteFrame): HTMLCanvasElement {
+  let c = pesNoChao.get(f);
+  if (c) return c;
+  c = document.createElement('canvas');
+  c.width = f.canvas.width;
+  c.height = f.canvas.height;
+  const g = c.getContext('2d')!;
+  g.drawImage(f.canvas, 0, 0);
+  g.globalCompositeOperation = 'source-atop';
+  // em pixels do canvas: a linha dos pés e a faixa que escurece (12% da altura do corpo)
+  const k = f.canvas.height / f.h;
+  const base = Math.round(f.ay * k);
+  const faixa = f.ay * 0.12 * k;
+  if (f.pixel) {
+    const passo = Math.max(1, Math.round(faixa / 3));
+    const tons = [0.09, 0.17, 0.26];
+    tons.forEach((a, i) => {
+      g.fillStyle = `rgba(0,0,0,${a})`;
+      // o último degrau vai até embaixo: o pé que pisa à frente desce um pouco da linha
+      const y0 = base - (3 - i) * passo;
+      g.fillRect(0, y0, c!.width, i === tons.length - 1 ? c!.height - y0 : passo);
+    });
+  } else {
+    const gr = g.createLinearGradient(0, base - faixa, 0, base);
+    gr.addColorStop(0, 'rgba(0,0,0,0)');
+    gr.addColorStop(1, 'rgba(0,0,0,0.26)');
+    g.fillStyle = gr;
+    g.fillRect(0, base - faixa, c.width, c.height - (base - faixa));
+  }
+  pesNoChao.set(f, c);
+  return c;
+}
+
+/** Telas de rascunho para tingir o quadro, uma por tamanho. */
+const rascunhos = new Map<string, HTMLCanvasElement>();
+
+/**
+ * O quadro tingido pela luz que bate na peça (perto das velas, o branco fica
+ * creme): a peça fica com a luz do cômodo, e não com a da arte. Sem luz por
+ * perto (null), só os pés no chão; fora do tabuleiro (undefined: as prévias da
+ * interface), o quadro como é.
+ */
+function comLuz(f: SpriteFrame, luz: LuzNaPeca | null | undefined): HTMLCanvasElement {
+  if (luz === undefined) return f.canvas;
+  const base = comPesNoChao(f);
+  if (!luz || luz.forca < 0.02) return base;
+  const chave = `${base.width}x${base.height}`;
+  let c = rascunhos.get(chave);
+  if (!c) {
+    c = document.createElement('canvas');
+    c.width = base.width;
+    c.height = base.height;
+    rascunhos.set(chave, c);
+  }
+  const g = c.getContext('2d')!;
+  const k = 0.32 * Math.min(1, luz.forca);
+  const [r, gg, b] = luz.rgb.map((v) => Math.round(255 + (v - 255) * k));
+  g.globalCompositeOperation = 'copy';
+  g.drawImage(base, 0, 0);
+  g.globalCompositeOperation = 'multiply';
+  g.fillStyle = `rgb(${r},${gg},${b})`;
+  g.fillRect(0, 0, c.width, c.height);
+  // o multiplicar pinta também o fundo transparente: volta o recorte do corpo
+  g.globalCompositeOperation = 'destination-in';
+  g.drawImage(base, 0, 0);
+  g.globalCompositeOperation = 'source-over';
+  return c;
+}
+
+const silhuetas = new WeakMap<SpriteFrame, HTMLCanvasElement>();
+
+/** A silhueta preta do quadro, fechada nos pés e mais clara para a cabeça (a sombra some longe do corpo). */
+function silhueta(f: SpriteFrame): HTMLCanvasElement {
+  let c = silhuetas.get(f);
+  if (c) return c;
+  c = document.createElement('canvas');
+  c.width = f.canvas.width;
+  c.height = f.canvas.height;
+  const g = c.getContext('2d')!;
+  g.drawImage(f.canvas, 0, 0);
+  g.globalCompositeOperation = 'source-in';
+  const gr = g.createLinearGradient(0, f.ay * (f.canvas.height / f.h), 0, 0);
+  gr.addColorStop(0, 'rgba(0,0,0,1)');
+  gr.addColorStop(1, 'rgba(0,0,0,0.3)');
+  g.fillStyle = gr;
+  g.fillRect(0, 0, c.width, c.height);
+  silhuetas.set(f, c);
+  return c;
+}
+
+/**
+ * Sombra projetada no chão: a silhueta do quadro deitada a partir dos pés em
+ * (x, y). `lado` é para onde vai a largura do corpo e `comprimento`, a altura
+ * (vetores na tela, por pixel do quadro).
+ */
+export function drawSombraProjetada(ctx: CanvasRenderingContext2D, f: SpriteFrame, x: number, y: number, lado: [number, number], comprimento: [number, number], alpha: number) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.imageSmoothingEnabled = true;
+  ctx.transform(lado[0], lado[1], -comprimento[0], -comprimento[1], x, y);
+  ctx.drawImage(silhueta(f), -f.ax, -f.ay, f.w, f.h);
+  ctx.restore();
+}
+
 /** Pinta o quadro com os pés em (x, y). sit = sem quadro de sentado: abaixa o corpo e esconde as pernas atrás do assento. */
-function paint(ctx: CanvasRenderingContext2D, f: SpriteFrame, x: number, y: number, sit: boolean, alpha: number) {
+function paint(ctx: CanvasRenderingContext2D, f: SpriteFrame, x: number, y: number, sit: boolean, alpha: number, luz?: LuzNaPeca | null) {
+  const img = comLuz(f, luz);
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
+  if (f.pixel) {
+    const m = ctx.getTransform();
+    // pixel art: aumentando, sem suavizar (cada pixel da arte inteiro); diminuindo, suaviza para não serrilhar
+    ctx.imageSmoothingEnabled = Math.min(Math.abs(m.a), Math.abs(m.d)) < 0.999;
+    if (!sit && !m.b && !m.c) {
+      // no pixel inteiro da tela: andando, a peça não treme nem borra
+      const px = Math.round(m.a * (x - f.ax) + m.e);
+      const py = Math.round(m.d * (y - f.ay) + m.f);
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.drawImage(img, px, py, Math.round(f.w * m.a), Math.round(f.h * m.d));
+      ctx.restore();
+      return;
+    }
+  }
   if (sit) {
     const drop = f.h * 0.22;
     ctx.beginPath();
     ctx.rect(x - f.w * 2, y - f.h * 2, f.w * 4, f.h * 2 + 4);
     ctx.clip();
-    ctx.drawImage(f.canvas, x - f.ax, y - f.ay + drop, f.w, f.h);
-  } else ctx.drawImage(f.canvas, x - f.ax, y - f.ay, f.w, f.h);
+    ctx.drawImage(img, x - f.ax, y - f.ay + drop, f.w, f.h);
+  } else ctx.drawImage(img, x - f.ax, y - f.ay, f.w, f.h);
   ctx.restore();
 }

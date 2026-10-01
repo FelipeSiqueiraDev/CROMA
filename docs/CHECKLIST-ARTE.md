@@ -70,7 +70,7 @@ Formato em [ARTE.md](ARTE.md) (Itens, "Arte pintada dos itens"). O que está mar
 - [ ] **Botões**: `interface/botao-item.png` (escuro) e `interface/botao-item-forte.png` (vermelho, o do Usar), 220×80, borda gasta; 24 px de borda sem detalhe único (o jogo estica o meio)
 - [ ] **Chip de cada agente** na escolha do topo: `interface/chip-agente.png` (escuro) e `interface/chip-agente-on.png` (vermelho, o escolhido), 200×100
 - [ ] **Marca d'água** bem apagada no fundo da aba, atrás das grades: `interface/marca-itens.png`, 300×300, um símbolo próprio (nunca o emblema oficial: o repositório é público)
-- [ ] **Pilha no chão**, no tabuleiro, quando alguém larga um item: `moveis/pilha_chao.png`, a bolsa largada, pixel art na grade 2:1 (1 casa)
+- [ ] **Pilha no chão**, no tabuleiro, quando alguém larga um item: `moveis/pilha_chao.png`, a bolsa largada, pixel art na grade 1:1 (1 casa)
 - [ ] **Retrato armado** de cada agente (`personagens/<nome>/retrato-armado.png`, formato na seção 1 do ARTE.md): sem ele, o retrato do PLAYERS mostra só um sinal da arma no canto
 
 ## 3. Tela FICHAS
@@ -119,10 +119,10 @@ Nada novo: usa os retratos, os ícones e as folhas da FICHAS. Os cartões de res
 ## Para depois: o tabuleiro
 
 - [x] **Tepes — quatro poses idle de referência em estilo 32 bits, com luz neutra:** `personagens/tepes/tabuleiro-32bits/idle-desarmado.png`, `idle-armado.png`, `idle-armado-machucado.png`, `idle-desarmado-machucado.png` (PNG RGBA, 1024×1536). Imagens estáticas escolhidas por Felipe, no modelo realista; ficam no tabuleiro (a pose muda com o Armado e com os PV) até chegarem as chibi. Formato em [ARTE.md](ARTE.md).
-- [ ] **Os quatro agentes no modelo chibi** (decidido em 30/09): as 8 direções nos 4 estados, `personagens/<nome>/tabuleiro-32bits/idle-<estado>-<direção>.png`, na grade 2:1 do [ARTE.md](ARTE.md). Comece pelo desarmado: uma direção por vez, os quatro juntos numa grade 2×2. Pode entregar a imagem do gerador como saiu; o construtor recorta.
+- [ ] **Os quatro agentes no modelo chibi** (decidido em 30/09): as 8 direções nos 4 estados, `personagens/<nome>/tabuleiro-32bits/idle-<estado>-<direção>.png`, na grade 1:1 do [ARTE.md](ARTE.md). Uma imagem por agente e estado, com as 8 direções numa grade 4×2 (a ordem está no ARTE.md, "Poses do tabuleiro"); pode vir como saiu do gerador: o construtor recorta, reduz e monta os quadros de andar com `npm run arte:poses`. **Feito:** Alosi, desarmado (01/10). **Falta:** Alosi armado e machucada; Catarina, Cora e Tepes.
 
-- **Animações de cada agente para o tabuleiro:** modelo chibi, grade 2:1, as animações de andar (e as poses de caído e atacando que a referência do COMBATE mostra). As poses paradas já têm formato no [`ARTE.md`](ARTE.md) ("Poses do tabuleiro"); o das animações entra lá antes de ser feito. As folhas de hoje continuam como a arte de referência da FICHAS e da Hand do jogador.
+- **Animações de cada agente para o tabuleiro:** modelo chibi, grade 1:1. O andar já sai montado da pose parada (`npm run arte:poses`); quadros de andar desenhados à mão, com os mesmos nomes (`andar-<estado>-<direção>-<n>.png`), ficam melhores e substituem os montados. Faltam as poses de caído e atacando que a referência do COMBATE mostra; o formato delas entra no [`ARTE.md`](ARTE.md) antes de ser feito. As folhas de hoje continuam como a arte de referência da FICHAS e da Hand do jogador.
 - **Folha das ameaças para o tabuleiro** (`ocultista`, `acolito`...), no mesmo formato novo.
-- **A Sala de Tecnologia** (o cômodo das referências), pasta `moveis/`, pixel art chibi na grade 2:1 (casa de 32×16 pixels de arte, 1 m ≈ 29), frente e `_costas`: `console` (e desligado), `chair_office`, `fluorescent` (e aceso), `portal`; e as texturas `pisos/carpete.png` (32×16) e `paredes/tijolo-escuro.png` (64×64). Formato em [`SEDE-DA-ORDEM.md`](SEDE-DA-ORDEM.md).
+- **A Sala de Tecnologia** (o cômodo das referências), pasta `moveis/`, pixel art chibi na grade 1:1 (casa de 64×32 pixels de arte, 1 m ≈ 58), frente e `_costas`: `console` (e desligado), `chair_office`, `fluorescent` (e aceso), `portal`; e as texturas `pisos/carpete.png` (64×32) e `paredes/tijolo-escuro.png` (128×128). Formato em [`SEDE-DA-ORDEM.md`](SEDE-DA-ORDEM.md).
 - **As marcações do combate no chão:** `combate/base-agente.png` e `base-inimigo.png` (256×128, o anel de luz embaixo da peça) e `combate/circulo-ritual.png` (512×256, o círculo de quem sustenta ritual).
 - **Os outros cômodos da Sede** (bar, prisão, laboratório...): lista em [`SEDE-DA-ORDEM.md`](SEDE-DA-ORDEM.md).
