@@ -1820,7 +1820,7 @@ export class Shell {
         'div',
         { class: `icard${this.giveLoot?.lootId === l.id ? ' sel' : ''}${l.revealed || this.gm ? '' : ' dim'}`, 'data-loot': String(l.id) },
         h('div', { class: 'ic-icon' }, lootIcon(l.kind, 52)),
-        h('div', { class: 'ic-text' }, h('b', null, l.name), h('small', null, `Peso: ${fmt(l.weight)} | ${lootKindLabel(l.kind)}`)),
+        h('div', { class: 'ic-text' }, h('b', null, l.name), h('small', null, `Espaços: ${fmt(l.espacos)} | ${lootKindLabel(l.kind)}`)),
         right,
       );
       if (this.gm && !l.holder)
@@ -1835,7 +1835,7 @@ export class Shell {
     if (this.gm) {
       if (this.addingLoot) {
         const name = h('input', { class: 'mini grow', placeholder: 'Nome do item', maxlength: 40 });
-        const weight = h('input', { class: 'mini num', type: 'number', value: '1', step: '0.1', min: '0' });
+        const weight = h('input', { class: 'mini num', type: 'number', value: '1', step: '0.5', min: '0', max: '10' });
         const kind = h('select', { class: 'mini' }, ...LOOT_KINDS.map((k) => h('option', { value: k.id }, k.label)));
         const form = h(
           'form',
@@ -1844,12 +1844,12 @@ export class Shell {
             onsubmit: (e: Event) => {
               e.preventDefault();
               if (!name.value.trim()) return;
-              net.send({ t: 'lootAdd', itemId: s.item.id, name: name.value.trim(), weight: Number(weight.value) || 0, kind: kind.value as LootKind });
+              net.send({ t: 'lootAdd', itemId: s.item.id, name: name.value.trim(), espacos: Number(weight.value) || 0, kind: kind.value as LootKind });
               this.addingLoot = false;
             },
           },
           name,
-          h('span', { class: 'mini-l' }, 'Peso'),
+          h('span', { class: 'mini-l' }, 'Espaços'),
           weight,
           kind,
           h('button', { class: 'dbtn', type: 'submit' }, 'OK'),
@@ -1896,7 +1896,7 @@ export class Shell {
     const body = clear(this.giveBody);
     body.append(h('h3', { class: 'p-title' }, `ENTREGAR ${l.name.toUpperCase()} PARA:`));
     this.campaign.party.forEach((p, i) => {
-      const after = Math.round((p.load + l.weight) * 10) / 10;
+      const after = Math.round((p.load + l.espacos) * 10) / 10;
       const over = Math.round((after - p.capacity) * 10) / 10;
       const ratio = p.capacity ? p.load / p.capacity : 1;
       const pct = Math.min(100, ratio * 100);
@@ -1913,7 +1913,7 @@ export class Shell {
         h(
           'div',
           { class: `g-after${over > 0 ? ' over' : ''}` },
-          h('b', null, `+${fmt(l.weight)} `, arrow(), ` ${fmt(after)} / ${fmt(p.capacity)}`),
+          h('b', null, `+${fmt(l.espacos)} `, arrow(), ` ${fmt(after)} / ${fmt(p.capacity)}`),
           over > 0 ? h('small', null, warnIcon(), h('u', null, `Excederá o limite em ${fmt(over)}`)) : null,
         ),
         btn,
@@ -1949,7 +1949,7 @@ export class Shell {
     if (this.delivering) return;
     this.delivering = true;
     try {
-      const after = Math.round((p.load + l.weight) * 10) / 10;
+      const after = Math.round((p.load + l.espacos) * 10) / 10;
       const over = after > p.capacity;
       sfx.click();
       this.giveBody.querySelectorAll('.dbtn').forEach((b) => ((b as HTMLButtonElement).disabled = true));
@@ -1970,7 +1970,7 @@ export class Shell {
         const to = card.getBoundingClientRect();
         await flyArc(lootIcon(l.kind, 52), from, to);
         bump(card, 1.07, 1.4);
-        floatText(card, `+${fmt(l.weight)}`, over ? '#ff6a5c' : '#8fe39a');
+        floatText(card, `+${fmt(l.espacos)}`, over ? '#ff6a5c' : '#8fe39a');
       }
     } finally {
       this.delivering = false;
@@ -2027,7 +2027,7 @@ export class Shell {
     const pane = h('div', { class: 'ipane' });
     if (!carried.length) pane.append(h('p', { class: 'empty' }, 'Nada nas mãos (itens desta cena).'));
     carried.forEach(({ l, from }) =>
-      pane.append(h('div', { class: 'icard' }, h('div', { class: 'ic-icon' }, lootIcon(l.kind, 52)), h('div', { class: 'ic-text' }, h('b', null, l.name), h('small', null, `Peso: ${fmt(l.weight)} | ${lootKindLabel(l.kind)} · ${from}`)))),
+      pane.append(h('div', { class: 'icard' }, h('div', { class: 'ic-icon' }, lootIcon(l.kind, 52)), h('div', { class: 'ic-text' }, h('b', null, l.name), h('small', null, `Espaços: ${fmt(l.espacos)} | ${lootKindLabel(l.kind)} · ${from}`)))),
     );
     body.append(pane);
   }
@@ -2414,7 +2414,7 @@ export class Shell {
       clear(el);
       if (!s) return;
       const ic = lootIcon(s.l.kind, 44);
-      el.append(ic, h('span', { class: 'q-tag', 'aria-hidden': 'true' }, h('b', null, s.l.name), h('small', null, `Peso ${fmt(s.l.weight)}`)));
+      el.append(ic, h('span', { class: 'q-tag', 'aria-hidden': 'true' }, h('b', null, s.l.name), h('small', null, `${fmt(s.l.espacos)} esp.`)));
       if (more) el.append(h('b', { class: 'q-more' }, `+${more}`));
       if (!reduced()) {
         const d = this.intro(520 + i * 50);

@@ -74,7 +74,7 @@ export function buildRoom(
   };
 }
 
-const SEED_VERSION = 14;
+const SEED_VERSION = 15;
 
 /** Os quatro investigadores da mesa. */
 const TEPES = 'D.Tepes';
@@ -232,7 +232,7 @@ function seedCasaRpg(db: Database) {
   const put = (room: RoomData | undefined, defId: string, loot: [string, number, Loot['kind']][], actions: [string, number][]) => {
     const it = room?.items.find((i) => i.defId === defId);
     if (!it) return;
-    it.loot = loot.map(([name, weight, kind]) => ({ id: id(), name, weight, kind, revealed: false }));
+    it.loot = loot.map(([name, espacos, kind]) => ({ id: id(), name, espacos, kind, revealed: false }));
     it.actions = actions.map(([label, dt]) => ({ id: id(), label, dt }));
   };
   const sala = byName('Casa Abandonada · Sala');
@@ -506,7 +506,7 @@ function seedMansao(db: Database) {
   const loot = (room: RoomData, defId: string, list: [string, number, Loot['kind'], string?][], actions: [string, number][] = []) => {
     const it = room.items.find((i) => i.defId === defId);
     if (!it) return console.warn(`[seed] ${room.name}: ${defId} sem lugar para itens`);
-    it.loot = list.map(([name, weight, kind, holder]) => ({ id: id(), name, weight, kind, revealed: true, ...(holder ? { holder } : {}) }));
+    it.loot = list.map(([name, espacos, kind, holder]) => ({ id: id(), name, espacos, kind, revealed: true, ...(holder ? { holder } : {}) }));
     it.actions = actions.map(([label, dt]) => ({ id: id(), label, dt }));
   };
   loot(
@@ -701,6 +701,15 @@ export function upgradeDb(db: Database): boolean {
   }
   // Sede da Ordem: bar no térreo e a sede no subsolo
   if (v < 12) seedSede(db);
+  // um inventário só: o peso dos itens do cenário vira espaços (LR p. 53)
+  if (v < 15)
+    for (const r of db.rooms)
+      for (const it of [...r.items, ...r.wallItems])
+        for (const l of it.loot ?? []) {
+          const velho = l as Loot & { weight?: number };
+          if (typeof velho.espacos !== 'number') velho.espacos = Math.max(0, Math.min(10, Math.round((velho.weight ?? 1) * 2) / 2));
+          delete velho.weight;
+        }
   rebuildSede(db);
   db.seedVersion = SEED_VERSION;
   return true;

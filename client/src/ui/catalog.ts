@@ -37,7 +37,7 @@ export class CatalogWin {
 
   private items(): { id: string; name: string; desc?: string }[] {
     if (this.cat === 'parede') return WALL_FURNI_LIST.map((d) => ({ id: d.id, name: d.name, desc: d.desc }));
-    return FURNI_LIST.filter((d) => d.category === this.cat).map((d) => ({ id: d.id, name: d.name, desc: d.desc }));
+    return FURNI_LIST.filter((d) => d.category === this.cat && !d.interno).map((d) => ({ id: d.id, name: d.name, desc: d.desc }));
   }
 
   private render() {

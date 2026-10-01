@@ -132,7 +132,10 @@ export interface Token {
 export interface Item {
   id: number;
   name: string;
-  weight: number;
+  /** espaços que ocupa na mochila */
+  espacos: number;
+  /** texto do mestre */
+  descricao?: string;
   kind: LootKind;
   kindLabel: string;
   sceneId: number;

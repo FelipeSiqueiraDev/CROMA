@@ -232,7 +232,7 @@ describe('itens', () => {
   test('jogador não recebe pista oculta nem item ainda não revelado', () => {
     const desk = gm.session().objects.find((o) => o.name === 'Escrivaninha')!;
     gm.send({ t: 'setHint', id: desk.id, hint: { icon: 'inspect', title: 'Fundo falso', text: 'Segredo.', visible: false } });
-    gm.send({ t: 'lootAdd', itemId: desk.id, name: 'Bilhete', weight: 0.1, kind: 'letter' });
+    gm.send({ t: 'lootAdd', itemId: desk.id, name: 'Bilhete', espacos: 0, kind: 'letter' });
     hotel.pushNow();
     const mine = gm.session();
     const theirs = player.session();

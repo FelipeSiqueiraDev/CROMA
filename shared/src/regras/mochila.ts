@@ -151,7 +151,12 @@ export function usar(inv: ItemFicha[], uid: number): ResultadoMochila & { gastou
   const it = inv[i];
   if (!consumivel(it)) return { ok: true, inventario: inv, gastou: false };
   const qtd = (it.qtd ?? 1) - 1;
-  const out = qtd > 0 ? inv.map((x, j) => (j === i ? { ...x, qtd } : x)) : inv.filter((_, j) => j !== i);
+  const resto = (x: ItemFicha): ItemFicha => {
+    const { qtd: _q, ...sem } = x;
+    void _q;
+    return qtd > 1 ? { ...sem, qtd } : sem;
+  };
+  const out = qtd > 0 ? inv.map((x, j) => (j === i ? resto(x) : x)) : inv.filter((_, j) => j !== i);
   return { ok: true, inventario: out, gastou: true };
 }
 

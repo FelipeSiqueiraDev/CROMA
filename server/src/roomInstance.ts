@@ -8,6 +8,11 @@ import {
   getWallFurni,
   anyFurniName,
   applyVital,
+  espacosDoItemFicha,
+  kindDoItem,
+  noCatalogo,
+  PILHA_CHAO,
+  regras,
   DEFAULT_VITALS,
   HINT_ICONS,
   isFloorStyle,
@@ -110,6 +115,10 @@ export interface HotelApi {
   vitaisDaPeca(personagem: number | null | undefined, v: Vitals): void;
   /** peça nova (ou com outra folha): sem PV/PE/SAN, pega os da ficha ligada ao personagem */
   vitaisDaFicha(personagem: number | null | undefined): void;
+  /** item do cenário entregue a uma peça: com ficha, vai para a mochila. true = levou; texto = por que não */
+  pegarItem(roomId: number, nome: string, loot: Loot, quem: string, deOnde: string): boolean | string;
+  /** Armado de uma peça com ficha: empunha ou guarda a arma na mochila. true = a ficha cuidou */
+  armarPelaPeca(personagem: number | null | undefined, armado: boolean, c: Client): boolean;
 }
 
 interface RoomUser {
@@ -998,7 +1007,8 @@ export class RoomInstance {
         u.meta ??= {};
         if (typeof m.color === 'string' && /^#[0-9a-f]{6}$/i.test(m.color)) u.meta.color = m.color;
         if (isInt(m.capacity)) u.meta.capacity = Math.max(1, Math.min(99, m.capacity));
-        if (typeof m.armed === 'boolean') u.meta.armed = m.armed;
+        // com ficha, o Armado vem da mão: a ficha empunha ou guarda a arma
+        if (typeof m.armed === 'boolean' && !this.hotel.armarPelaPeca(u.client.look?.charId, m.armed, c)) u.meta.armed = m.armed;
         if (typeof m.hurt === 'boolean') u.meta.hurt = m.hurt;
         // só o estado do retrato mudou: o tabuleiro não precisa redesenhar a peça
         if (!name && !m.look && m.color === undefined && m.capacity === undefined) {
@@ -1048,10 +1058,14 @@ export class RoomInstance {
     const lootIdx = isInt(m.lootId) ? loot.findIndex((l) => l.id === m.lootId) : -1;
     switch (m.t) {
       case 'lootAdd': {
-        const inp = sanitizeLootInput(m);
+        // do catálogo: a faca da gaveta vira arma de verdade (nome e espaços do livro, se o mestre não mudar)
+        const ref = (m.item ?? {}) as { tipo?: unknown; id?: unknown };
+        const item = noCatalogo(ref.tipo, ref.id) ? { tipo: ref.tipo, id: ref.id as string } : undefined;
+        const nome = typeof m.name === 'string' && m.name.trim() ? m.name : item ? regras.nomeDoItem(item) : '';
+        const inp = sanitizeLootInput({ ...m, name: nome, espacos: typeof m.espacos === 'number' ? m.espacos : item ? espacosDoItemFicha(item) : m.weight, kind: m.kind ?? (item ? kindDoItem(item) : undefined) });
         if (!inp) return this.err(c, 'Dê um nome ao item.');
         if (loot.length >= 30) return this.err(c, 'Máximo de 30 itens por mobi.');
-        loot.push({ id: this.hotel.nextItemId(), ...inp, revealed: false });
+        loot.push({ id: this.hotel.nextItemId(), ...inp, revealed: false, ...(item ? { item } : {}) });
         break;
       }
       case 'lootRemove':
@@ -1061,6 +1075,13 @@ export class RoomInstance {
       case 'lootGive': {
         if (lootIdx < 0) return;
         const to = typeof m.to === 'string' ? clean(m.to, MAX_TOKEN_NAME) : '';
+        // peça com ficha: o item vai para a mochila dela (um inventário só)
+        const levou = to ? this.hotel.pegarItem(this.data.id, to, loot[lootIdx], gm, objName) : false;
+        if (typeof levou === 'string') return this.err(c, levou);
+        if (levou) {
+          loot.splice(lootIdx, 1);
+          break;
+        }
         const l = { ...loot[lootIdx], revealed: true };
         if (to) l.holder = to;
         else delete l.holder;
@@ -1098,6 +1119,14 @@ export class RoomInstance {
       default:
         return;
     }
+    // a pilha do chão some quando pegam o último item
+    if (floor?.defId === PILHA_CHAO && !loot.length) {
+      this.map.removeItem(floor.id);
+      this.broadcast({ t: 'itemRemove', id: floor.id });
+      this.persist();
+      this.hotel.touch();
+      return;
+    }
     const next: FloorItem | WallItem = { ...it };
     if (loot.length) next.loot = loot;
     else delete next.loot;
@@ -1114,12 +1143,82 @@ export class RoomInstance {
     this.hotel.touch();
   }
 
-  /** Itens de RPG deste quarto com dono (para a carga dos jogadores). */
+  /** Itens de RPG deste quarto com dono (para a carga das peças sem ficha). */
   heldLoot() {
-    const out: { holder: string; weight: number }[] = [];
+    const out: { holder: string; espacos: number }[] = [];
     const all = [...this.map.allItems(), ...this.map.allWallItems()];
-    for (const it of all) for (const l of it.loot ?? []) if (l.holder) out.push({ holder: l.holder, weight: l.weight });
+    for (const it of all) for (const l of it.loot ?? []) if (l.holder) out.push({ holder: l.holder, espacos: l.espacos });
     return out;
+  }
+
+  /**
+   * Tira dos mobis os itens que estão com uma peça de ficha (`temFicha`): eles
+   * vão para a mochila (um inventário só). Devolve quem estava com cada um.
+   */
+  tirarItensComDono(temFicha: (nome: string) => boolean): { nome: string; loot: Loot }[] {
+    const out: { nome: string; loot: Loot }[] = [];
+    const tira = <T extends FloorItem | WallItem>(it: T): T | null => {
+      const loot = it.loot ?? [];
+      const vao = loot.filter((l) => l.holder && temFicha(l.holder));
+      if (!vao.length) return null;
+      for (const l of vao) out.push({ nome: l.holder!, loot: l });
+      const fica = loot.filter((l) => !vao.includes(l));
+      const next = { ...it };
+      if (fica.length) next.loot = fica;
+      else delete next.loot;
+      return next;
+    };
+    for (const it of this.map.allItems()) {
+      const next = tira(it);
+      if (next) this.map.updateItem(next);
+    }
+    for (const it of this.map.allWallItems()) {
+      const next = tira(it);
+      if (next) this.map.setWallItem(next);
+    }
+    if (out.length) this.persist();
+    return out;
+  }
+
+  /** Armado das peças do personagem (vem da mão, na ficha). Devolve true se mudou. */
+  definirArmado(personagem: number, armado: boolean): boolean {
+    let mudou = false;
+    for (const u of this.users.values()) {
+      if (u.client.look?.charId !== personagem || !!u.meta?.armed === armado) continue;
+      u.meta ??= {};
+      u.meta.armed = armado;
+      mudou = true;
+    }
+    if (mudou) this.saveTokens();
+    return mudou;
+  }
+
+  /** A peça do personagem está nesta cena? */
+  temPersonagem(personagem: number): boolean {
+    return [...this.users.values()].some((u) => u.client.look?.charId === personagem);
+  }
+
+  /**
+   * Larga o item no chão, na casa da peça do personagem: numa pilha ("Itens no
+   * Chão") que qualquer um pode abrir e pegar. null = largou; texto = por que não.
+   */
+  largarNoChao(personagem: number, l: Loot): string | null {
+    const u = [...this.users.values()].find((x) => x.client.look?.charId === personagem);
+    if (!u) return 'O personagem não está nesta cena.';
+    const pilha = this.map.allItems().find((it) => it.defId === PILHA_CHAO && it.x === u.x && it.y === u.y);
+    if (pilha) {
+      if ((pilha.loot ?? []).length >= 30) return 'A pilha no chão já tem 30 itens.';
+      const next: FloorItem = { ...pilha, loot: [...(pilha.loot ?? []), l] };
+      this.map.updateItem(next);
+      this.broadcastFloor('itemUpdate', next);
+    } else {
+      const it: FloorItem = { id: this.hotel.nextItemId(), defId: PILHA_CHAO, x: u.x, y: u.y, z: this.map.floorHeight(u.x, u.y) ?? 0, rot: 0, state: 0, loot: [l] };
+      this.map.addItem(it);
+      this.broadcastFloor('itemAdd', it);
+    }
+    this.persist();
+    this.hotel.touch();
+    return null;
   }
 
   /** Clima ao vivo: luz (normal/piscando/apagão), névoa e escuridão. */
@@ -1296,7 +1395,8 @@ export class RoomInstance {
         items.push({
           id: l.id,
           name: l.name,
-          weight: l.weight,
+          espacos: l.espacos,
+          ...(l.descricao ? { descricao: l.descricao } : {}),
           kind: l.kind,
           kindLabel: lootKindLabel(l.kind),
           sceneId: this.data.id,

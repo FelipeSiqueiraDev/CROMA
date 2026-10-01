@@ -5,6 +5,7 @@ import type { FloorItem, FloorStyle, Hint, ParticleKind, WallItem } from './room
 import type { CampaignState, LootKind } from './rpg';
 import type { Role, Session, SessionAction, Token } from './session';
 import type { FichaSalva } from './fichas';
+import type { TipoItemCatalogo } from './regras/ficha';
 import type { VitalKey } from './vitals';
 import type { Door } from './walls';
 
@@ -63,6 +64,10 @@ export function turnFacing(dir: number, cw: boolean, allowed: number[]): number 
   }
   return d;
 }
+
+/** O que se faz com um item da mochila (docs/REGRAS.md, Mochila). */
+export type AcaoMochila = 'empunhar' | 'guardar' | 'vestir' | 'tirar' | 'usar' | 'entregar' | 'largar';
+export const ACOES_MOCHILA: AcaoMochila[] = ['empunhar', 'guardar', 'vestir', 'tirar', 'usar', 'entregar', 'largar'];
 
 /** Animação de cada linha da folha. */
 export type AnimKey = 'idle' | 'walk' | 'sit';
@@ -262,6 +267,8 @@ export type ClientMsg =
   | { t: 'relock'; id: number }
   /** cria (id 0) ou atualiza uma ficha (só o mestre) */
   | { t: 'fichaSalvar'; ficha: FichaSalva }
+  /** mexe num item da mochila (só o mestre): mão, roupa, usar, entregar a outra ficha ou largar no chão */
+  | { t: 'mochila'; fichaId: number; uid: number; acao: AcaoMochila; para?: number; trocar?: boolean }
   | { t: 'fichaApagar'; id: number }
   /** gera (ou troca) o link do jogador para a ficha (só o mestre) */
   | { t: 'fichaLink'; id: number }
@@ -281,7 +288,8 @@ export type ClientMsg =
   /** PV/PE/SAN da peça: delta soma ao atual, value troca o atual, max troca o total */
   | { t: 'vitals'; tokenId: number; key: VitalKey; delta?: number; value?: number; max?: number }
   | { t: 'tokenScene'; tokenId: number; roomId: number }
-  | { t: 'lootAdd'; itemId: number; name: string; weight: number; kind: LootKind }
+  /** item novo num mobi; `item` = do catálogo (a faca vira arma de verdade) */
+  | { t: 'lootAdd'; itemId: number; name: string; espacos: number; kind: LootKind; item?: { tipo: TipoItemCatalogo; id: string }; qtd?: number; descricao?: string }
   | { t: 'lootRemove'; itemId: number; lootId: number }
   | { t: 'lootGive'; itemId: number; lootId: number; to: string | null }
   | { t: 'lootReveal'; itemId: number; lootId: number; revealed: boolean }

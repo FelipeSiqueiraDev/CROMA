@@ -35,6 +35,11 @@ import {
   combate as cmb,
   sanitizarFicha,
   type FichaSalva,
+  ACOES_MOCHILA,
+  itemParaLoot,
+  lootParaItem,
+  type AcaoMochila,
+  type Loot,
 } from '@croma/shared';
 import { loadDb, saveDbNow, scheduleSave, type CampaignData, type Database, type RoomData, type UserData } from './db';
 import { RoomInstance, type Client, type HotelApi } from './roomInstance';
@@ -66,6 +71,7 @@ const GM_ONLY = new Set([
   'vitals',
   'fichaApagar',
   'fichaLink',
+  'mochila',
   'place',
   'placeWall',
   'moveItem',
@@ -128,8 +134,9 @@ export class Hotel implements HotelApi {
       dirty = true;
     }
     if (refreshPortraits(this.db.characters)) dirty = true;
-    if (dirty && this.persist) saveDbNow(this.db);
     for (const r of this.db.rooms) this.rooms.set(r.id, new RoomInstance(r, this));
+    if (this.migrarMochilas()) dirty = true;
+    if (dirty && this.persist) saveDbNow(this.db);
     // peças de agente que ainda não têm PV/PE/SAN pegam os da ficha (a MAPA e o combate usam)
     for (const f of this.db.fichas ?? [])
       if (f.personagem)
@@ -298,6 +305,215 @@ export class Hotel implements HotelApi {
     this.touch();
   }
 
+
+  // ---------- mochila: um inventário só (docs/REGRAS.md, Mochila) ----------
+  /** contas de cada ficha (a carga vai na sessão a cada envio), até a ficha mudar */
+  private calcCache = new WeakMap<regras.Ficha, regras.Calculado | null>();
+
+  private calcDe(f: FichaSalva): regras.Calculado | null {
+    let c = this.calcCache.get(f.ficha);
+    if (c === undefined) {
+      try {
+        c = regras.calcular(f.ficha);
+      } catch (e) {
+        console.error(`[fichas] ficha ${f.id} com erro nas regras`, e);
+        c = null;
+      }
+      this.calcCache.set(f.ficha, c);
+    }
+    return c;
+  }
+
+  /** Ficha ligada à folha de sprite do personagem. */
+  private fichaDoPersonagem(personagem: number | null | undefined): FichaSalva | undefined {
+    return personagem ? (this.db.fichas ?? []).find((f) => f.personagem === personagem) : undefined;
+  }
+
+  /** Ficha da peça com esse nome na campanha da cena. */
+  private fichaPeloNome(roomId: number, nome: string): FichaSalva | undefined {
+    const key = nome.toLowerCase();
+    for (const id of this.sceneGroup(roomId)) {
+      const t = this.rooms.get(id)?.tokensLive().find((x) => x.name.toLowerCase() === key);
+      if (t) return this.fichaDoPersonagem(t.look?.charId);
+    }
+    return undefined;
+  }
+
+  /** A cena onde está a peça do personagem (de preferência a do mestre). */
+  private salaDoPersonagem(personagem: number | null | undefined, prefere?: RoomInstance | null): RoomInstance | undefined {
+    if (!personagem) return undefined;
+    if (prefere?.temPersonagem(personagem)) return prefere;
+    return [...this.rooms.values()].find((r) => r.temPersonagem(personagem));
+  }
+
+  /** Mochila nova (objeto novo: as contas guardadas eram da antiga). */
+  private trocarMochila(f: FichaSalva, inventario: regras.ItemFicha[]) {
+    f.ficha = { ...f.ficha, inventario };
+    f.atualizadaEm = new Date().toISOString();
+  }
+
+  /** O Armado das peças do personagem acompanha a mão. */
+  private sincronizarArmado(f: FichaSalva): boolean {
+    if (!f.personagem) return false;
+    const armado = regras.armado(f.ficha.inventario);
+    let mudou = false;
+    for (const r of this.rooms.values()) mudou = r.definirArmado(f.personagem, armado) || mudou;
+    return mudou;
+  }
+
+  /** A mochila mudou: o Armado acompanha e todos recebem. */
+  private fichaMudou(f: FichaSalva) {
+    this.sincronizarArmado(f);
+    this.save();
+    this.enviarFichas();
+    this.touch();
+  }
+
+  /** Cabe na carga? Passar do dobro não dá (LR p. 53). null = cabe. */
+  private naoCabe(f: FichaSalva, it: regras.ItemFicha): string | null {
+    let c: regras.Calculado;
+    try {
+      c = regras.calcular({ ...f.ficha, inventario: [...f.ficha.inventario, it] });
+    } catch {
+      return null;
+    }
+    if (c.carga.usados <= c.carga.maximo) return null;
+    return `${f.nome} não aguenta ${regras.nomeDoItem(it)}: seriam ${c.carga.usados} espaços, e o máximo é ${c.carga.maximo} (o dobro da carga, LR p. 53).`;
+  }
+
+  /** Registro na campanha onde a peça do personagem está. */
+  private logDoPersonagem(f: FichaSalva, icon: LogIcon, text: string, prefere?: RoomInstance | null) {
+    const sala = this.salaDoPersonagem(f.personagem, prefere) ?? prefere;
+    if (sala) this.log(sala.data.id, icon, text);
+  }
+
+  /** Item do cenário entregue a uma peça: com ficha, vai para a mochila (achado na missão). */
+  pegarItem(roomId: number, nome: string, l: Loot, quem: string, deOnde: string): boolean | string {
+    const f = this.fichaPeloNome(roomId, nome);
+    if (!f) return false;
+    const it = lootParaItem(l);
+    if (!Number.isInteger(it.uid) || (this.db.fichas ?? []).some((x) => x.ficha.inventario.some((y) => y.uid === it.uid))) it.uid = this.nextItemId();
+    const erro = this.naoCabe(f, it);
+    if (erro) return erro;
+    this.trocarMochila(f, [...f.ficha.inventario, it]);
+    this.log(roomId, 'give', quem ? `${quem} entregou ${l.name} para ${nome}.` : `${nome} pegou ${l.name} (${deOnde}).`);
+    this.fichaMudou(f);
+    return true;
+  }
+
+  /** Armado na peça com ficha: empunha a primeira arma da mochila (trocando o que estiver na mão) ou guarda as armas. */
+  armarPelaPeca(personagem: number | null | undefined, armado: boolean, c: Client): boolean {
+    const f = this.fichaDoPersonagem(personagem);
+    if (!f) return false;
+    let inv = f.ficha.inventario;
+    if (armado) {
+      if (regras.armado(inv)) return true;
+      const arma = inv.find((it) => it.tipo === 'arma' && regras.maosDoItem(it) > 0 && Number.isInteger(it.uid));
+      if (!arma) {
+        c.send({ t: 'error', msg: `${f.nome} não tem arma na mochila.` });
+        return true;
+      }
+      const r = regras.empunhar(inv, arma.uid!, true);
+      if (!r.ok) {
+        c.send({ t: 'error', msg: r.motivo });
+        return true;
+      }
+      inv = r.inventario;
+    } else
+      for (const it of f.ficha.inventario)
+        if (it.tipo === 'arma' && regras.lugarDoItem(it) === 'mao') {
+          const r = regras.guardar(inv, it.uid!);
+          if (r.ok) inv = r.inventario;
+        }
+    this.trocarMochila(f, inv);
+    this.fichaMudou(f);
+    return true;
+  }
+
+  /** O mestre mexe num item da mochila: mão, roupa, usar, entregar a outra ficha ou largar no chão. */
+  private mochila(c: Client, m: Record<string, unknown>) {
+    const err = (msg: string) => c.send({ t: 'error', msg });
+    const f = (this.db.fichas ?? []).find((x) => x.id === m.fichaId);
+    const acao = m.acao as AcaoMochila;
+    const uid = typeof m.uid === 'number' ? m.uid : NaN;
+    const inv = f?.ficha.inventario ?? [];
+    const item = inv.find((x) => x.uid === uid);
+    if (!f || !item || !ACOES_MOCHILA.includes(acao)) return err('Item não encontrado.');
+    const nome = regras.nomeDoItem(item);
+    let r: regras.ResultadoMochila;
+    switch (acao) {
+      case 'empunhar':
+        r = regras.empunhar(inv, uid, m.trocar === true);
+        break;
+      case 'guardar':
+        r = regras.guardar(inv, uid);
+        break;
+      case 'vestir':
+        r = regras.vestir(inv, uid);
+        break;
+      case 'tirar':
+        r = regras.tirar(inv, uid);
+        break;
+      case 'usar': {
+        const u = regras.usar(inv, uid);
+        r = u;
+        if (u.ok) {
+          const resto = u.inventario.find((x) => x.uid === uid);
+          const sobra = u.gastou ? (resto ? (resto.qtd ?? 1) : 0) : null;
+          this.logDoPersonagem(f, 'user', `${f.nome} usou ${nome}${sobra === null ? '' : sobra > 1 ? ` (sobram ${sobra})` : sobra === 1 ? ' (sobra 1)' : ' (era o último)'}.`, c.room);
+        }
+        break;
+      }
+      case 'entregar': {
+        const para = (this.db.fichas ?? []).find((x) => x.id === m.para);
+        if (!para || para === f) return err('Entregar para quem?');
+        const s = regras.retirar(inv, uid);
+        if (!s.ok) return err(s.motivo);
+        const erro = this.naoCabe(para, s.item);
+        if (erro) return err(erro);
+        this.trocarMochila(f, s.inventario);
+        this.trocarMochila(para, [...para.ficha.inventario, s.item]);
+        this.logDoPersonagem(f, 'give', `${f.nome} entregou ${nome} para ${para.nome}.`, c.room);
+        this.sincronizarArmado(para);
+        this.fichaMudou(f);
+        return;
+      }
+      case 'largar': {
+        const sala = this.salaDoPersonagem(f.personagem, c.room);
+        if (!sala || !f.personagem) return err(`${f.nome} não está no tabuleiro.`);
+        const s = regras.retirar(inv, uid);
+        if (!s.ok) return err(s.motivo);
+        const e = sala.largarNoChao(f.personagem, itemParaLoot(s.item));
+        if (e) return err(e);
+        this.trocarMochila(f, s.inventario);
+        this.log(sala.data.id, 'give', `${f.nome} largou ${nome} no chão.`);
+        this.fichaMudou(f);
+        return;
+      }
+    }
+    if (!r.ok) return err(r.motivo);
+    if (r.inventario !== inv) this.trocarMochila(f, r.inventario);
+    this.fichaMudou(f);
+  }
+
+  /**
+   * Um inventário só, na subida: cada item das fichas ganha número, o que
+   * estava com uma peça de ficha (no cenário, com dono) vai para a mochila
+   * dela, e o Armado das peças passa a vir da mão. true = mudou algo.
+   */
+  private migrarMochilas(): boolean {
+    let mudou = false;
+    for (const f of this.db.fichas ?? []) mudou = regras.numerarItens(f.ficha.inventario, () => this.nextItemId()) || mudou;
+    for (const r of this.rooms.values())
+      for (const { nome, loot } of r.tirarItensComDono((n) => !!this.fichaPeloNome(r.data.id, n))) {
+        const f = this.fichaPeloNome(r.data.id, nome)!;
+        f.ficha = { ...f.ficha, inventario: [...f.ficha.inventario, lootParaItem(loot)] };
+        mudou = true;
+      }
+    for (const f of this.db.fichas ?? []) mudou = this.sincronizarArmado(f) || mudou;
+    return mudou;
+  }
+
   // ---------- fichas ----------
   private fichasTimer: NodeJS.Timeout | null = null;
 
@@ -342,9 +558,17 @@ export class Hotel implements HotelApi {
     }
     // uma folha de sprite tem uma ficha só
     if (f.personagem) for (const o of lista) if (o !== f && o.personagem === f.personagem) delete o.personagem;
-    if (f.personagem) this.fichaParaPecas(f);
+    // itens novos ganham número (um só entre todas as fichas)
+    const usados = new Set(lista.filter((o) => o !== f).flatMap((o) => o.ficha.inventario.map((it) => it.uid)));
+    for (const it of f.ficha.inventario) if (usados.has(it.uid)) delete it.uid;
+    regras.numerarItens(f.ficha.inventario, () => this.nextItemId());
+    if (f.personagem) {
+      this.fichaParaPecas(f);
+      this.sincronizarArmado(f);
+    }
     this.save();
     this.enviarFichas(undefined, nova);
+    this.touch();
   }
 
   private fichaApagar(c: Client, m: Record<string, unknown>) {
@@ -453,22 +677,26 @@ export class Hotel implements HotelApi {
     this.ensureLayout(camp, scenes);
     // grupo = as peças de todas as cenas da campanha
     const load = new Map<string, number>();
-    for (const r of rooms) for (const l of r.heldLoot()) load.set(l.holder.toLowerCase(), (load.get(l.holder.toLowerCase()) ?? 0) + l.weight);
+    for (const r of rooms) for (const l of r.heldLoot()) load.set(l.holder.toLowerCase(), (load.get(l.holder.toLowerCase()) ?? 0) + l.espacos);
     const party = new Map<string, PartyMember>();
     for (const r of rooms)
-      for (const t of r.tokenList())
+      for (const t of r.tokenList()) {
+        // com ficha, a carga é a da mochila (espaços, LR p. 53)
+        const fc = this.fichaDoPersonagem(t.look?.charId);
+        const carga = fc ? this.calcDe(fc)?.carga : undefined;
         party.set(`t${t.id}`, {
           name: t.name,
           id: t.id,
           look: t.look,
-          load: Math.round((load.get(t.name.toLowerCase()) ?? 0) * 10) / 10,
-          capacity: t.capacity ?? DEFAULT_CAPACITY,
+          load: carga ? carga.usados : Math.round((load.get(t.name.toLowerCase()) ?? 0) * 10) / 10,
+          capacity: carga ? carga.espacos : (t.capacity ?? DEFAULT_CAPACITY),
           roomId: r.data.id,
           color: t.color ?? playerColorFor(t.name),
           armed: t.armed,
           hurt: t.hurt,
           vitals: t.vitals,
         });
+      }
     return {
       key,
       title: camp.title,
@@ -515,18 +743,20 @@ export class Hotel implements HotelApi {
       items.push(...o.items);
     }
     const load = new Map<string, number>();
-    for (const r of rooms) for (const l of r.heldLoot()) load.set(l.holder.toLowerCase(), (load.get(l.holder.toLowerCase()) ?? 0) + l.weight);
+    for (const r of rooms) for (const l of r.heldLoot()) load.set(l.holder.toLowerCase(), (load.get(l.holder.toLowerCase()) ?? 0) + l.espacos);
     const characters: Character[] = [];
     const tokens: Token[] = [];
     for (const r of rooms)
       for (const t of r.tokensLive()) {
         tokens.push(t.token);
+        const fc = this.fichaDoPersonagem(t.look?.charId);
+        const carga = fc ? this.calcDe(fc)?.carga : undefined;
         characters.push({
           id: t.token.id,
           name: t.name,
           color: t.color ?? playerColorFor(t.name),
-          capacity: t.capacity ?? DEFAULT_CAPACITY,
-          load: round1(load.get(t.name.toLowerCase()) ?? 0),
+          capacity: carga ? carga.espacos : (t.capacity ?? DEFAULT_CAPACITY),
+          load: carga ? carga.usados : round1(load.get(t.name.toLowerCase()) ?? 0),
           look: t.look,
           sceneId: r.data.id,
           armed: !!t.armed,
@@ -1062,6 +1292,9 @@ export class Hotel implements HotelApi {
         return;
       case 'fichaApagar':
         this.fichaApagar(c, m);
+        return;
+      case 'mochila':
+        this.mochila(c, m);
         return;
       case 'fichaLink':
         this.fichaLink(m);

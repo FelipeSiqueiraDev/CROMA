@@ -1,4 +1,5 @@
 import type { AvatarLook } from './avatar';
+import type { ItemFicha } from './regras/ficha';
 import type { SceneInfo } from './protocol';
 import type { Vitals } from './vitals';
 
@@ -20,16 +21,32 @@ export function lootKindLabel(k: LootKind) {
   return LOOT_KINDS.find((x) => x.id === k)?.label ?? 'Item';
 }
 
-/** Item guardado dentro de um mobi (gaveta, estante...). */
+/** Item do catálogo guardado no cenário: o mesmo da mochila, sem mão, roupa e origem. */
+export type ItemNoCenario = Omit<ItemFicha, 'uid' | 'empunhado' | 'vestido' | 'achado' | 'descricao' | 'qtd'>;
+
+/**
+ * Item guardado num mobi (gaveta, estante...) ou largado no chão. Quem pega
+ * leva para a mochila da ficha (docs/REGRAS.md, Mochila): o mesmo item, com o
+ * mesmo número.
+ */
 export interface Loot {
   id: number;
   name: string;
-  weight: number;
+  /** espaços que ocupa na mochila (LR p. 53) */
+  espacos: number;
   kind: LootKind;
-  /** nome do jogador que está com o item */
+  /** nome de quem está com o item (só peça sem ficha: com ficha, o item vai para a mochila) */
   holder?: string;
   /** jogadores já podem ver */
   revealed?: boolean;
+  /** item do catálogo: a faca da gaveta vira arma de verdade, com ataque */
+  item?: ItemNoCenario;
+  /** quantos (munição, frascos) */
+  qtd?: number;
+  /** texto do mestre ("Arquivos do Projeto Fulgor") */
+  descricao?: string;
+  /** a Ordem forneceu e alguém largou: ao pegar de novo, ocupa vaga da patente */
+  daOrdem?: boolean;
 }
 
 /** Interação com teste: "Investigar (DT 15)". */
@@ -98,12 +115,19 @@ export interface CampaignState {
 
 export const DEFAULT_CAPACITY = 10;
 
-export function sanitizeLootInput(o: Record<string, unknown>): { name: string; weight: number; kind: LootKind } | null {
+/** Nome, espaços (0 a 10, LR p. 53), tipo, quantidade e texto de um item novo do cenário. */
+export function sanitizeLootInput(o: Record<string, unknown>): { name: string; espacos: number; kind: LootKind; qtd?: number; descricao?: string } | null {
   const name = typeof o.name === 'string' ? o.name.replace(/[\u0000-\u001f]/g, '').trim().slice(0, 40) : '';
-  const weight = typeof o.weight === 'number' && Number.isFinite(o.weight) ? Math.max(0, Math.min(50, Math.round(o.weight * 10) / 10)) : 1;
+  // `weight`: o nome antigo dos espaços
+  const n = typeof o.espacos === 'number' ? o.espacos : o.weight;
+  const espacos = typeof n === 'number' && Number.isFinite(n) ? Math.max(0, Math.min(10, Math.round(n * 2) / 2)) : 1;
   const kind = LOOT_KINDS.some((k) => k.id === o.kind) ? (o.kind as LootKind) : 'misc';
   if (name.length < 1) return null;
-  return { name, weight, kind };
+  const out: { name: string; espacos: number; kind: LootKind; qtd?: number; descricao?: string } = { name, espacos, kind };
+  if (typeof o.qtd === 'number' && Number.isInteger(o.qtd) && o.qtd > 1) out.qtd = Math.min(99, o.qtd);
+  const d = typeof o.descricao === 'string' ? o.descricao.replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 240) : '';
+  if (d) out.descricao = d;
+  return out;
 }
 
 /** Cor fixa de cada jogador (anel, retrato, minimapa). */

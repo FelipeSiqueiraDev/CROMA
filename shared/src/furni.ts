@@ -60,6 +60,8 @@ export interface FurniDef {
   hidden?: boolean;
   /** porta: dá para passar só neste estado (ex.: 1 = aberta) */
   openState?: number;
+  /** só o jogo cria (não aparece no catálogo): a pilha do que alguém largou no chão */
+  interno?: boolean;
   rotations: number[];
   colors: string[];
   desc?: string;
@@ -126,6 +128,7 @@ const FURNI_METERS: FurniDef[] = [
   // ---------- Armazenamento ----------
   { id: 'shelf_metal', name: 'Estante de Metal', category: 'armazenamento', kind: 'shelf', width: 2, depth: 1, height: 2.2, rotations: ALL, colors: ['#3a3d42', '#23262a'] },
   { id: 'locker', name: 'Armário de Metal', category: 'armazenamento', kind: 'locker', width: 1, depth: 1, height: 2.1, states: 2, rotations: ALL, colors: ['#3d4148', '#2a2d32'], desc: 'Clique duplo abre a porta.' },
+  { id: 'pilha_chao', name: 'Itens no Chão', category: 'armazenamento', kind: 'pilha', width: 1, depth: 1, height: 0.12, walkable: true, interno: true, rotations: [0], colors: ['#5c4630', '#2e241a'], desc: 'O que alguém largou aqui. Quem passar pode pegar.' },
   { id: 'crate_wood', name: 'Caixote de Madeira', category: 'armazenamento', kind: 'crate', width: 1, depth: 1, height: 0.8, stackable: true, rotations: ALL, colors: ['#6b4a2e', '#4a321f'] },
   { id: 'crate_metal', name: 'Caixa Metálica', category: 'armazenamento', kind: 'crate_metal', width: 1, depth: 1, height: 0.8, stackable: true, rotations: ALL, colors: ['#35393f', '#24272b', '#7a6a4a'] },
   { id: 'chest_military', name: 'Baú Militar', category: 'armazenamento', kind: 'chest', width: 2, depth: 1, height: 0.7, stackable: true, rotations: ALL, colors: ['#3e3a2c', '#2a271e', '#8a8060'] },
@@ -215,6 +218,9 @@ export const WALL_FURNI_LIST: WallFurniDef[] = [
 
 /** Metros → unidades de altura (duas casas). */
 export const toUnits = (m: number) => Math.round(m * Z_PER_M * 100) / 100;
+
+/** A pilha do que alguém largou no chão (docs/REGRAS.md, Mochila). */
+export const PILHA_CHAO = 'pilha_chao';
 
 export const FURNI_LIST: FurniDef[] = FURNI_METERS.map((d) => ({ ...d, height: toUnits(d.height) }));
 

@@ -484,7 +484,7 @@ describe('mochila: mãos, vestidos e o que se achou', () => {
     let r = usar(inv, 1);
     assert.ok(r.ok && r.gastou);
     inv = r.inventario;
-    assert.equal(inv[0].qtd, 1);
+    assert.equal(inv[0].qtd, undefined, 'sobra 1: sem qtd');
     r = usar(inv, 1);
     assert.ok(r.ok);
     inv = r.inventario;
