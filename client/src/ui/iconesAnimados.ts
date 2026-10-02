@@ -1,19 +1,21 @@
 /**
  * Ícones da barra do topo com animação (iconesAnimados.css): o mesmo desenho de
  * linha dos ícones (icons.ts), separado em partes que se mexem quando o mouse passa
- * em cima e quando a aba abre. O mapa se desdobra e ganha o alfinete, as espadas
- * se afastam e se chocam com faísca, a ficha se preenche, os raios do sol giram e
- * pulsam, a engrenagem dá o tique, o registro se escreve e a seta sai pela porta.
+ * em cima e quando a aba abre. Movimentos pequenos, do tamanho do ícone: o mapa
+ * abre um pouco e o caminho se traça até o X, as espadas recuam e batem com uma
+ * faísca, a ficha se preenche, os raios do sol giram e pulsam, a engrenagem dá o
+ * tique, o registro se escreve e a seta sai pela porta.
  */
 
 const A: Record<string, string> = {
   mapa:
-    '<path class="m-esq" d="M3 6.2 9 3.2v15l-6 3z"/><path class="m-meio" d="M9 3.2l6 3v15l-6-3z"/><path class="m-dir" d="M15 6.2l6-3v15l-6 3z"/>' +
-    '<g class="m-pino"><path d="M12 14.6c-.3-.3-2.3-2.3-2.3-4a2.3 2.3 0 0 1 4.6 0c0 1.7-2 3.7-2.3 4z"/><circle cx="12" cy="10.5" r=".7"/></g>',
+    '<g class="m-mapa"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></g>' +
+    '<path class="m-rota" pathLength="1" d="M6.2 16.4c1.5-.5 2.2-1.9 3.2-3.1s2.5-1.6 3.7-1.3 2.3-.4 3.1-1.6"/>' +
+    '<path class="m-x" d="M16.3 7.4l2 2M18.3 7.4l-2 2"/>',
   espadas:
     '<g class="e-b"><polyline points="9.5 17.5 21 6 21 3 18 3 6.5 14.5"/><line x1="11" x2="5" y1="19" y2="13"/><line x1="8" x2="4" y1="16" y2="20"/><line x1="5" x2="3" y1="21" y2="19"/></g>' +
     '<g class="e-a"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" x2="19" y1="19" y2="13"/><line x1="16" x2="20" y1="16" y2="20"/><line x1="19" x2="21" y1="21" y2="19"/></g>' +
-    '<g class="e-faisca"><path d="M12 6.6V4.2"/><path d="m14.3 7.3 1.6-1.6"/><path d="M9.7 7.3 8.1 5.7"/><path d="M15 9.3h2"/><path d="M9 9.3H7"/></g>',
+    '<path class="e-faisca" d="M12 4.6l.75 1.95 1.95.75-1.95.75-.75 1.95-.75-1.95-1.95-.75 1.95-.75z"/>',
   ficha:
     '<rect class="f-cartao" x="2" y="5" width="20" height="14" rx="2"/><g class="f-rosto"><circle cx="8.5" cy="10.5" r="2"/><path d="M5.5 15.5a3 3 0 0 1 6 0"/></g>' +
     '<path class="f-l1" d="M14 10h5"/><path class="f-l2" d="M14 13h5"/><path class="f-l3" d="M14 16h3"/>',

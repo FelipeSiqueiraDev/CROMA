@@ -10,90 +10,100 @@
   transform-box: view-box;
 }
 
-/* --- MAPA: os lados se desdobram e o alfinete cai no meio --- */
-.ia-mapa .m-esq {
-  transform-origin: 9px 12px;
-}
-.ia-mapa .m-dir {
-  transform-origin: 15px 12px;
-}
-.ia-mapa .m-meio {
+/* --- MAPA: abre um pouco e o caminho se traça até o X --- */
+.ia-mapa .m-mapa {
   transform-origin: 12px 12px;
 }
-.ia-mapa .m-pino {
+.ia-mapa .m-rota {
+  stroke-width: 1.25;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
   opacity: 0;
-  transform-origin: 12px 14.6px;
 }
-.tb2-aba:not(.fora):is(:hover, .toca) .ia-mapa .m-esq {
-  animation: mapa-lado 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+.ia-mapa .m-x {
+  opacity: 0;
+  stroke-width: 1.5;
+  transform-origin: 17.3px 8.4px;
 }
-.tb2-aba:not(.fora):is(:hover, .toca) .ia-mapa .m-dir {
-  animation: mapa-lado 0.7s 0.09s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+.tb2-aba:not(.fora):is(:hover, .toca) .ia-mapa .m-mapa {
+  animation: mapa-abre 0.55s cubic-bezier(0.25, 0.9, 0.3, 1) both;
 }
-.tb2-aba:not(.fora):is(:hover, .toca) .ia-mapa .m-meio {
-  animation: mapa-meio 0.7s ease-out both;
+.tb2-aba:not(.fora):hover .ia-mapa .m-rota {
+  animation: mapa-rota 0.6s 0.2s ease-in-out both;
 }
-.tb2-aba:not(.fora).toca .ia-mapa .m-pino {
-  animation: mapa-pino-toca 1.1s 0.4s ease-out both;
+.tb2-aba:not(.fora):hover .ia-mapa .m-x {
+  animation: mapa-x 0.35s 0.75s cubic-bezier(0.3, 1.6, 0.5, 1) both;
 }
-.tb2-aba:not(.fora):hover .ia-mapa .m-pino {
-  animation: mapa-pino 0.55s 0.5s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+/* a aba que abre: o caminho se traça, o X marca e os dois somem (a aba volta ao desenho de sempre) */
+.tb2-aba:not(.fora).toca .ia-mapa .m-rota {
+  animation: mapa-rota-toca 1.4s 0.2s ease-in-out both;
 }
-@keyframes mapa-lado {
+.tb2-aba:not(.fora).toca .ia-mapa .m-x {
+  animation: mapa-x-toca 1s 0.65s ease-out both;
+}
+@keyframes mapa-abre {
   0% {
-    transform: scaleX(0);
+    transform: scaleX(0.8);
   }
-  55% {
-    transform: scaleX(1.12);
-  }
-  100% {
-    transform: scaleX(1);
-  }
-}
-@keyframes mapa-meio {
-  0% {
-    transform: scale(0.9, 1.06);
-  }
-  100% {
-    transform: none;
-  }
-}
-/* a aba que abre: o alfinete cai, fica um pouco e some (a aba volta ao desenho de sempre) */
-@keyframes mapa-pino-toca {
-  0% {
-    opacity: 0;
-    transform: translateY(-8px) scale(0.6);
-  }
-  25% {
-    opacity: 1;
-    transform: translateY(0.6px) scale(1.08, 0.9);
-  }
-  35%,
   70% {
-    opacity: 1;
-    transform: none;
+    transform: scaleX(1.03);
   }
   100% {
-    opacity: 0;
     transform: none;
   }
 }
-@keyframes mapa-pino {
+@keyframes mapa-rota {
   0% {
-    opacity: 0;
-    transform: translateY(-8px) scale(0.6);
-  }
-  60% {
     opacity: 1;
-    transform: translateY(0.6px) scale(1.08, 0.9);
+    stroke-dashoffset: 1;
   }
   100% {
     opacity: 1;
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes mapa-x {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) rotate(-45deg);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes mapa-rota-toca {
+  0% {
+    opacity: 1;
+    stroke-dashoffset: 1;
+  }
+  40%,
+  75% {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+  100% {
+    opacity: 0;
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes mapa-x-toca {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) rotate(-45deg);
+  }
+  25%,
+  65% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
     transform: none;
   }
 }
 
-/* --- COMBATE: as espadas se afastam e se chocam, com faísca no choque --- */
+/* --- COMBATE: as espadas recuam um pouco e batem, com uma faísca no choque (uma vez) --- */
 .ia-espadas .e-a {
   transform-origin: 18px 18px;
 }
@@ -102,43 +112,32 @@
 }
 .ia-espadas .e-faisca {
   opacity: 0;
-  stroke: #ffd27a;
-  transform-origin: 12px 8.6px;
+  fill: #ffd27a;
+  stroke: none;
+  transform-origin: 12px 7.3px;
 }
-.tb2-aba:not(.fora).toca .ia-espadas .e-a {
-  animation: espada-a 1.5s ease-in-out;
+.tb2-aba:not(.fora):is(:hover, .toca) .ia-espadas .e-a {
+  animation: espada-a 0.7s cubic-bezier(0.3, 0.7, 0.3, 1);
 }
-.tb2-aba:not(.fora).toca .ia-espadas .e-b {
-  animation: espada-b 1.5s ease-in-out;
+.tb2-aba:not(.fora):is(:hover, .toca) .ia-espadas .e-b {
+  animation: espada-b 0.7s cubic-bezier(0.3, 0.7, 0.3, 1);
 }
-.tb2-aba:not(.fora).toca .ia-espadas .e-faisca {
-  animation: espada-faisca 1.5s ease-out;
-}
-.tb2-aba:not(.fora):hover .ia-espadas .e-a {
-  animation: espada-a 1.5s ease-in-out infinite;
-}
-.tb2-aba:not(.fora):hover .ia-espadas .e-b {
-  animation: espada-b 1.5s ease-in-out infinite;
-}
-.tb2-aba:not(.fora):hover .ia-espadas .e-faisca {
-  animation: espada-faisca 1.5s ease-out infinite;
+.tb2-aba:not(.fora):is(:hover, .toca) .ia-espadas .e-faisca {
+  animation: espada-faisca 0.7s ease-out;
 }
 @keyframes espada-a {
   0%,
   100% {
     transform: rotate(0deg);
   }
-  28% {
-    transform: rotate(-22deg);
+  35% {
+    transform: rotate(-9deg);
   }
-  44% {
-    transform: rotate(6deg);
+  55% {
+    transform: rotate(2deg);
   }
-  54% {
-    transform: rotate(-2deg);
-  }
-  64% {
-    transform: rotate(0deg);
+  72% {
+    transform: rotate(-0.6deg);
   }
 }
 @keyframes espada-b {
@@ -146,35 +145,29 @@
   100% {
     transform: rotate(0deg);
   }
-  28% {
-    transform: rotate(22deg);
+  35% {
+    transform: rotate(9deg);
   }
-  44% {
-    transform: rotate(-6deg);
+  55% {
+    transform: rotate(-2deg);
   }
-  54% {
-    transform: rotate(2deg);
-  }
-  64% {
-    transform: rotate(0deg);
+  72% {
+    transform: rotate(0.6deg);
   }
 }
 @keyframes espada-faisca {
   0%,
-  40% {
+  50% {
     opacity: 0;
-    transform: scale(0.3);
+    transform: scale(0.2);
   }
-  45% {
+  58% {
     opacity: 1;
-    transform: scale(1.15);
-  }
-  62% {
-    opacity: 0;
-    transform: scale(1.5);
+    transform: scale(1.1);
   }
   100% {
     opacity: 0;
+    transform: scale(0.8);
   }
 }
 
