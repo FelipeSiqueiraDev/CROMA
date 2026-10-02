@@ -14,15 +14,18 @@ são cópias mais escuras dos de perto.
 
 O movimento é de um esqueleto 3D, projetado na grade do tabuleiro em cada
 direção:
-- andar: um ciclo (dois passos) por casa, com contato, passagem e impulso; o
-  pé que apoia vai para trás no chão e o outro passa no ar; o joelho dobra; o
-  quadril desce no contato e sobe na passagem e leva o peso para o lado da
-  perna que apoia; os braços vão ao contrário das pernas, com o cotovelo
-  dobrando na ida; o tronco inclina um pouco e os ombros giram ao contrário
-  do quadril; a bota rola do calcanhar para a ponta;
 - parado: a respiração (peito, ombros, pescoço, cabeça e braços sobem um
-  pouco, cada um um tempo depois do outro);
-- o cabelo e a barra do casaco vão atrás, com mola.
+  pouco, cada um um tempo depois do outro; o cabelo e a barra vão atrás) e,
+  em cada quadro, a versão de olhos fechados para piscar;
+- andar (provisório): um ciclo (dois passos) por casa; o pé que apoia vai
+  para trás no chão e o outro passa um pouco erguido, o quadril sobe e desce,
+  os braços vão ao contrário das pernas. Girar peças de um desenho de 104
+  pixels quebra o pixel art, então o andar bom vem desenhado quadro a quadro:
+  com --andar-desenhado <pasta> (andar-<estado>-<direção>.png, os quadros
+  lado a lado, fundo verde ou transparente), os quadros são separados,
+  reduzidos para a escala da pose parada, pintados com as cores dela e
+  alinhados pelo meio do tronco e pelo pé mais baixo; faltando sw, w ou nw,
+  entra se, e ou ne espelhado.
 
 As peças do tronco e da roupa deslizam linha a linha (cisalhamento, como o
 animador de pixel art faz nas inclinações pequenas); as dos membros giram em
@@ -37,7 +40,7 @@ Grava na pasta das poses do personagem:
   ficam os pés em cada quadro (a sombra de contato vai embaixo de cada um).
 
 Uso:
-  python scripts/boneco.py <personagem> [--estado desarmado] [--previa saida.png]
+  python scripts/boneco.py <personagem> [--estado desarmado] [--andar-desenhado <pasta>] [--quadros 8] [--previa saida.png]
 
 Precisa de Python com PyMuPDF e numpy (os mesmos do Veríssimo).
 """
@@ -271,7 +274,7 @@ class Esqueleto:
         self.tornozelo = r['tornozelo_d'][2]
         self.pes = {}
 
-    def andar(self, fi, passo=0.19, apoio=0.56, ergue=0.13, balanco=0.014, braco=22.0):
+    def andar(self, fi, passo=0.17, apoio=0.56, ergue=0.055, balanco=0.013, braco=16.0):
         """A pose do andar na fase fi (0..1): o pé direito pisa em 0 e o esquerdo em 0,5."""
         j = {k: v.copy() for k, v in self.rep.items()}
         # andando, os joelhos ficam um pouco dobrados (o quadril desce 2 cm): sobra perna para o
@@ -296,17 +299,15 @@ class Esqueleto:
             f = (fi - desl) % 1.0
             quad = j[f'quadril_{ld}']
             if f < apoio:
-                # no chão: o pé vai do passo à frente até o passo atrás; no fim, o calcanhar sobe
-                # antes de o pé sair (o joelho já começa a dobrar)
+                # no chão: o pé vai do passo à frente até o passo atrás
                 pe_f = passo - 2 * passo * (f / apoio)
-                alt = 0.035 * suave((f - (apoio - 0.14)) / 0.14)
+                alt = 0.0
                 incl = 14 * (1 - suave(f / 0.12)) - 22 * suave((f - (apoio - 0.16)) / 0.16)
             else:
-                # no ar: o pé sai de trás chutando um pouco para trás e para cima (o joelho dobra bem,
-                # o calcanhar vai para perto da coxa), passa embaixo do corpo e estica para pisar
+                # no ar: o pé passa embaixo do corpo, um pouco erguido
                 a = (f - apoio) / (1 - apoio)
-                pe_f = -passo + 2 * passo * suave((a - 0.12) / 0.88) - 0.075 * math.sin(math.pi * min(1.0, a / 0.55))
-                alt = 0.035 * (1 - suave(a / 0.25)) + ergue * math.sin(math.pi * min(1.0, a / 0.85)) ** 0.9
+                pe_f = -passo + 2 * passo * suave(a)
+                alt = ergue * math.sin(math.pi * a) ** 1.2
                 incl = -22 * (1 - suave(a / 0.35)) + 12 * suave((a - 0.55) / 0.45)
             r_pe = self.rep[f'tornozelo_{ld}'][1] + (quad[1] - self.rep[f'quadril_{ld}'][1]) * 0.3
             torn = np.array([quad[0] + pe_f, r_pe, self.tornozelo + alt])
@@ -317,8 +318,8 @@ class Esqueleto:
         for ld, desl in (('d', 0.0), ('e', 0.5)):
             f = (fi - desl - 0.04) % 1.0
             alfa = -braco * math.cos(2 * math.pi * f)
-            # o cotovelo fica sempre um pouco dobrado e dobra mais quando o braço vai para a frente
-            beta = 14 + 42 * max(0.0, -math.cos(2 * math.pi * f)) ** 1.2
+            # o cotovelo dobra um pouco quando o braço vai para a frente
+            beta = 4 + 10 * max(0.0, -math.cos(2 * math.pi * f))
             self._braco(j, ld, alfa, beta)
         return j
 
@@ -705,7 +706,159 @@ def tira(linhas, x0, y0, x1, y1):
     return out
 
 
-def gerar(personagem, estado, previa=None):
+# ---------------------------------------------------------------- o andar desenhado (quadro a quadro)
+
+ESPELHO = {'e': 'w', 'w': 'e', 'se': 'sw', 'sw': 'se', 'ne': 'nw', 'nw': 'ne'}
+
+
+def ler_fonte(caminho):
+    """A imagem do gerador: o verde puro (#00FF00) vira transparente; o corpo fica opaco e o halo sai."""
+    a = ler_rgba(caminho)
+    verde = (a[:, :, 0] < 60) & (a[:, :, 1] > 200) & (a[:, :, 2] < 60)
+    a[verde] = 0
+    op = a[:, :, 3] >= 128
+    a[~op] = 0
+    a[op, 3] = 255
+    return a
+
+
+def fonte_andar(pasta, estado, nome):
+    """O andar desenhado da direção (ou o da direção espelhada, virado de lado). (imagem, espelhada) ou (None, False)."""
+    for d, espelha in ((nome, False), (ESPELHO.get(nome), True)):
+        if not d or not pasta:
+            continue
+        for arq in (f'andar-{estado}-{d}.png', f'andar-{d}.png', f'{d}.png'):
+            p = os.path.join(pasta, arq)
+            if os.path.exists(p):
+                a = ler_fonte(p)
+                return (a[:, ::-1].copy() if espelha else a), espelha
+    return None, False
+
+
+def faixas_cheias(v, minimo=1, vao=3):
+    """Faixas de colunas com corpo, separadas por pelo menos `vao` colunas vazias."""
+    out, ini, vazio = [], None, 0
+    for i, x in enumerate(v):
+        if x >= minimo:
+            if ini is None:
+                ini = i
+            vazio = 0
+            fim = i
+        elif ini is not None:
+            vazio += 1
+            if vazio >= vao:
+                out.append((ini, fim))
+                ini = None
+    if ini is not None:
+        out.append((ini, fim))
+    return out
+
+
+def quadros_da_tira(a, n):
+    """Os `n` quadros de uma tira do gerador (lado a lado), cada um recortado no corpo."""
+    op = a[:, :, 3] > 0
+    cols = faixas_cheias(op.sum(axis=0))
+    if len(cols) != n:
+        # quadros encostados: corta em partes iguais
+        w = a.shape[1] / n
+        cols = [(int(round(i * w)), int(round((i + 1) * w)) - 1) for i in range(n)]
+    out = []
+    for x0, x1 in cols:
+        cel = a[:, x0:x1 + 1]
+        ys, xs = np.nonzero(cel[:, :, 3] > 0)
+        out.append(cel[ys.min():ys.max() + 1, xs.min():xs.max() + 1].copy())
+    return out
+
+
+def reduzir_pixel(rgba, escala):
+    """Pixel duro: cada pixel novo pega a cor mais frequente do bloco; só fica opaco se o bloco for mais da metade corpo."""
+    h, w = rgba.shape[:2]
+    oh, ow = max(1, int(round(h * escala))), max(1, int(round(w * escala)))
+    out = np.zeros((oh, ow, 4), dtype=np.uint8)
+    op = rgba[:, :, 3] > 0
+    for v in range(oh):
+        y0 = int(v / escala)
+        y1 = max(y0 + 1, int((v + 1) / escala))
+        for u in range(ow):
+            x0 = int(u / escala)
+            x1 = max(x0 + 1, int((u + 1) / escala))
+            bloco = op[y0:y1, x0:x1]
+            if bloco.size == 0 or bloco.mean() < 0.5:
+                continue
+            cores = rgba[y0:y1, x0:x1, :3][bloco].astype(int)
+            chave = (cores[:, 0] // 24) * 10000 + (cores[:, 1] // 24) * 100 + cores[:, 2] // 24
+            vals, cont = np.unique(chave, return_counts=True)
+            out[v, u, :3] = cores[chave == vals[cont.argmax()]].mean(axis=0).round().astype(np.uint8)
+            out[v, u, 3] = 255
+    return out
+
+
+def centro_e_chao(q):
+    """O meio do tronco e da cabeça (os 55% de cima do corpo) e a linha do chão (embaixo do pé mais baixo)."""
+    op = q[:, :, 3] > 0
+    ys, xs = np.nonzero(op)
+    topo, base = ys.min(), ys.max()
+    cima = ys <= topo + 0.55 * (base - topo)
+    return float(xs[cima].mean()), int(base) + 1
+
+
+def pes_do_quadro(q, x_anc, y_anc, lado):
+    """Os dois pés de um quadro desenhado (as duas manchas de baixo), em pixels a partir da âncora."""
+    op = q[:, :, 3] > 0
+    ys, xs = np.nonzero(op)
+    chao = ys.max() + 1
+    faixa = op[max(0, chao - 6):chao]
+    cols = faixas_cheias(faixa.sum(axis=0), 1, 2)
+    manchas = []
+    for x0, x1 in cols:
+        sub = op[:chao, x0:x1 + 1]
+        fundo = np.nonzero(sub.any(axis=1))[0].max() + 1
+        manchas.append(((x0 + x1) / 2, fundo, int(faixa[:, x0:x1 + 1].sum())))
+    manchas = sorted(manchas, key=lambda m: -m[2])[:2] or [(xs.mean(), chao, 1)]
+    if len(manchas) == 1:
+        manchas = manchas * 2
+    out = []
+    for x, fundo, _ in sorted(manchas):
+        # de lado dá para ver o pé no ar (a sola acima do chão); de frente ou de costas, o pé de trás também fica mais alto
+        alt = float(chao - fundo) if lado else 0.0
+        out.append([round(float(x - x_anc), 1), round(float(fundo - 3 - y_anc + alt), 1), round(alt, 1)])
+    return out
+
+
+def andar_desenhado(fonte, img_parada, anc_parada, n, lado):
+    """
+    Os quadros do andar desenhado de uma direção, no quadro do boneco (com as
+    margens): na escala da pose parada, com as cores dela, o meio do tronco
+    alinhado com o dela e o pé mais baixo no chão dela. Devolve (quadros, pés).
+    """
+    qs = quadros_da_tira(fonte, n)
+    op = img_parada[:, :, 3] > 0
+    ys = np.nonzero(op.any(axis=1))[0]
+    alvo = ys.max() - ys.min() + 1
+    escala = alvo / float(np.median([q.shape[0] for q in qs]))
+    paleta = np.unique(img_parada[op][:, :3].astype(int), axis=0)
+    cx0, chao0 = centro_e_chao(img_parada)
+    H, W = img_parada.shape[:2]
+    Ho, Wo = H + MT + MB, W + ML + MR
+    quadros, pes = [], []
+    for q in qs:
+        r = reduzir_pixel(q, escala)
+        m = r[:, :, 3] > 0
+        # as cores da pose parada (sem pular de cor quando ela sai andando)
+        r[m, :3] = mais_perto(r[m][:, :3].astype(float), paleta)
+        cx, chao = centro_e_chao(r)
+        dx, dy = int(round(cx0 - cx)) + ML, chao0 - chao + MT
+        out = np.zeros((Ho, Wo, 4), dtype=np.uint8)
+        h, w = r.shape[:2]
+        y0, x0 = max(0, dy), max(0, dx)
+        y1, x1 = min(Ho, dy + h), min(Wo, dx + w)
+        out[y0:y1, x0:x1] = r[y0 - dy:y1 - dy, x0 - dx:x1 - dx]
+        quadros.append(out)
+        pes.append(pes_do_quadro(out, anc_parada[0] + ML, anc_parada[1] + MT, lado))
+    return quadros, pes
+
+
+def gerar(personagem, estado, previa=None, desenhado=None, quadros_desenhados=8):
     anot = json.load(open(os.path.join(BONECOS, f'{personagem}.json'), encoding='utf-8'))
     pasta = os.path.join(PERSONAGENS, personagem, SUB)
     s = anot['direcoes']['s']
@@ -721,13 +874,19 @@ def gerar(personagem, estado, previa=None):
         d = Direcao(nome, img, anot['direcoes'][nome], esq)
         olhos = 'cabeca_fechada' in d.pecas
         res = {}
+        fonte, espelhada = fonte_andar(desenhado, estado, nome)
         for tipo in ('parado', 'andar'):
             abertos, fechados, pes = [], [], []
-            for p, extra, pe in ciclo(d, esq, tipo):
-                abertos.append(d.quadro(p, extra))
-                if olhos:
-                    fechados.append(d.quadro(p, dict(extra, olhos_fechados=True)))
-                pes.append(pe)
+            if tipo == 'andar' and fonte is not None:
+                # o andar desenhado quadro a quadro (sem a linha de olhos fechados: andando, não pisca)
+                abertos, pes = andar_desenhado(fonte, img, anot['direcoes'][nome]['chao'], quadros_desenhados, nome in ('e', 'w'))
+                print(f'{nome}: andar desenhado' + (' (espelhado)' if espelhada else ''))
+            else:
+                for p, extra, pe in ciclo(d, esq, tipo):
+                    abertos.append(d.quadro(p, extra))
+                    if olhos:
+                        fechados.append(d.quadro(p, dict(extra, olhos_fechados=True)))
+                    pes.append(pe)
             res[tipo] = (abertos, fechados, pes)
         todos = [q for t in res.values() for q in t[0] + t[1]]
         x0, y0, x1, y1 = recorte(todos)
@@ -735,18 +894,24 @@ def gerar(personagem, estado, previa=None):
         info = {'w': int(x1 - x0), 'h': int(y1 - y0), 'ax': round(float(anc[0]), 1), 'ay': round(float(anc[1]), 1), 'olhos': olhos}
         for tipo, (abertos, fechados, pes) in res.items():
             arq = f'{tipo}-{estado}-{nome}.png'
-            gravar_rgba(tira([abertos] + ([fechados] if olhos else []), x0, y0, x1, y1), os.path.join(pasta, arq))
+            gravar_rgba(tira([abertos] + ([fechados] if fechados else []), x0, y0, x1, y1), os.path.join(pasta, arq))
             info[tipo] = {'arquivo': arq, 'quadros': len(abertos)}
             info['pes' + tipo.capitalize()] = pes
-        manifesto['estados'][estado][nome] = info
-        # a fase do meio da casa: a passagem (os pés mais perto do lugar de parado)
+        # a fase do meio da casa: a passagem (os pés mais perto do lugar de parado e um do outro)
         pes_andar = res['andar'][2]
         pes_parado = res['parado'][2][0]
-        fases.append([sum(abs(a - b) for pa, pb in zip(pe, pes_parado) for a, b in zip(pa[:2], pb[:2])) + sum(pa[2] for pa in pe) for pe in pes_andar])
+        custo_dir = [sum(abs(a - b) for pa, pb in zip(pe, pes_parado) for a, b in zip(pa[:2], pb[:2])) + sum(pa[2] for pa in pe) for pe in pes_andar]
+        if fonte is not None:
+            # desenhado: a passagem é o quadro com os pés mais juntos
+            custo_dir = [abs(pe[0][0] - pe[1][0]) + abs(pe[0][1] - pe[1][1]) for pe in pes_andar]
+            info['faseAndar'] = round(float(np.argmin(custo_dir)) / len(pes_andar), 4)
+        else:
+            fases.append(custo_dir)
+        manifesto['estados'][estado][nome] = info
         if previa:
             linhas_previa.append([q[y0:y1, x0:x1] for q in res['parado'][0][:1] + res['andar'][0]])
         print(f'{nome}: {info["w"]}x{info["h"]}, âncora ({info["ax"]}, {info["ay"]}), olhos: {"sim" if olhos else "não"}')
-    custo = np.sum(np.array(fases), axis=0)
+    custo = np.sum(np.array(fases), axis=0) if fases else np.zeros(N_ANDAR)
     manifesto['faseAndar'] = round(float(np.argmin(custo)) / N_ANDAR, 4)
     with open(os.path.join(pasta, 'anim.json'), 'w', encoding='utf-8', newline='\n') as f:
         json.dump(manifesto, f, ensure_ascii=False, separators=(',', ':'))
@@ -773,8 +938,10 @@ def main():
     ap.add_argument('personagem', help='pasta em client/public/arte/personagens e marcações em scripts/bonecos (ex.: alosi)')
     ap.add_argument('--estado', default='desarmado')
     ap.add_argument('--previa', help='grava também uma folha ampliada com os quadros')
+    ap.add_argument('--andar-desenhado', help='pasta com o andar desenhado quadro a quadro (andar-<estado>-<direção>.png, os quadros lado a lado)')
+    ap.add_argument('--quadros', type=int, default=8, help='quadros de cada tira do andar desenhado (8 por padrão)')
     a = ap.parse_args()
-    gerar(a.personagem, a.estado, a.previa)
+    gerar(a.personagem, a.estado, a.previa, a.andar_desenhado, a.quadros)
 
 
 if __name__ == '__main__':

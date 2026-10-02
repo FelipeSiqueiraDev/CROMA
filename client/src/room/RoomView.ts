@@ -1209,7 +1209,7 @@ export class RoomView {
         const fechado = bd.info.olhos && piscando(u, now);
         if (p.moving) {
           const n = bd.andar.length;
-          const i = Math.floor((((casas + la.anim.faseAndar) % 1) + 1) % 1 * n) % n;
+          const i = Math.floor((((casas + (bd.info.faseAndar ?? la.anim.faseAndar)) % 1) + 1) % 1 * n) % n;
           bq = (fechado && bd.andarFechado ? bd.andarFechado : bd.andar)[i];
           bpes = bd.info.pesAndar[i] ?? null;
         } else {

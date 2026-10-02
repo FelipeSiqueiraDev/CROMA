@@ -162,6 +162,8 @@ export interface AnimDirecao {
   andar: AnimTira;
   pesParado: PeQuadro[][];
   pesAndar: PeQuadro[][];
+  /** a fase do andar no meio da casa só desta direção (o andar desenhado pode começar o ciclo em outro ponto) */
+  faseAndar?: number;
 }
 
 /** O boneco animado do tabuleiro (anim.json, gerado por scripts/boneco.py). */

@@ -131,6 +131,7 @@ export function findAnim(sheet: string, dir = ART_DIR): AnimTabuleiro | undefine
         andar: { url: url + d.andar.arquivo, quadros: d.andar.quadros },
         pesParado: d.pesParado ?? [],
         pesAndar: d.pesAndar ?? [],
+        ...(typeof d.faseAndar === 'number' ? { faseAndar: d.faseAndar } : {}),
       };
     }
     if (Object.keys(out).length) estados[s] = out;
