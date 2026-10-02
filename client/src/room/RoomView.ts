@@ -36,6 +36,7 @@ import { boxSilhouette, Mapper, Painter, pointInPoly, type WBox } from '../rende
 import { buildStatic, doorClipPath, roomBounds, type StaticLayer } from '../render/roomStatic';
 import { cmp, sortDrawables, type Drawable } from '../render/sort';
 import {
+  bonecoDir,
   bonecoFor,
   drawBoneco,
   drawPose,
@@ -76,6 +77,8 @@ export interface ClientUser {
   /** andando: as casas já andadas nesta caminhada e o início do passo de agora (o ciclo do boneco segue a casa) */
   casas?: number;
   passoDesde?: number;
+  /** o comprimento do passo de agora, em casas (√2 na diagonal) */
+  passoLen?: number;
   /** o boneco pisca: quando vem a próxima piscada, até quando os olhos ficam fechados e a segunda piscada (dupla) */
   piscaEm?: number;
   piscaAte?: number;
@@ -1188,23 +1191,46 @@ export class RoomView {
       // o relógio do passo: começa quando a peça sai andando e segue de casa em casa até parar
       if (p.moving) u.andandoDesde ??= now;
       else delete u.andandoDesde;
-      // o quanto a peça já andou, em casas: o ciclo do boneco (dois passos por casa) segue o chão, e não o
-      // relógio; no meio de cada casa ele está na passagem, então parar ali é natural
+      // o quanto a peça já andou, em casas (√2 no passo na diagonal): o ciclo do boneco segue o chão, e não o
+      // relógio, então o pé que apoia fica parado no chão; no meio de cada casa ele está na passagem
       if (p.moving && u.anim) {
         if (u.passoDesde !== u.anim.start) {
-          if (u.passoDesde !== undefined) u.casas = (u.casas ?? 0) + 1;
+          if (u.passoDesde !== undefined) u.casas = (u.casas ?? 0) + (u.passoLen ?? 1);
           u.passoDesde = u.anim.start;
+          u.passoLen = Math.min(1.5, Math.hypot(u.anim.tx - u.anim.fx, u.anim.ty - u.anim.fy)) || 1;
         }
       } else {
         delete u.casas;
         delete u.passoDesde;
+        delete u.passoLen;
       }
-      const casas = p.moving && u.anim ? (u.casas ?? 0) + Math.min(1, Math.max(0, (now - u.anim.start) / TICK_MS)) : 0;
-      // o boneco animado (respira, pisca e anda com o ciclo inteiro): quando tem, vale no lugar da pose
-      const la = cdef ? sprites.anim(cdef) : null;
-      const bd = la ? bonecoFor(la, estado, u.dir) : null;
+      const casas = p.moving && u.anim ? (u.casas ?? 0) + (u.passoLen ?? 1) * Math.min(1, Math.max(0, (now - u.anim.start) / TICK_MS)) : 0;
       let bq: SpriteFrame | null = null;
       let bpes: PeQuadro[] | null = null;
+      // o boneco filmado em 3D (andar completo, parado respirando, sentado, dançando): vale no lugar de tudo
+      const bc = cdef ? sprites.boneco(cdef) : null;
+      const bdir = bc ? bonecoDir(bc, estado, u.dir) : null;
+      const sentadoReal = !!bdir && (u.sit === 1 || u.sit === 2) && !!bdir.sentado;
+      if (bdir) {
+        let nome = 'parado';
+        let i = 0;
+        if (p.moving && bdir.andar) {
+          nome = 'andar';
+          const c = bdir.andar.clipe;
+          const ciclo = casas / (c.casasPorCiclo ?? 1.91) + (c.fase ?? 0);
+          i = Math.floor((((ciclo % 1) + 1) % 1) * c.quadros) % c.quadros;
+        } else {
+          nome = sentadoReal ? 'sentado' : u.dance && bdir.dancar ? 'dancar' : 'parado';
+          const c = bdir[nome].clipe;
+          // cada peça no seu tempo (os agentes não respiram juntos)
+          i = Math.floor(now / (c.ms ?? 125) + u.phase * c.quadros) % c.quadros;
+        }
+        bq = bdir[nome].quadros[i];
+        bpes = bdir[nome].clipe.pes[i] ?? null;
+      }
+      // o boneco animado de antes (montado da pose parada): respira, pisca e anda
+      const la = !bdir && cdef ? sprites.anim(cdef) : null;
+      const bd = la ? bonecoFor(la, estado, u.dir) : null;
       if (la && bd) {
         const fechado = bd.info.olhos && piscando(u, now);
         if (p.moving) {
@@ -1340,7 +1366,7 @@ export class RoomView {
             ctx.scale(0.92, 1);
             ctx.translate(-sx, -fy);
           }
-          if (bq) drawBoneco(ctx, bq, sx, fy + dance, sPose === 'sit', 1, luz);
+          if (bq) drawBoneco(ctx, bq, sx, fy + dance, sPose === 'sit' && !sentadoReal, 1, luz);
           else if (pf) drawPose(ctx, pf, sx, fy + afunda + dance, now, sPose, 1, passos, andando, luz);
           else if (sp) drawSprite(ctx, sp.def, sp.lc, u.dir, sx, fy + afunda + dance, now, u.phase, sPose, 1, luz);
           else

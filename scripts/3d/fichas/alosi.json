@@ -1,0 +1,451 @@
+{
+  "nome": "alosi",
+  "base": "homem",
+  "altura": 1.76,
+  "saida": "C:/Users/felip/CROMA-3D/personagens/alosi.blend",
+  "proporcoes": {
+    "ombros": 0.84,
+    "tronco": 0.86,
+    "bracos": 0.78,
+    "pernas": 0.86
+  },
+  "pele": [
+    240,
+    192,
+    156
+  ],
+  "olhos": [
+    52,
+    34,
+    26
+  ],
+  "sobrancelha": [
+    70,
+    44,
+    32
+  ],
+  "cabelo": {
+    "arquivo": "Hair_SimpleParted",
+    "cor": [
+      86,
+      54,
+      40
+    ],
+    "escala": [
+      1.06,
+      1.08,
+      1.05
+    ],
+    "centro": [
+      0,
+      0.0,
+      1.7
+    ]
+  },
+  "oculos": {
+    "cor": [
+      120,
+      92,
+      60
+    ],
+    "raio": 0.02,
+    "aro": 0.0024,
+    "afastado": 0.012
+  },
+  "capuz": {
+    "cor": [
+      226,
+      214,
+      198
+    ],
+    "centro": [
+      0,
+      0.06,
+      1.5
+    ],
+    "raio": [
+      0.13,
+      0.14
+    ],
+    "grossura": 0.055,
+    "sobe": 0.06
+  },
+  "roupas": [
+    {
+      "nome": "camisa",
+      "cor": [
+        236,
+        233,
+        230
+      ],
+      "espessura": 0.01,
+      "incluir": [
+        {
+          "regioes": [
+            "tronco",
+            "quadril"
+          ],
+          "z": [
+            0.995,
+            1.6
+          ]
+        },
+        {
+          "regioes": [
+            "pescoco"
+          ],
+          "z": [
+            1.4,
+            1.578
+          ]
+        }
+      ],
+      "alisa": 6
+    },
+    {
+      "nome": "jaqueta",
+      "cor": [
+        232,
+        220,
+        204
+      ],
+      "espessura": 0.034,
+      "solido": 0.006,
+      "suave": true,
+      "incluir": [
+        {
+          "regioes": [
+            "tronco"
+          ],
+          "z": [
+            0.93,
+            1.56
+          ]
+        },
+        {
+          "regioes": [
+            "quadril"
+          ],
+          "z": [
+            0.93,
+            1.2
+          ]
+        },
+        {
+          "regioes": [
+            "braco",
+            "antebraco"
+          ]
+        }
+      ],
+      "excluir": [
+        {
+          "regioes": [
+            "tronco",
+            "quadril"
+          ],
+          "frente": true,
+          "xmax": 0.06,
+          "z": [
+            0.9,
+            1.52
+          ]
+        }
+      ],
+      "alisa": 4
+    },
+    {
+      "nome": "calca",
+      "cor": [
+        54,
+        46,
+        46
+      ],
+      "espessura": 0.016,
+      "incluir": [
+        {
+          "regioes": [
+            "quadril"
+          ],
+          "z": [
+            0.0,
+            1.01
+          ]
+        },
+        {
+          "regioes": [
+            "coxa"
+          ]
+        },
+        {
+          "regioes": [
+            "canela"
+          ],
+          "z": [
+            0.1,
+            1.0
+          ]
+        }
+      ],
+      "alisa": 3
+    },
+    {
+      "nome": "cinto",
+      "cor": [
+        38,
+        30,
+        28
+      ],
+      "espessura": 0.021,
+      "cobre": false,
+      "incluir": [
+        {
+          "regioes": [
+            "quadril"
+          ],
+          "z": [
+            0.955,
+            0.992
+          ]
+        }
+      ]
+    },
+    {
+      "nome": "sapatos",
+      "tipo": "calcado",
+      "cor": [
+        62,
+        40,
+        32
+      ],
+      "espessura": 0.016,
+      "topo": 0.12,
+      "rugoso": 0.4
+    },
+    {
+      "nome": "friso",
+      "tipo": "faixa",
+      "cor": [
+        188,
+        146,
+        70
+      ],
+      "espessura": 0.038,
+      "solido": 0.004,
+      "incluir": [
+        {
+          "regioes": [
+            "tronco",
+            "quadril"
+          ],
+          "frente": true,
+          "xmin": 0.058,
+          "xmax": 0.072,
+          "z": [
+            0.93,
+            1.52
+          ]
+        }
+      ]
+    },
+    {
+      "nome": "barra",
+      "tipo": "faixa",
+      "cor": [
+        214,
+        200,
+        184
+      ],
+      "espessura": 0.038,
+      "solido": 0.004,
+      "incluir": [
+        {
+          "regioes": [
+            "quadril",
+            "tronco"
+          ],
+          "z": [
+            0.93,
+            0.955
+          ]
+        }
+      ],
+      "excluir": [
+        {
+          "regioes": [
+            "tronco",
+            "quadril"
+          ],
+          "frente": true,
+          "xmax": 0.06,
+          "z": [
+            0.9,
+            1.52
+          ]
+        }
+      ]
+    },
+    {
+      "nome": "punhos",
+      "tipo": "faixa",
+      "cor": [
+        214,
+        200,
+        184
+      ],
+      "espessura": 0.038,
+      "solido": 0.004,
+      "incluir": [
+        {
+          "regioes": [
+            "antebraco"
+          ],
+          "xmin": 0.6
+        }
+      ]
+    }
+  ],
+  "acessorios": [
+    {
+      "tipo": "tubo",
+      "nome": "corrente_cruz",
+      "osso": "spine_03",
+      "cor": [
+        204,
+        160,
+        72
+      ],
+      "raio": 0.0022,
+      "pontos": [
+        [
+          -0.05,
+          -0.05,
+          1.53
+        ],
+        [
+          -0.035,
+          -0.1,
+          1.45
+        ],
+        [
+          -0.012,
+          -0.123,
+          1.395
+        ],
+        [
+          0.012,
+          -0.123,
+          1.395
+        ],
+        [
+          0.035,
+          -0.1,
+          1.45
+        ],
+        [
+          0.05,
+          -0.05,
+          1.53
+        ]
+      ]
+    },
+    {
+      "tipo": "caixa",
+      "nome": "cruz_v",
+      "osso": "spine_03",
+      "cor": [
+        204,
+        160,
+        72
+      ],
+      "centro": [
+        0,
+        -0.127,
+        1.37
+      ],
+      "tamanho": [
+        0.008,
+        0.006,
+        0.034
+      ]
+    },
+    {
+      "tipo": "caixa",
+      "nome": "cruz_h",
+      "osso": "spine_03",
+      "cor": [
+        204,
+        160,
+        72
+      ],
+      "centro": [
+        0,
+        -0.128,
+        1.378
+      ],
+      "tamanho": [
+        0.022,
+        0.006,
+        0.007
+      ]
+    },
+    {
+      "tipo": "caixa",
+      "nome": "fivela",
+      "osso": "pelvis",
+      "cor": [
+        196,
+        156,
+        76
+      ],
+      "centro": [
+        0,
+        -0.122,
+        0.973
+      ],
+      "tamanho": [
+        0.034,
+        0.008,
+        0.024
+      ]
+    },
+    {
+      "tipo": "tubo",
+      "nome": "corrente_quadril",
+      "osso": "pelvis",
+      "cor": [
+        204,
+        160,
+        72
+      ],
+      "raio": 0.0028,
+      "pontos": [
+        [
+          0.06,
+          -0.118,
+          0.97
+        ],
+        [
+          0.085,
+          -0.115,
+          0.92
+        ],
+        [
+          0.12,
+          -0.08,
+          0.895
+        ],
+        [
+          0.145,
+          -0.02,
+          0.92
+        ],
+        [
+          0.148,
+          0.03,
+          0.965
+        ]
+      ]
+    }
+  ]
+}

@@ -7,6 +7,8 @@ import {
   type AnimKey,
   type AnimTabuleiro,
   type AnimTira,
+  type BonecoClipe,
+  type BonecoTabuleiro,
   type CharacterDef,
   type PortraitState,
 } from '@croma/shared';
@@ -429,6 +431,63 @@ export function drawBoneco(ctx: CanvasRenderingContext2D, q: SpriteFrame, x: num
   paint(ctx, q, x, y, sit, alpha, luz);
 }
 
+/** Uma animação do boneco filmado em 3D, com os quadros já cortados da tira. */
+export interface ClipeCarregado {
+  clipe: BonecoClipe;
+  quadros: SpriteFrame[];
+}
+
+/** O boneco filmado em 3D carregado: por "estado:direção", as animações. */
+export interface BonecoCarregado {
+  boneco: BonecoTabuleiro;
+  dirs: Record<string, Record<string, ClipeCarregado>>;
+}
+
+async function cortarClipe(c: BonecoClipe, escala: number): Promise<SpriteFrame[]> {
+  const img = await loadImage(c.url);
+  const out: SpriteFrame[] = [];
+  for (let i = 0; i < c.quadros; i++) {
+    const cv = document.createElement('canvas');
+    cv.width = c.w;
+    cv.height = c.h;
+    cv.getContext('2d')!.drawImage(img, i * c.w, 0, c.w, c.h, 0, 0, c.w, c.h);
+    // na tela, a arte em dobro vale meio pixel: nítida no zoom 2, suave no zoom 1
+    out.push({ canvas: cv, w: c.w * escala, h: c.h * escala, ax: c.ax * escala, ay: c.ay * escala, pixel: true });
+  }
+  return out;
+}
+
+async function processBoneco(b: BonecoTabuleiro): Promise<BonecoCarregado> {
+  const dirs: Record<string, Record<string, ClipeCarregado>> = {};
+  const pedidos: Promise<void>[] = [];
+  for (const [estado, porDir] of Object.entries(b.estados))
+    for (const [dir, clipes] of Object.entries(porDir ?? {}))
+      for (const [nome, clipe] of Object.entries(clipes ?? {}))
+        pedidos.push(
+          cortarClipe(clipe, b.escala).then((quadros) => {
+            (dirs[`${estado}:${dir}`] ??= {})[nome] = { clipe, quadros };
+          }),
+        );
+  const r = await Promise.allSettled(pedidos);
+  for (const x of r) if (x.status === 'rejected') console.warn('[sprites]', x.reason);
+  if (!Object.keys(dirs).length) throw new Error('Nenhuma animação do boneco carregou');
+  return { boneco: b, dirs };
+}
+
+/**
+ * As animações do boneco para o estado e a direção da peça: sem o estado, o mais
+ * parecido (como no retrato); sem a direção, a vizinha (ver sheetDirFor).
+ */
+export function bonecoDir(bc: BonecoCarregado, estado: PortraitState, dir: number): Record<string, ClipeCarregado> | null {
+  const armado = estado.startsWith('armado');
+  const machucado = estado.endsWith('machucado');
+  for (const e of [estado, portraitState(armado, false), portraitState(!armado, machucado), ...PORTRAIT_STATES]) {
+    const k = sheetDirFor(dir, (d) => !!bc.dirs[`${e}:${d}`]?.parado);
+    if (k) return bc.dirs[`${e}:${k}`];
+  }
+  return null;
+}
+
 export function spriteKey(def: CharacterDef) {
   return [def.sheet, def.cols, def.rows, def.height, def.removeBg, def.dirs.join(''), (def.anims ?? []).join('')].join('|');
 }
@@ -444,6 +503,7 @@ class SpriteStore {
     for (const d of list) {
       this.poses(d);
       this.anim(d);
+      this.boneco(d);
     }
   }
 
@@ -471,6 +531,29 @@ class SpriteStore {
         .catch((e) => {
           console.warn('[sprites]', e);
           this.cache.set(key, 'error');
+        });
+    }
+    return null;
+  }
+
+  private bonecoCache = new Map<string, BonecoCarregado | 'loading' | 'error'>();
+
+  /** O boneco filmado em 3D do personagem; null enquanto carrega (ou se ele não tem). */
+  boneco(def: CharacterDef): BonecoCarregado | null {
+    if (!def.boneco) return null;
+    const key = JSON.stringify(def.boneco);
+    const c = this.bonecoCache.get(key);
+    if (c && c !== 'loading' && c !== 'error') return c;
+    if (!c) {
+      this.bonecoCache.set(key, 'loading');
+      processBoneco(def.boneco)
+        .then((bc) => {
+          this.bonecoCache.set(key, bc);
+          this.onLoad?.();
+        })
+        .catch((e) => {
+          console.warn('[sprites]', e);
+          this.bonecoCache.set(key, 'error');
         });
     }
     return null;
@@ -818,8 +901,10 @@ function paint(ctx: CanvasRenderingContext2D, f: SpriteFrame, x: number, y: numb
   ctx.imageSmoothingQuality = 'high';
   if (f.pixel) {
     const m = ctx.getTransform();
-    // pixel art: aumentando, sem suavizar (cada pixel da arte inteiro); diminuindo, suaviza para não serrilhar
-    ctx.imageSmoothingEnabled = Math.min(Math.abs(m.a), Math.abs(m.d)) < 0.999;
+    // pixel art: numa escala inteira (cada pixel da arte vira 1, 2, 3 pixels da tela), sem suavizar; em escala
+    // quebrada (diminuindo, ou 1,25×, 2,5×), suaviza: senão uns pixels saem maiores que outros e a peça "treme"
+    const ef = Math.abs(m.a) * (f.w / f.canvas.width);
+    ctx.imageSmoothingEnabled = ef < 0.999 || Math.abs(ef - Math.round(ef)) > 0.02;
     if (!sit && !m.b && !m.c) {
       // no pixel inteiro da tela: andando, a peça não treme nem borra
       const px = Math.round(m.a * (x - f.ax) + m.e);

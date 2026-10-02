@@ -6,7 +6,7 @@ import { beforeEach, describe, test } from 'node:test';
 import { applyVital, DEFAULT_VITALS, findPath, getFurni, vitalConditions, Z_PER_M, type ClientMsg, type FloorItem, type ServerMsg } from '@croma/shared';
 import type { RoomData } from '../src/db';
 import { Hotel } from '../src/hotel';
-import { findAnim, findPassos, findPortraits, findPoses, refreshPortraits } from '../src/portraits';
+import { findAnim, findBoneco, findPassos, findPortraits, findPoses, refreshPortraits } from '../src/portraits';
 import { restackRoom, seedDb, upgradeDb } from '../src/seed';
 import { rebuildSede, SEDE, SEDE_CODE } from '../src/seedSede';
 
@@ -374,6 +374,44 @@ describe('poses do tabuleiro (32 bits)', () => {
     assert.equal(refreshPortraits([def], dir), true);
     assert.equal(def.passos?.desarmado?.se?.length, 2);
     assert.equal(def.poses?.desarmado?.se, url('idle-desarmado-se.png'));
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  test('acha o boneco filmado em 3D (tabuleiro-3d/anim.json, versão 2): cada animação com a sua tira', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'croma-'));
+    const pasta = path.join(dir, 'alosi', 'tabuleiro-3d');
+    fs.mkdirSync(pasta, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'alosi', 'folha.webp'), '');
+    const clipe = (arquivo: string, extra: Record<string, unknown> = {}) => ({ arquivo, quadros: 16, w: 90, h: 220, ax: 45, ay: 210, laco: true, pes: [[[-6, 2, 0], [6, -2, 0]]], ...extra });
+    const anim = {
+      versao: 2,
+      escala: 0.5,
+      estados: {
+        desarmado: {
+          s: { andar: clipe('andar-desarmado-s.png', { casasPorCiclo: 1.91 }), parado: clipe('parado-desarmado-s.png', { ms: 125 }), pegar: clipe('pegar-desarmado-s.png', { laco: false }) },
+          n: { andar: clipe('andar-desarmado-n.png'), 'Nome Ruim': clipe('x.png') },
+        },
+      },
+    };
+    fs.writeFileSync(path.join(pasta, 'anim.json'), JSON.stringify(anim));
+    // falta a tira do pegar: a animação sai; a de nome ruim também
+    for (const f of ['andar-desarmado-s.png', 'parado-desarmado-s.png', 'andar-desarmado-n.png', 'x.png']) fs.writeFileSync(path.join(pasta, f), '');
+    const url = (f: string) => `/arte/personagens/alosi/tabuleiro-3d/${f}`;
+    const b = findBoneco('/arte/personagens/alosi/folha.webp', dir);
+    assert.equal(b?.escala, 0.5);
+    assert.deepEqual(Object.keys(b?.estados.desarmado?.s ?? {}).sort(), ['andar', 'parado']);
+    assert.equal(b?.estados.desarmado?.s?.andar.url, url('andar-desarmado-s.png'));
+    assert.equal(b?.estados.desarmado?.s?.andar.casasPorCiclo, 1.91);
+    assert.equal(b?.estados.desarmado?.s?.parado.ms, 125);
+    assert.deepEqual(Object.keys(b?.estados.desarmado?.n ?? {}), ['andar']);
+    assert.equal(findBoneco('/uploads/abc.png', dir), undefined);
+    // o personagem ganha o boneco; com outra versão, perde
+    const def = { id: 3, name: 'Alosi Walker', owner: '', sheet: '/arte/personagens/alosi/folha.webp', cols: 4, rows: 4, dirs: [], height: 104, fps: 4, sequence: [], removeBg: false } as Parameters<typeof refreshPortraits>[0][number];
+    assert.equal(refreshPortraits([def], dir), true);
+    assert.equal(def.boneco?.estados.desarmado?.s?.parado.url, url('parado-desarmado-s.png'));
+    fs.writeFileSync(path.join(pasta, 'anim.json'), JSON.stringify({ ...anim, versao: 3 }));
+    assert.equal(refreshPortraits([def], dir), true);
+    assert.equal(def.boneco, undefined);
     fs.rmSync(dir, { recursive: true, force: true });
   });
 

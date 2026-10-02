@@ -139,6 +139,43 @@ export interface CharacterDef {
    * Quando tem, vale no lugar de `poses` e `passos`.
    */
   anim?: AnimTabuleiro;
+  /**
+   * O boneco filmado em 3D (docs/PERSONAGENS-3D.md): várias animações por estado e
+   * direção, achadas pelo servidor em tabuleiro-3d/anim.json. Quando tem, vale no lugar de `anim`.
+   */
+  boneco?: BonecoTabuleiro;
+}
+
+/**
+ * Uma animação do boneco numa direção: a tira (os quadros lado a lado), o tamanho de cada
+ * quadro e a âncora (o chão embaixo do corpo), em pixels da arte, e como tocar.
+ */
+export interface BonecoClipe {
+  url: string;
+  quadros: number;
+  w: number;
+  h: number;
+  ax: number;
+  ay: number;
+  /** volta ao começo quando acaba (parado, andar) ou toca uma vez (pegar, cair) */
+  laco: boolean;
+  /** quanto dura cada quadro */
+  ms?: number;
+  /** andar: quantas casas um ciclo anda (o quadro vem da distância, e o pé fica no chão) */
+  casasPorCiclo?: number;
+  /** andar: a fase do ciclo no meio da casa */
+  fase?: number;
+  /** uma vez: fica no último quadro (caído) */
+  segura?: boolean;
+  /** os pés em cada quadro, em pixels da tela no zoom 1, a partir da âncora */
+  pes: PeQuadro[][];
+}
+
+/** O boneco filmado em 3D: `escala` = pixels da tela (zoom 1) por pixel da arte. */
+export interface BonecoTabuleiro {
+  versao: 2;
+  escala: number;
+  estados: Partial<Record<PortraitState, Partial<Record<DirKey, Record<string, BonecoClipe>>>>>;
 }
 
 /** Um pé num quadro: [dx, dy, altura no ar], em pixels, a partir da âncora (o chão embaixo do corpo). */
