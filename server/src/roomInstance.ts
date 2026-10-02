@@ -225,12 +225,18 @@ export class RoomInstance {
     const valid = !back && this.map.floorHeight(t.x, t.y) !== null && fromRoomId === null;
     let sx = back ? back.x : valid ? t.x : d.x;
     let sy = back ? back.y : valid ? t.y : d.y;
+    let sdir = back ? (back.rot + 4) % 8 : valid ? t.dir : d.dir;
+    // descendo pela escada: a peça chega no pé dela, virada para a sala (em cima dos degraus, no chão, ela sumia atrás da escada)
+    const pe = back?.defId === 'stairs_up' ? this.stairFoot(back) : null;
+    if (pe) {
+      [sx, sy] = [pe.x, pe.y];
+      sdir = back!.rot;
+    }
     // chegando por uma passagem ocupada: vai para a casa livre mais perto dela
-    if (back && this.occupied(sx, sy, -t.id)) {
+    if (back && (this.occupied(sx, sy, -t.id) || this.map.walkState(sx, sy) !== 'walk')) {
       const free = this.freeNear(sx, sy, -t.id);
       if (free) [sx, sy] = [free.x, free.y];
     }
-    const sdir = back ? (back.rot + 4) % 8 : valid ? t.dir : d.dir;
     const u: RoomUser = {
       client: tokenClient({ ...t, x: sx, y: sy, dir: sdir }, this),
       x: sx,
@@ -253,6 +259,19 @@ export class RoomInstance {
     this.settle(u);
     this.ensureTimer();
     return u;
+  }
+
+  /** A casa na frente do primeiro degrau da escada (a frente dela é o pé), se der para pisar. */
+  private stairFoot(it: FloorItem): Point | null {
+    const def = getFurni(it.defId);
+    if (!def) return null;
+    const lado = it.rot === 2 || it.rot === 6;
+    const wx = lado ? def.depth : def.width;
+    const dy = lado ? def.width : def.depth;
+    const meioX = it.x + Math.floor((wx - 1) / 2);
+    const meioY = it.y + Math.floor((dy - 1) / 2);
+    const p = it.rot === 4 ? { x: meioX, y: it.y + dy } : it.rot === 0 ? { x: meioX, y: it.y - 1 } : it.rot === 2 ? { x: it.x + wx, y: meioY } : { x: it.x - 1, y: meioY };
+    return this.map.walkState(p.x, p.y) === 'walk' ? p : null;
   }
 
   /** Casa livre (andável e sem peça) mais perto de (x, y), em anéis. */

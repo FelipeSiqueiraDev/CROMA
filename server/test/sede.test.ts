@@ -178,6 +178,35 @@ describe('passagem secreta (geladeira)', () => {
     assert.deepEqual([t.token.tile.x, t.token.tile.y], [20, 0]);
   });
 
+  test('quem desce do bar chega no pé da escada do salão, virado para a sala', () => {
+    const bar = room('Bar');
+    const salao = room('Salão Principal');
+    const tk = bar.tokenList()[0];
+    hotel.moveToken(bar, tk.id, salao.data.id);
+    const escada = salao.map.allItems().find((i) => i.defId === 'stairs_up')!;
+    const t = salao.tokensLive().find((x) => x.name === tk.name)!;
+    // a escada (giro 2) sobe para a parede da esquerda: o pé fica na frente dela, em +x
+    assert.equal(escada.rot, 2);
+    assert.deepEqual([t.token.tile.x, t.token.tile.y], [escada.x + 2, escada.y]);
+    assert.equal(t.token.dir, 2);
+  });
+
+  test('porta: clique duplo fecha, tranca e abre; fechada ou trancada ninguém passa', () => {
+    const salao = room('Salão Principal');
+    gm.send({ t: 'join', roomId: salao.data.id });
+    const porta = salao.map.allItems().find((i) => i.defId === 'portal' && i.x === 16 && i.y === 0)!;
+    assert.equal(salao.map.walkState(16, 0), 'walk');
+    gm.send({ t: 'use', id: porta.id });
+    assert.equal(salao.map.getItem(porta.id)!.state, 1, 'fechada');
+    assert.equal(salao.map.walkState(16, 0), 'blocked');
+    gm.send({ t: 'use', id: porta.id });
+    assert.equal(salao.map.getItem(porta.id)!.state, 2, 'trancada');
+    assert.equal(salao.map.walkState(16, 0), 'blocked');
+    gm.send({ t: 'use', id: porta.id });
+    assert.equal(salao.map.getItem(porta.id)!.state, 0, 'aberta de novo');
+    assert.equal(salao.map.walkState(16, 0), 'walk');
+  });
+
   test('peça salva em cima de uma passagem não troca de cena ao reiniciar', () => {
     const db = seedDb();
     upgradeDb(db);

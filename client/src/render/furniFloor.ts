@@ -1219,38 +1219,94 @@ const builders: Record<string, Builder> = {
     ]);
   },
 
-  portal(def, _s, seed) {
+  portal(def, state) {
     const [wood] = def.colors;
-    const jl: LBox = [0, 0.2, 0.06, 0.18, 0, 2.15];
-    const jr: LBox = [0, 0.2, 0.82, 0.94, 0, 2.15];
-    const lintel: LBox = [0, 0.2, 0.06, 0.94, 2.15, 2.3];
-    const voidB: LBox = [0, 0.06, 0.18, 0.82, 0, 2.15];
+    // vão de porta de verdade: 0,9 m de largura (1,32 casa, centrado na casa) por 2,1 m, batente de 7 cm
+    const A0 = -0.16;
+    const A1 = 1.16;
+    const H = 2.1;
+    const jl: LBox = [0, 0.16, A0 - 0.1, A0, 0, H];
+    const jr: LBox = [0, 0.16, A1, A1 + 0.1, 0, H];
+    const lintel: LBox = [0, 0.16, A0 - 0.1, A1 + 0.1, H, H + 0.12];
+    const vao: LBox = [0, 0.02, A0, A1, 0, H];
+    const folha: LBox = [0.05, 0.1, A0, A1, 0.01, H];
+    const soleira: LBox = [0, 0.16, A0 - 0.1, A1 + 0.1, 0, 0.03];
+    const fechada = state === 1 || state === 2;
+    const trancada = state === 2;
+    const corFolha = shade(wood, 0.32);
+    // na beira da frente do cômodo a parede não aparece: a porta vira soleira, batente baixo e o contorno do vão
+    const baixa = (p: Painter) => p.m.rot === 0 || p.m.rot === 6;
+    const cadeado = (p: Painter, u: number) => {
+      // a tranca de ferro atravessando a porta e o cadeado no meio
+      p.poly([[u, A0 - 0.06, 1.0], [u, A1 + 0.06, 1.0], [u, A1 + 0.06, 1.08], [u, A0 - 0.06, 1.08]], '#2b2c30', OUTLINE);
+      const m = (A0 + A1) / 2;
+      p.poly([[u + 0.01, m - 0.07, 0.86], [u + 0.01, m + 0.07, 0.86], [u + 0.01, m + 0.07, 1.0], [u + 0.01, m - 0.07, 1.0]], '#8a6e36', OUTLINE);
+      p.line([u + 0.01, m - 0.04, 1.0], [u + 0.01, m - 0.04, 1.06], '#c9b27a', 1.5);
+      p.line([u + 0.01, m + 0.04, 1.0], [u + 0.01, m + 0.04, 1.06], '#c9b27a', 1.5);
+    };
     return V([
-      N([0.05, 0.95, 0.05, 0.95, 0, 0], (p) =>
+      // o chão escurece na frente do vão aberto
+      N([0.05, 0.95, 0.05, 0.95, 0, 0], (p) => {
+        if (fechada || baixa(p)) return;
         p.withTop(0.004, (ctx) => {
           const g = ctx.createLinearGradient(0, 0, 1, 0);
-          g.addColorStop(0, 'rgba(0,0,0,0.75)');
+          g.addColorStop(0, 'rgba(0,0,0,0.6)');
           g.addColorStop(1, 'rgba(0,0,0,0)');
           ctx.fillStyle = g;
-          ctx.fillRect(0.05, 0.12, 0.9, 0.76);
-        }),
-      ),
-      N(voidB, (p) => {
-        p.face(voidB, 'front', 0.18, 0.82, 0, 2.15, '#030203', true);
-        p.withFace(voidB, 'front', (ctx) => {
-          // névoa escura girando dentro da passagem
-          const k = p.t / 1000 + seed;
-          ctx.fillStyle = 'rgba(120,20,20,0.12)';
-          for (let i = 0; i < 4; i++) {
-            ctx.beginPath();
-            ctx.ellipse(0.5 + Math.sin(k * 0.7 + i) * 0.15, 0.45 + i * 0.36 + Math.sin(k + i * 2) * 0.08, 0.22, 0.15, 0, 0, Math.PI * 2);
-            ctx.fill();
-          }
+          ctx.fillRect(0, A0, 0.9, A1 - A0);
         });
       }),
-      N(jl, (p) => p.box(jl, wood, { edge: 0.2 })),
-      N(jr, (p) => p.box(jr, wood, { edge: 0.2 })),
-      N(lintel, (p) => p.box(lintel, wood, { edge: 0.25 })),
+      N(vao, (p) => {
+        if (baixa(p)) return;
+        p.face(vao, 'front', A0, A1, 0, H, '#050404', true);
+        // a escuridão do outro lado: um pouco menos escura embaixo, onde bate a luz da sala
+        p.withFace(vao, 'front', (ctx) => {
+          const g = ctx.createLinearGradient(0, 0, 0, H);
+          g.addColorStop(0, 'rgba(60,52,46,0.35)');
+          g.addColorStop(0.5, 'rgba(0,0,0,0)');
+          ctx.fillStyle = g;
+          ctx.fillRect(A0, 0, A1 - A0, H);
+        });
+      }),
+      N(folha, (p) => {
+        if (!fechada) return;
+        if (baixa(p)) {
+          // a folha fechada, só o contorno, para não tapar a sala
+          p.poly([[0.08, A0, 0.03], [0.08, A1, 0.03], [0.08, A1, H], [0.08, A0, H]], 'rgba(150,110,80,0.26)', 'rgba(225,185,140,0.55)');
+          if (trancada) cadeado(p, 0.1);
+          return;
+        }
+        p.box(folha, corFolha, { edge: 0.15 });
+        p.withFace(folha, 'front', (ctx) => {
+          // duas almofadas na madeira e a fresta de luz embaixo
+          ctx.fillStyle = shade(corFolha, -0.12);
+          ctx.fillRect(A0 + 0.14, 1.2, A1 - A0 - 0.28, 0.75);
+          ctx.fillRect(A0 + 0.14, 0.15, A1 - A0 - 0.28, 0.85);
+          ctx.fillStyle = 'rgba(0,0,0,0.25)';
+          ctx.fillRect(A0 + 0.14, 1.93, A1 - A0 - 0.28, 0.02);
+          ctx.fillRect(A0 + 0.14, 0.98, A1 - A0 - 0.28, 0.02);
+        });
+        // maçaneta
+        p.line([0.12, A1 - 0.16, 1.0], [0.12, A1 - 0.28, 1.0], '#c9a85a', 2.5);
+        if (trancada) cadeado(p, 0.12);
+      }),
+      N(soleira, (p) => {
+        if (baixa(p)) p.box(soleira, shade(wood, 0.1), { edge: 0.25 });
+      }),
+      N(jl, (p) => {
+        if (!baixa(p)) return p.box(jl, wood, { edge: 0.2 });
+        p.box([jl[0], jl[1], jl[2], jl[3], 0, 0.32], wood, { edge: 0.2 });
+        p.line([0.08, A0 - 0.05, 0.32], [0.08, A0 - 0.05, H], 'rgba(210,170,130,0.32)', 2);
+      }),
+      N(jr, (p) => {
+        if (!baixa(p)) return p.box(jr, wood, { edge: 0.2 });
+        p.box([jr[0], jr[1], jr[2], jr[3], 0, 0.32], wood, { edge: 0.2 });
+        p.line([0.08, A1 + 0.05, 0.32], [0.08, A1 + 0.05, H], 'rgba(210,170,130,0.32)', 2);
+      }),
+      N(lintel, (p) => {
+        if (!baixa(p)) return p.box(lintel, wood, { edge: 0.25 });
+        p.line([0.08, A0 - 0.05, H + 0.06], [0.08, A1 + 0.05, H + 0.06], 'rgba(210,170,130,0.32)', 2);
+      }),
     ]);
   },
 

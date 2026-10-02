@@ -1,4 +1,4 @@
-import { Z_PER_M, type FloorStyle, type RoomMap, type WallSeg } from '@croma/shared';
+import { DIRS, Z_PER_M, type FloorStyle, type RoomMap, type WallSeg } from '@croma/shared';
 import { hash, shade } from './color';
 import { iso } from './iso';
 import { texturaParede, texturaPiso } from './texturas';
@@ -47,8 +47,12 @@ const WALL_TOP = '#5a524b';
 const WALL_CAP = '#221d1a';
 const T = 0.3;
 const FLOOR_THICK = 0.35;
-/** altura do vão da porta: 2,15 m (Z_PER_M) */
-const DOOR_H = 3.9;
+/** altura do vão da porta: 2,1 m (Z_PER_M) */
+const DOOR_H = 2.1 * Z_PER_M;
+/** o vão passa da casa da porta para os lados: 0,9 m de largura (1,32 casa), centrado */
+const VAO_SOBRA = 0.16;
+/** o degrau de cima da escada que sobe para a porta (o vão começa nele) */
+const ESCADA_TOPO = 1.0 * Z_PER_M;
 const MAX_PIXELS = 14_000_000;
 /** a casa do tabuleiro, em metros */
 const CASA_M = 0.68;
@@ -116,6 +120,29 @@ export function roomBounds(map: RoomMap) {
 }
 
 /**
+ * O vão da porta do cômodo: na parede da porta, de a0 até a1 (passa da casa da porta
+ * para os lados) e de z0 até z1. Com a escada que sobe na frente da porta, o vão começa
+ * no degrau de cima e vai até o topo da parede (a escada continua para cima).
+ */
+function vaoDaPorta(map: RoomMap): { seg: WallSeg; a0: number; a1: number; z0: number; z1: number; escada: boolean } | null {
+  const seg = map.walls.segs.find((s) => s.door);
+  if (!seg) return null;
+  const [dx, dy] = DIRS[map.door.dir] ?? [0, 0];
+  const escada = map.itemsAt(map.door.x + dx, map.door.y + dy).some((it) => it.defId === 'stairs_up');
+  const z0 = seg.base + (escada ? ESCADA_TOPO : 0);
+  return { seg, a0: seg.at - VAO_SOBRA, a1: seg.at + 1 + VAO_SOBRA, z0, z1: escada ? map.walls.top : z0 + DOOR_H, escada };
+}
+
+/** O pedaço do vão da porta que cai neste trecho de parede (o vão passa por três trechos). */
+function buracoNoTrecho(map: RoomMap, s: WallSeg): Pt[] | null {
+  const v = vaoDaPorta(map);
+  if (!v || v.seg.wall !== s.wall || v.seg.plane !== s.plane) return null;
+  const a0 = Math.max(s.at, v.a0);
+  const a1 = Math.min(s.at + 1, v.a1);
+  return a1 > a0 ? wallQuad(s, a0, a1, v.z0, v.z1) : null;
+}
+
+/**
  * Recorte para quem está atrás da parede da porta: tudo, menos as faces de
  * parede vizinhas, mais o vão da porta (regra evenodd).
  */
@@ -131,7 +158,8 @@ export function doorClipPath(map: RoomMap): { seg: WallSeg; path: Path2D } | nul
   };
   for (const s of map.walls.segs)
     if (s.wall === seg.wall && s.plane === seg.plane && Math.abs(s.at - seg.at) <= 2) add(wallQuad(s, s.at, s.at + 1, s.base - FLOOR_THICK, map.walls.top));
-  add(wallQuad(seg, seg.at + 0.1, seg.at + 0.9, seg.base - FLOOR_THICK, seg.base + DOOR_H));
+  const v = vaoDaPorta(map)!;
+  add(wallQuad(seg, v.a0, v.a1, seg.base - FLOOR_THICK, v.z1));
   return { seg, path };
 }
 
@@ -155,7 +183,7 @@ function drawWallSeg(ctx: CanvasRenderingContext2D, map: RoomMap, s: WallSeg, pi
   const a0 = s.at;
   const a1 = s.at + 1;
   const face = wallQuad(s, a0, a1, b, top);
-  const hole = s.door ? wallQuad(s, a0 + 0.1, a1 - 0.1, b, b + DOOR_H) : null;
+  const hole = buracoNoTrecho(map, s);
   const base = s.wall === 'l' ? WALL_L : WALL_R;
 
   ctx.save();
@@ -246,21 +274,7 @@ function acabamento(ctx: CanvasRenderingContext2D, map: RoomMap, s: WallSeg, hol
   const b = s.base;
   const a0 = s.at;
   const a1 = s.at + 1;
-  if (hole) {
-    ctx.lineWidth = 2;
-    const fr = wallQuad(s, a0 + 0.08, a1 - 0.08, b, b + DOOR_H + 0.06);
-    ctx.beginPath();
-    ctx.moveTo(fr[0][0], fr[0][1]);
-    ctx.lineTo(fr[3][0], fr[3][1]);
-    ctx.lineTo(fr[2][0], fr[2][1]);
-    ctx.lineTo(fr[1][0], fr[1][1]);
-    ctx.strokeStyle = '#1b1512';
-    ctx.stroke();
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = 'rgba(200,160,110,0.25)';
-    ctx.stroke();
-  }
-
+  void hole;
   // topo com espessura
   const topStrip: Pt[] =
     s.wall === 'l'
@@ -600,9 +614,9 @@ export function buildStatic(map: RoomMap, wantScale: number, style?: FloorStyle)
   const minH = minFloor(map);
   const door = map.door;
   const doorH = map.floorHeight(door.x, door.y);
-  const doorSeg = map.walls.segs.find((s) => s.door);
-  if (doorSeg && doorH !== null) {
-    const hole = wallQuad(doorSeg, doorSeg.at + 0.1, doorSeg.at + 0.9, doorSeg.base, doorSeg.base + DOOR_H);
+  const vao = vaoDaPorta(map);
+  if (vao && doorH !== null) {
+    const hole = wallQuad(vao.seg, vao.a0, vao.a1, vao.z0, vao.z1);
     poly(ctx, hole, '#050405');
     drawTile(ctx, map, door.x, door.y, doorH, true, minH);
     const [gx, gy] = iso(door.x + 0.5, door.y + 0.5, doorH + 1.2);
@@ -616,6 +630,26 @@ export function buildStatic(map: RoomMap, wantScale: number, style?: FloorStyle)
 
   const segs = [...map.walls.segs].sort((a, b) => (a.wall === b.wall ? 0 : a.wall === 'r' ? -1 : 1));
   for (const s of segs) drawWallSeg(ctx, map, s, pintarParede);
+  if (vao) {
+    // a moldura do vão, depois das paredes (ele passa por três trechos)
+    const fr = wallQuad(vao.seg, vao.a0 - 0.04, vao.a1 + 0.04, vao.z0, vao.z1 + (vao.escada ? 0 : 0.1));
+    ctx.beginPath();
+    if (vao.escada) {
+      ctx.moveTo(fr[0][0], fr[0][1]);
+      ctx.lineTo(fr[1][0], fr[1][1]);
+    }
+    ctx.moveTo(fr[0][0], fr[0][1]);
+    ctx.lineTo(fr[3][0], fr[3][1]);
+    if (!vao.escada) ctx.lineTo(fr[2][0], fr[2][1]);
+    else ctx.moveTo(fr[2][0], fr[2][1]);
+    ctx.lineTo(fr[1][0], fr[1][1]);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#1b1512';
+    ctx.stroke();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(200,160,110,0.25)';
+    ctx.stroke();
+  }
   // cantos
   for (const s of map.walls.segs) {
     if (s.wall !== 'l') continue;

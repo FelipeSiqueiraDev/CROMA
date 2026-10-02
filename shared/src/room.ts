@@ -221,8 +221,8 @@ export class RoomMap {
       const def = getFurni(it.defId);
       if (!def) continue;
       if (def.sit) sit = true;
-      // porta aberta deixa passar; fechada, bloqueia
-      else if (!def.walkable && !(def.openState !== undefined && it.state === def.openState)) return 'blocked';
+      // porta aberta deixa passar; fechada (ou trancada), bloqueia, mesmo a passagem de pisar em cima
+      else if (def.openState !== undefined ? it.state !== def.openState : !def.walkable) return 'blocked';
     }
     return sit ? 'sit' : 'walk';
   }

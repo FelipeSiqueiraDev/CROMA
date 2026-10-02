@@ -25,6 +25,7 @@ O mapa da Sede (Ordo Realitas) já funciona no jogo: os agentes andam, passam de
 
 - **A porta da Sede** é a única geladeira do bar, no canto. O mestre digita a senha **0413** no painel da geladeira; ela desliza uma casa para a esquerda e aparece a escada que desce para o salão. Quem sobe pela escada com a passagem fechada abre por dentro, sem senha. Quando não sobra ninguém no bar, a geladeira volta sozinha para cima da escada.
 - **Portas de cela** abrem e fecham com clique duplo; fechadas, ninguém passa.
+- **Portas dos cômodos** (as passagens): 0,9 m por 2,1 m. Com o clique duplo do mestre, ficam aberta, fechada ou trancada (com tranca e cadeado); fechada ou trancada, ninguém passa. A textura de cada porta vem depois, todas juntas.
 - Tudo isso (cor, partículas, piso, andar) o mestre também ajusta em **Configurar cena**. A quantidade de partículas fica no ☀ **Clima da cena**, junto da névoa e da escuridão.
 
 ## Formato dos móveis

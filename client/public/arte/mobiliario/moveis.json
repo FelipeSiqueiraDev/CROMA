@@ -172,23 +172,23 @@
   "giros": {
    "4": {
     "arquivo": "pool_table/giro-4.png",
-    "ax": 108.7,
-    "ay": 264.9
+    "ax": 139.5,
+    "ay": 271.7
    },
    "0": {
     "arquivo": "pool_table/giro-0.png",
-    "ax": 106.6,
-    "ay": 263.9
+    "ax": 138.5,
+    "ay": 272.0
    },
    "2": {
     "arquivo": "pool_table/giro-2.png",
-    "ax": 253.3,
-    "ay": 271.0
+    "ax": 260.0,
+    "ay": 275.0
    },
    "6": {
     "arquivo": "pool_table/giro-6.png",
-    "ax": 251.1,
-    "ay": 263.8
+    "ax": 270.0,
+    "ay": 270.2
    }
   }
  },
@@ -239,23 +239,23 @@
   "giros": {
    "4": {
     "arquivo": "table_bar/giro-4.png",
-    "ax": 67.9,
-    "ay": 145.4
+    "ax": 74.0,
+    "ay": 148.1
    },
    "6": {
     "arquivo": "table_bar/giro-6.png",
-    "ax": 68.4,
-    "ay": 150.0
+    "ax": 73.5,
+    "ay": 148.1
    },
    "0": {
     "arquivo": "table_bar/giro-0.png",
-    "ax": 66.2,
-    "ay": 149.7
+    "ax": 73.0,
+    "ay": 148.5
    },
    "2": {
     "arquivo": "table_bar/giro-2.png",
-    "ax": 66.7,
-    "ay": 148.7
+    "ax": 71.5,
+    "ay": 149.2
    }
   }
  },
@@ -354,23 +354,23 @@
   "giros": {
    "4": {
     "arquivo": "arcade/giro-4.png",
-    "ax": 70.4,
-    "ay": 201.4
+    "ax": 91.3,
+    "ay": 254.5
    },
    "2": {
     "arquivo": "arcade/giro-2.png",
-    "ax": 51.3,
-    "ay": 201.7
+    "ax": 71.6,
+    "ay": 254.4
    },
    "0": {
     "arquivo": "arcade/giro-0.png",
-    "ax": 64.7,
-    "ay": 192.4
+    "ax": 72.1,
+    "ay": 253.3
    },
    "6": {
     "arquivo": "arcade/giro-6.png",
-    "ax": 56.2,
-    "ay": 192.4
+    "ax": 91.4,
+    "ay": 252.3
    }
   },
   "tela": {
@@ -386,14 +386,14 @@
    "ms": 1100,
    "giros": {
     "4": {
-     "x": 60.5,
-     "y": 83.6,
-     "r": 50.8
+     "x": 81.5,
+     "y": 112.6,
+     "r": 68.5
     },
     "2": {
-     "x": 59.3,
-     "y": 83.6,
-     "r": 50.8
+     "x": 79.9,
+     "y": 113.0,
+     "r": 68.5
     }
    }
   }
@@ -458,23 +458,23 @@
   "giros": {
    "4": {
     "arquivo": "chair_stack/giro-4.png",
-    "ax": 53.0,
-    "ay": 158.8
+    "ax": 66.5,
+    "ay": 196.8
    },
    "2": {
     "arquivo": "chair_stack/giro-2.png",
-    "ax": 50.0,
-    "ay": 159.4
+    "ax": 65.0,
+    "ay": 197.6
    },
    "6": {
     "arquivo": "chair_stack/giro-6.png",
-    "ax": 58.0,
-    "ay": 148.5
+    "ax": 66.0,
+    "ay": 176.2
    },
    "0": {
     "arquivo": "chair_stack/giro-0.png",
-    "ax": 50.0,
-    "ay": 148.1
+    "ax": 65.5,
+    "ay": 174.2
    }
   }
  },
@@ -508,23 +508,23 @@
   "giros": {
    "2": {
     "arquivo": "bar_cabinet/giro-2.png",
-    "ax": 57.3,
-    "ay": 136.2
+    "ax": 69.8,
+    "ay": 162.1
    },
    "4": {
     "arquivo": "bar_cabinet/giro-4.png",
-    "ax": 41.2,
-    "ay": 137.2
+    "ax": 59.6,
+    "ay": 162.2
    },
    "6": {
     "arquivo": "bar_cabinet/giro-6.png",
-    "ax": 46.9,
-    "ay": 126.1
+    "ax": 60.2,
+    "ay": 161.3
    },
    "0": {
     "arquivo": "bar_cabinet/giro-0.png",
-    "ax": 59.4,
-    "ay": 126.4
+    "ax": 69.8,
+    "ay": 157.3
    }
   }
  },
@@ -533,23 +533,23 @@
   "giros": {
    "4": {
     "arquivo": "armchair_red/giro-4.png",
-    "ax": 63.2,
-    "ay": 145.4
+    "ax": 64.5,
+    "ay": 152.1
    },
    "2": {
     "arquivo": "armchair_red/giro-2.png",
-    "ax": 60.0,
-    "ay": 146.0
+    "ax": 68.5,
+    "ay": 149.8
    },
    "0": {
     "arquivo": "armchair_red/giro-0.png",
-    "ax": 67.8,
-    "ay": 121.8
+    "ax": 66.0,
+    "ay": 124.9
    },
    "6": {
     "arquivo": "armchair_red/giro-6.png",
-    "ax": 58.5,
-    "ay": 122.8
+    "ax": 66.5,
+    "ay": 126.9
    }
   }
  },
@@ -558,23 +558,23 @@
   "giros": {
    "4": {
     "arquivo": "sofa_booth/giro-4.png",
-    "ax": 140.4,
-    "ay": 184.3
+    "ax": 144.5,
+    "ay": 187.9
    },
    "2": {
     "arquivo": "sofa_booth/giro-2.png",
-    "ax": 69.5,
-    "ay": 183.8
+    "ax": 82.0,
+    "ay": 187.2
    },
    "0": {
     "arquivo": "sofa_booth/giro-0.png",
-    "ax": 130.9,
-    "ay": 169.0
+    "ax": 145.0,
+    "ay": 182.6
    },
    "6": {
     "arquivo": "sofa_booth/giro-6.png",
-    "ax": 70.1,
-    "ay": 164.4
+    "ax": 81.0,
+    "ay": 172.6
    }
   }
  },
@@ -818,23 +818,23 @@
   "giros": {
    "4": {
     "arquivo": "divider/giro-4.png",
-    "ax": 51.5,
-    "ay": 172.3
+    "ax": 68.0,
+    "ay": 217.1
    },
    "6": {
     "arquivo": "divider/giro-6.png",
-    "ax": 52.0,
-    "ay": 171.9
+    "ax": 68.5,
+    "ay": 216.7
    },
    "0": {
     "arquivo": "divider/giro-0.png",
-    "ax": 49.5,
-    "ay": 174.2
+    "ax": 65.5,
+    "ay": 219.4
    },
    "2": {
     "arquivo": "divider/giro-2.png",
-    "ax": 52.5,
-    "ay": 169.9
+    "ax": 70.0,
+    "ay": 217.0
    }
   }
  },
@@ -943,23 +943,23 @@
   "giros": {
    "4": {
     "arquivo": "trolley/giro-4.png",
-    "ax": 55.0,
-    "ay": 124.1
+    "ax": 75.5,
+    "ay": 158.2
    },
    "6": {
     "arquivo": "trolley/giro-6.png",
-    "ax": 56.5,
-    "ay": 126.3
+    "ax": 76.0,
+    "ay": 158.0
    },
    "0": {
     "arquivo": "trolley/giro-0.png",
-    "ax": 53.5,
-    "ay": 124.9
+    "ax": 74.5,
+    "ay": 158.7
    },
    "2": {
     "arquivo": "trolley/giro-2.png",
-    "ax": 55.0,
-    "ay": 123.8
+    "ax": 75.5,
+    "ay": 158.2
    }
   }
  },
@@ -1063,23 +1063,23 @@
   "giros": {
    "4": {
     "arquivo": "computer_old/giro-4.png",
-    "ax": 44.5,
-    "ay": 92.0
+    "ax": 51.0,
+    "ay": 99.6
    },
    "6": {
     "arquivo": "computer_old/giro-6.png",
-    "ax": 46.5,
-    "ay": 82.8
+    "ax": 52.0,
+    "ay": 89.9
    },
    "0": {
     "arquivo": "computer_old/giro-0.png",
-    "ax": 49.0,
-    "ay": 79.6
+    "ax": 52.0,
+    "ay": 82.9
    },
    "2": {
     "arquivo": "computer_old/giro-2.png",
-    "ax": 46.0,
-    "ay": 90.4
+    "ax": 53.5,
+    "ay": 98.3
    }
   },
   "tela": {
@@ -1093,14 +1093,14 @@
    "forca": 0.26,
    "giros": {
     "4": {
-     "x": 42.7,
-     "y": 30.8,
-     "r": 35.6
+     "x": 49.0,
+     "y": 35.3,
+     "r": 40.8
     },
     "2": {
-     "x": 47.8,
-     "y": 28.8,
-     "r": 36.8
+     "x": 55.6,
+     "y": 33.5,
+     "r": 42.8
     }
    }
   }
@@ -1323,8 +1323,8 @@
   "giros": {
    "0": {
     "arquivo": "table_round/giro-0.png",
-    "ax": 110.0,
-    "ay": 225.4
+    "ax": 99.0,
+    "ay": 206.4
    }
   }
  },
@@ -1333,23 +1333,23 @@
   "giros": {
    "4": {
     "arquivo": "chair_red/giro-4.png",
-    "ax": 47.0,
-    "ay": 153.4
+    "ax": 51.0,
+    "ay": 162.5
    },
    "6": {
     "arquivo": "chair_red/giro-6.png",
-    "ax": 47.0,
-    "ay": 132.5
+    "ax": 50.5,
+    "ay": 140.6
    },
    "0": {
     "arquivo": "chair_red/giro-0.png",
     "ax": 51.0,
-    "ay": 130.6
+    "ay": 131.6
    },
    "2": {
     "arquivo": "chair_red/giro-2.png",
-    "ax": 47.0,
-    "ay": 155.1
+    "ax": 50.5,
+    "ay": 163.8
    }
   }
  },
@@ -1383,23 +1383,23 @@
   "giros": {
    "4": {
     "arquivo": "table_chess/giro-4.png",
-    "ax": 58.0,
-    "ay": 120.8
+    "ax": 69.0,
+    "ay": 137.5
    },
    "6": {
     "arquivo": "table_chess/giro-6.png",
-    "ax": 59.5,
-    "ay": 114.8
+    "ax": 74.5,
+    "ay": 134.9
    },
    "0": {
     "arquivo": "table_chess/giro-0.png",
-    "ax": 58.5,
-    "ay": 119.2
+    "ax": 70.5,
+    "ay": 135.7
    },
    "2": {
     "arquivo": "table_chess/giro-2.png",
-    "ax": 57.5,
-    "ay": 120.7
+    "ax": 69.0,
+    "ay": 137.6
    }
   }
  },
@@ -1408,23 +1408,23 @@
   "giros": {
    "4": {
     "arquivo": "armchair/giro-4.png",
-    "ax": 62.0,
-    "ay": 123.0
+    "ax": 77.0,
+    "ay": 145.5
    },
    "6": {
     "arquivo": "armchair/giro-6.png",
-    "ax": 61.0,
-    "ay": 107.9
+    "ax": 77.5,
+    "ay": 130.2
    },
    "0": {
     "arquivo": "armchair/giro-0.png",
-    "ax": 64.5,
-    "ay": 113.7
+    "ax": 77.5,
+    "ay": 130.2
    },
    "2": {
     "arquivo": "armchair/giro-2.png",
-    "ax": 62.0,
-    "ay": 122.1
+    "ax": 78.0,
+    "ay": 145.0
    }
   }
  },
@@ -1433,23 +1433,23 @@
   "giros": {
    "4": {
     "arquivo": "armchair_leather/giro-4.png",
-    "ax": 62.0,
-    "ay": 123.0
+    "ax": 77.0,
+    "ay": 145.5
    },
    "6": {
     "arquivo": "armchair_leather/giro-6.png",
-    "ax": 61.0,
-    "ay": 107.9
+    "ax": 77.5,
+    "ay": 130.2
    },
    "0": {
     "arquivo": "armchair_leather/giro-0.png",
-    "ax": 64.5,
-    "ay": 113.7
+    "ax": 77.5,
+    "ay": 130.2
    },
    "2": {
     "arquivo": "armchair_leather/giro-2.png",
-    "ax": 62.0,
-    "ay": 122.1
+    "ax": 78.0,
+    "ay": 145.0
    }
   }
  },
@@ -1458,23 +1458,23 @@
   "giros": {
    "4": {
     "arquivo": "bench/giro-4.png",
-    "ax": 112.0,
-    "ay": 136.0
+    "ax": 114.5,
+    "ay": 138.6
    },
    "0": {
     "arquivo": "bench/giro-0.png",
-    "ax": 112.0,
-    "ay": 133.0
+    "ax": 117.0,
+    "ay": 138.5
    },
    "2": {
     "arquivo": "bench/giro-2.png",
-    "ax": 48.0,
-    "ay": 127.0
+    "ax": 58.0,
+    "ay": 137.1
    },
    "6": {
     "arquivo": "bench/giro-6.png",
-    "ax": 48.0,
-    "ay": 136.0
+    "ax": 51.0,
+    "ay": 138.6
    }
   }
  },
@@ -1483,23 +1483,23 @@
   "giros": {
    "4": {
     "arquivo": "table_small/giro-4.png",
-    "ax": 47.5,
-    "ay": 100.0
+    "ax": 55.5,
+    "ay": 113.0
    },
    "6": {
     "arquivo": "table_small/giro-6.png",
-    "ax": 29.0,
-    "ay": 103.0
+    "ax": 32.5,
+    "ay": 113.0
    },
    "0": {
     "arquivo": "table_small/giro-0.png",
-    "ax": 42.0,
-    "ay": 105.0
+    "ax": 46.0,
+    "ay": 113.0
    },
    "2": {
     "arquivo": "table_small/giro-2.png",
-    "ax": 27.0,
-    "ay": 105.0
+    "ax": 29.5,
+    "ay": 113.0
    }
   }
  },

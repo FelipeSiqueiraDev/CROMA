@@ -2278,7 +2278,7 @@ export class Shell {
         rotulo: 'Abrir',
         icone: 'caixa',
         ok: abrir,
-        dica: porta ? 'Abrir ou fechar' : lock ? 'Senha da passagem' : 'Ver o que tem dentro',
+        dica: porta ? (fdef?.portal ? ['Fechar a porta', 'Trancar a porta', 'Destrancar e abrir'][(it as FloorItem).state] ?? 'Abrir ou fechar' : 'Abrir ou fechar') : lock ? 'Senha da passagem' : 'Ver o que tem dentro',
         fazer: () => {
           if (!s) return;
           if (porta && !lock) this.app.net.send({ t: 'use', id: it!.id });

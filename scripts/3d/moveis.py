@@ -56,6 +56,13 @@ própria folha ("folha" no móvel); senão vale a da ficha.
   - "largura": as 4 vistas ficam da largura do móvel de verdade na tela (o gerador
     desenha cada vista de um tamanho); "forma": "oval" ou "redonda" para o tampo que não
     é retângulo. Pisa como em "pisa".
+  - "altura": o móvel fica da ALTURA de verdade (é o que conta perto das pessoas: o
+    gerador desenha a poltrona achatada, e pela largura ela ficava baixa). As vistas da
+    frente (giros 4 e 2) vão pela altura da caixa de verdade (a altura mais o tampo visto
+    de cima); as costas, pela mesma largura da frente (de costas, o encosto fica na
+    frente e a imagem é mais baixa). "todas": as 4 pela altura (mesa, banco, carrinho).
+    "topo": [largura, fundo] do tampo, quando ele é menor que a base (o biombo: o painel
+    fino em cima dos pés). Pisa como em "pisa", na largura que o desenho dá.
   - "tela": {"cores", "ms", "giros": {giro: [x, y, raio]}} (frações da imagem): a tela
     acesa que troca de cor, com o brilho em cada giro que a mostra (o fliperama).
   - "pendurado": [largura da cúpula, altura do teto] em metros (a lâmpada): a imagem
@@ -738,11 +745,23 @@ def quatro_giros(m, folha, caixas, destino, escala):
         livre = ('proporcao' if m.get('como_esta') else 'tudo') if real else False
         ang = angulos_do_desenho(rec) if m.get('angulos') else None
         cam, nota = ajustar_camera(rec[:, :, 3] > 100, wr, dr, hr, livre=livre, angulos=ang)
+        ys_, xs_ = np.nonzero(rec[:, :, 3] > 100)
         vistas.append({'giro': giro, 'nome': nome, 'rec': rec, 'troca': troca, 'Wt': Wt, 'Dt': Dt,
                        'wr': wr, 'dr': dr, 'hr': hr, 'cam': cam, 'nota': nota,
                        # pixels do desenho por metro de verdade
-                       'pm': cam['S'] * cam['W'] / wr})
+                       'pm': cam['S'] * cam['W'] / wr,
+                       'hrec': ys_.max() - ys_.min() + 1, 'wrec': xs_.max() - xs_.min() + 1})
     pm = float(np.median([v['pm'] for v in vistas])) if vistas else 0.0
+    if m.get('altura') and real and vistas:
+        # a escala de cada vista pela altura de verdade (a frente) ou pela largura da frente (as costas)
+        tw, td = m.get('topo', real[:2])
+        alvo = (real[2] * PX_M_VERTICAL + (tw + td) / CASA * 16) / escala
+        frente = vistas if m['altura'] == 'todas' else [v for v in vistas if v['giro'] in ('4', '2')] or vistas
+        for v in frente:
+            v['k'] = alvo / v['hrec']
+        larg = float(np.mean([v['wrec'] * v['k'] for v in frente]))
+        for v in vistas:
+            v.setdefault('k', larg / v['wrec'])
     for v in vistas:
         giro, nome, rec, cam, nota = v['giro'], v['nome'], v['rec'], v['cam'], v['nota']
         Wt, Dt, wr, dr, hr = v['Wt'], v['Dt'], v['wr'], v['dr'], v['hr']
@@ -759,7 +778,14 @@ def quatro_giros(m, folha, caixas, destino, escala):
             img = reamostrar(rec, max(1, round(rec.shape[1] * k)), max(1, round(rec.shape[0] * k)))
             u, vv = proj(np.array([(Wt - ox) / q, (Dt - oy) / q, 0.0]), cam)
             ax, ay = float(u) * k, float(vv) * k
-            if m.get('largura'):
+            if m.get('altura'):
+                # pela altura de verdade; o fundo e a largura saem do desenho, na proporção da ficha
+                k2 = v['k']
+                img = reamostrar(rec, max(1, round(rec.shape[1] * k2)), max(1, round(rec.shape[0] * k2)))
+                f = (v['wrec'] * k2 * escala / 32 * CASA) / (wr + dr)
+                bw, bd, bh = wr * f, dr * f, hr
+                ox, oy = posicao(giro, Wt, Dt, bw, bd, m.get('encosta', False))
+            elif m.get('largura'):
                 # a largura do móvel de verdade na tela, igual nas 4 vistas
                 xs_ = np.nonzero((rec[:, :, 3] > 100).any(axis=0))[0]
                 if m.get('forma') in ('oval', 'redonda'):
@@ -770,7 +796,7 @@ def quatro_giros(m, folha, caixas, destino, escala):
                 img = reamostrar(rec, max(1, round(rec.shape[1] * k2)), max(1, round(rec.shape[0] * k2)))
                 bw, bd, bh = wr, dr, bh * k2 / k
                 ox, oy = posicao(giro, Wt, Dt, bw, bd, m.get('encosta', False))
-            if m.get('pisa') or m.get('largura'):
+            if m.get('pisa') or m.get('largura') or m.get('altura'):
                 base = m['pisa'] if isinstance(m.get('pisa'), (int, float)) and not isinstance(m.get('pisa'), bool) else None
                 ax, ay = pisar(img, Wt, Dt, ox, oy, bw, bd, escala, base=base)
             elif m.get('pe'):
