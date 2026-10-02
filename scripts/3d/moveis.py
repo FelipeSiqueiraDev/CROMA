@@ -34,6 +34,7 @@ própria folha ("folha" no móvel); senão vale a da ficha.
     desenho por cima: o balcão que veio baixo fica com 1,1 m. "faixa": [de, até, vezes]
     (frações da altura do desenho) repete esse pedaço da altura
     em vez de esticar (as fileiras de garrafas da prateleira); a altura sai daí.
+    Sem as vezes ("faixa": [de, até]), ela repete o quanto precisa para a altura de "real".
     "fatia": [de, até, vezes] (frações do comprimento): a frente e o tampo repetem essa
     fatia do meio do desenho, sem a moldura das pontas e sem a inclinação que o desenho
     tem de uma ponta à outra, para os módulos emendarem retos (o balcão: a fatia tem um
@@ -184,11 +185,15 @@ def recortar_origem(folha, caixas, i):
     return rec[ys.min():ys.max() + 1, xs.min():xs.max() + 1], (x0 + xs.min(), y0 + ys.min())
 
 
-def achar_chamas(img):
-    """As chamas do desenho: os pedaços quentes e claros. [[x, y, altura], ...] em pixels da imagem (a base de cada uma)."""
+def achar_chamas(img, quente=None):
+    """
+    As chamas do desenho: os pedaços quentes e claros (ou os de quente, a máscara já
+    pronta). [[x, y, altura], ...] em pixels da imagem (a base de cada uma).
+    """
     f = img.astype(int)
     r, g, b, a = f[..., 0], f[..., 1], f[..., 2], f[..., 3]
-    quente = (a > 150) & (r > 200) & (g > 120) & (r - b > 90)
+    if quente is None:
+        quente = (a > 150) & (r > 200) & (g > 120) & (r - b > 90)
     h, w = quente.shape
     vistos = np.zeros_like(quente)
     out = []
@@ -894,9 +899,14 @@ def quatro_giros(m, folha, caixas, destino, escala):
             bh = hr if real else Hd
             faixa = None
             if m.get('faixa'):
-                f0, f1, n = m['faixa']
+                f0, f1 = m['faixa'][:2]
                 e = (Dd / dr) if v['troca'] else (Wd / wr)
                 faixa = (f0 * Hd, f1 * Hd)
+                if len(m['faixa']) > 2:
+                    n = m['faixa'][2]
+                else:
+                    # sem o número de vezes: a faixa repete o quanto precisa para o móvel ter a altura de verdade
+                    n = max(1.0, (hr * e - f0 * Hd - (1 - f1) * Hd) / ((f1 - f0) * Hd))
                 bh = (f0 * Hd + n * (f1 - f0) * Hd + (1 - f1) * Hd) / e
             ox, oy = posicao(giro, Wt, Dt, wr, dr, m.get('encosta', False))
             incl = 0.0
@@ -922,6 +932,21 @@ def quatro_giros(m, folha, caixas, destino, escala):
     if m.get('estados'):
         outros_estados(m, ent, origens, caixas, pasta, imgs)
     return ent, imgs
+
+
+def chamas_pela_diferenca(acesa, ax, ay, apagada, bx, by):
+    """As chamas: o que é claro e quente no desenho aceso e some no apagado (as duas vistas alinhadas pela âncora)."""
+    h, w = acesa.shape[:2]
+    dx, dy = int(round(ax - bx)), int(round(ay - by))
+    b = np.zeros_like(acesa)
+    ys0, ys1 = max(0, dy), min(h, dy + apagada.shape[0])
+    xs0, xs1 = max(0, dx), min(w, dx + apagada.shape[1])
+    if ys1 > ys0 and xs1 > xs0:
+        b[ys0:ys1, xs0:xs1] = apagada[ys0 - dy:ys1 - dy, xs0 - dx:xs1 - dx]
+    a = acesa.astype(int)
+    dif = np.abs(a[..., :3] - b[..., :3].astype(int)).sum(axis=2)
+    quente = (a[..., 3] > 120) & (dif > 150) & (a[..., 0] > 200) & (a[..., 0] - a[..., 2] > 40)
+    return achar_chamas(acesa, quente)
 
 
 def outros_estados(m, ent, origens, caixas, pasta, imgs):
@@ -960,6 +985,9 @@ def outros_estados(m, ent, origens, caixas, pasta, imgs):
                 dest['giros'][giro]['ancora'] = vista['ancora']
             imgs.append(img)
             print(f"{m['def']} giro {giro}, estado {estado}: {img.shape[1]}x{img.shape[0]} (sobreposição {sobra(cx[j]):.2f})", flush=True)
+            if m.get('chamas') == 'auto' and estado == '1':
+                # aceso no 0 e apagado no 1: as chamas são o que muda de um para o outro
+                ent.setdefault('chamas', {})[giro] = chamas_pela_diferenca(base, vista['ax'], vista['ay'], img, dest['giros'][giro]['ax'], dest['giros'][giro]['ay'])
 
 
 def pendurar(rec, pendurado, escala):

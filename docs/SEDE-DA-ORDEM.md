@@ -169,12 +169,19 @@ Com arte desde 02/10. A mesa de quem manda fica de costas para a parede da esque
 
 ### Sala de Rituais
 
-| Item | Id | Qtd | Casas | O que desenhar |
-|---|---|---|---|---|
-| ✱ Sigilo ritualístico | `sigil_floor` | 1 | 3×3 | Pentagrama vermelho com escrita em volta, sangue respingado. |
-| Balcão de madeira | `counter_wood` | 3 | 2×1 | Balcão em L com frascos e ferramentas. |
-| Mesa, mesa redonda, estante | `desk_wood`, `table_round`, `bookshelf` | 2, 1, 1 | — | — |
-| Velas, crânios, sangue | `candles`, `skull`, `blood_*` | — | — | — |
+Com arte desde 02/10. O círculo ritual fica no meio da sala, com o crânio de vela no centro, um grupo de velas em cada um dos quatro lados e sangue. Na parede do fundo, a estante, o balcão dos frascos (os módulos emendam) e a mesa redonda do canto, com a cadeira. Na parede da esquerda, a mesa das ferramentas (faca, giz, tigela, corda e velas) com a banqueta, e mais um balcão. Cartazes de sigilo e arandelas nas paredes. Chão de lajes de pedra com musgo; parede de pedra antiga com escorridos. Os sigilos são todos inventados.
+
+| Item | Id | Qtd | Casas | Altura | Estados |
+|---|---|---|---|---|---|
+| ✱ Círculo ritual | `sigil_floor` | 1 | 3×3 | chão | — |
+| Balcão de madeira | `counter_wood` | 3 | 2×1 | 0,9 m | — (emendam; potes na prateleira de baixo) |
+| Mesa das ferramentas | `table_tools` | 1 | 2×1 | 0,8 m | — |
+| Velas no chão | `candles` | 5 | 1×1 | 0,35 m | acesas (as chamas mexem) / apagadas |
+| Crânio com vela | `skull` | 2 | 1×1 | 0,3 m | — |
+| Cadeira e banqueta de madeira | `chair_wood`, `stool` | 1, 1 | 1×1 | 0,9 e 0,55 m | — |
+| Gotas e poça de sangue | `blood_drops`, `blood_pool` | 2, 1 | 1×1 | chão | — |
+| Estante, mesa redonda, livros, frascos, papéis | `bookshelf`, `table_round`, `books_stack`, `flasks`, `papers` | 1 cada (frascos 2) | — | — | — |
+| Cartaz de sigilo, arandela | `poster_sigil`, `sconce` (parede) | 2, 3 | — | — | — |
 
 ### Banheiro
 

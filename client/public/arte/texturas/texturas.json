@@ -52,5 +52,14 @@
   "parede": {
    "arquivo": "parede-laboratorio.png"
   }
+ },
+ "musgo": {
+  "piso": {
+   "arquivo": "piso-musgo.png",
+   "casas": 3.53
+  },
+  "parede": {
+   "arquivo": "parede-musgo.png"
+  }
  }
 }

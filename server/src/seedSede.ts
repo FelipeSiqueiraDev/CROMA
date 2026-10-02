@@ -16,7 +16,7 @@ import { buildRoom, plan, type FloorSeed, type WallSeed } from './seed';
 export const SEDE = 'Sede · ';
 export const SEDE_CODE = '0413';
 /** Versão da montagem da Sede: subiu, a Sede é refeita no lugar (mesmos cômodos, peças e registro). */
-export const SEDE_REV = 15;
+export const SEDE_REV = 16;
 
 /** Planta retangular com a porta na parede de cima (y = 0), na coluna doorX. */
 export function planTop(w: number, h: number, doorX: number): { heightmap: string; door: Door } {
@@ -558,38 +558,39 @@ const ROOMS: RoomSpec[] = [
     plan: { x: 66, y: 1 },
     floor: [
       ['portal', 1, 8, 2],
-      ['sigil_floor', 2, 2, 0],
-      ['skull', 3, 3, 4],
-      ['blood_drops', 5, 3, 0],
-      ['blood_drops', 3, 5, 0],
-      ['blood_pool', 1, 5, 0],
-      // mesa de canto, estante e a mesa redonda do fundo
-      ['desk_wood', 1, 0, 4],
-      ['books_stack', 1, 0, 4],
-      ['candles', 2, 0, 4],
-      ['bookshelf', 5, 0, 4],
+      // o círculo no meio da sala: o crânio no centro, velas nos quatro lados, sangue
+      ['sigil_floor', 4, 4, 0],
+      ['skull', 5, 5, 4],
+      ['candles', 5, 3, 0],
+      ['candles', 3, 5, 0],
+      ['candles', 7, 5, 0],
+      ['candles', 5, 7, 0],
+      ['blood_pool', 6, 6, 0],
+      ['blood_drops', 4, 4, 0],
+      ['blood_drops', 7, 7, 0],
+      // na parede do fundo: a estante, o balcão dos frascos e a mesa redonda do canto
+      ['bookshelf', 1, 0, 4],
+      ['counter_wood', 3, 0, 4],
+      ['flasks', 3, 0, 4],
+      ['candles', 4, 0, 4],
+      ['counter_wood', 5, 0, 4],
+      ['books_stack', 5, 0, 4],
+      ['flasks', 6, 0, 4],
       ['table_round', 8, 0, 0],
       ['papers', 8, 0, 0],
-      ['chair_wood', 7, 1, 2],
-      // mesa comprida das ferramentas
-      ['desk_wood', 8, 4, 2],
-      ['candles', 8, 4, 2],
-      ['skull', 8, 5, 6],
-      ['stool', 7, 6, 6],
-      // balcão em L dos frascos
-      ['counter_wood', 3, 7, 0],
-      ['flasks', 3, 7, 0],
-      ['counter_wood', 5, 7, 0],
-      ['candles', 6, 7, 0],
-      ['counter_wood', 7, 8, 2],
-      ['flasks', 7, 9, 2],
-      ['candles', 1, 3, 0],
-      ['candles', 5, 1, 0],
+      ['chair_wood', 8, 2, 0],
+      // na parede da esquerda: a mesa das ferramentas (a faca, o giz, a tigela) e mais balcão
+      ['table_tools', 1, 3, 2],
+      ['stool', 2, 3, 6],
+      ['counter_wood', 1, 5, 2],
+      ['skull', 1, 5, 2],
     ],
     wall: [
-      ['poster_sigil', 'r', 0, 3.5, 2.8],
-      ['sconce', 'l', 1, 3.5, 3.2],
-      ['sconce', 'l', 1, 6.5, 3.2],
+      ['poster_sigil', 'r', 0, 4.5, 2.6],
+      ['poster_sigil', 'l', 1, 7.0, 2.6],
+      ['sconce', 'l', 1, 2.5, 3.2],
+      ['sconce', 'l', 1, 5.5, 3.2],
+      ['sconce', 'r', 0, 7.5, 3.2],
     ],
     links: [[1, 8, 'corredor']],
   },
