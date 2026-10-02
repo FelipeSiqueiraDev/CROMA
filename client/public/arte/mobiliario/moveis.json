@@ -910,23 +910,23 @@
   "giros": {
    "2": {
     "arquivo": "lab_bench/giro-2.png",
-    "ax": 41.9,
-    "ay": 154.4
+    "ax": 62.0,
+    "ay": 202.0
    },
    "0": {
     "arquivo": "lab_bench/giro-0.png",
-    "ax": 141.3,
-    "ay": 155.4
+    "ax": 126.0,
+    "ay": 202.0
    },
    "6": {
     "arquivo": "lab_bench/giro-6.png",
-    "ax": 44.0,
-    "ay": 152.0
+    "ax": 62.0,
+    "ay": 202.0
    },
    "4": {
     "arquivo": "lab_bench/giro-4.png",
-    "ax": 144.1,
-    "ay": 156.6
+    "ax": 126.0,
+    "ay": 202.0
    }
   }
  },
