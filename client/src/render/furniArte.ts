@@ -302,6 +302,11 @@ function desenharGiro(p: Painter, a: MovelArte, prontas: Partial<Record<string, 
   const vista = a.giros?.[g as '4'] ?? a.giros?.['4'] ?? Object.values(a.giros ?? {})[0];
   const imgs = prontas[g] ?? prontas['4'] ?? Object.values(prontas)[0];
   if (!vista || !imgs) return;
+  // a lâmpada do teto acesa joga um feixe até o chão: sem teto no desenho, é ele que mostra que ela está lá no alto
+  if (a.caixa && a.brilho && luz && p.power > 0.1) {
+    const r0 = lugar(p, imgs.normal, vista.ax, vista.ay, a.escala, vista.ancora === 'centro');
+    feixe(p, r0.x + a.brilho.x * a.escala, r0.y + a.brilho.y * a.escala, a.brilho.r * a.escala, luz, p.power * falha);
+  }
   if (ang) {
     // gira em volta do ponto onde o fio prende (o meio de cima da imagem)
     const r0 = lugar(p, imgs.normal, vista.ax, vista.ay, a.escala, vista.ancora === 'centro');
@@ -317,6 +322,30 @@ function desenharGiro(p: Painter, a: MovelArte, prontas: Partial<Record<string, 
   if (tela && corTela && p.power > 0.1) brilhar(p, r, a.escala, tela.x, tela.y, tela.r, corTela, (a.tela?.forca ?? 0.42) * forcaTela * p.power);
   if (luz) acenderChamas(p.ctx, a.chamas?.[g], r.x, r.y, a.escala, p.seed ?? 0);
   if (ang) p.ctx.restore();
+}
+
+/** O feixe de luz da lâmpada (x, y, o brilho dela na tela) até o chão embaixo, no meio da casa: suave, some antes de chegar. */
+function feixe(p: Painter, x: number, y: number, raio: number, cor: string, forca: number) {
+  const [bx, by] = p.m.p(0.5, 0.5, 0);
+  if (by <= y) return;
+  const topo = Math.min(18, raio * 0.45);
+  const base = topo * 3.2;
+  const ctx = p.ctx;
+  const g = ctx.createLinearGradient(0, y, 0, by + base * 0.4);
+  g.addColorStop(0, rgba(cor, 0.26 * forca));
+  g.addColorStop(0.7, rgba(cor, 0.09 * forca));
+  g.addColorStop(1, rgba(cor, 0));
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.moveTo(x - topo, y);
+  ctx.lineTo(x + topo, y);
+  ctx.lineTo(bx + base, by);
+  ctx.quadraticCurveTo(bx, by + base * 0.5, bx - base, by);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
 }
 
 /** O tapete: a imagem vista de cima deitada no chão do móvel (a largura na lateral, a altura no comprimento). */

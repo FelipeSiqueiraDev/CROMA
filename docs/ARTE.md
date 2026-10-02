@@ -21,7 +21,7 @@ Quem faz a arte entrega **só arquivos de imagem**. Todo o código (encaixar, an
 
 Vale para tudo o que fica no tabuleiro: os bonecos e o mapa (piso, paredes e móveis), que recebem a arte no mesmo estilo.
 
-- **Modelo:** pixel art chibi, com cabeça grande e cerca de 3 cabeças de altura, como o modelo dos quatro agentes aprovado em 30/09 e como os bonecos das referências do mapa e do combate.
+- **Modelo (revisto em 02/10):** proporção real, com cerca de 7 cabeças de altura, como o Tepes e a Alosi. É o padrão dos quatro agentes; a Catarina e a Cora ganham arte nova nesse estilo. O chibi de cabeça grande, de 30/09, ficou parecendo criança perto dos móveis em tamanho de verdade.
 - **Grade 1:1 (revista em 01/10):** 1 pixel da arte = 1 pixel da tela no zoom normal; no zoom 2, cada pixel da arte vira 2. Tudo no tabuleiro usa o mesmo tamanho de pixel; pixel grosso ao lado de pixel fino não combina.
   - Em 30/09 a grade era 2:1, com a pessoa de 52 pixels. Ao encaixar a Alosi (01/10), na de 52 os óculos, a cruz e o rosto viravam uma faixa escura; na de 104 eles ficam. O mapa segue a mesma grade.
 
@@ -35,7 +35,7 @@ Vale para tudo o que fica no tabuleiro: os bonecos e o mapa (piso, paredes e mó
 
 - **Pixel duro:** cores chapadas, sem anti-aliasing, sem desfoque e sem brilho em volta. Os bonecos têm contorno escuro; o cenário pode ter contorno mais suave, para os bonecos se destacarem.
 - **Luz neutra em tudo:** a luz vem do jogo (escuridão, lamparinas, névoa e o brilho das telas e lâmpadas).
-- **Proporção dos móveis:** desenhados para o corpo do chibi (a mesa bate na cintura, como nas referências). As alturas do jogo se ajustam na primeira leva de móveis.
+- **Proporção dos móveis:** no tamanho de verdade, em metros, perto da pessoa de 1,80 m (104 pixels): a cadeira com o assento a 0,46 m, a mesa a 0,78 m e a porta com 2,1 m. O construtor escala cada peça pela altura de verdade (`scripts/3d/moveis.py`).
 - **O que o jogo faz:** desenha a arte sem suavizar e com zoom em múltiplos do pixel (0,5×, 1×, 1,5×, 2×...), para cada pixel da arte ficar inteiro na tela.
 
 ## 1. Personagens
