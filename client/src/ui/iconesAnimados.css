@@ -1,0 +1,373 @@
+/* ---------- ícones animados da barra do topo (iconesAnimados.ts) ----------
+   Cada um se mexe quando o mouse passa em cima do botão, e a aba que abre toca
+   a sua uma vez (classe .toca). As partes giram e crescem em volta de pontos do
+   desenho (coordenadas de 0 a 24, as do viewBox). */
+
+.ic-anim {
+  overflow: visible;
+}
+.ic-anim * {
+  transform-box: view-box;
+}
+
+/* --- MAPA: os lados se desdobram e o alfinete cai no meio --- */
+.ia-mapa .m-esq {
+  transform-origin: 9px 12px;
+}
+.ia-mapa .m-dir {
+  transform-origin: 15px 12px;
+}
+.ia-mapa .m-meio {
+  transform-origin: 12px 12px;
+}
+.ia-mapa .m-pino {
+  opacity: 0;
+  transform-origin: 12px 14.6px;
+}
+.tb2-aba:not(.fora):is(:hover, .toca) .ia-mapa .m-esq {
+  animation: mapa-lado 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.tb2-aba:not(.fora):is(:hover, .toca) .ia-mapa .m-dir {
+  animation: mapa-lado 0.7s 0.09s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.tb2-aba:not(.fora):is(:hover, .toca) .ia-mapa .m-meio {
+  animation: mapa-meio 0.7s ease-out both;
+}
+.tb2-aba:not(.fora).toca .ia-mapa .m-pino {
+  animation: mapa-pino-toca 1.1s 0.4s ease-out both;
+}
+.tb2-aba:not(.fora):hover .ia-mapa .m-pino {
+  animation: mapa-pino 0.55s 0.5s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+@keyframes mapa-lado {
+  0% {
+    transform: scaleX(0);
+  }
+  55% {
+    transform: scaleX(1.12);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}
+@keyframes mapa-meio {
+  0% {
+    transform: scale(0.9, 1.06);
+  }
+  100% {
+    transform: none;
+  }
+}
+/* a aba que abre: o alfinete cai, fica um pouco e some (a aba volta ao desenho de sempre) */
+@keyframes mapa-pino-toca {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.6);
+  }
+  25% {
+    opacity: 1;
+    transform: translateY(0.6px) scale(1.08, 0.9);
+  }
+  35%,
+  70% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+@keyframes mapa-pino {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.6);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(0.6px) scale(1.08, 0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* --- COMBATE: as espadas se afastam e se chocam, com faísca no choque --- */
+.ia-espadas .e-a {
+  transform-origin: 18px 18px;
+}
+.ia-espadas .e-b {
+  transform-origin: 6px 18px;
+}
+.ia-espadas .e-faisca {
+  opacity: 0;
+  stroke: #ffd27a;
+  transform-origin: 12px 8.6px;
+}
+.tb2-aba:not(.fora).toca .ia-espadas .e-a {
+  animation: espada-a 1.5s ease-in-out;
+}
+.tb2-aba:not(.fora).toca .ia-espadas .e-b {
+  animation: espada-b 1.5s ease-in-out;
+}
+.tb2-aba:not(.fora).toca .ia-espadas .e-faisca {
+  animation: espada-faisca 1.5s ease-out;
+}
+.tb2-aba:not(.fora):hover .ia-espadas .e-a {
+  animation: espada-a 1.5s ease-in-out infinite;
+}
+.tb2-aba:not(.fora):hover .ia-espadas .e-b {
+  animation: espada-b 1.5s ease-in-out infinite;
+}
+.tb2-aba:not(.fora):hover .ia-espadas .e-faisca {
+  animation: espada-faisca 1.5s ease-out infinite;
+}
+@keyframes espada-a {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  28% {
+    transform: rotate(-22deg);
+  }
+  44% {
+    transform: rotate(6deg);
+  }
+  54% {
+    transform: rotate(-2deg);
+  }
+  64% {
+    transform: rotate(0deg);
+  }
+}
+@keyframes espada-b {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  28% {
+    transform: rotate(22deg);
+  }
+  44% {
+    transform: rotate(-6deg);
+  }
+  54% {
+    transform: rotate(2deg);
+  }
+  64% {
+    transform: rotate(0deg);
+  }
+}
+@keyframes espada-faisca {
+  0%,
+  40% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+  62% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* --- FICHAS: o rosto aparece e as linhas se preenchem, uma de cada vez --- */
+.ia-ficha .f-rosto {
+  transform-origin: 8.5px 12.5px;
+}
+.ia-ficha .f-l1,
+.ia-ficha .f-l2,
+.ia-ficha .f-l3 {
+  transform-origin: 14px 12px;
+}
+.ia-ficha .f-cartao {
+  transform-origin: 12px 12px;
+}
+.tb2-aba:not(.fora):is(:hover, .toca) .ia-ficha .f-cartao {
+  animation: ficha-cartao 0.45s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+}
+.tb2-aba:not(.fora):is(:hover, .toca) .ia-ficha .f-rosto {
+  animation: ficha-rosto 0.5s 0.05s cubic-bezier(0.3, 1.7, 0.5, 1) both;
+}
+.tb2-aba:not(.fora):is(:hover, .toca) .ia-ficha .f-l1 {
+  animation: ficha-linha 0.32s 0.22s ease-out both;
+}
+.tb2-aba:not(.fora):is(:hover, .toca) .ia-ficha .f-l2 {
+  animation: ficha-linha 0.32s 0.38s ease-out both;
+}
+.tb2-aba:not(.fora):is(:hover, .toca) .ia-ficha .f-l3 {
+  animation: ficha-linha 0.28s 0.54s ease-out both;
+}
+@keyframes ficha-cartao {
+  0% {
+    transform: rotate(-6deg) scale(0.94);
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes ficha-rosto {
+  0% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes ficha-linha {
+  0% {
+    transform: scaleX(0);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+/* --- CLIMA: o sol esquenta, os raios giram e pulsam, os retos e os da diagonal em tempos trocados --- */
+.ia-sol {
+  transition: color 0.25s, filter 0.25s;
+}
+.ia-sol .s-raios,
+.ia-sol .s-raios path {
+  transform-origin: 12px 12px;
+}
+.tb2-bt:hover .ia-sol {
+  color: #ffd07a;
+  filter: drop-shadow(0 0 0.35rem rgba(255, 186, 80, 0.65));
+}
+.tb2-bt:hover .ia-sol .s-raios {
+  animation: sol-gira 7s linear infinite;
+}
+.tb2-bt:hover .ia-sol .s-reto {
+  animation: sol-pulsa 1.2s ease-in-out infinite;
+}
+.tb2-bt:hover .ia-sol .s-diag {
+  animation: sol-pulsa 1.2s -0.6s ease-in-out infinite;
+}
+.tb2-bt:hover .ia-sol .s-nucleo {
+  animation: sol-brilho 1.2s ease-in-out infinite;
+}
+@keyframes sol-gira {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes sol-pulsa {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.24);
+  }
+}
+@keyframes sol-brilho {
+  0%,
+  100% {
+    fill: rgba(255, 196, 92, 0.12);
+  }
+  50% {
+    fill: rgba(255, 196, 92, 0.5);
+  }
+}
+
+/* --- CONFIGURAÇÕES: a engrenagem dá o tique (um dente por vez, com tranco) --- */
+.ia-engrenagem .g-roda {
+  transform-origin: 12px 12px;
+}
+.tb2-bt:hover .ia-engrenagem .g-roda {
+  animation: engrenagem-tique 0.9s cubic-bezier(0.45, 1.7, 0.5, 1) infinite;
+}
+@keyframes engrenagem-tique {
+  0% {
+    transform: rotate(0deg);
+  }
+  55%,
+  100% {
+    transform: rotate(60deg);
+  }
+}
+
+/* --- REGISTRO: a folha vira para frente e as linhas se escrevem --- */
+.ia-documento .d-folha {
+  transform-origin: 5px 21px;
+}
+.ia-documento .d-l1,
+.ia-documento .d-l2,
+.ia-documento .d-l3 {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+.tb2-bt:hover .ia-documento .d-folha {
+  animation: doc-folha 0.5s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+}
+.tb2-bt:hover .ia-documento .d-l1 {
+  animation: doc-escreve 0.25s 0.12s ease-out both;
+}
+.tb2-bt:hover .ia-documento .d-l2 {
+  animation: doc-escreve 0.4s 0.32s ease-in-out both;
+}
+.tb2-bt:hover .ia-documento .d-l3 {
+  animation: doc-escreve 0.4s 0.66s ease-in-out both;
+}
+@keyframes doc-folha {
+  0% {
+    transform: rotate(-10deg) translateY(-1px);
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes doc-escreve {
+  0% {
+    stroke-dashoffset: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* --- SAIR: a seta empurra a porta para fora --- */
+.tb2-bt:hover .ia-sair .x-seta {
+  animation: sair-seta 1.1s ease-in-out infinite;
+}
+.tb2-bt:hover .ia-sair .x-porta {
+  animation: sair-porta 1.1s ease-in-out infinite;
+}
+@keyframes sair-seta {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  45% {
+    transform: translateX(3px);
+  }
+  60% {
+    transform: translateX(2.2px);
+  }
+}
+@keyframes sair-porta {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  45% {
+    transform: translateX(-0.7px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ic-anim,
+  .ic-anim * {
+    animation: none !important;
+  }
+}

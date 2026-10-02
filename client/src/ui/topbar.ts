@@ -5,6 +5,7 @@
  * ficha do jogador no celular.
  */
 import { h } from './dom';
+import { icAnimado, tocarUmaVez } from './iconesAnimados';
 import { ic, type NomeIcone } from './icons';
 
 export interface AbaTopo {
@@ -171,7 +172,7 @@ export class TopBar {
           title: a.fora ? `${a.rotulo}: só na tela do mestre` : a.rotulo,
           onclick: () => !a.fora && o.aoTrocar(a.id),
         },
-        ic(a.icone),
+        icAnimado(a.icone) ?? ic(a.icone),
         h('span', null, a.rotulo),
       );
       this.abas.set(a.id, b);
@@ -188,7 +189,7 @@ export class TopBar {
       const el = h(
         'button',
         { class: `tb2-bt${b.cheio ? ' cheio' : ''}${b.soDesktop ? ' so-desktop' : ''}${b.sair ? ' sair' : ''}`, type: 'button', title: b.titulo, 'aria-label': b.titulo, onclick: (e: MouseEvent) => b.onclick(e) },
-        ic(b.icone),
+        icAnimado(b.icone) ?? ic(b.icone),
       );
       this.botoes.set(b.id, el);
       botoes.append(el);
@@ -211,6 +212,8 @@ export class TopBar {
 
   setAtiva(id: string) {
     for (const [k, b] of this.abas) {
+      // a aba que acabou de abrir toca a animação do ícone uma vez
+      if (k === id && !b.classList.contains('on')) tocarUmaVez(b);
       b.classList.toggle('on', k === id);
       b.setAttribute('aria-selected', String(k === id));
     }

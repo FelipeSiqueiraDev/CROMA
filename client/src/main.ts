@@ -2,6 +2,7 @@ import './style.css';
 import './ui/shell.css';
 import './ui/table.css';
 import './ui/tema.css';
+import './ui/iconesAnimados.css';
 import './ui/mapa.css';
 import './ui/fichas.css';
 import './ui/combate.css';
