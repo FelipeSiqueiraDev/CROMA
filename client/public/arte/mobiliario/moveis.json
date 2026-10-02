@@ -18,29 +18,52 @@
  },
  "cabinet_file": {
   "escala": 0.5,
-  "frente": {
-   "arquivo": "cabinet_file/frente.png",
-   "ax": 65.0,
-   "ay": 221.0,
-   "lado": "esquerda",
-   "ancora": "quina"
-  },
-  "costas": {
-   "arquivo": "cabinet_file/costas.png",
-   "ax": 65.0,
-   "ay": 221.0,
-   "lado": "esquerda",
-   "ancora": "quina"
+  "giros": {
+   "2": {
+    "arquivo": "cabinet_file/giro-2.png",
+    "ax": 52.1,
+    "ay": 206.9
+   },
+   "6": {
+    "arquivo": "cabinet_file/giro-6.png",
+    "ax": 56.1,
+    "ay": 202.2
+   },
+   "0": {
+    "arquivo": "cabinet_file/giro-0.png",
+    "ax": 51.4,
+    "ay": 202.9
+   },
+   "4": {
+    "arquivo": "cabinet_file/giro-4.png",
+    "ax": 57.5,
+    "ay": 205.8
+   }
   }
  },
  "chair_office": {
   "escala": 0.5,
-  "frente": {
-   "arquivo": "chair_office/frente.png",
-   "ax": 43.5,
-   "ay": 119.8,
-   "lado": "esquerda",
-   "ancora": "centro"
+  "giros": {
+   "2": {
+    "arquivo": "chair_office/giro-2.png",
+    "ax": 43.7,
+    "ay": 174.3
+   },
+   "0": {
+    "arquivo": "chair_office/giro-0.png",
+    "ax": 47.6,
+    "ay": 171.3
+   },
+   "6": {
+    "arquivo": "chair_office/giro-6.png",
+    "ax": 58.5,
+    "ay": 169.2
+   },
+   "4": {
+    "arquivo": "chair_office/giro-4.png",
+    "ax": 43.8,
+    "ay": 175.1
+   }
   }
  },
  "crate_wood": {
@@ -62,19 +85,27 @@
  },
  "hospital_bed": {
   "escala": 0.5,
-  "frente": {
-   "arquivo": "hospital_bed/frente.png",
-   "ax": 65.0,
-   "ay": 245.0,
-   "lado": "esquerda",
-   "ancora": "quina"
-  },
-  "costas": {
-   "arquivo": "hospital_bed/costas.png",
-   "ax": 65.0,
-   "ay": 245.0,
-   "lado": "esquerda",
-   "ancora": "quina"
+  "giros": {
+   "4": {
+    "arquivo": "hospital_bed/giro-4.png",
+    "ax": 76.7,
+    "ay": 246.6
+   },
+   "6": {
+    "arquivo": "hospital_bed/giro-6.png",
+    "ax": 207.6,
+    "ay": 236.8
+   },
+   "0": {
+    "arquivo": "hospital_bed/giro-0.png",
+    "ax": 77.2,
+    "ay": 237.2
+   },
+   "2": {
+    "arquivo": "hospital_bed/giro-2.png",
+    "ax": 200.4,
+    "ay": 250.9
+   }
   }
  },
  "bookshelf": {
@@ -288,22 +319,22 @@
    "4": {
     "arquivo": "bar_shelf/giro-4.png",
     "ax": 103.0,
-    "ay": 331.0
+    "ay": 333.0
    },
    "2": {
     "arquivo": "bar_shelf/giro-2.png",
     "ax": 65.0,
-    "ay": 328.0
+    "ay": 345.0
    },
    "0": {
     "arquivo": "bar_shelf/giro-0.png",
     "ax": 129.0,
-    "ay": 310.0
+    "ay": 328.0
    },
    "6": {
     "arquivo": "bar_shelf/giro-6.png",
     "ax": 39.0,
-    "ay": 307.0
+    "ay": 337.0
    }
   }
  },
@@ -768,6 +799,360 @@
   "escala": 1,
   "chao": {
    "arquivo": "rug_ornate/chao.png"
+  }
+ },
+ "divider": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "divider/giro-4.png",
+    "ax": 45.5,
+    "ay": 241.1
+   },
+   "6": {
+    "arquivo": "divider/giro-6.png",
+    "ax": 43.4,
+    "ay": 207.7
+   },
+   "0": {
+    "arquivo": "divider/giro-0.png",
+    "ax": 40.3,
+    "ay": 235.4
+   },
+   "2": {
+    "arquivo": "divider/giro-2.png",
+    "ax": 44.1,
+    "ay": 206.6
+   }
+  }
+ },
+ "medical_cabinet": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "medical_cabinet/giro-4.png",
+    "ax": 108.0,
+    "ay": 317.0
+   },
+   "6": {
+    "arquivo": "medical_cabinet/giro-6.png",
+    "ax": 44.0,
+    "ay": 306.0
+   },
+   "0": {
+    "arquivo": "medical_cabinet/giro-0.png",
+    "ax": 129.0,
+    "ay": 306.0
+   },
+   "2": {
+    "arquivo": "medical_cabinet/giro-2.png",
+    "ax": 65.0,
+    "ay": 317.0
+   }
+  }
+ },
+ "iv_stand": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "iv_stand/giro-4.png",
+    "ax": 39.5,
+    "ay": 199.2,
+    "ancora": "centro"
+   },
+   "6": {
+    "arquivo": "iv_stand/giro-6.png",
+    "ax": 46.0,
+    "ay": 196.5,
+    "ancora": "centro"
+   },
+   "0": {
+    "arquivo": "iv_stand/giro-0.png",
+    "ax": 45.5,
+    "ay": 199.8,
+    "ancora": "centro"
+   },
+   "2": {
+    "arquivo": "iv_stand/giro-2.png",
+    "ax": 42.5,
+    "ay": 199.2,
+    "ancora": "centro"
+   }
+  }
+ },
+ "sink": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "sink/giro-4.png",
+    "ax": 41.2,
+    "ay": 139.6
+   },
+   "6": {
+    "arquivo": "sink/giro-6.png",
+    "ax": 43.6,
+    "ay": 122.2
+   },
+   "0": {
+    "arquivo": "sink/giro-0.png",
+    "ax": 60.9,
+    "ay": 131.5
+   },
+   "2": {
+    "arquivo": "sink/giro-2.png",
+    "ax": 64.6,
+    "ay": 142.1
+   }
+  }
+ },
+ "lab_bench": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "lab_bench/giro-4.png",
+    "ax": 27.3,
+    "ay": 121.3
+   },
+   "6": {
+    "arquivo": "lab_bench/giro-6.png",
+    "ax": 115.6,
+    "ay": 121.7
+   },
+   "0": {
+    "arquivo": "lab_bench/giro-0.png",
+    "ax": 26.1,
+    "ay": 118.0
+   },
+   "2": {
+    "arquivo": "lab_bench/giro-2.png",
+    "ax": 120.0,
+    "ay": 116.7
+   }
+  }
+ },
+ "trolley": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "trolley/giro-4.png",
+    "ax": 58.4,
+    "ay": 164.8
+   },
+   "6": {
+    "arquivo": "trolley/giro-6.png",
+    "ax": 52.4,
+    "ay": 132.9
+   },
+   "0": {
+    "arquivo": "trolley/giro-0.png",
+    "ax": 53.0,
+    "ay": 147.6
+   },
+   "2": {
+    "arquivo": "trolley/giro-2.png",
+    "ax": 50.6,
+    "ay": 127.9
+   }
+  }
+ },
+ "desk_metal": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "desk_metal/giro-4.png",
+    "ax": 137.6,
+    "ay": 170.3
+   },
+   "6": {
+    "arquivo": "desk_metal/giro-6.png",
+    "ax": 61.5,
+    "ay": 169.6
+   },
+   "0": {
+    "arquivo": "desk_metal/giro-0.png",
+    "ax": 133.3,
+    "ay": 167.4
+   },
+   "2": {
+    "arquivo": "desk_metal/giro-2.png",
+    "ax": 63.0,
+    "ay": 167.7
+   }
+  }
+ },
+ "vitals_monitor": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "vitals_monitor/giro-4.png",
+    "ax": 22.8,
+    "ay": 83.7
+   },
+   "6": {
+    "arquivo": "vitals_monitor/giro-6.png",
+    "ax": 29.3,
+    "ay": 84.5
+   },
+   "0": {
+    "arquivo": "vitals_monitor/giro-0.png",
+    "ax": 23.8,
+    "ay": 83.3
+   },
+   "2": {
+    "arquivo": "vitals_monitor/giro-2.png",
+    "ax": 27.6,
+    "ay": 83.3
+   }
+  },
+  "tela": {
+   "cores": [
+    "#4fe39a"
+   ],
+   "ms": 900,
+   "modo": "pulso",
+   "forca": 0.5,
+   "giros": {
+    "4": {
+     "x": 18.7,
+     "y": 23.9,
+     "r": 21.6
+    },
+    "2": {
+     "x": 32.9,
+     "y": 24.3,
+     "r": 23.9
+    }
+   }
+  }
+ },
+ "med_tray": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "med_tray/giro-4.png",
+    "ax": 36.3,
+    "ay": 67.4
+   },
+   "6": {
+    "arquivo": "med_tray/giro-6.png",
+    "ax": 31.8,
+    "ay": 65.2
+   },
+   "0": {
+    "arquivo": "med_tray/giro-0.png",
+    "ax": 38.4,
+    "ay": 63.5
+   },
+   "2": {
+    "arquivo": "med_tray/giro-2.png",
+    "ax": 34.9,
+    "ay": 65.0
+   }
+  }
+ },
+ "computer_old": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "computer_old/giro-4.png",
+    "ax": 52.2,
+    "ay": 93.7
+   },
+   "6": {
+    "arquivo": "computer_old/giro-6.png",
+    "ax": 56.1,
+    "ay": 104.0
+   },
+   "0": {
+    "arquivo": "computer_old/giro-0.png",
+    "ax": 38.2,
+    "ay": 110.2
+   },
+   "2": {
+    "arquivo": "computer_old/giro-2.png",
+    "ax": 40.1,
+    "ay": 90.8
+   }
+  },
+  "tela": {
+   "cores": [
+    "#5a8cff",
+    "#7ab0ff",
+    "#4a7aef"
+   ],
+   "ms": 700,
+   "modo": "tv",
+   "forca": 0.26,
+   "giros": {
+    "4": {
+     "x": 42.7,
+     "y": 30.8,
+     "r": 35.6
+    },
+    "2": {
+     "x": 47.8,
+     "y": 28.8,
+     "r": 36.8
+    }
+   }
+  }
+ },
+ "fluorescent": {
+  "escala": 0.5,
+  "giros": {
+   "0": {
+    "arquivo": "fluorescent/giro-0.png",
+    "ax": 63.0,
+    "ay": 348.8
+   },
+   "2": {
+    "arquivo": "fluorescent/giro-2.png",
+    "ax": 63.0,
+    "ay": 348.8
+   }
+  },
+  "caixa": [
+   0.3,
+   0.7,
+   0.05,
+   0.95,
+   2.4,
+   2.75
+  ],
+  "pendulo": {
+   "graus": 0.5,
+   "ms": 6400
+  },
+  "falha": true,
+  "brilho": {
+   "x": 63.0,
+   "y": 69.3,
+   "r": 35.3
+  }
+ },
+ "emergency_light": {
+  "escala": 0.5,
+  "parede": {
+   "r": {
+    "arquivo": "emergency_light/parede-r.png",
+    "ax": 19.0,
+    "ay": 24.2
+   },
+   "r-1": {
+    "arquivo": "emergency_light/parede-r-1.png",
+    "ax": 19.0,
+    "ay": 25.7
+   },
+   "l": {
+    "arquivo": "emergency_light/parede-l.png",
+    "ax": 19.0,
+    "ay": 25.7
+   },
+   "l-1": {
+    "arquivo": "emergency_light/parede-l-1.png",
+    "ax": 19.0,
+    "ay": 24.2
+   }
   }
  }
 }

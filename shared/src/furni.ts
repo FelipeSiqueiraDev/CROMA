@@ -90,6 +90,10 @@ const FURNI_METERS: FurniDef[] = [
   { id: 'chair_office', name: 'Cadeira de Escritório', category: 'escritorio', kind: 'office_chair', width: 1, depth: 1, height: 0.5, sit: true, rotations: ALL, colors: ['#242329', '#131216'] },
   { id: 'monitor', name: 'Monitor', category: 'escritorio', kind: 'monitor', width: 1, depth: 1, height: 0.55, states: 2, rotations: ALL, colors: ['#1b1d21', '#5fd3ff'], desc: 'Clique duplo liga/desliga.' },
   { id: 'monitor_green', name: 'Monitor de Radar', category: 'escritorio', kind: 'monitor', width: 1, depth: 1, height: 0.55, states: 2, rotations: ALL, colors: ['#1b1d21', '#4fe39a'] },
+  // a enfermaria tem os dela (com arte): o monitor do radar, os frascos do laboratório e os computadores dos outros cômodos ficam como estão
+  { id: 'vitals_monitor', name: 'Monitor de Sinais Vitais', category: 'saude', kind: 'monitor', width: 1, depth: 1, height: 0.34, states: 2, rotations: ALL, colors: ['#1b1d21', '#4fe39a'], desc: 'A linha verde do batimento.' },
+  { id: 'med_tray', name: 'Bandeja de Remédios', category: 'saude', kind: 'flasks', width: 1, depth: 1, height: 0.16, rotations: ALL, colors: ['#c8ccd0', '#8a5a2a', '#e8eef2'], desc: 'Frascos, seringas e algodão numa bandeja de inox.' },
+  { id: 'computer_old', name: 'Computador Antigo', category: 'escritorio', kind: 'monitor', width: 1, depth: 1, height: 0.42, states: 2, rotations: ALL, colors: ['#c8b89a', '#3f7fff'], desc: 'Monitor de tubo bege e teclado. Clique duplo liga/desliga.' },
   { id: 'keyboard', name: 'Teclado', category: 'escritorio', kind: 'keyboard', width: 1, depth: 1, height: 0.05, stackable: true, rotations: ALL, colors: ['#18181b'] },
   { id: 'papers', name: 'Papéis Espalhados', category: 'escritorio', kind: 'papers', width: 1, depth: 1, height: 0.02, walkable: true, stackable: true, flat: true, rotations: ALL, colors: ['#d8cdb0'] },
   { id: 'mug', name: 'Caneca', category: 'escritorio', kind: 'mug', width: 1, depth: 1, height: 0.2, rotations: ALL, colors: ['#d8d2c4'] },
@@ -104,7 +108,7 @@ const FURNI_METERS: FurniDef[] = [
   { id: 'rug_worn', name: 'Tapete Gasto', category: 'mobilia', kind: 'rug', width: 2, depth: 3, height: 0.03, walkable: true, stackable: true, flat: true, rotations: ALL, colors: ['#4a1c1c', '#8a6a3a'] },
 
   // ---------- Laboratório ----------
-  { id: 'lab_bench', name: 'Bancada de Laboratório', category: 'laboratorio', kind: 'lab_bench', width: 2, depth: 1, height: 0.8, stackable: true, rotations: ALL, colors: ['#2f3338', '#8d949c', '#cfcabd'] },
+  { id: 'lab_bench', name: 'Bancada de Laboratório', category: 'laboratorio', kind: 'lab_bench', width: 2, depth: 1, height: 0.9, stackable: true, rotations: ALL, colors: ['#2f3338', '#8d949c', '#cfcabd'] },
   { id: 'tank', name: 'Tanque de Contenção', category: 'laboratorio', kind: 'tank', width: 2, depth: 2, height: 2.2, states: 2, rotations: ALL, colors: ['#2b2f33', '#3fe0c0'], desc: 'Clique duplo alterna a luz do tanque.' },
   { id: 'trolley', name: 'Carrinho de Laboratório', category: 'laboratorio', kind: 'trolley', width: 1, depth: 1, height: 0.95, rotations: ALL, colors: ['#7d848c', '#8a1414'] },
   { id: 'microscope', name: 'Microscópio', category: 'laboratorio', kind: 'microscope', width: 1, depth: 1, height: 0.55, rotations: ALL, colors: ['#d6d2c6', '#2a2a2a'] },

@@ -42,6 +42,11 @@ própria folha ("folha" no móvel); senão vale a da ficha.
     rodapé) um pouco inclinadas em relação à caixa; dois móveis lado a lado ficavam em
     degrau. Mede a inclinação (a esquerda contra a direita da frente desdobrada) e
     corrige ao redesenhar.
+  - "angulos": a câmera do desenho sai das bordas de cima da silhueta (o gerador às vezes
+    desenha a 36° e 23° em vez de 45° e 30°); a caixa só ajusta o tamanho e o lugar.
+  - "retificar": antes de tudo, endireita o desenho para as bordas da caixa ficarem
+    exatamente na inclinação do isométrico (o gerador erra um pouco; lado a lado, dava
+    degrau).
   - "pe": a caixa não cobre bem o desenho (fliperama, pilha de cadeiras): o ponto mais
     baixo dele (o pé da frente) fica no chão, na quina da frente do móvel.
   - "tela": {"cores", "ms", "giros": {giro: [x, y, raio]}} (frações da imagem): a tela
@@ -50,6 +55,9 @@ própria folha ("folha" no móvel); senão vale a da ficha.
     vai pela largura, presa no teto no meio da casa; "brilho": [x, y, raio] (frações da
     imagem) é a luz em volta dela quando acesa; "pendulo": {"graus", "ms"} o balanço
     (quase parado) dela no fio.
+
+- "limpar" (na ficha): o alfa abaixo desse valor vira transparente (o halo que o gerador
+  deixa em volta das peças).
 
 - Tapete ("chao": true): a folha é o tapete visto de cima, em pé (a largura dele na
   lateral do móvel, o comprimento na frente); vai a 128 px por casa e o jogo deita no chão.
@@ -139,6 +147,78 @@ def recortar(folha, caixas, i):
     return rec[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
 
 
+def bordas_de_cima(rec):
+    """A inclinação das duas bordas de cima da silhueta (a da esquerda e a da direita do canto de trás), ou None."""
+    op = rec[:, :, 3] > 100
+    xs = np.nonzero(op.any(axis=0))[0]
+    if len(xs) < 40:
+        return None
+    ys = np.array([np.nonzero(op[:, x])[0].min() for x in xs], dtype=float)
+    kc = xs[int(np.argmin(ys))]
+    x0, x1 = xs.min(), xs.max()
+    esq = (xs > x0 + 0.08 * (kc - x0)) & (xs < kc - 0.12 * (kc - x0))
+    dir_ = (xs > kc + 0.12 * (x1 - kc)) & (xs < x1 - 0.08 * (x1 - kc))
+    if esq.sum() < 10 or dir_.sum() < 10:
+        return None
+    return float(np.polyfit(xs[esq], ys[esq], 1)[0]), float(np.polyfit(xs[dir_], ys[dir_], 1)[0])
+
+
+def angulos_do_desenho(rec):
+    """
+    A câmera em que a caixa foi desenhada, pelas bordas de cima: a de x desce st*tan(a)
+    por pixel, a de y sobe st/tan(a). O gerador às vezes desenha a 36° e 23° em vez de 45°
+    e 30°; com o ângulo dele, a frente sai amostrada do lugar certo. None se não deu para medir.
+    """
+    b = bordas_de_cima(rec)
+    if not b:
+        return None
+    s_y, s_x = b
+    if s_x <= 0.05 or s_y >= -0.05:
+        return None
+    st = float(np.sqrt(-s_x * s_y))
+    if not 0.2 < st < 0.75:
+        return None
+    a = float(np.arctan(s_x / st))
+    return a, float(np.arcsin(st))
+
+
+def retificar(rec):
+    """
+    O gerador desenha a caixa com as bordas um pouco fora da inclinação do isométrico
+    (2:1): dois móveis iguais lado a lado ficavam em degrau e a frente "escorregava".
+    Mede a inclinação das duas bordas de cima da silhueta (a da esquerda deveria subir
+    meio pixel por pixel, a da direita descer meio) e endireita a imagem com uma conta
+    que mantém as verticais em pé (x' = a x; y' = y + c x). Devolve a imagem e (a, c),
+    ou a imagem como está quando as bordas não dão para medir.
+    """
+    op = rec[:, :, 3] > 100
+    h, w = op.shape
+    xs = np.nonzero(op.any(axis=0))[0]
+    if len(xs) < 40:
+        return rec, None
+    ys = np.array([np.nonzero(op[:, x])[0].min() for x in xs], dtype=float)
+    kc = xs[int(np.argmin(ys))]
+    x0, x1 = xs.min(), xs.max()
+    esq = (xs > x0 + 0.08 * (kc - x0)) & (xs < kc - 0.12 * (kc - x0))
+    dir_ = (xs > kc + 0.12 * (x1 - kc)) & (xs < x1 - 0.08 * (x1 - kc))
+    if esq.sum() < 10 or dir_.sum() < 10:
+        return rec, None
+    s_esq = float(np.polyfit(xs[esq], ys[esq], 1)[0])
+    s_dir = float(np.polyfit(xs[dir_], ys[dir_], 1)[0])
+    if abs(s_esq + 0.5) > 0.2 or abs(s_dir - 0.5) > 0.2:
+        return rec, None
+    a = s_dir - s_esq
+    c = 0.5 * a - s_dir
+    W2 = int(np.ceil(w * a))
+    dy0 = min(0.0, c * w)
+    H2 = int(np.ceil(h + abs(c) * w))
+    yy, xx = np.mgrid[0:H2, 0:W2].astype(float) + 0.5
+    xs_ = xx / a
+    ys_ = yy + dy0 - c * xs_
+    out = amostrar(rec, xs_, ys_)
+    return np.clip(out, 0, 255).round().astype(np.uint8), (a, c)
+
+
 def reamostrar(img, w2, h2):
     """Redimensiona pela média da área (alfa pré-multiplicado: a borda não escurece)."""
     h, w = img.shape[:2]
@@ -216,7 +296,7 @@ def poligono(pol, H, W):
     return m
 
 
-def ajustar_camera(mask, Wm, Dm, H0, livre=False):
+def ajustar_camera(mask, Wm, Dm, H0, livre=False, angulos=None):
     """
     O ângulo do desenho: a caixa do móvel que melhor cobre a silhueta. A altura sempre
     varia. livre: 'tudo' (a largura e o fundo também variam e a escala fica a do começo:
@@ -231,11 +311,12 @@ def ajustar_camera(mask, Wm, Dm, H0, livre=False):
     area = alvo.sum()
     if livre is True:
         livre = 'tudo'
-    c = {'a': np.radians(45), 't': np.radians(30), 'S': mask.shape[1] / ((Wm + Dm) * 0.7071), 'u0': 0.0, 'v0': 0.0,
+    a0, t0 = angulos if angulos else (np.radians(45), np.radians(30))
+    c = {'a': a0, 't': t0, 'S': mask.shape[1] / ((Wm * np.cos(a0) + Dm * np.sin(a0))), 'u0': 0.0, 'v0': 0.0,
          'W': Wm, 'D': Dm, 'H': H0, 'F': 1.0}
     if livre and livre != 'proporcao':
         # a altura do começo sai da silhueta (a do chão, numa caixa a 45° e 30°, é metade da largura)
-        c['H'] = H0 = max(0.05, ((ys.max() - ys.min() + 1) / c['S'] - 0.3536 * (Wm + Dm)) / 0.866)
+        c['H'] = H0 = max(0.05, ((ys.max() - ys.min() + 1) / c['S'] - np.sin(t0) * (Wm * np.sin(a0) + Dm * np.cos(a0))) / np.cos(t0))
     u, v = proj(cantos(Wm, Dm, H0), c)
     c['u0'] = (xs.min() + xs.max()) / 2 - (u.min() + u.max()) / 2
     c['v0'] = (ys.min() + ys.max()) / 2 - (v.min() + v.max()) / 2
@@ -245,7 +326,7 @@ def ajustar_camera(mask, Wm, Dm, H0, livre=False):
         m = poligono(casco(np.stack([u, v], axis=1)), *mask.shape)
         inter = (m & alvo).sum()
         n = inter / max(1, (m | alvo).sum()) - 2.0 * max(0.0, 0.97 - inter / area)
-        if livre:
+        if livre and not angulos:
             n -= 2.0 * ((c['a'] - np.radians(45)) ** 2 + (c['t'] - np.radians(30)) ** 2)
         return n
     base = nota(c)
@@ -253,6 +334,9 @@ def ajustar_camera(mask, Wm, Dm, H0, livre=False):
               'W': Wm * 0.06, 'D': Dm * 0.06, 'H': H0 * 0.06, 'F': 0.06}
     chaves = {False: ('a', 't', 'S', 'u0', 'v0', 'H'), 'tudo': ('a', 't', 'u0', 'v0', 'W', 'D', 'H'),
               'chao': ('a', 't', 'u0', 'v0', 'F', 'H'), 'proporcao': ('a', 't', 'u0', 'v0', 'F')}[livre]
+    if angulos:
+        # o ângulo já foi medido nas bordas: só o tamanho e o lugar da caixa variam
+        chaves = tuple(k for k in chaves if k not in ('a', 't'))
     for _ in range(7):
         for k in chaves:
             for sinal in (1, -1):
@@ -481,6 +565,9 @@ def main():
         nome = m.get('folha', cfg.get('folha'))
         if nome not in folhas:
             f = ler(os.path.join(REPO, nome))
+            if cfg.get('limpar'):
+                # o gerador deixa um halo quase transparente em volta: some
+                f[:, :, 3] = np.where(f[:, :, 3] < cfg['limpar'], 0, f[:, :, 3])
             folhas[nome] = (f, pedacos(f[:, :, 3] > 16))
             print(nome, ':', len(folhas[nome][1]), 'objetos', flush=True)
         return folhas[nome]
@@ -561,12 +648,18 @@ def quatro_giros(m, folha, caixas, destino, escala):
         rec = recortar(folha, caixas, pedaco)
         if espelho:
             rec = rec[:, ::-1].copy()
+        if m.get('retificar'):
+            rec, conta = retificar(rec)
+            if conta:
+                print(f"{m['def']} giro {giro}: endireitado (x {conta[0]:.3f}, inclinação {conta[1]:+.3f})", flush=True)
         nome = f'giro-{giro}.png'
         if m.get('pendurado'):
             img, (ax, ay), caixa = pendurar(rec, m['pendurado'], escala)
-            ent['caixa'] = caixa
+            ent['caixa'] = m.get('caixa', caixa)
             if m.get('pendulo'):
                 ent['pendulo'] = m['pendulo']
+            if m.get('falha'):
+                ent['falha'] = True
             if m.get('brilho'):
                 bx, by, br = m['brilho']
                 ent['brilho'] = {'x': round(bx * img.shape[1], 1), 'y': round(by * img.shape[0], 1), 'r': round(br * img.shape[1], 1)}
@@ -593,7 +686,8 @@ def quatro_giros(m, folha, caixas, destino, escala):
             print(f"{m['def']} giro {giro}: pela imagem, {img.shape[1]}x{img.shape[0]}", flush=True)
             continue
         livre = ('proporcao' if m.get('como_esta') else 'tudo') if real else False
-        cam, nota = ajustar_camera(rec[:, :, 3] > 100, wr, dr, hr, livre=livre)
+        ang = angulos_do_desenho(rec) if m.get('angulos') else None
+        cam, nota = ajustar_camera(rec[:, :, 3] > 100, wr, dr, hr, livre=livre, angulos=ang)
         vistas.append({'giro': giro, 'nome': nome, 'rec': rec, 'troca': troca, 'Wt': Wt, 'Dt': Dt,
                        'wr': wr, 'dr': dr, 'hr': hr, 'cam': cam, 'nota': nota,
                        # pixels do desenho por metro de verdade
@@ -645,7 +739,7 @@ def quatro_giros(m, folha, caixas, destino, escala):
         tela = m.get('tela')
         if tela and giro in tela['giros']:
             fx, fy, fr = tela['giros'][giro]
-            t = ent.setdefault('tela', {'cores': tela['cores'], 'ms': tela['ms'], 'giros': {}})
+            t = ent.setdefault('tela', {k: tela[k] for k in ('cores', 'ms', 'modo', 'forca') if k in tela} | {'giros': {}})
             t['giros'][giro] = {'x': round(fx * img.shape[1], 1), 'y': round(fy * img.shape[0], 1), 'r': round(fr * img.shape[1], 1)}
         imgs.append(img)
         print(f"{m['def']} giro {giro}: encaixe {nota:.3f}; desenho a {np.degrees(cam['a']):.0f}° e {np.degrees(cam['t']):.0f}°; {tam}", flush=True)

@@ -39,8 +39,14 @@ export interface MovelArte {
   chao?: { arquivo: string };
   /** item de parede: a vista presa na parede da direita ('r') e na da esquerda ('l'), e os outros estados ('r-1'...); a âncora é o ponto de encosto */
   parede?: Record<string, VistaArte>;
-  /** tela acesa que troca de cor (o fliperama): as cores, o tempo de cada uma e o brilho em cada giro que mostra a tela, em pixels da imagem */
-  tela?: { cores: string[]; ms: number; giros: Partial<Record<'0' | '2' | '4' | '6', { x: number; y: number; r: number }>> };
+  /**
+   * tela acesa: o brilho em cada giro que mostra a tela, em pixels da imagem. modo 'cores'
+   * (o fliperama: troca de cor a cada ms), 'pulso' (o monitor do leito: bate como um
+   * coração a cada ms) ou 'tv' (o computador: tremula entre as cores). forca: o brilho máximo.
+   */
+  tela?: { cores: string[]; ms: number; modo?: 'cores' | 'pulso' | 'tv'; forca?: number; giros: Partial<Record<'0' | '2' | '4' | '6', { x: number; y: number; r: number }>> };
+  /** a lâmpada de tubo falha de vez em quando (duas piscadas rápidas) */
+  falha?: boolean;
   /** a lâmpada no fio balança de leve: o ângulo máximo e o tempo de uma ida e volta */
   pendulo?: { graus: number; ms: number };
 }
@@ -118,9 +124,13 @@ export function visualComArte(def: FurniDef, base: FVisual, state = 0, seed = 0)
       prontas[g] = img;
     }
     const aceso = state === 0;
-    // a tela que troca de cor tinge também a luz que ela joga no cômodo
-    const cor = a.tela && aceso ? corDaTela(a.tela) : null;
-    let luzes = cor ? base.lights.map((L) => ({ ...L, color: cor })) : base.lights;
+    // a tela tinge a luz que ela joga no cômodo e bate junto com ela
+    const cor = a.tela && aceso ? corDaTela(a.tela, seed) : null;
+    const forca = a.tela && aceso ? forcaDaTela(a.tela, seed) : 1;
+    let luzes = cor ? base.lights.map((L) => ({ ...L, color: cor, intensity: L.intensity * (0.75 + 0.25 * forca) })) : base.lights;
+    // a lâmpada de tubo que falha: a luz cai junto com o tubo
+    const falha = a.falha && aceso ? falhaDoTubo(seed) : 1;
+    if (falha < 1) luzes = luzes.map((L) => ({ ...L, intensity: L.intensity * falha }));
     // a lâmpada balança no fio: a luz vai junto, de leve, e respira um pouco
     const ang = a.pendulo ? balanco(a.pendulo, seed) : 0;
     if (a.pendulo) {
@@ -130,7 +140,7 @@ export function visualComArte(def: FurniDef, base: FVisual, state = 0, seed = 0)
       const respira = 1 + 0.03 * Math.sin(performance.now() / 1700 + seed);
       luzes = luzes.map((L) => ({ ...L, u: L.u + s, v: L.v + s, intensity: L.intensity * respira }));
     }
-    return V([N(caixa, (p) => desenharGiro(p, a, prontas, aceso ? (def.colors[0] ?? '#ffd98a') : null, cor, ang))], luzes);
+    return V([N(caixa, (p) => desenharGiro(p, a, prontas, aceso ? (def.colors[0] ?? '#ffd98a') : null, cor, ang, forca, falha))], luzes);
   }
   if (!a.frente) return null;
   const frente = pronta(a.frente.arquivo);
@@ -221,8 +231,29 @@ function telaDeTv(ctx: CanvasRenderingContext2D, t: TelaParede, spot: { x: numbe
   ctx.restore();
 }
 
+/** O tubo que falha: quase sempre 1; de vez em quando (cada lâmpada no seu tempo) cai duas vezes, rápido. */
+function falhaDoTubo(seed: number): number {
+  const periodo = 9000 + (seed % 7) * 1700;
+  const f = (performance.now() + seed * 3331) % periodo;
+  return (f > 120 && f < 190) || (f > 260 && f < 300) ? 0.25 : 1;
+}
+
+/** A força da tela agora (0 a 1): o coração batendo (lub-dub), a TV tremendo ou a tela firme. */
+function forcaDaTela(t: NonNullable<MovelArte['tela']>, seed: number): number {
+  const agora = performance.now();
+  if (t.modo === 'pulso') {
+    const f = (agora + seed * 97) % t.ms;
+    const bate = Math.exp(-((f / 60) ** 2)) + 0.55 * Math.exp(-(((f - 170) / 55) ** 2));
+    return Math.min(1, 0.3 + 0.7 * bate);
+  }
+  if (t.modo === 'tv') return 0.55 + 0.45 * ruido(agora, t.ms, seed);
+  return 0.85 + 0.1 * Math.sin(agora / 97) + 0.05 * Math.sin(agora / 23);
+}
+
 /** A cor da tela agora: cada cor fica um tempo e passa depressa para a próxima, como as peças do Tetris. */
-function corDaTela(t: NonNullable<MovelArte['tela']>): string {
+function corDaTela(t: NonNullable<MovelArte['tela']>, seed = 0): string {
+  if (t.modo === 'pulso') return t.cores[0];
+  if (t.modo === 'tv') return t.cores[Math.floor(ruido(performance.now(), t.ms * 3, seed + 3) * t.cores.length) % t.cores.length];
   const n = t.cores.length;
   const f = performance.now() / t.ms;
   const i = Math.floor(f) % n;
@@ -254,7 +285,7 @@ function brilhar(p: Painter, r: { x: number; y: number }, k: number, x: number, 
 }
 
 /** Desenhado nos 4 giros: a imagem do giro, como ela é (e o brilho da lâmpada acesa e da tela). ang: o balanço da lâmpada. */
-function desenharGiro(p: Painter, a: MovelArte, prontas: Partial<Record<string, Imagens>>, luz: string | null, corTela: string | null = null, ang = 0) {
+function desenharGiro(p: Painter, a: MovelArte, prontas: Partial<Record<string, Imagens>>, luz: string | null, corTela: string | null = null, ang = 0, forcaTela = 1, falha = 1) {
   const g = String(p.m.rot);
   const vista = a.giros?.[g as '4'] ?? a.giros?.['4'] ?? Object.values(a.giros ?? {})[0];
   const imgs = prontas[g] ?? prontas['4'] ?? Object.values(prontas)[0];
@@ -269,14 +300,9 @@ function desenharGiro(p: Painter, a: MovelArte, prontas: Partial<Record<string, 
     p.ctx.translate(-px, -r0.y);
   }
   const r = pintar(p, imgs.normal, vista.ax, vista.ay, a.escala, vista.ancora === 'centro');
-  if (a.brilho && luz && p.power > 0.1) brilhar(p, r, a.escala, a.brilho.x, a.brilho.y, a.brilho.r, luz, 0.55 * p.power);
+  if (a.brilho && luz && p.power > 0.1) brilhar(p, r, a.escala, a.brilho.x, a.brilho.y, a.brilho.r, luz, 0.55 * p.power * falha);
   const tela = a.tela?.giros[g as '4'];
-  if (tela && corTela && p.power > 0.1) {
-    // a tela pisca de leve, como um tubo velho
-    const t = performance.now();
-    const pisca = 0.85 + 0.1 * Math.sin(t / 97) + 0.05 * Math.sin(t / 23);
-    brilhar(p, r, a.escala, tela.x, tela.y, tela.r, corTela, 0.42 * pisca * p.power);
-  }
+  if (tela && corTela && p.power > 0.1) brilhar(p, r, a.escala, tela.x, tela.y, tela.r, corTela, (a.tela?.forca ?? 0.42) * forcaTela * p.power);
   if (ang) p.ctx.restore();
 }
 

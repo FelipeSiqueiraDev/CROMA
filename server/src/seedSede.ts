@@ -16,7 +16,7 @@ import { buildRoom, plan, type FloorSeed, type WallSeed } from './seed';
 export const SEDE = 'Sede · ';
 export const SEDE_CODE = '0413';
 /** Versão da montagem da Sede: subiu, a Sede é refeita no lugar (mesmos cômodos, peças e registro). */
-export const SEDE_REV = 7;
+export const SEDE_REV = 8;
 
 /** Planta retangular com a porta na parede de cima (y = 0), na coluna doorX. */
 export function planTop(w: number, h: number, doorX: number): { heightmap: string; door: Door } {
@@ -660,13 +660,13 @@ const ROOMS: RoomSpec[] = [
       ['cabinet_file', 18, 1, 4],
       ['sink', 19, 1, 4],
       ['lab_bench', 12, 6, 4],
-      ['monitor_green', 12, 6, 4],
+      ['vitals_monitor', 12, 6, 4],
       ['lab_bench', 14, 6, 4],
-      ['flasks', 14, 6, 4],
+      ['med_tray', 14, 6, 4],
       ['lab_bench', 16, 6, 4],
       ['trolley', 18, 7, 0],
       ['desk_metal', 15, 10, 0],
-      ['monitor', 16, 10, 0],
+      ['computer_old', 16, 10, 0],
       ['chair_office', 15, 11, 0],
       ['sink', 18, 13, 0],
       ['sink', 19, 13, 0],

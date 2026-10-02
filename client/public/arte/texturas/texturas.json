@@ -1,6 +1,20 @@
 {
  "madeira": {
-  "piso": {"arquivo": "piso-madeira.png", "casas": 3.5},
-  "parede": {"arquivo": "parede-lambri.png"}
+  "piso": {
+   "arquivo": "piso-madeira.png",
+   "casas": 3.5
+  },
+  "parede": {
+   "arquivo": "parede-lambri.png"
+  }
+ },
+ "ladrilho": {
+  "piso": {
+   "arquivo": "piso-ladrilho.png",
+   "casas": 3.53
+  },
+  "parede": {
+   "arquivo": "parede-hospital.png"
+  }
  }
 }
