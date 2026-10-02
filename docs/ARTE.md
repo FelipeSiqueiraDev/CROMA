@@ -17,6 +17,8 @@ Quem faz a arte entrega **só arquivos de imagem**. Todo o código (encaixar, an
 
 ## Tabuleiro: o modelo e a grade (decidido em 30/09)
 
+> **Revisto em 02/10.** Os agentes passam para a **proporção real** (cerca de 7 cabeças), em pixel art detalhada, como a Alosi de jaqueta creme que o Felipe mandou em 02/10 (quatro quadros parados, piscando). O tabuleiro anda com um boneco 3D que tira a pele da **folha das 8 direções** de cada agente nesse estilo (seção 1, "Folha das 8 direções"): o boneco faz o andar e as outras animações. Os **móveis** seguem a folha de objetos do Códex (`mobiliario/props-ordo-realitas.png`), em arte em dobro e desenhada suave (seção 5). A grade e as medidas abaixo continuam: casa de 64×32 e 1 m ≈ 58 pixels no zoom normal.
+
 Vale para tudo o que fica no tabuleiro: os bonecos e o mapa (piso, paredes e móveis), que recebem a arte no mesmo estilo.
 
 - **Modelo:** pixel art chibi, com cabeça grande e cerca de 3 cabeças de altura, como o modelo dos quatro agentes aprovado em 30/09 e como os bonecos das referências do mapa e do combate.
@@ -41,6 +43,17 @@ Vale para tudo o que fica no tabuleiro: os bonecos e o mapa (piso, paredes e mó
 Pasta: `client/public/arte/personagens/<nome>/`, com `<nome>` = `tepes`, `catarina`, `alosi`, `cora-falcao` (ou o nome de um personagem novo).
 
 **Decidido em 30/09:** a folha de sprite de hoje de cada agente (`folha.webp`, pintada) é a **arte de referência** dele: aparece grande na FICHAS e vai para a Hand do jogador (tela que vem depois). O **tabuleiro** vai ganhar arte nova para cada agente, no modelo chibi e na grade 1:1 (seção acima), com todos os ângulos e as animações de andar. As poses paradas já têm formato ("Poses do tabuleiro", abaixo); o das animações entra aqui antes de ser feito.
+
+### Folha das 8 direções (o boneco do tabuleiro) — decidido em 02/10
+
+Uma imagem por agente com ele **parado nas 8 direções**, no estilo de proporção real (a Alosi de jaqueta creme de 02/10). Dela sai tudo o que o tabuleiro mostra: o construtor esculpe o boneco 3D que cabe nas 8 silhuetas, pinta cada direção com a vista do desenho e faz o andar (o ciclo inteiro), sentar, pegar, abrir, apanhar e cair com as animações da biblioteca (`scripts/3d/`, ver [`PERSONAGENS-3D.md`](PERSONAGENS-3D.md)). Parado, o boneco fica igual ao desenho.
+
+- Grade **4×2**, cada direção numa casa do mesmo tamanho. Em cima: **costas**, costas-direita, perfil direita, frente-direita. Embaixo: **frente**, frente-esquerda, perfil esquerda, costas-esquerda. (No jogo: `n, ne, e, se` / `s, sw, w, nw`.)
+- **A mesma pose em todas:** em pé, relaxado, braços soltos **um pouco afastados do corpo** (o vão entre o braço e o tronco separa as peças) e pernas um pouco abertas. Nada na mão.
+- **O mesmo tamanho** do personagem em todas as casas, com os pés na mesma altura. A câmera um pouco de cima (como a folha chibi de 01/10).
+- Fundo transparente, sem sombra no chão, luz neutra. Contorno escuro de 1 pixel, como na referência.
+- Nome: `client/public/arte/personagens/<nome>/oito-direcoes.png`. Pode vir como saiu do gerador.
+- Quadros extras da mesma direção (piscando, respirando, como os quatro da Alosi) entram no parado: `parado-<direção>.png`, os quadros lado a lado.
 
 ### Poses de referência do tabuleiro — Tepes, estilo 32 bits
 
@@ -298,7 +311,20 @@ Pasta: `client/public/arte/efeitos/`.
 
 **Decidido:** os cenários são montados no jogo (planta, paredes e móveis na grade isométrica), e a arte dos móveis vem depois, para deixar cada cômodo parecido com a referência. Luz, névoa e fumaça são feitas pelo jogo.
 
-A lista dos móveis, cômodo por cômodo, com tamanho, altura e o que desenhar, está em [`SEDE-DA-ORDEM.md`](SEDE-DA-ORDEM.md), junto com o formato (pixel art na grade 1:1: casa de 64×32 pixels de arte, 1 m de altura ≈ 58 pixels de arte, duas imagens por móvel: frente e costas). O formato se confirma na primeira leva: comece por um móvel marcado com ✱.
+### Folha de objetos (decidido em 02/10)
+
+Os móveis vêm em **folhas de objetos** como a primeira do Códex (`mobiliario/props-ordo-realitas.png`, 12 objetos): é esse o visual do mapa.
+
+- Até **12 objetos por folha**, em 3 linhas de 4, **separados** (nenhum encosta no outro), fundo transparente de verdade.
+- Cada objeto **visto de cima e de lado** (3/4), com a **frente virada para baixo à esquerda**, como o arquivo verde e a estante da primeira folha. O ângulo não precisa ser exato: o construtor acha o ângulo de cada desenho e redesenha na grade do tabuleiro.
+- **Proporção certa** pelo tamanho do móvel no jogo (casas de 0,68 m: largura × fundo, e a altura em metros), da lista do [`CHECKLIST-ARTE.md`](CHECKLIST-ARTE.md). Detalhe à vontade: cada objeto com uns 300 a 400 pixels de largura.
+- Luz neutra, sem sombra no chão, sem texto, sem número e sem símbolo oficial (sigilos e marcas sempre próprios).
+- **Costas:** quem senta (cadeiras, poltronas, sofás) precisa também das costas, o mesmo objeto girado de meia-volta, numa folha à parte na mesma ordem. O resto o construtor faz: as costas saem da própria frente.
+- Nome: `client/public/arte/mobiliario/folha-<n>.png` (as costas: `folha-<n>-costas.png`).
+
+O construtor converte com `scripts/3d/moveis.py` (a ficha diz qual objeto é qual móvel): sai `mobiliario/<id>/frente.png` e `costas.png`, em arte em dobro (2 pixels da imagem por pixel do tabuleiro no zoom 1), e a lista `mobiliario/moveis.json` que o jogo lê. O jogo espelha as imagens para os outros dois giros e mantém as luzes e os estados do móvel.
+
+A lista dos cômodos e dos móveis de cada um está em [`SEDE-DA-ORDEM.md`](SEDE-DA-ORDEM.md); o que falta desenhar, folha por folha, no [`CHECKLIST-ARTE.md`](CHECKLIST-ARTE.md).
 
 ## Como entregar
 

@@ -116,6 +116,17 @@ Nada novo: usa os retratos, os ícones e as folhas da FICHAS. Os cartões de res
 
 ---
 
+## O tabuleiro (revisto em 02/10)
+
+- [ ] ✱ **A folha das 8 direções de cada agente, no estilo de proporção real** (a Alosi de jaqueta creme de 02/10): `personagens/<nome>/oito-direcoes.png`, grade 4×2, parado, braços um pouco afastados do corpo, mesmo tamanho em todas as casas, fundo transparente. O formato está no [ARTE.md](ARTE.md) ("Folha das 8 direções"). Dela sai o boneco que anda no tabuleiro. **Primeiro a Alosi**, depois Tepes, Catarina e Cora.
+- [x] **Folha de objetos 1** (`mobiliario/props-ordo-realitas.png`, Códex): 11 móveis no jogo (a lista está no [SEDE-DA-ORDEM.md](SEDE-DA-ORDEM.md)).
+- [ ] ✱ **Folha de objetos 2: Salão e Bar** (`mobiliario/folha-2.png`), no estilo da folha 1, frente para baixo à esquerda. Largura × fundo em casas de 0,68 m, altura em metros:
+  mesa de reunião (`table_meeting`, 3×2, 0,8), cadeira estofada vermelha (`chair_red`, 1×1, 0,46 de assento), poltrona de couro (`armchair_leather`, 1×1), poltrona (`armchair`, 1×1), banqueta alta de balcão (`stool_bar`, 1×1, 0,75), banqueta (`stool`, 1×1, 0,55), balcão do bar (`bar_counter`, 2×1, 1,1), prateleira de garrafas (`bar_shelf`, 2×1, 2,1), sofá vermelho de bar (`sofa_booth`, 2×1), mesa de bar (`table_bar`, 1×1, 0,75), mesa redonda (`table_round`, 2×2, 0,76), banco de madeira (`bench`, 2×1)
+- [ ] ✱ **Folha de objetos 3: Laboratório e Enfermaria** (`mobiliario/folha-3.png`): bancada de laboratório (`lab_bench`, 2×1, 0,8), frascos (`flasks`, 1×1, 0,4), suporte de soro (`iv_stand`, 1×1, 1,9), divisória hospitalar (`divider`, 1×1, 1,6), armário de remédios (`medical_cabinet`, 2×1, 1,9), pia (`sink`, 1×1, 0,9), vaso sanitário (`toilet`, 1×1), carrinho de laboratório (`trolley`, 1×1, 0,95), mesa metálica (`desk_metal`, 2×1, 0,8), monitor (`monitor`, 1×1, 0,55), microscópio (`microscope`, 1×1), tanque de contenção (`tank`, 2×2, 2,2)
+- [ ] **Folha de objetos 4: Arsenal, Prisão e Rituais** (`mobiliario/folha-4.png`): armário de metal (`locker`, 1×1, 2,1), armário de armas (`weapon_rack`, 2×1, 2,0), caixa metálica (`crate_metal`, 1×1, 0,8), baú militar (`chest_military`, 2×1, 0,7), barril (`barrel`, 1×1, 1,0), velas (`candles`, 1×1, 0,35), candelabro (`candelabra`, 1×1, 1,6), altar de pedra (`altar`, 2×1, 1,0, sigilos próprios), mesa de trabalho (`table_work`, 3×2, 0,78), balcão de madeira (`counter_wood`, 2×1, 0,9), mesinha (`table_small`, 1×1, 0,7), geladeira de cerveja (`beer_fridge`, 1×1, 2,0: é a porta da passagem secreta)
+- [ ] **Costas dos assentos** (`mobiliario/folha-1-costas.png` e `folha-2-costas.png`): as cadeiras, poltronas e sofás das folhas 1 e 2 girados de meia-volta, na mesma ordem
+- [ ] Pisos e paredes no mesmo estilo: o formato entra no [ARTE.md](ARTE.md) quando o jogo aceitar textura de piso
+
 ## Para depois: o tabuleiro
 
 - [x] **Tepes — quatro poses idle de referência em estilo 32 bits, com luz neutra:** `personagens/tepes/tabuleiro-32bits/idle-desarmado.png`, `idle-armado.png`, `idle-armado-machucado.png`, `idle-desarmado-machucado.png` (PNG RGBA, 1024×1536). Imagens estáticas escolhidas por Felipe, no modelo realista; ficam no tabuleiro (a pose muda com o Armado e com os PV) até chegarem as chibi. Formato em [ARTE.md](ARTE.md).

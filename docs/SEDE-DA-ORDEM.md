@@ -29,12 +29,10 @@ O mapa da Sede (Ordo Realitas) já funciona no jogo: os agentes andam, passam de
 
 ## Formato dos móveis
 
-- Pixel art chibi na **grade 1:1** do tabuleiro (revista em 01/10, `docs/ARTE.md`): cada casa do chão é um losango de **64×32 pixels de arte** (64×32 na tela, no zoom normal).
-- Escala: **1 m de altura ≈ 58 pixels de arte** (57,6 px na tela), desenhado para o corpo do chibi: a mesa bate na cintura. Uma pessoa tem ~1,75 m; uma estante, ~2,1 m; uma mesa, ~0,8 m. As alturas estão na lista.
-- **Duas imagens por móvel:** frente virada para baixo à esquerda (rotação 4) e costas viradas para cima à direita (rotação 0). As outras duas rotações são essas espelhadas. Móveis que só ficam encostados na parede do fundo precisam só da frente.
-- Fundo transparente, sem sombra no chão (o jogo faz a sombra e a luz). Luz neutra.
-- Móveis com estados (ligado/desligado, aberta/fechada) têm uma imagem por estado.
-- Nome do arquivo = o id da lista (ex.: `beer_fridge.png`, `beer_fridge_costas.png`), na pasta `client/public/arte/moveis/`.
+**Revisto em 02/10:** os móveis vêm em folhas de objetos como a primeira do Códex (`client/public/arte/mobiliario/props-ordo-realitas.png`): até 12 objetos por folha, separados, fundo transparente, vistos de cima e de lado com a frente para baixo à esquerda. O construtor redesenha cada um na grade do tabuleiro (`scripts/3d/moveis.py`). O formato completo está no [`ARTE.md`](ARTE.md) (seção 5); o que falta, folha por folha, no [`CHECKLIST-ARTE.md`](CHECKLIST-ARTE.md).
+
+- **Já no jogo (folha 1, 02/10):** bancada de computadores (`console`), arquivo de aço (`cabinet_file`), cadeira de escritório (`chair_office`), caixote (`crate_wood`), leito (`hospital_bed`), estante (`bookshelf`), mesa de escritório (`desk_wood`), cadeira do bar (`chair_bar`), sinuca (`pool_table`), bancada de armas (`gun_table`) e planta (`plant`).
+- Os tamanhos abaixo (casas de largura × fundo, altura em metros) são os do jogo: o desenho segue essa proporção.
 
 ## Cômodo por cômodo
 

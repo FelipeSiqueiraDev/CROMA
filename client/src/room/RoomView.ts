@@ -24,6 +24,7 @@ import {
 import { drawPixelAvatar, PIXEL_AVATAR_HEIGHT, type Pose } from '../render/avatarPixel';
 import { Bubbles, UI_FONT } from '../render/bubbles';
 import { desenharChao, desenharCima, desenharRotulos, type MarcasCombate } from '../render/combateMarcas';
+import { visualComArte } from '../render/furniArte';
 import { furniVisual } from '../render/furniFloor';
 import { drawWallFurni, wallLights } from '../render/furniWall';
 import { drawHintGlyph, drawHintIcon } from '../render/hints';
@@ -1072,7 +1073,8 @@ export class RoomView {
     const addFurni =(it: { id: number; defId: string; x: number; y: number; z: number; rot: number; state: number }, alpha: number, selected: boolean, ghost: boolean) => {
       const def = getFurni(it.defId);
       if (!def) return;
-      const vis = furniVisual(def, it.state, it.id);
+      const base = furniVisual(def, it.state, it.id);
+      const vis = visualComArte(def, base) ?? base;
       m.set(it.rot, def.width, def.depth, it.x, it.y, it.z);
       const floorH = map.floorHeight(it.x, it.y) ?? 0;
       const flat = !!def.flat && it.z <= floorH + 0.05 && !ghost;
