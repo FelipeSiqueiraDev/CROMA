@@ -518,6 +518,8 @@ export function wallLights(def: WallFurniDef, state: number): WallLight[] {
       return on ? [{ x: def.w / 2, y: def.h / 2, radius: 110, color: def.colors[0], intensity: 0.65, flicker: 0.03, kind: 'electric' }] : [];
     case 'screen':
       return on ? [{ x: def.w / 2, y: def.h / 2, radius: 120, color: '#f2eadc', intensity: 0.45, kind: 'electric' }] : [];
+    case 'tv':
+      return [{ x: def.w / 2, y: def.h * 0.35, radius: 110, color: '#a8e8b8', intensity: 0.45, flicker: 0.08, kind: 'electric' }];
     default:
       return [];
   }

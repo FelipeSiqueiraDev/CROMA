@@ -1,0 +1,6 @@
+{
+ "madeira": {
+  "piso": {"arquivo": "piso-madeira.png", "casas": 3.5},
+  "parede": {"arquivo": "parede-lambri.png"}
+ }
+}

@@ -10,9 +10,6 @@
   {"pedaco": 5,"def": "hospital_bed","W": 1,"D": 3,"altura": 1.0},
   {"pedaco": 6,"def": "bookshelf","W": 2,"D": 1,"altura": 2.2,"solido": true},
   {"pedaco": 7,"def": "desk_wood","W": 2,"D": 1,"altura": 1.0},
-  {"pedaco": 8,"def": "chair_bar","ancora": "centro","altura": 0.85},
-  {"pedaco": 9,"def": "pool_table","W": 2,"D": 4,"altura": 0.85},
-  {"pedaco": 10,"def": "gun_table","W": 3,"D": 1,"altura": 0.95},
-  {"pedaco": 11,"def": "plant","ancora": "centro","altura": 1.2}
+  {"pedaco": 10,"def": "gun_table","W": 3,"D": 1,"altura": 0.95}
  ]
 }

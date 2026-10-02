@@ -16,7 +16,7 @@ import { buildRoom, plan, type FloorSeed, type WallSeed } from './seed';
 export const SEDE = 'Sede · ';
 export const SEDE_CODE = '0413';
 /** Versão da montagem da Sede: subiu, a Sede é refeita no lugar (mesmos cômodos, peças e registro). */
-export const SEDE_REV = 4;
+export const SEDE_REV = 6;
 
 /** Planta retangular com a porta na parede de cima (y = 0), na coluna doorX. */
 export function planTop(w: number, h: number, doorX: number): { heightmap: string; door: Door } {
@@ -122,7 +122,8 @@ const ROOMS: RoomSpec[] = [
       ['bar_shelf', 9, 0, 4],
       ['beer_crate', 11, 0, 4],
       ['beer_crate', 11, 0, 4],
-      ['barrel', 12, 0, 0],
+      ['keg', 12, 0, 0],
+      ['beer_crate', 13, 0, 4],
       ['fridge_drinks', 16, 0, 4],
       ['fridge_drinks', 17, 0, 4],
       // o balcão de madeira: entre ele e as prateleiras fica o corredor do atendente (y 1 e 2), com a entrada no fim (x 13)
@@ -142,7 +143,7 @@ const ROOMS: RoomSpec[] = [
       ['stool_bar', 10, 4, 0],
       ['stool_bar', 12, 4, 0],
       // parede da esquerda: a poltrona, a planta, o fliperama de Tetris e, no canto, a pilha de cadeiras
-      ['chair_red', 1, 5, 2],
+      ['armchair_red', 1, 5, 2],
       ['plant', 1, 6, 0],
       ['arcade', 1, 8, 2],
       ['plant', 1, 13, 0],
@@ -160,9 +161,8 @@ const ROOMS: RoomSpec[] = [
       ['pool_table', 14, 7, 4],
       ['rug_ornate', 10, 10, 0],
       ['rug_worn', 15, 4, 2],
-      // parede da direita: o aparador com engradado e, no canto de baixo, o armarinho
-      ['counter_wood', 20, 8, 6],
-      ['beer_crate', 20, 8, 0],
+      // parede da direita: o aparador com as garrafas e, no canto de baixo, o armarinho
+      ['sideboard', 20, 8, 6],
       ['bar_cabinet', 20, 13, 6],
       ['plant', 20, 14, 0],
       // perto da entrada, o sofá vermelho
@@ -184,6 +184,9 @@ const ROOMS: RoomSpec[] = [
       ['clock', 'r', 0, 5.5, 4.1],
       ['sconce', 'l', 1, 9.4, 3.2],
       ['sconce', 'l', 1, 12.6, 3.2],
+      // a TV do futebol, no alto, e o ventilador
+      ['tv_wall', 'r', 0, 12.6, 3.3],
+      ['fan_wall', 'l', 1, 7.0, 3.9],
     ],
     links: [[20, 0, 'salao']],
   },

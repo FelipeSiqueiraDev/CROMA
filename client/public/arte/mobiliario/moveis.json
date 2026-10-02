@@ -116,41 +116,49 @@
   "giros": {
    "4": {
     "arquivo": "chair_bar/giro-4.png",
-    "ax": 74.0,
-    "ay": 161.7
+    "ax": 60.6,
+    "ay": 155.7
    },
    "2": {
     "arquivo": "chair_bar/giro-2.png",
-    "ax": 41.9,
-    "ay": 164.1
+    "ax": 49.1,
+    "ay": 155.8
    },
    "0": {
     "arquivo": "chair_bar/giro-0.png",
-    "ax": 71.7,
-    "ay": 150.2
+    "ax": 53.2,
+    "ay": 133.9
    },
    "6": {
     "arquivo": "chair_bar/giro-6.png",
-    "ax": 58.0,
-    "ay": 149.0
+    "ax": 54.0,
+    "ay": 133.7
    }
   }
  },
  "pool_table": {
   "escala": 0.5,
-  "frente": {
-   "arquivo": "pool_table/frente.png",
-   "ax": 129.0,
-   "ay": 293.0,
-   "lado": "esquerda",
-   "ancora": "quina"
-  },
-  "costas": {
-   "arquivo": "pool_table/costas.png",
-   "ax": 129.0,
-   "ay": 293.0,
-   "lado": "esquerda",
-   "ancora": "quina"
+  "giros": {
+   "4": {
+    "arquivo": "pool_table/giro-4.png",
+    "ax": 108.7,
+    "ay": 264.9
+   },
+   "0": {
+    "arquivo": "pool_table/giro-0.png",
+    "ax": 106.6,
+    "ay": 263.9
+   },
+   "2": {
+    "arquivo": "pool_table/giro-2.png",
+    "ax": 253.3,
+    "ay": 271.0
+   },
+   "6": {
+    "arquivo": "pool_table/giro-6.png",
+    "ax": 251.1,
+    "ay": 263.8
+   }
   }
  },
  "gun_table": {
@@ -172,12 +180,31 @@
  },
  "plant": {
   "escala": 0.5,
-  "frente": {
-   "arquivo": "plant/frente.png",
-   "ax": 59.5,
-   "ay": 127.8,
-   "lado": "esquerda",
-   "ancora": "centro"
+  "giros": {
+   "4": {
+    "arquivo": "plant/giro-4.png",
+    "ax": 66.0,
+    "ay": 117.5,
+    "ancora": "centro"
+   },
+   "2": {
+    "arquivo": "plant/giro-2.png",
+    "ax": 61.0,
+    "ay": 117.5,
+    "ancora": "centro"
+   },
+   "0": {
+    "arquivo": "plant/giro-0.png",
+    "ax": 67.0,
+    "ay": 117.0,
+    "ancora": "centro"
+   },
+   "6": {
+    "arquivo": "plant/giro-6.png",
+    "ax": 65.0,
+    "ay": 117.0,
+    "ancora": "centro"
+   }
   }
  },
  "table_bar": {
@@ -185,23 +212,507 @@
   "giros": {
    "4": {
     "arquivo": "table_bar/giro-4.png",
-    "ax": 64.3,
-    "ay": 144.7
+    "ax": 67.9,
+    "ay": 145.4
    },
    "6": {
     "arquivo": "table_bar/giro-6.png",
-    "ax": 69.1,
-    "ay": 143.8
+    "ax": 68.4,
+    "ay": 150.0
    },
    "0": {
     "arquivo": "table_bar/giro-0.png",
-    "ax": 65.4,
-    "ay": 144.5
+    "ax": 66.2,
+    "ay": 149.7
    },
    "2": {
     "arquivo": "table_bar/giro-2.png",
-    "ax": 66.8,
-    "ay": 142.9
+    "ax": 66.7,
+    "ay": 148.7
+   }
+  }
+ },
+ "bar_counter": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "bar_counter/giro-4.png",
+    "ax": 126.0,
+    "ay": 222.0
+   },
+   "2": {
+    "arquivo": "bar_counter/giro-2.png",
+    "ax": 62.0,
+    "ay": 222.0
+   },
+   "0": {
+    "arquivo": "bar_counter/giro-0.png",
+    "ax": 126.0,
+    "ay": 222.0
+   },
+   "6": {
+    "arquivo": "bar_counter/giro-6.png",
+    "ax": 62.0,
+    "ay": 222.0
+   }
+  }
+ },
+ "stool_bar": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "stool_bar/giro-4.png",
+    "ax": 35.0,
+    "ay": 136.7
+   },
+   "6": {
+    "arquivo": "stool_bar/giro-6.png",
+    "ax": 38.7,
+    "ay": 137.0
+   },
+   "0": {
+    "arquivo": "stool_bar/giro-0.png",
+    "ax": 32.6,
+    "ay": 137.8
+   },
+   "2": {
+    "arquivo": "stool_bar/giro-2.png",
+    "ax": 42.5,
+    "ay": 136.6
+   }
+  }
+ },
+ "bar_shelf": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "bar_shelf/giro-4.png",
+    "ax": 103.0,
+    "ay": 331.0
+   },
+   "2": {
+    "arquivo": "bar_shelf/giro-2.png",
+    "ax": 65.0,
+    "ay": 328.0
+   },
+   "0": {
+    "arquivo": "bar_shelf/giro-0.png",
+    "ax": 129.0,
+    "ay": 310.0
+   },
+   "6": {
+    "arquivo": "bar_shelf/giro-6.png",
+    "ax": 39.0,
+    "ay": 307.0
+   }
+  }
+ },
+ "beer_fridge": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "beer_fridge/giro-4.png",
+    "ax": 59.0,
+    "ay": 296.0
+   },
+   "2": {
+    "arquivo": "beer_fridge/giro-2.png",
+    "ax": 65.0,
+    "ay": 296.0
+   }
+  }
+ },
+ "arcade": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "arcade/giro-4.png",
+    "ax": 66.5,
+    "ay": 236.4
+   },
+   "2": {
+    "arquivo": "arcade/giro-2.png",
+    "ax": 54.3,
+    "ay": 235.6
+   },
+   "0": {
+    "arquivo": "arcade/giro-0.png",
+    "ax": 54.2,
+    "ay": 231.9
+   },
+   "6": {
+    "arquivo": "arcade/giro-6.png",
+    "ax": 66.5,
+    "ay": 230.9
+   }
+  }
+ },
+ "fridge_drinks": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "fridge_drinks/giro-4.png",
+    "ax": 57.0,
+    "ay": 295.0
+   },
+   "2": {
+    "arquivo": "fridge_drinks/giro-2.png",
+    "ax": 63.0,
+    "ay": 295.0
+   }
+  }
+ },
+ "minibar": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "minibar/giro-4.png",
+    "ax": 46.0,
+    "ay": 163.0
+   },
+   "2": {
+    "arquivo": "minibar/giro-2.png",
+    "ax": 58.0,
+    "ay": 163.0
+   }
+  }
+ },
+ "beer_crate": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "beer_crate/giro-4.png",
+    "ax": 36.7,
+    "ay": 89.1
+   },
+   "0": {
+    "arquivo": "beer_crate/giro-0.png",
+    "ax": 36.8,
+    "ay": 84.7
+   },
+   "2": {
+    "arquivo": "beer_crate/giro-2.png",
+    "ax": 36.7,
+    "ay": 84.0
+   },
+   "6": {
+    "arquivo": "beer_crate/giro-6.png",
+    "ax": 35.5,
+    "ay": 85.1
+   }
+  }
+ },
+ "chair_stack": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "chair_stack/giro-4.png",
+    "ax": 56.8,
+    "ay": 199.3
+   },
+   "2": {
+    "arquivo": "chair_stack/giro-2.png",
+    "ax": 45.1,
+    "ay": 194.4
+   },
+   "6": {
+    "arquivo": "chair_stack/giro-6.png",
+    "ax": 59.0,
+    "ay": 199.4
+   },
+   "0": {
+    "arquivo": "chair_stack/giro-0.png",
+    "ax": 54.9,
+    "ay": 177.2
+   }
+  }
+ },
+ "sideboard": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "sideboard/giro-4.png",
+    "ax": 106.9,
+    "ay": 206.8
+   },
+   "2": {
+    "arquivo": "sideboard/giro-2.png",
+    "ax": 58.6,
+    "ay": 180.8
+   },
+   "0": {
+    "arquivo": "sideboard/giro-0.png",
+    "ax": 129.4,
+    "ay": 177.8
+   },
+   "6": {
+    "arquivo": "sideboard/giro-6.png",
+    "ax": 47.4,
+    "ay": 178.5
+   }
+  }
+ },
+ "bar_cabinet": {
+  "escala": 0.5,
+  "giros": {
+   "2": {
+    "arquivo": "bar_cabinet/giro-2.png",
+    "ax": 63.5,
+    "ay": 173.4
+   },
+   "4": {
+    "arquivo": "bar_cabinet/giro-4.png",
+    "ax": 40.8,
+    "ay": 173.7
+   },
+   "6": {
+    "arquivo": "bar_cabinet/giro-6.png",
+    "ax": 36.6,
+    "ay": 148.8
+   },
+   "0": {
+    "arquivo": "bar_cabinet/giro-0.png",
+    "ax": 65.2,
+    "ay": 160.2
+   }
+  }
+ },
+ "armchair_red": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "armchair_red/giro-4.png",
+    "ax": 72.9,
+    "ay": 159.9
+   },
+   "2": {
+    "arquivo": "armchair_red/giro-2.png",
+    "ax": 66.7,
+    "ay": 159.2
+   },
+   "0": {
+    "arquivo": "armchair_red/giro-0.png",
+    "ax": 73.5,
+    "ay": 135.3
+   },
+   "6": {
+    "arquivo": "armchair_red/giro-6.png",
+    "ax": 68.2,
+    "ay": 136.6
+   }
+  }
+ },
+ "sofa_booth": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "sofa_booth/giro-4.png",
+    "ax": 140.4,
+    "ay": 184.3
+   },
+   "2": {
+    "arquivo": "sofa_booth/giro-2.png",
+    "ax": 69.5,
+    "ay": 183.8
+   },
+   "0": {
+    "arquivo": "sofa_booth/giro-0.png",
+    "ax": 130.9,
+    "ay": 169.0
+   },
+   "6": {
+    "arquivo": "sofa_booth/giro-6.png",
+    "ax": 70.1,
+    "ay": 164.4
+   }
+  }
+ },
+ "keg": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "keg/giro-4.png",
+    "ax": 33.1,
+    "ay": 116.8
+   },
+   "6": {
+    "arquivo": "keg/giro-6.png",
+    "ax": 33.4,
+    "ay": 117.1
+   },
+   "0": {
+    "arquivo": "keg/giro-0.png",
+    "ax": 33.6,
+    "ay": 117.0
+   },
+   "2": {
+    "arquivo": "keg/giro-2.png",
+    "ax": 33.1,
+    "ay": 116.9
+   }
+  }
+ },
+ "beer_glass": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "beer_glass/giro-4.png",
+    "ax": 9.6,
+    "ay": 50.1
+   },
+   "6": {
+    "arquivo": "beer_glass/giro-6.png",
+    "ax": 7.1,
+    "ay": 50.3
+   },
+   "0": {
+    "arquivo": "beer_glass/giro-0.png",
+    "ax": 9.6,
+    "ay": 50.3
+   },
+   "2": {
+    "arquivo": "beer_glass/giro-2.png",
+    "ax": 9.7,
+    "ay": 52.3
+   }
+  }
+ },
+ "ashtray": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "ashtray/giro-4.png",
+    "ax": 9.6,
+    "ay": 40.1
+   },
+   "6": {
+    "arquivo": "ashtray/giro-6.png",
+    "ax": 7.9,
+    "ay": 42.8
+   },
+   "0": {
+    "arquivo": "ashtray/giro-0.png",
+    "ax": 8.2,
+    "ay": 39.8
+   },
+   "2": {
+    "arquivo": "ashtray/giro-2.png",
+    "ax": 10.2,
+    "ay": 41.7
+   }
+  }
+ },
+ "ceiling_lamp": {
+  "escala": 0.5,
+  "giros": {
+   "0": {
+    "arquivo": "ceiling_lamp/giro-0.png",
+    "ax": 24.0,
+    "ay": 348.8
+   },
+   "2": {
+    "arquivo": "ceiling_lamp/giro-2.png",
+    "ax": 24.0,
+    "ay": 348.8
+   },
+   "4": {
+    "arquivo": "ceiling_lamp/giro-4.png",
+    "ax": 24.0,
+    "ay": 348.8
+   },
+   "6": {
+    "arquivo": "ceiling_lamp/giro-6.png",
+    "ax": 24.0,
+    "ay": 348.8
+   }
+  },
+  "caixa": [
+   0.4,
+   0.6,
+   0.4,
+   0.6,
+   2.12,
+   2.75
+  ],
+  "brilho": {
+   "x": 24.0,
+   "y": 69.3,
+   "r": 36.0
+  }
+ },
+ "rug_worn": {
+  "escala": 1,
+  "chao": {
+   "arquivo": "rug_worn/chao.png"
+  }
+ },
+ "clock": {
+  "escala": 0.5,
+  "parede": {
+   "r": {
+    "arquivo": "clock/parede-r.png",
+    "ax": 22.0,
+    "ay": 27.0
+   },
+   "l": {
+    "arquivo": "clock/parede-l.png",
+    "ax": 18.0,
+    "ay": 27.0
+   }
+  }
+ },
+ "sconce": {
+  "escala": 0.5,
+  "parede": {
+   "r": {
+    "arquivo": "sconce/parede-r.png",
+    "ax": 23.4,
+    "ay": 28.0
+   },
+   "r-1": {
+    "arquivo": "sconce/parede-r-1.png",
+    "ax": 23.4,
+    "ay": 28.0
+   },
+   "l": {
+    "arquivo": "sconce/parede-l.png",
+    "ax": 6.3,
+    "ay": 28.0
+   },
+   "l-1": {
+    "arquivo": "sconce/parede-l-1.png",
+    "ax": 6.3,
+    "ay": 28.0
+   }
+  }
+ },
+ "tv_wall": {
+  "escala": 0.5,
+  "parede": {
+   "r": {
+    "arquivo": "tv_wall/parede-r.png",
+    "ax": 89.3,
+    "ay": 81.4
+   },
+   "l": {
+    "arquivo": "tv_wall/parede-l.png",
+    "ax": 5.8,
+    "ay": 81.4
+   }
+  }
+ },
+ "fan_wall": {
+  "escala": 0.5,
+  "parede": {
+   "r": {
+    "arquivo": "fan_wall/parede-r.png",
+    "ax": 69.8,
+    "ay": 9.2
+   },
+   "l": {
+    "arquivo": "fan_wall/parede-l.png",
+    "ax": 5.3,
+    "ay": 9.2
    }
   }
  }

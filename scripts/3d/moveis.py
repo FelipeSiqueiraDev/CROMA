@@ -4,7 +4,8 @@ cada objeto separado, vistos de cima e de lado).
 
 Para cada objeto da folha (contados por linha, da esquerda para a direita), a ficha
 diz qual móvel do jogo ele é, quantas casas ele ocupa (W de largura, ao longo da
-frente; D de fundo) e de que lado do desenho está a frente.
+frente; D de fundo) e de que lado do desenho está a frente. Cada móvel pode trazer a
+própria folha ("folha" no móvel); senão vale a da ficha.
 
 - Móvel de caixa (mesa, armário, estante, cama, sinuca...): o desenho nem sempre
   está no ângulo exato do tabuleiro. O script acha o ângulo dele (a caixa do móvel
@@ -15,13 +16,35 @@ frente; D de fundo) e de que lado do desenho está a frente.
 - Planta, cadeira (ancora 'centro'): a imagem vai como está, pela altura, presa no
   centro da base.
 
-- Móvel desenhado nos 4 giros (uma folha só com as 4 vistas, ou 4 pedaços da folha):
-  "giros": {"4": pedaço, "2": pedaço, "0": pedaço, "6": pedaço}. Cada vista é
-  acertada no ângulo exato do tabuleiro, sem espelho: o giro 4 é a frente virada
-  para baixo à esquerda; o 2, para baixo à direita; o 0, de costas para cima à
-  direita; o 6, de costas para cima à esquerda. Com "como_esta", o desenho não é
-  redesenhado (cadeira, planta: a caixa deformaria): só vai ao tamanho do tabuleiro,
-  com a âncora na quina da caixa que cobre o desenho.
+- Móvel desenhado nos 4 giros (uma folha só com as vistas dele):
+  "giros": {"4": pedaço, "2": pedaço, "0": pedaço, "6": pedaço}. Cada vista vai para
+  o giro dela, sem espelho: o giro 4 é a frente virada para baixo à esquerda; o 2,
+  para baixo à direita; o 0, de costas para cima à direita; o 6, de costas para cima
+  à esquerda. A folha não trouxe um lado? {"pedaco": n, "espelho": true} usa outra
+  vista espelhada (a frente para a esquerda vira a frente para a direita).
+  - "real": [largura, fundo, altura] do móvel de verdade, em metros (a largura ao
+    longo da frente). O móvel fica do tamanho certo perto das pessoas (1,80 m), no
+    meio da casa, ou encostado no fundo dela ("encosta": a prateleira na parede).
+    Sem "real", o móvel ocupa a casa inteira e a altura sai do desenho.
+  - "como_esta": o desenho não é redesenhado (cadeira, planta: a caixa deformaria),
+    só vai ao tamanho de verdade: a caixa de verdade que melhor cobre cada vista dá a
+    escala do desenho (a mesma nas 4 vistas, a mediana), ou a altura da imagem inteira,
+    presa no centro da base ("por": "imagem", a planta).
+  - Sem "como_esta", a caixa de verdade é redesenhada na câmera do tabuleiro com o
+    desenho por cima: o balcão que veio baixo fica com 1,1 m. "faixa": [de, até, vezes]
+    (frações da altura do desenho) repete esse pedaço da altura, alternando o espelho,
+    em vez de esticar (as fileiras de garrafas da prateleira); a altura sai daí.
+  - "pendurado": [largura da cúpula, altura do teto] em metros (a lâmpada): a imagem
+    vai pela largura, presa no teto no meio da casa; "brilho": [x, y, raio] (frações da
+    imagem) é a luz em volta dela quando acesa.
+
+- Tapete ("chao": true): a folha é o tapete visto de cima, em pé (a largura dele na
+  lateral do móvel, o comprimento na frente); vai a 128 px por casa e o jogo deita no chão.
+
+- Item de parede ("parede"): desenhado em isométrico, preso na parede da direita ('r')
+  e na da esquerda ('l'), e os outros estados ('r-1', 'l-1': a arandela apagada). Cada
+  vista: [pedaço, x, y], o ponto onde ele encosta na parede (o meio da plaquinha), em
+  frações do pedaço. "real": [largura na parede, quanto sai dela, altura] em metros.
 
 A arte sai em dobro (2 pixels da imagem por pixel do tabuleiro no zoom 1), em
 <destino>/<móvel>/<vista>.png, e o <destino>/moveis.json que o jogo lê.
@@ -40,6 +63,8 @@ REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 CASA = 0.68
 # o tabuleiro: casa de 64 x 32 pixels no zoom 1 = câmera a 45° e 30°, 66,55 px por metro no plano da imagem
 PX_M_TABULEIRO = 32 / (CASA * np.cos(np.radians(45)))
+# na vertical: 57,6 px por metro (Z_PER_M = 1,8 unidades de 32 px)
+PX_M_VERTICAL = 57.6
 
 
 def ler(p):
@@ -176,36 +201,61 @@ def poligono(pol, H, W):
     return m
 
 
-def ajustar_camera(mask, Wm, Dm, H0):
-    """O ângulo do desenho: a caixa do móvel (a altura pode variar) que melhor cobre a silhueta."""
+def ajustar_camera(mask, Wm, Dm, H0, livre=False):
+    """
+    O ângulo do desenho: a caixa do móvel que melhor cobre a silhueta. A altura sempre
+    varia. livre: 'tudo' (a largura e o fundo também variam e a escala fica a do começo:
+    sai a proporção do próprio desenho, em cam['W'], cam['D'], cam['H']), 'chao' (o
+    chão cresce por igual, na proporção Wm x Dm) ou 'proporcao' (a caixa inteira cresce
+    por igual, na proporção Wm x Dm x H0: o tamanho do desenho, para um móvel que não é
+    caixa, como a cadeira e a mesa). Com livre, o ângulo é puxado de leve para o do
+    tabuleiro (a caixa e o ângulo podem se compensar).
+    """
     ys, xs = np.nonzero(mask)
     alvo = poligono(casco(np.stack([xs, ys], axis=1).astype(float) + 0.5), *mask.shape)
     area = alvo.sum()
-    c = {'a': np.radians(45), 't': np.radians(30), 'S': mask.shape[1] / ((Wm + Dm) * 0.7071), 'u0': 0.0, 'v0': 0.0, 'H': H0}
+    if livre is True:
+        livre = 'tudo'
+    c = {'a': np.radians(45), 't': np.radians(30), 'S': mask.shape[1] / ((Wm + Dm) * 0.7071), 'u0': 0.0, 'v0': 0.0,
+         'W': Wm, 'D': Dm, 'H': H0, 'F': 1.0}
+    if livre and livre != 'proporcao':
+        # a altura do começo sai da silhueta (a do chão, numa caixa a 45° e 30°, é metade da largura)
+        c['H'] = H0 = max(0.05, ((ys.max() - ys.min() + 1) / c['S'] - 0.3536 * (Wm + Dm)) / 0.866)
     u, v = proj(cantos(Wm, Dm, H0), c)
     c['u0'] = (xs.min() + xs.max()) / 2 - (u.min() + u.max()) / 2
     c['v0'] = (ys.min() + ys.max()) / 2 - (v.min() + v.max()) / 2
 
     def nota(c):
-        u, v = proj(cantos(Wm, Dm, c['H']), c)
+        u, v = proj(cantos(c['W'] * c['F'], c['D'] * c['F'], c['H'] * (c['F'] if livre == 'proporcao' else 1.0)), c)
         m = poligono(casco(np.stack([u, v], axis=1)), *mask.shape)
         inter = (m & alvo).sum()
-        return inter / max(1, (m | alvo).sum()) - 2.0 * max(0.0, 0.97 - inter / area)
+        n = inter / max(1, (m | alvo).sum()) - 2.0 * max(0.0, 0.97 - inter / area)
+        if livre:
+            n -= 2.0 * ((c['a'] - np.radians(45)) ** 2 + (c['t'] - np.radians(30)) ** 2)
+        return n
     base = nota(c)
-    passos = {'a': np.radians(4), 't': np.radians(4), 'S': c['S'] * 0.04, 'u0': 4.0, 'v0': 4.0, 'H': H0 * 0.06}
+    passos = {'a': np.radians(4), 't': np.radians(4), 'S': c['S'] * 0.04, 'u0': 4.0, 'v0': 4.0,
+              'W': Wm * 0.06, 'D': Dm * 0.06, 'H': H0 * 0.06, 'F': 0.06}
+    chaves = {False: ('a', 't', 'S', 'u0', 'v0', 'H'), 'tudo': ('a', 't', 'u0', 'v0', 'W', 'D', 'H'),
+              'chao': ('a', 't', 'u0', 'v0', 'F', 'H'), 'proporcao': ('a', 't', 'u0', 'v0', 'F')}[livre]
     for _ in range(7):
-        for k in ('a', 't', 'S', 'u0', 'v0', 'H'):
+        for k in chaves:
             for sinal in (1, -1):
                 while True:
                     novo = dict(c)
                     novo[k] += sinal * passos[k]
                     novo['t'] = float(np.clip(novo['t'], np.radians(10), np.radians(70)))
                     novo['a'] = float(np.clip(novo['a'], np.radians(15), np.radians(75)))
+                    for d in ('W', 'D', 'H', 'F'):
+                        novo[d] = max(novo[d], 0.01)
                     n = nota(novo)
                     if n <= base + 1e-5:
                         break
                     c, base = novo, n
         passos = {k: v * 0.5 for k, v in passos.items()}
+    if livre == 'proporcao':
+        c['H'] *= c['F']
+    c['W'], c['D'], c['F'] = c['W'] * c['F'], c['D'] * c['F'], 1.0
     return c, base
 
 
@@ -228,15 +278,13 @@ def amostrar(img, u, v):
     return r
 
 
-def renderizar(desenho, cam, Wm, Dm, H, escala, costas=None, solido=False):
+def raios(lo, hi, escala):
     """
-    A caixa com o desenho projetado, vista pela câmera do tabuleiro, em dobro (1/escala px
-    por px do tabuleiro). costas: None (a frente, como desenhada), 'lado' (as costas lisas,
-    com a textura da lateral) ou 'frente' (a frente espelhada atrás). Devolve a imagem e a
-    âncora (a quina de baixo da base).
+    A caixa [lo, hi] vista pela câmera do tabuleiro, em dobro: para cada pixel da imagem,
+    o ponto da caixa que aparece nele (o mais perto da câmera) e a face (0: x, 1: y, 2: z).
     """
     tab = {'a': np.radians(45), 't': np.radians(30), 'S': PX_M_TABULEIRO / escala, 'u0': 0.0, 'v0': 0.0}
-    u, v = proj(cantos(Wm, Dm, H), tab)
+    u, v = proj(np.array([[x, y, z] for x in (lo[0], hi[0]) for y in (lo[1], hi[1]) for z in (lo[2], hi[2])]), tab)
     x0, x1 = int(np.floor(u.min())) - 1, int(np.ceil(u.max())) + 1
     y0, y1 = int(np.floor(v.min())) - 1, int(np.ceil(v.max())) + 1
     tab['u0'], tab['v0'] = -x0, -y0
@@ -248,7 +296,6 @@ def renderizar(desenho, cam, Wm, Dm, H, escala, costas=None, solido=False):
     du, dv = xx - tab['u0'], yy - tab['v0']
     chao = np.stack([inv[0, 0] * du + inv[0, 1] * dv, inv[1, 0] * du + inv[1, 1] * dv, np.zeros_like(du)], axis=-1)
     w = np.array([sa * ct, ca * ct, st])
-    lo, hi = np.zeros(3), np.array([Wm, Dm, H])
     tmin = np.full(du.shape, -np.inf)
     tmax = np.full(du.shape, np.inf)
     face = np.zeros(du.shape, dtype=int)
@@ -261,6 +308,17 @@ def renderizar(desenho, cam, Wm, Dm, H, escala, costas=None, solido=False):
         tmax = np.minimum(tmax, tf)
     acerta = tmax >= tmin
     p = chao + np.where(acerta, tmax, 0)[..., None] * w
+    return p, face, acerta, tab
+
+
+def renderizar(desenho, cam, Wm, Dm, H, escala, costas=None, solido=False):
+    """
+    A caixa com o desenho projetado, vista pela câmera do tabuleiro, em dobro (1/escala px
+    por px do tabuleiro). costas: None (a frente, como desenhada), 'lado' (as costas lisas,
+    com a textura da lateral) ou 'frente' (a frente espelhada atrás). Devolve a imagem e a
+    âncora (a quina de baixo da base).
+    """
+    p, face, acerta, tab = raios(np.zeros(3), np.array([Wm, Dm, H]), escala)
     q = p.copy()
     if costas:
         # de trás: a caixa girada 180°; o ponto de verdade é o do outro lado
@@ -290,10 +348,66 @@ def renderizar(desenho, cam, Wm, Dm, H, escala, costas=None, solido=False):
             a = cor[..., 3:4] / 255.0
             cor[..., :3] = np.where(m[..., None], cor[..., :3] * a + media * (1 - a), cor[..., :3])
             cor[..., 3] = np.where(m, 255, cor[..., 3])
-    out = np.zeros((Hi, Wi, 4))
+    out = np.zeros(p.shape[:2] + (4,))
     out[acerta] = cor[acerta]
     ub, vb = proj(np.array([Wm, Dm, 0.0]), tab)
     return np.clip(out, 0, 255).round().astype(np.uint8), (float(ub), float(vb))
+
+
+def renderizar_caixa(desenho, cam, caixa, casa, escala, faixa=None, troca=False):
+    """
+    O desenho (ajustado na caixa cam['W'] x cam['D'] x cam['H']) redesenhado na caixa do
+    móvel de verdade (ox, oy, largura, fundo, altura, em metros dentro da casa), na câmera
+    do tabuleiro, em dobro. faixa (de, até, em metros do desenho): na caixa mais alta, esse
+    pedaço da altura se repete, espelhado a cada volta, em vez de esticar; embaixo e em
+    cima ficam como no desenho, na escala da frente. troca: a frente corre no eixo y
+    (giros 2 e 6). Devolve a imagem e a âncora (a quina de baixo da casa).
+    """
+    ox, oy, bw, bd, bh = caixa
+    Wd, Dd, Hd = cam['W'], cam['D'], cam['H']
+    p, face, acerta, tab = raios(np.array([ox, oy, 0.0]), np.array([ox + bw, oy + bd, bh]), escala)
+    q = p.copy()
+    q[..., 0] = (p[..., 0] - ox) * (Wd / bw)
+    q[..., 1] = (p[..., 1] - oy) * (Dd / bd)
+    z = p[..., 2]
+    if faixa:
+        z0, z1 = faixa
+        e = (Dd / bd) if troca else (Wd / bw)  # metros do desenho por metro de verdade, ao longo da frente
+        baixo, alto = z0 / e, bh - (Hd - z1) / e
+        meio = (z > baixo) & (z < alto)
+        volta = np.where(meio, (z - baixo) / ((z1 - z0) / e), 0.0)
+        n = np.floor(volta)
+        zd = np.where(z <= baixo, z * e, np.where(z >= alto, Hd - (bh - z) * e, z0 + (volta - n) * (z1 - z0)))
+        # nas voltas ímpares, a frente espelhada (as garrafas não se repetem iguais)
+        impar = meio & (n % 2 == 1)
+        if troca:
+            q[..., 1] = np.where(impar & (face == 0), Dd - q[..., 1], q[..., 1])
+        else:
+            q[..., 0] = np.where(impar & (face == 1), Wd - q[..., 0], q[..., 0])
+        q[..., 2] = zd
+    else:
+        q[..., 2] = z * (Hd / bh)
+    cor = amostrar(desenho, *proj(q, cam))
+    out = np.zeros(p.shape[:2] + (4,))
+    out[acerta] = cor[acerta]
+    ub, vb = proj(np.array([casa[0], casa[1], 0.0]), tab)
+    return np.clip(out, 0, 255).round().astype(np.uint8), (float(ub), float(vb))
+
+
+def posicao(giro, Wt, Dt, bw, bd, encosta):
+    """Onde o móvel fica na casa (o canto de cima, em metros): no meio, ou encostado no fundo (a parede)."""
+    ox, oy = (Wt - bw) / 2, (Dt - bd) / 2
+    if encosta:
+        # o fundo é o lado oposto à frente: giro 4 (frente +y) encosta no y = 0, e assim por diante
+        if giro == '4':
+            oy = 0.0
+        elif giro == '0':
+            oy = Dt - bd
+        elif giro == '2':
+            ox = 0.0
+        else:
+            ox = Wt - bw
+    return ox, oy
 
 
 # ---------------------------------------------------------------- tudo
@@ -301,20 +415,37 @@ def renderizar(desenho, cam, Wm, Dm, H, escala, costas=None, solido=False):
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     cfg = json.load(open(args[0], encoding='utf-8'))
-    folha = ler(os.path.join(REPO, cfg['folha']))
     destino = os.path.join(REPO, cfg['destino'])
     escala = cfg.get('escala', 0.5)
-    caixas = pedacos(folha[:, :, 3] > 16)
-    print(len(caixas), 'objetos na folha', flush=True)
+    folhas = {}
+
+    def folha_de(m):
+        nome = m.get('folha', cfg.get('folha'))
+        if nome not in folhas:
+            f = ler(os.path.join(REPO, nome))
+            folhas[nome] = (f, pedacos(f[:, :, 3] > 16))
+            print(nome, ':', len(folhas[nome][1]), 'objetos', flush=True)
+        return folhas[nome]
     arq_lista = os.path.join(destino, 'moveis.json')
     lista = json.load(open(arq_lista, encoding='utf-8')) if os.path.exists(arq_lista) else {}
     conferir = []
     for m in cfg['moveis']:
+        folha, caixas = folha_de(m)
+        if m.get('chao'):
+            ent, img = tapete(m, folha, destino)
+            lista[m['def']] = ent
+            conferir.append((m['def'], img, None))
+            continue
+        if m.get('parede'):
+            ent, imgs = parede(m, folha, caixas, destino, escala)
+            lista[m['def']] = ent
+            for img in imgs:
+                conferir.append((m['def'], img, None))
+            continue
         if 'giros' in m:
             ent, imgs = quatro_giros(m, folha, caixas, destino, escala)
             lista[m['def']] = ent
-            conferir.append((m['def'], imgs[0], None))
-            for img in imgs[1:]:
+            for img in imgs:
                 conferir.append((m['def'], img, None))
             continue
         rec = recortar(folha, caixas, m['pedaco'])
@@ -325,7 +456,7 @@ def main():
         os.makedirs(pasta, exist_ok=True)
         ent = {'escala': escala}
         if m.get('ancora') == 'centro':
-            k = m['altura'] * 57.6 / escala / rec.shape[0] * m.get('ajuste', 1.0)
+            k = m['altura'] * PX_M_VERTICAL / escala / rec.shape[0] * m.get('ajuste', 1.0)
             img = reamostrar(rec, max(1, round(rec.shape[1] * k)), max(1, round(rec.shape[0] * k)))
             ax, ay = ancora_centro(img)
             gravar(img, os.path.join(pasta, 'frente.png'))
@@ -355,31 +486,139 @@ def main():
 
 
 def quatro_giros(m, folha, caixas, destino, escala):
-    """O móvel desenhado nos 4 giros: cada vista acertada no ângulo do tabuleiro, como foi desenhada."""
+    """
+    O móvel desenhado nos 4 giros: cada vista no tamanho de verdade, no ângulo do tabuleiro.
+    Como está (com "real"): as 4 vistas usam a mesma escala (a mediana das caixas), para o
+    móvel não mudar de tamanho ao girar.
+    """
     pasta = os.path.join(destino, m['def'])
     os.makedirs(pasta, exist_ok=True)
     W, D = m.get('W', 1), m.get('D', 1)
+    real = m.get('real')
     ent = {'escala': escala, 'giros': {}}
     imgs = []
-    for giro, pedaco in m['giros'].items():
+    vistas = []
+    for giro, qual in m['giros'].items():
+        pedaco, espelho = (qual, False) if isinstance(qual, int) else (qual['pedaco'], qual.get('espelho', False))
         rec = recortar(folha, caixas, pedaco)
-        # nos giros 2 e 6 o comprimento do móvel corre na outra diagonal
-        Wm, Dm = (W * CASA, D * CASA) if giro in ('0', '4') else (D * CASA, W * CASA)
-        cam, nota = ajustar_camera(rec[:, :, 3] > 100, Wm, Dm, m['altura'])
-        if m.get('como_esta'):
-            # o desenho como é: a escala da caixa ajustada (px por metro) vira a do tabuleiro
-            k = (PX_M_TABULEIRO / escala) / cam['S']
-            img = reamostrar(rec, max(1, round(rec.shape[1] * k)), max(1, round(rec.shape[0] * k)))
-            u, v = proj(np.array([Wm, Dm, 0.0]), cam)
-            ax, ay = float(u) * k, float(v) * k
-        else:
-            img, (ax, ay) = renderizar(rec, cam, Wm, Dm, cam['H'], escala, solido=m.get('solido', False))
+        if espelho:
+            rec = rec[:, ::-1].copy()
         nome = f'giro-{giro}.png'
+        if m.get('pendurado'):
+            img, (ax, ay), caixa = pendurar(rec, m['pendurado'], escala)
+            ent['caixa'] = caixa
+            if m.get('brilho'):
+                bx, by, br = m['brilho']
+                ent['brilho'] = {'x': round(bx * img.shape[1], 1), 'y': round(by * img.shape[0], 1), 'r': round(br * img.shape[1], 1)}
+            gravar(img, os.path.join(pasta, nome))
+            ent['giros'][giro] = {'arquivo': f"{m['def']}/{nome}", 'ax': round(ax, 1), 'ay': round(ay, 1)}
+            imgs.append(img)
+            print(f"{m['def']} giro {giro}: pendurado, {img.shape[1]}x{img.shape[0]}", flush=True)
+            continue
+        # nos giros 2 e 6 a largura do móvel corre no eixo y
+        troca = giro in ('2', '6')
+        Wt, Dt = (D * CASA, W * CASA) if troca else (W * CASA, D * CASA)
+        if real:
+            wr, dr, hr = (real[1], real[0], real[2]) if troca else (real[0], real[1], real[2])
+        else:
+            wr, dr, hr = Wt, Dt, m['altura']
+        if m.get('como_esta') and m.get('por') == 'imagem':
+            # pela altura da imagem inteira, presa no centro da base (planta)
+            k = hr * PX_M_VERTICAL / escala / rec.shape[0]
+            img = reamostrar(rec, max(1, round(rec.shape[1] * k)), max(1, round(rec.shape[0] * k)))
+            ax, ay = ancora_centro(img)
+            gravar(img, os.path.join(pasta, nome))
+            ent['giros'][giro] = {'arquivo': f"{m['def']}/{nome}", 'ax': round(ax, 1), 'ay': round(ay, 1), 'ancora': 'centro'}
+            imgs.append(img)
+            print(f"{m['def']} giro {giro}: pela imagem, {img.shape[1]}x{img.shape[0]}", flush=True)
+            continue
+        livre = ('proporcao' if m.get('como_esta') else 'tudo') if real else False
+        cam, nota = ajustar_camera(rec[:, :, 3] > 100, wr, dr, hr, livre=livre)
+        vistas.append({'giro': giro, 'nome': nome, 'rec': rec, 'troca': troca, 'Wt': Wt, 'Dt': Dt,
+                       'wr': wr, 'dr': dr, 'hr': hr, 'cam': cam, 'nota': nota,
+                       # pixels do desenho por metro de verdade
+                       'pm': cam['S'] * cam['W'] / wr})
+    pm = float(np.median([v['pm'] for v in vistas])) if vistas else 0.0
+    for v in vistas:
+        giro, nome, rec, cam, nota = v['giro'], v['nome'], v['rec'], v['cam'], v['nota']
+        Wt, Dt, wr, dr, hr = v['Wt'], v['Dt'], v['wr'], v['dr'], v['hr']
+        Wd, Dd, Hd = cam['W'], cam['D'], cam['H']
+        if m.get('como_esta'):
+            if real:
+                # o móvel, na escala comum: metros de verdade = unidades da caixa x S / pm
+                q = cam['S'] / pm
+                bw, bd, bh = Wd * q, Dd * q, Hd * q
+            else:
+                q, bw, bd, bh = 1.0, Wd, Dd, Hd
+            ox, oy = posicao(giro, Wt, Dt, bw, bd, m.get('encosta', False))
+            k = (PX_M_TABULEIRO / escala) / (cam['S'] / q)
+            img = reamostrar(rec, max(1, round(rec.shape[1] * k)), max(1, round(rec.shape[0] * k)))
+            u, vv = proj(np.array([(Wt - ox) / q, (Dt - oy) / q, 0.0]), cam)
+            ax, ay = float(u) * k, float(vv) * k
+            tam = f'{bw:.2f} x {bd:.2f} x {bh:.2f} m'
+        else:
+            bh = hr if real else Hd
+            faixa = None
+            if m.get('faixa'):
+                f0, f1, n = m['faixa']
+                e = (Dd / dr) if v['troca'] else (Wd / wr)
+                faixa = (f0 * Hd, f1 * Hd)
+                bh = (f0 * Hd + n * (f1 - f0) * Hd + (1 - f1) * Hd) / e
+            ox, oy = posicao(giro, Wt, Dt, wr, dr, m.get('encosta', False))
+            img, (ax, ay) = renderizar_caixa(rec, cam, (ox, oy, wr, dr, bh), (Wt, Dt), escala, faixa=faixa, troca=v['troca'])
+            tam = f'{wr:.2f} x {dr:.2f} x {bh:.2f} m (o desenho: {Wd:.2f} x {Dd:.2f} x {Hd:.2f})'
         gravar(img, os.path.join(pasta, nome))
         ent['giros'][giro] = {'arquivo': f"{m['def']}/{nome}", 'ax': round(ax, 1), 'ay': round(ay, 1)}
         imgs.append(img)
-        print(f"{m['def']} giro {giro}: encaixe {nota:.3f}; desenho a {np.degrees(cam['a']):.0f}° e {np.degrees(cam['t']):.0f}°, "
-              f"altura {cam['H']:.2f} m", flush=True)
+        print(f"{m['def']} giro {giro}: encaixe {nota:.3f}; desenho a {np.degrees(cam['a']):.0f}° e {np.degrees(cam['t']):.0f}°; {tam}", flush=True)
+    return ent, imgs
+
+
+def pendurar(rec, pendurado, escala):
+    """
+    A lâmpada: a imagem pela largura da cúpula, presa no teto no meio da casa. Devolve a
+    imagem, a âncora (a quina de baixo da casa, no chão) e a caixa dela no cômodo
+    ([x0, x1, y0, y1, z0, z1], z em metros), para a ordem de quem fica na frente.
+    """
+    largura, teto = pendurado
+    k = (PX_M_TABULEIRO / escala) * largura / rec.shape[1]
+    img = reamostrar(rec, max(1, round(rec.shape[1] * k)), max(1, round(rec.shape[0] * k)))
+    # o topo da imagem (o canopla) fica no teto, no meio da casa; a quina de baixo da casa,
+    # no chão, fica 16 px abaixo do meio e mais a altura do teto
+    ax = img.shape[1] / 2
+    ay = (16 + teto * PX_M_VERTICAL) / escala
+    alto = img.shape[0] * escala / PX_M_VERTICAL
+    return img, (ax, ay), [0.4, 0.6, 0.4, 0.6, round(teto - alto, 2), teto]
+
+
+def tapete(m, folha, destino):
+    """O tapete: a imagem vista de cima, em pé, a 128 px por casa (o jogo deita no chão)."""
+    ys, xs = np.nonzero(folha[:, :, 3] > 16)
+    rec = folha[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
+    img = reamostrar(rec, m['W'] * 128, m['D'] * 128)
+    pasta = os.path.join(destino, m['def'])
+    os.makedirs(pasta, exist_ok=True)
+    gravar(img, os.path.join(pasta, 'chao.png'))
+    print(f"{m['def']}: tapete {img.shape[1]}x{img.shape[0]}", flush=True)
+    return {'escala': 1, 'chao': {'arquivo': f"{m['def']}/chao.png"}}, img
+
+
+def parede(m, folha, caixas, destino, escala):
+    """O item de parede: cada vista pela largura que ocupa na tela (na parede e para fora dela), presa no ponto de encosto."""
+    pasta = os.path.join(destino, m['def'])
+    os.makedirs(pasta, exist_ok=True)
+    w, d, _ = m['real']
+    ent = {'escala': escala, 'parede': {}}
+    imgs = []
+    for chave, (pedaco, fx, fy) in m['parede'].items():
+        rec = recortar(folha, caixas, pedaco)
+        k = (PX_M_TABULEIRO * 0.7071 * (w + d) / escala) / rec.shape[1]
+        img = reamostrar(rec, max(1, round(rec.shape[1] * k)), max(1, round(rec.shape[0] * k)))
+        nome = f'parede-{chave}.png'
+        gravar(img, os.path.join(pasta, nome))
+        ent['parede'][chave] = {'arquivo': f"{m['def']}/{nome}", 'ax': round(fx * img.shape[1], 1), 'ay': round(fy * img.shape[0], 1)}
+        imgs.append(img)
+        print(f"{m['def']} {chave}: {img.shape[1]}x{img.shape[0]}", flush=True)
     return ent, imgs
 
 

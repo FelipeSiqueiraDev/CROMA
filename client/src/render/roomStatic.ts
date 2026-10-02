@@ -1,6 +1,7 @@
-import type { FloorStyle, RoomMap, WallSeg } from '@croma/shared';
+import { Z_PER_M, type FloorStyle, type RoomMap, type WallSeg } from '@croma/shared';
 import { hash, shade } from './color';
 import { iso } from './iso';
+import { texturaParede, texturaPiso } from './texturas';
 
 export interface StaticLayer {
   canvas: HTMLCanvasElement;
@@ -49,6 +50,8 @@ const FLOOR_THICK = 0.35;
 /** altura do vão da porta: 2,15 m (Z_PER_M) */
 const DOOR_H = 3.9;
 const MAX_PIXELS = 14_000_000;
+/** a casa do tabuleiro, em metros */
+const CASA_M = 0.68;
 
 type Pt = [number, number];
 
@@ -143,7 +146,10 @@ function wallLine(s: WallSeg, a0: number, z0: number, a1: number, z1: number): [
   return [iso(a0, s.plane, z0), iso(a1, s.plane, z1)];
 }
 
-function drawWallSeg(ctx: CanvasRenderingContext2D, map: RoomMap, s: WallSeg) {
+/** Pinta com a textura o que estiver recortado: uma face de parede ou uma casa do chão. */
+type Pintor<T> = (alvo: T) => void;
+
+function drawWallSeg(ctx: CanvasRenderingContext2D, map: RoomMap, s: WallSeg, pintarParede?: Pintor<WallSeg>) {
   const top = map.walls.top;
   const b = s.base;
   const a0 = s.at;
@@ -162,6 +168,27 @@ function drawWallSeg(ctx: CanvasRenderingContext2D, map: RoomMap, s: WallSeg) {
   ctx.fillStyle = base;
   ctx.fill('evenodd');
   ctx.clip('evenodd');
+
+  if (pintarParede) {
+    // a textura desenhada (do chão ao topo); a parede da esquerda fica um pouco mais escura
+    pintarParede(s);
+    if (s.wall === 'l') {
+      ctx.fillStyle = 'rgba(0,0,0,0.16)';
+      poly(ctx, face);
+      ctx.fill();
+    }
+    const [, yb] = iso(s.wall === 'l' ? s.plane : a0, s.wall === 'l' ? a0 : s.plane, b);
+    const [, yt] = iso(s.wall === 'l' ? s.plane : a0, s.wall === 'l' ? a0 : s.plane, b + 1.8);
+    const g = ctx.createLinearGradient(0, yb + 16, 0, yt);
+    g.addColorStop(0, 'rgba(0,0,0,0.35)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    poly(ctx, face);
+    ctx.fill();
+    ctx.restore();
+    acabamento(ctx, map, s, hole);
+    return;
+  }
 
   // tijolos
   const course = 0.3;
@@ -210,7 +237,15 @@ function drawWallSeg(ctx: CanvasRenderingContext2D, map: RoomMap, s: WallSeg) {
     ctx.fillRect(cx - 24, cy - 24, 48, 48);
   }
   ctx.restore();
+  acabamento(ctx, map, s, hole);
+}
 
+/** A moldura da porta, o topo com espessura e as tampas nas pontas da parede. */
+function acabamento(ctx: CanvasRenderingContext2D, map: RoomMap, s: WallSeg, hole: Pt[] | null) {
+  const top = map.walls.top;
+  const b = s.base;
+  const a0 = s.at;
+  const a1 = s.at + 1;
   if (hole) {
     ctx.lineWidth = 2;
     const fr = wallQuad(s, a0 + 0.08, a1 - 0.08, b, b + DOOR_H + 0.06);
@@ -389,7 +424,7 @@ function drawPattern(ctx: CanvasRenderingContext2D, x: number, y: number, h: num
   }
 }
 
-function drawTile(ctx: CanvasRenderingContext2D, map: RoomMap, x: number, y: number, h: number, door: boolean, minH: number, look: FloorLook = FLOORS.pedra) {
+function drawTile(ctx: CanvasRenderingContext2D, map: RoomMap, x: number, y: number, h: number, door: boolean, minH: number, look: FloorLook = FLOORS.pedra, pintarPiso?: Pintor<[number, number, number]>) {
   // bordas (espessura) para frente; na beira da sala descem até a base
   const nx = map.floorHeight(x + 1, y);
   const bx = nx === null ? minH - FLOOR_THICK : nx;
@@ -414,8 +449,9 @@ function drawTile(ctx: CanvasRenderingContext2D, map: RoomMap, x: number, y: num
     }
   }
 
-  if (!door && look.kind !== 'stone') {
-    drawPattern(ctx, x, y, h, look);
+  if (!door && (pintarPiso || look.kind !== 'stone')) {
+    if (pintarPiso) pintarPiso([x, y, h]);
+    else drawPattern(ctx, x, y, h, look);
     // sombra de degrau: piso mais alto atrás
     const backX = map.floorHeight(x - 1, y);
     const backY = map.floorHeight(x, y - 1);
@@ -500,6 +536,46 @@ function drawLedges(ctx: CanvasRenderingContext2D, map: RoomMap, x: number, y: n
   ctx.lineWidth = 1;
 }
 
+/** O padrão que leva cada pixel da textura para a tela: a origem e os passos de um pixel em x e em y. */
+function padrao(ctx: CanvasRenderingContext2D, img: HTMLImageElement, o: Pt, px: Pt, py: Pt) {
+  const p = ctx.createPattern(img, 'repeat');
+  p?.setTransform(new DOMMatrix([px[0] - o[0], px[1] - o[1], py[0] - o[0], py[1] - o[1], o[0], o[1]]));
+  return p;
+}
+
+/** O chão com a textura vista de cima: uma volta dela cobre casas x casas (um fio a mais, sem frestas entre as casas). */
+function pintorPiso(ctx: CanvasRenderingContext2D, img: HTMLImageElement, casas: number): Pintor<[number, number, number]> {
+  const W = img.naturalWidth;
+  const H = img.naturalHeight;
+  return ([x, y, h]) => {
+    const p = padrao(ctx, img, iso(0, 0, h), iso(casas / W, 0, h), iso(0, casas / H, h));
+    if (!p) return;
+    const e = 0.012;
+    poly(ctx, quad(x - e, y - e, x + 1 + e, y + 1 + e, h));
+    ctx.fillStyle = p;
+    ctx.fill();
+  };
+}
+
+/** A parede com a textura vista de frente: do chão ao topo, e a largura de uma volta pela proporção da imagem. */
+function pintorParede(ctx: CanvasRenderingContext2D, map: RoomMap, img: HTMLImageElement): Pintor<WallSeg> {
+  const W = img.naturalWidth;
+  const H = img.naturalHeight;
+  const top = map.walls.top;
+  return (s) => {
+    const alto = top - s.base;
+    const volta = ((W / H) * (alto / Z_PER_M)) / CASA_M;
+    const em = (a: number, z: number): Pt => (s.wall === 'l' ? iso(s.plane, a, z) : iso(a, s.plane, z));
+    const p = padrao(ctx, img, em(0, top), em(volta / W, top), em(0, top - alto / H));
+    if (!p) return;
+    const q = wallQuad(s, s.at, s.at + 1, s.base, top);
+    const xs = q.map((v) => v[0]);
+    const ys = q.map((v) => v[1]);
+    ctx.fillStyle = p;
+    ctx.fillRect(Math.min(...xs) - 1, Math.min(...ys) - 1, Math.max(...xs) - Math.min(...xs) + 2, Math.max(...ys) - Math.min(...ys) + 2);
+  };
+}
+
 export function buildStatic(map: RoomMap, wantScale: number, style?: FloorStyle): StaticLayer {
   const look = floorLook(style);
   const bd = roomBounds(map);
@@ -515,6 +591,11 @@ export function buildStatic(map: RoomMap, wantScale: number, style?: FloorStyle)
   const ctx = canvas.getContext('2d')!;
   ctx.setTransform(scale, 0, 0, scale, -x * scale, -y * scale);
   ctx.lineJoin = 'round';
+  // texturas desenhadas do estilo do cômodo (chão e parede), quando já chegaram
+  const tPiso = texturaPiso(style);
+  const tParede = texturaParede(style);
+  const pintarPiso = tPiso ? pintorPiso(ctx, tPiso.img, tPiso.casas) : undefined;
+  const pintarParede = tParede ? pintorParede(ctx, map, tParede.img) : undefined;
 
   const minH = minFloor(map);
   const door = map.door;
@@ -534,7 +615,7 @@ export function buildStatic(map: RoomMap, wantScale: number, style?: FloorStyle)
   }
 
   const segs = [...map.walls.segs].sort((a, b) => (a.wall === b.wall ? 0 : a.wall === 'r' ? -1 : 1));
-  for (const s of segs) drawWallSeg(ctx, map, s);
+  for (const s of segs) drawWallSeg(ctx, map, s, pintarParede);
   // cantos
   for (const s of map.walls.segs) {
     if (s.wall !== 'l') continue;
@@ -552,7 +633,7 @@ export function buildStatic(map: RoomMap, wantScale: number, style?: FloorStyle)
     }
   tiles.sort((a, b) => a[0] + a[1] - (b[0] + b[1]) || a[2] - b[2]);
   for (const [tx, ty, th] of tiles) {
-    drawTile(ctx, map, tx, ty, th, false, minH, look);
+    drawTile(ctx, map, tx, ty, th, false, minH, look, pintarPiso);
     drawLedges(ctx, map, tx, ty, th);
   }
 

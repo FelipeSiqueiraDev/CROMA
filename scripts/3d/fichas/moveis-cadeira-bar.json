@@ -1,8 +1,0 @@
-{
-  "folha": "client/public/arte/mobiliario/folhas/cadeira-bar.png",
-  "destino": "client/public/arte/mobiliario",
-  "escala": 0.5,
-  "moveis": [
-    {"def": "chair_bar", "W": 1, "D": 1, "altura": 0.85, "como_esta": true, "giros": {"4": 0, "2": 1, "0": 2, "6": 3}}
-  ]
-}

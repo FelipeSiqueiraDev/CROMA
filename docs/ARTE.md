@@ -332,6 +332,14 @@ O jeito certo de cada móvel: **uma folha por móvel, com ele girando**, para vi
 - **Linha de baixo, vista de cima** (de cima e de frente, a uns 55°, para o combate), **também no sentido horário**: 5) virada para baixo; 6) para a esquerda; 7) para cima; 8) para a direita.
 - O mesmo objeto em todas: mesmo tamanho, pés na mesma altura, separadas, fundo transparente, sem chão, sem sombra, sem texto. Estilo da folha de objetos do Códex (pixel art detalhada, contorno escuro fino, cores quentes).
 - Nome: `client/public/arte/mobiliario/folhas/<nome-do-movel>.png`. O construtor recorta, acerta tamanho e âncora e grava `mobiliario/<id>/giro-<0|2|4|6>.png`.
+- **O tamanho é o de verdade** (revisto em 02/10): o pedido diz as medidas do móvel em metros, perto de uma pessoa de 1,80 m (no tabuleiro, 104 px). O construtor dá a cada móvel as medidas de verdade (`"real"` na ficha `scripts/3d/fichas/moveis-bar.json`), com a mesma escala nas 4 vistas, e o põe no meio da casa ou encostado na parede. Móvel que é uma caixa e veio baixo ou comprido demais (o balcão) é redesenhado na caixa de verdade; a prateleira repete as fileiras de garrafas até a altura certa, em vez de esticar.
+- Faltou um lado na folha? O construtor espelha outra vista (a frente para a esquerda vira a frente para a direita).
+
+### Itens de parede, tapetes, chão e parede (decidido em 02/10)
+
+- **Item de parede** (relógio, arandela, TV, ventilador): isométrico, já preso numa parede do fundo, em 2 vistas do mesmo tamanho: 1) na parede da direita, frente virada para baixo à esquerda; 2) na parede da esquerda, frente virada para baixo à direita. Com estados (a arandela acesa e apagada), as 2 vistas de cada estado. A parede em si não aparece. O construtor acha o ponto onde ele encosta e grava `mobiliario/<id>/parede-<r|l>.png` (`parede-r-1.png` o outro estado).
+- **Tapete**: visto exatamente de cima, reto, preenchendo a imagem na proporção dele (o tapete gasto, 2×3 casas, em pé). O jogo deita no chão: `mobiliario/<id>/chao.png`.
+- **Chão e parede**: texturas planas, sem perspectiva e sem emenda. O chão visto de cima (quadrado, repete nos dois sentidos); a parede vista de frente, do rodapé ao topo (deitada, 2 por 1, repete na horizontal). O jogo entorta cada uma para o isométrico. Ficam em `client/public/arte/texturas/`, ligadas ao estilo de piso do cômodo em `texturas.json` (o bar: `madeira`).
 
 A lista dos cômodos e dos móveis de cada um está em [`SEDE-DA-ORDEM.md`](SEDE-DA-ORDEM.md); o que falta desenhar, folha por folha, no [`CHECKLIST-ARTE.md`](CHECKLIST-ARTE.md).
 

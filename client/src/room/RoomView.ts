@@ -24,7 +24,7 @@ import {
 import { drawPixelAvatar, PIXEL_AVATAR_HEIGHT, type Pose } from '../render/avatarPixel';
 import { Bubbles, UI_FONT } from '../render/bubbles';
 import { desenharChao, desenharCima, desenharRotulos, type MarcasCombate } from '../render/combateMarcas';
-import { visualComArte } from '../render/furniArte';
+import { desenharParedeComArte, visualComArte } from '../render/furniArte';
 import { furniVisual } from '../render/furniFloor';
 import { drawWallFurni, wallLights } from '../render/furniWall';
 import { drawHintGlyph, drawHintIcon } from '../render/hints';
@@ -35,6 +35,7 @@ import { Lighting, type Light } from '../render/lighting';
 import { Particles } from '../render/particles';
 import { boxSilhouette, Mapper, Painter, pointInPoly, type WBox } from '../render/painter';
 import { buildStatic, doorClipPath, roomBounds, type StaticLayer } from '../render/roomStatic';
+import { versaoTexturas } from '../render/texturas';
 import { cmp, sortDrawables, type Drawable } from '../render/sort';
 import {
   bonecoDir,
@@ -945,8 +946,12 @@ export class RoomView {
     const { ox, oy, k } = this.wallXform(it.wall, it.plane, it.pos, it.z, def);
     ctx.save();
     ctx.globalAlpha = alpha;
+    // com arte: a vista desenhada daquela parede, presa no meio do item
+    const zc = it.z + def.h / 64;
+    const [px, py] = it.wall === 'l' ? iso(it.plane, it.pos, zc) : iso(it.pos, it.plane, zc);
+    const comArte = desenharParedeComArte(ctx, def.id, it.wall, it.state, px, py);
     ctx.transform(1, k, 0, 1, ox, oy);
-    drawWallFurni(ctx, def, it.state, it.id, t);
+    if (!comArte) drawWallFurni(ctx, def, it.state, it.id, t);
     if (outline) {
       ctx.strokeStyle = outline;
       ctx.lineWidth = 1.5;
@@ -1001,7 +1006,7 @@ export class RoomView {
     const scale = z * dpr;
     const canBuild = this.info.canBuild;
 
-    const key = `${this.info.id}|${this.info.heightmap}|${map.door.x},${map.door.y}|${scale}|${this.info.floorStyle ?? ''}`;
+    const key = `${this.info.id}|${this.info.heightmap}|${map.door.x},${map.door.y}|${scale}|${this.info.floorStyle ?? ''}|${versaoTexturas()}`;
     if (key !== this.staticKey) {
       this.staticLayer = buildStatic(map, scale, this.info.floorStyle);
       this.staticKey = key;
@@ -1076,7 +1081,7 @@ export class RoomView {
       const def = getFurni(it.defId);
       if (!def) return;
       const base = furniVisual(def, it.state, it.id);
-      const vis = visualComArte(def, base) ?? base;
+      const vis = visualComArte(def, base, it.state) ?? base;
       m.set(it.rot, def.width, def.depth, it.x, it.y, it.z);
       const floorH = map.floorHeight(it.x, it.y) ?? 0;
       const flat = !!def.flat && it.z <= floorH + 0.05 && !ghost;

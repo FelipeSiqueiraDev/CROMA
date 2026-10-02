@@ -1,8 +1,0 @@
-{
-  "folha": "client/public/arte/mobiliario/folhas/mesa-bar.png",
-  "destino": "client/public/arte/mobiliario",
-  "escala": 0.5,
-  "moveis": [
-    {"def": "table_bar", "W": 1, "D": 1, "altura": 0.75, "como_esta": true, "giros": {"4": 0, "6": 1, "0": 2, "2": 3}}
-  ]
-}

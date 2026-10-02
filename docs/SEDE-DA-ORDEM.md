@@ -31,8 +31,8 @@ O mapa da Sede (Ordo Realitas) já funciona no jogo: os agentes andam, passam de
 
 **Revisto em 02/10:** os móveis vêm em folhas de objetos como a primeira do Códex (`client/public/arte/mobiliario/props-ordo-realitas.png`): até 12 objetos por folha, separados, fundo transparente, vistos de cima e de lado com a frente para baixo à esquerda. O construtor redesenha cada um na grade do tabuleiro (`scripts/3d/moveis.py`). O formato completo está no [`ARTE.md`](ARTE.md) (seção 5); o que falta, folha por folha, no [`CHECKLIST-ARTE.md`](CHECKLIST-ARTE.md).
 
-- **Já no jogo nos 4 giros (02/10):** cadeira do bar (`chair_bar`) e mesa do bar (`table_bar`), uma folha por móvel em `mobiliario/folhas/` (formato no [`ARTE.md`](ARTE.md), "Móvel nos 4 giros").
-- **Já no jogo, só de frente (folha 1, 02/10; o jogo espelha os outros giros):** bancada de computadores (`console`), arquivo de aço (`cabinet_file`), cadeira de escritório (`chair_office`), caixote (`crate_wood`), leito (`hospital_bed`), estante (`bookshelf`), mesa de escritório (`desk_wood`), sinuca (`pool_table`), bancada de armas (`gun_table`) e planta (`plant`).
+- **Já no jogo nos 4 giros (02/10):** o bar inteiro (a lista está abaixo), uma folha por móvel em `mobiliario/folhas/`, no tamanho de verdade (formato no [`ARTE.md`](ARTE.md), "Móvel nos 4 giros").
+- **Já no jogo, só de frente (folha 1, 02/10; o jogo espelha os outros giros):** bancada de computadores (`console`), arquivo de aço (`cabinet_file`), cadeira de escritório (`chair_office`), caixote (`crate_wood`), leito (`hospital_bed`), estante (`bookshelf`), mesa de escritório (`desk_wood`) e bancada de armas (`gun_table`).
 - Os tamanhos abaixo (casas de largura × fundo, altura em metros) são os do jogo: o desenho segue essa proporção.
 
 ## Cômodo por cômodo
@@ -41,36 +41,38 @@ Tamanho em casas (largura × fundo), altura em metros. ✱ = o móvel é importa
 
 ### Bar (térreo)
 
-O Suvaco Seco, o bar de fachada: velho, marrom e acolhedor, com o fliperama piscando. Arrumado como a planta da Sede desenhada pelo Códex e a descrição da wiki: o balcão comprido no fundo, com o corredor do atendente entre ele e as prateleiras (a entrada fica no fim do balcão); as geladeiras no canto de cima, a amarela por último; o fliperama na parede da esquerda; as mesas amarelas, a sinuca e a pilha de cadeiras no canto.
+O Suvaco Seco, o bar de fachada: velho, marrom e acolhedor, com o fliperama piscando. Arrumado como a planta da Sede desenhada pelo Códex e a descrição da wiki: o balcão comprido no fundo, com o corredor do atendente entre ele e as prateleiras (a entrada fica no fim do balcão); as geladeiras no canto de cima, a amarela por último; o fliperama na parede da esquerda; as mesas amarelas, a sinuca e a pilha de cadeiras no canto. O chão e a parede têm textura desenhada (tábuas e lambri).
 
-✅ = já desenhado nos 4 giros (`client/public/arte/mobiliario/folhas/`).
+✅ = já desenhado (`client/public/arte/mobiliario/folhas/`), no tamanho de verdade.
 
 | Item | Id | Qtd | Casas | Altura | O que desenhar |
 |---|---|---|---|---|---|
-| ✅ Mesa de bar | `table_bar` | 4 | 1×1 | 0,75 m | Quadrada, tampo amarelo de plástico, pés de metal (`folhas/mesa-bar.png`). |
-| ✅ Cadeira de bar | `chair_bar` | 14 | 1×1 | 0,46 m de assento | Amarela, de plástico (`folhas/cadeira-bar.png`). |
-| ✱ Balcão do bar | `bar_counter` | 6 | 2×1 | 1,1 m | Madeira escura, frente vermelha frisada, tampo de madeira; emenda com o vizinho. |
-| ✱ Banqueta de balcão | `stool_bar` | 6 | 1×1 | 0,75 m | Assento redondo vermelho, pé de metal com apoio de pé. |
-| ✱ Prateleira de garrafas | `bar_shelf` | 4 | 2×1 | 2,1 m | Estante de parede de madeira, cheia de garrafas coloridas, portas embaixo. |
-| ✱ Geladeira amarela | `beer_fridge` | 1 | 1×1 | 2,0 m | Porta de vidro com garrafas, teclado numérico do lado. É a passagem secreta: desliza para o lado. |
+| ✅ Mesa de bar | `table_bar` | 4 | 1×1 | 0,75 m | Quadrada, tampo amarelo de plástico, pés de metal. |
+| ✅ Cadeira de bar | `chair_bar` | 14 | 1×1 | 0,46 m de assento | Amarela, de plástico. |
+| ✅ Balcão do bar | `bar_counter` | 6 | 2×1 | 1,1 m | Madeira escura, frente vermelha frisada; emenda com o vizinho. |
+| ✅ Banqueta de balcão | `stool_bar` | 6 | 1×1 | 0,75 m | Assento redondo vermelho, pé de metal com apoio de pé. |
+| ✅ Prateleira de garrafas | `bar_shelf` | 4 | 2×1 | 2,0 m | Estante de parede cheia de garrafas coloridas, portas embaixo. |
+| ✅ Geladeira amarela | `beer_fridge` | 1 | 1×1 | 2,0 m | Porta de vidro com garrafas, teclado numérico do lado; desliza e mostra a passagem. Faltam as costas. |
 | ✱ Escada secreta | `stairs_down` | 1 | 1×1 | — | Vão escuro na parede com degraus descendo, luz vermelha lá no fundo. Só aparece quando a geladeira sai. |
-| ✱ Fliperama | `arcade` | 1 | 1×1 | 1,8 m | Roxo e azul, tela de Tetris acesa, sem logo nem texto; aceso e apagado. |
-| Expositor de bebidas | `fridge_drinks` | 2 | 1×1 | 2,0 m | Porta de vidro, cervejas e refrigerantes, luz fria. |
-| Frigobar | `minibar` | 2 | 1×1 | 0,9 m | Baixo, cinza, porta de vidro (atrás do balcão). |
-| ✱ Mesa de sinuca | `pool_table` | 1 | 2×4 | 0,85 m | Feltro verde, bolas e taco (hoje é a da folha 1, só de frente). |
-| Engradado de cerveja | `beer_crate` | 4 | 1×1 | 0,35 m | Plástico amarelo com garrafas marrons; empilha. |
-| Pilha de cadeiras | `chair_stack` | 1 | 1×1 | 1,3 m | Cinco ou seis cadeiras amarelas empilhadas. |
-| Aparador | `counter_wood` | 1 | 2×1 | 0,9 m | Madeira escura, garrafas e copos em cima. |
-| Armarinho | `bar_cabinet` | 1 | 1×1 | 1,0 m | Madeira, duas portas. |
-| Poltrona estofada | `chair_red` | 1 | 1×1 | 0,46 m de assento | Vermelha. |
-| Sofá vermelho | `sofa_booth` | 1 | 2×1 | 0,45 m de assento | Estofado vermelho de boteco. |
-| Planta | `plant` | 3 | 1×1 | 1,2 m | Vaso de barro (hoje é a da folha 1, só de frente). |
-| Barril de chope | `barrel` | 1 | 1×1 | 1,0 m | Metal. |
-| Lâmpada pendurada | `ceiling_lamp` | 7 | 1×1 | — | Fio e cúpula de metal, luz quente. |
-| Copo, cinzeiro | `beer_glass`, `ashtray` | 4, 2 | 1×1 | pequenos | Em cima das mesas e do balcão. |
-| Tapetes | `rug_ornate`, `rug_worn` | 1, 1 | 3×4, 2×3 | chão | Persa vermelho e um gasto: um desenho só, visto direto de cima, retangular. |
+| ✅ Fliperama | `arcade` | 1 | 1×1 | 1,8 m | Roxo e azul, tela de Tetris acesa. |
+| ✅ Expositor de bebidas | `fridge_drinks` | 2 | 1×1 | 2,0 m | Vermelho, porta de vidro, cervejas e refrigerantes. Faltam as costas. |
+| ✅ Frigobar | `minibar` | 2 | 1×1 | 0,9 m | Cinza, porta de vidro (atrás do balcão). Faltam as costas. |
+| ✅ Mesa de sinuca | `pool_table` | 1 | 2×4 | 0,85 m | Feltro verde, caçapas de rede. |
+| ✅ Engradado de cerveja | `beer_crate` | 4 | 1×1 | 0,35 m | Plástico amarelo com garrafas marrons; empilha. |
+| ✅ Pilha de cadeiras | `chair_stack` | 1 | 1×1 | 1,3 m | Cadeiras amarelas empilhadas. |
+| ✅ Aparador | `sideboard` | 1 | 2×1 | 0,9 m | Madeira escura, garrafas e copos em cima. |
+| ✅ Armarinho | `bar_cabinet` | 1 | 1×1 | 1,0 m | Madeira, duas portas. |
+| ✅ Poltrona vermelha | `armchair_red` | 1 | 1×1 | 0,45 m de assento | Couro vermelho gasto. |
+| ✅ Sofá vermelho | `sofa_booth` | 1 | 2×1 | 0,45 m de assento | Couro vermelho gasto, dois lugares. |
+| ✅ Planta | `plant` | 3 | 1×1 | 1,1 m | Vaso de barro (vale para a Sede inteira). |
+| ✅ Barril de chope | `keg` | 1 | 1×1 | 0,6 m | Metal. |
+| ✅ Lâmpada pendurada | `ceiling_lamp` | 7 | 1×1 | — | Cúpula preta de metal, luz quente (vale para os cômodos com ela). |
+| ✅ Copo, cinzeiro | `beer_glass`, `ashtray` | 4, 2 | 1×1 | pequenos | Em cima das mesas e do balcão. |
+| ✅ Tapete gasto | `rug_worn` | 1 | 2×3 | chão | Visto de cima. |
+| Tapete persa | `rug_ornate` | 1 | 3×4 | chão | Vermelho-escuro, medalhão, franjas; visto de cima. |
 | Sujeira | `dirt` | 9 | 1×1 | chão | Manchas, bitucas, tampinhas, papel amassado (decalque no chão). |
-| Relógio, arandela | `clock`, `sconce` (parede) | 1, 2 | — | — | Um desenho de frente cada. |
+| ✅ Relógio, arandela | `clock`, `sconce` (parede) | 1, 2 | — | — | Isométricos, presos na parede; a arandela acesa e apagada. |
+| ✅ TV de tubo, ventilador | `tv_wall`, `fan_wall` (parede) | 1, 1 | — | — | A TV passando futebol, no alto; o ventilador na parede da esquerda. |
 | Letreiro neon | `neon_bar` (parede) | 1 | 64×26 px | — | "BAR" em neon rosa: fica no desenho do jogo (a arte não leva texto). |
 
 ### Salão Principal
@@ -167,13 +169,27 @@ Computadores contornando as paredes, cadeiras viradas para as telas, o meio vazi
 
 ### Enfermaria
 
+Seis leitos separados por divisórias, o armário dos remédios, a bancada e o posto da enfermagem. Luz fria das fluorescentes.
+
 | Item | Id | Qtd | Casas | Altura | O que desenhar |
 |---|---|---|---|---|---|
-| ✱ Leito hospitalar | `hospital_bed` | 6 | 1×3 | 0,7 m | Cabeceira levantada, lençol verde, grades. |
-| Divisória hospitalar | `divider` | 8 | 1×1 | 1,6 m | Cortina verde-clara no trilho. |
-| Suporte de soro | `iv_stand` | 6 | 1×1 | 1,9 m | — |
-| Armário de remédios | `medical_cabinet` | 2 | 2×1 | 1,9 m | Branco, portas de vidro, cruz vermelha. |
-| Balcão, pias, posto, carrinho | `lab_bench`, `sink`, `desk_metal`, `trolley` | — | — | — | — |
+| ✱ Leito hospitalar | `hospital_bed` | 6 | 1×3 | 0,7 m | Metal branco, cabeceira levantada, lençol verde-claro, grades baixadas, rodinhas. A frente é o pé da cama. |
+| ✱ Divisória hospitalar | `divider` | 8 | 1×1 | 1,6 m | Biombo de um painel, armação branca com rodinhas, cortina verde-clara. |
+| ✱ Armário de remédios | `medical_cabinet` | 2 | 2×1 | 1,9 m | Metal branco, portas de vidro em cima com frascos, metal embaixo, cruz verde de farmácia. |
+| Suporte de soro | `iv_stand` | 6 | 1×1 | 1,9 m | Haste cromada, bolsa de soro com o tubo, base de 5 pés com rodinhas. |
+| Pia | `sink` | 3 | 1×1 | 0,9 m | Louça branca numa coluna, torneira de alavanca. |
+| Bancada | `lab_bench` | 3 | 2×1 | 0,8 m | Tampo de inox, gabinete branco com gavetas e portas. |
+| Carrinho de enfermagem | `trolley` | 1 | 1×1 | 0,95 m | Inox, 3 prateleiras com gaze, frascos e luvas, rodinhas. |
+| Mesa do posto | `desk_metal` | 1 | 2×1 | 0,8 m | Metal cinza, gaveteiro, papéis e uma prancheta. |
+| Cadeira de escritório | `chair_office` | 1 | 1×1 | 0,5 m de assento | Preta, de rodinhas. |
+| Arquivo de aço | `cabinet_file` | 1 | 1×1 | 1,35 m | Cinza, 4 gavetas. |
+| Monitor de sinais vitais | (novo) | 1 | 1×1 | 0,3 m | Em cima da bancada: tela escura com a linha verde do batimento. |
+| Bandeja de remédios | `flasks` | 1 | 1×1 | 0,25 m | Em cima da bancada: inox, frascos, vidro âmbar, seringas. |
+| Monitor de computador | `monitor` | 1 | 1×1 | 0,4 m | Em cima da mesa do posto: de tubo, bege, com teclado. |
+| Luminária fluorescente | `fluorescent` | 5 | 1×1 | teto | Calha branca com duas lâmpadas tubulares, luz fria. |
+| Luz de emergência | `emergency_light` (parede) | 1 | — | — | Caixa branca com dois faroletes; acesa e apagada. |
+| ✅ Relógio | `clock` (parede) | 1 | — | — | O mesmo do bar. |
+| Chão e parede | estilo `ladrilho` | — | — | — | Lajotas brancas encardidas; azulejo branco até a metade e verde-água em cima. |
 
 ### Arsenal
 
