@@ -31,7 +31,8 @@ O mapa da Sede (Ordo Realitas) já funciona no jogo: os agentes andam, passam de
 
 **Revisto em 02/10:** os móveis vêm em folhas de objetos como a primeira do Códex (`client/public/arte/mobiliario/props-ordo-realitas.png`): até 12 objetos por folha, separados, fundo transparente, vistos de cima e de lado com a frente para baixo à esquerda. O construtor redesenha cada um na grade do tabuleiro (`scripts/3d/moveis.py`). O formato completo está no [`ARTE.md`](ARTE.md) (seção 5); o que falta, folha por folha, no [`CHECKLIST-ARTE.md`](CHECKLIST-ARTE.md).
 
-- **Já no jogo (folha 1, 02/10):** bancada de computadores (`console`), arquivo de aço (`cabinet_file`), cadeira de escritório (`chair_office`), caixote (`crate_wood`), leito (`hospital_bed`), estante (`bookshelf`), mesa de escritório (`desk_wood`), cadeira do bar (`chair_bar`), sinuca (`pool_table`), bancada de armas (`gun_table`) e planta (`plant`).
+- **Já no jogo nos 4 giros (02/10):** cadeira do bar (`chair_bar`) e mesa do bar (`table_bar`), uma folha por móvel em `mobiliario/folhas/` (formato no [`ARTE.md`](ARTE.md), "Móvel nos 4 giros").
+- **Já no jogo, só de frente (folha 1, 02/10; o jogo espelha os outros giros):** bancada de computadores (`console`), arquivo de aço (`cabinet_file`), cadeira de escritório (`chair_office`), caixote (`crate_wood`), leito (`hospital_bed`), estante (`bookshelf`), mesa de escritório (`desk_wood`), sinuca (`pool_table`), bancada de armas (`gun_table`) e planta (`plant`).
 - Os tamanhos abaixo (casas de largura × fundo, altura em metros) são os do jogo: o desenho segue essa proporção.
 
 ## Cômodo por cômodo
@@ -40,24 +41,37 @@ Tamanho em casas (largura × fundo), altura em metros. ✱ = o móvel é importa
 
 ### Bar (térreo)
 
-Vazio, sujo e com pouca bebida. Luz amarela, fumaça no ar.
+O Suvaco Seco, o bar de fachada: velho, marrom e acolhedor, com o fliperama piscando. Arrumado como a planta da Sede desenhada pelo Códex e a descrição da wiki: o balcão comprido no fundo, com o corredor do atendente entre ele e as prateleiras (a entrada fica no fim do balcão); as geladeiras no canto de cima, a amarela por último; o fliperama na parede da esquerda; as mesas amarelas, a sinuca e a pilha de cadeiras no canto.
+
+✅ = já desenhado nos 4 giros (`client/public/arte/mobiliario/folhas/`).
 
 | Item | Id | Qtd | Casas | Altura | O que desenhar |
 |---|---|---|---|---|---|
-| ✱ Geladeira de cerveja | `beer_fridge` | 1 | 1×1 | 2,0 m | Porta de vidro, luz amarela por dentro, poucas garrafas. É a porta secreta: precisa de uma versão "deslizando" (a mesma, só se mexe). |
+| ✅ Mesa de bar | `table_bar` | 4 | 1×1 | 0,75 m | Quadrada, tampo amarelo de plástico, pés de metal (`folhas/mesa-bar.png`). |
+| ✅ Cadeira de bar | `chair_bar` | 14 | 1×1 | 0,46 m de assento | Amarela, de plástico (`folhas/cadeira-bar.png`). |
+| ✱ Balcão do bar | `bar_counter` | 6 | 2×1 | 1,1 m | Madeira escura, frente vermelha frisada, tampo de madeira; emenda com o vizinho. |
+| ✱ Banqueta de balcão | `stool_bar` | 6 | 1×1 | 0,75 m | Assento redondo vermelho, pé de metal com apoio de pé. |
+| ✱ Prateleira de garrafas | `bar_shelf` | 4 | 2×1 | 2,1 m | Estante de parede de madeira, cheia de garrafas coloridas, portas embaixo. |
+| ✱ Geladeira amarela | `beer_fridge` | 1 | 1×1 | 2,0 m | Porta de vidro com garrafas, teclado numérico do lado. É a passagem secreta: desliza para o lado. |
 | ✱ Escada secreta | `stairs_down` | 1 | 1×1 | — | Vão escuro na parede com degraus descendo, luz vermelha lá no fundo. Só aparece quando a geladeira sai. |
-| ✱ Balcão do bar | `bar_counter` | 5 | 2×1 | 1,1 m | Balcão vermelho-escuro de madeira com tampo gasto e apoio de pé de latão; emenda com o vizinho. |
-| Prateleira de garrafas | `bar_shelf` | 3 | 2×1 | 2,1 m | Prateleiras quase vazias, espelho encardido, uma garrafa deitada. |
-| Banqueta de balcão | `stool_bar` | 6 | 1×1 | 0,75 m | Banqueta alta vermelha, pé de metal. |
-| Mesa de bar | `table_bar` | 4 | 1×1 | 0,75 m | Mesa quadrada amarelada, marcas de copo. |
-| Cadeira de bar | `chair_bar` | 13 | 1×1 | 0,46 m | Cadeira amarela de plástico/madeira; algumas tortas. |
-| ✱ Mesa de sinuca | `pool_table` | 1 | 2×4 | 0,85 m | Feltro verde, bolas e taco; luminária comprida pendurada em cima. |
-| Jukebox | `jukebox` | 1 | 1×1 | 1,6 m | Rosa e laranja, acesa/apagada. |
-| Sofá vermelho | `sofa_booth` | 2 | 2×1 | 0,45 m | Estofado vermelho rasgado. |
-| Caixote, barril | `crate_wood`, `barrel` | 2, 1 | 1×1 | 0,8–1,0 m | Engradados de garrafa vazia, barril de chope. |
+| ✱ Fliperama | `arcade` | 1 | 1×1 | 1,8 m | Roxo e azul, tela de Tetris acesa, sem logo nem texto; aceso e apagado. |
+| Expositor de bebidas | `fridge_drinks` | 2 | 1×1 | 2,0 m | Porta de vidro, cervejas e refrigerantes, luz fria. |
+| Frigobar | `minibar` | 2 | 1×1 | 0,9 m | Baixo, cinza, porta de vidro (atrás do balcão). |
+| ✱ Mesa de sinuca | `pool_table` | 1 | 2×4 | 0,85 m | Feltro verde, bolas e taco (hoje é a da folha 1, só de frente). |
+| Engradado de cerveja | `beer_crate` | 4 | 1×1 | 0,35 m | Plástico amarelo com garrafas marrons; empilha. |
+| Pilha de cadeiras | `chair_stack` | 1 | 1×1 | 1,3 m | Cinco ou seis cadeiras amarelas empilhadas. |
+| Aparador | `counter_wood` | 1 | 2×1 | 0,9 m | Madeira escura, garrafas e copos em cima. |
+| Armarinho | `bar_cabinet` | 1 | 1×1 | 1,0 m | Madeira, duas portas. |
+| Poltrona estofada | `chair_red` | 1 | 1×1 | 0,46 m de assento | Vermelha. |
+| Sofá vermelho | `sofa_booth` | 1 | 2×1 | 0,45 m de assento | Estofado vermelho de boteco. |
+| Planta | `plant` | 3 | 1×1 | 1,2 m | Vaso de barro (hoje é a da folha 1, só de frente). |
+| Barril de chope | `barrel` | 1 | 1×1 | 1,0 m | Metal. |
+| Lâmpada pendurada | `ceiling_lamp` | 7 | 1×1 | — | Fio e cúpula de metal, luz quente. |
+| Copo, cinzeiro | `beer_glass`, `ashtray` | 4, 2 | 1×1 | pequenos | Em cima das mesas e do balcão. |
+| Tapetes | `rug_ornate`, `rug_worn` | 1, 1 | 3×4, 2×3 | chão | Persa vermelho e um gasto: um desenho só, visto direto de cima, retangular. |
 | Sujeira | `dirt` | 9 | 1×1 | chão | Manchas, bitucas, tampinhas, papel amassado (decalque no chão). |
-| Letreiro neon | `neon_bar` (parede) | 1 | 64×26 px | — | "BAR" em neon rosa, aceso/apagado. |
-| Alvo de dardos | `dartboard` (parede) | 1 | 28×28 px | — | Com dois dardos cravados. |
+| Relógio, arandela | `clock`, `sconce` (parede) | 1, 2 | — | — | Um desenho de frente cada. |
+| Letreiro neon | `neon_bar` (parede) | 1 | 64×26 px | — | "BAR" em neon rosa: fica no desenho do jogo (a arte não leva texto). |
 
 ### Salão Principal
 

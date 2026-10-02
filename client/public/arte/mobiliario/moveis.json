@@ -179,5 +179,30 @@
    "lado": "esquerda",
    "ancora": "centro"
   }
+ },
+ "table_bar": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "table_bar/giro-4.png",
+    "ax": 64.3,
+    "ay": 144.7
+   },
+   "6": {
+    "arquivo": "table_bar/giro-6.png",
+    "ax": 69.1,
+    "ay": 143.8
+   },
+   "0": {
+    "arquivo": "table_bar/giro-0.png",
+    "ax": 65.4,
+    "ay": 144.5
+   },
+   "2": {
+    "arquivo": "table_bar/giro-2.png",
+    "ax": 66.8,
+    "ay": 142.9
+   }
+  }
  }
 }
