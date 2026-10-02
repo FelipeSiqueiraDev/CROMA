@@ -16,7 +16,7 @@ import { buildRoom, plan, type FloorSeed, type WallSeed } from './seed';
 export const SEDE = 'Sede · ';
 export const SEDE_CODE = '0413';
 /** Versão da montagem da Sede: subiu, a Sede é refeita no lugar (mesmos cômodos, peças e registro). */
-export const SEDE_REV = 8;
+export const SEDE_REV = 12;
 
 /** Planta retangular com a porta na parede de cima (y = 0), na coluna doorX. */
 export function planTop(w: number, h: number, doorX: number): { heightmap: string; door: Door } {
@@ -247,18 +247,18 @@ const ROOMS: RoomSpec[] = [
       ['chair_red', 30, 10, 2],
       ['armchair', 33, 9, 6],
       ['table_small', 34, 11, 0],
-      ['cabinet_file', 34, 6, 6],
-      ['cabinet_file', 34, 7, 6],
+      ['cabinet_file', 33, 0, 4],
+      ['cabinet_file', 34, 0, 4],
       // xadrez perto da escada
       ['table_chess', 4, 11, 0],
       ['armchair', 3, 11, 2],
       ['armchair', 5, 11, 6],
-      ['armchair', 4, 12, 0],
       ['bench', 10, 13, 0],
       ['bench', 13, 13, 0],
       ['floor_lamp', 8, 11, 0],
       ['plant', 8, 0, 0],
       ['plant', 34, 13, 0],
+      ['compass_floor', 16, 7, 0],
       ...lamps([6, 8], [14, 8], [21, 8], [27, 8], [31, 11]),
     ],
     wall: [
@@ -592,7 +592,7 @@ const ROOMS: RoomSpec[] = [
     particles: [],
     lamp: 'fluorescent',
     name: SEDE + 'Banheiro',
-    description: 'Três vasos em cabines, duas pias e um espelho manchado.',
+    description: 'Duas pias com espelhos manchados na parede da porta e, no fundo, duas cabines com vaso.',
     layout: plan(6, 4, 2),
     floorName: 'Subsolo',
     style: 'xadrez',
@@ -600,21 +600,22 @@ const ROOMS: RoomSpec[] = [
     plan: { x: 30, y: 13, r: 2 },
     floor: [
       ['portal', 1, 2, 2],
-      ['toilet', 2, 0, 4],
-      ['toilet', 4, 0, 4],
-      ['toilet', 6, 0, 4],
-      ['iwall_low', 3, 0, 2],
-      ['iwall_low', 3, 1, 2],
-      ['iwall_low', 5, 0, 2],
-      ['iwall_low', 5, 1, 2],
       ['sink', 1, 0, 2],
       ['sink', 1, 1, 2],
+      ['stall_panel', 3, 0, 2],
+      ['stall_panel', 3, 1, 2],
+      ['toilet', 4, 0, 4],
+      ['stall_panel', 5, 0, 2],
+      ['stall_panel', 5, 1, 2],
+      ['toilet', 6, 0, 4],
+      ['trash_bin', 1, 3, 2],
       ['dirt', 5, 3, 0],
       ...lamps([4, 2]),
     ],
     wall: [
       ['mirror', 'l', 1, 0.5, 2.9],
       ['mirror', 'l', 1, 1.5, 2.9],
+      ['towel_dispenser', 'l', 1, 3.4, 2.5],
     ],
     links: [[1, 2, 'salao']],
   },
@@ -654,23 +655,24 @@ const ROOMS: RoomSpec[] = [
       ['divider', 4, 13, 2],
       ['divider', 8, 12, 2],
       ['divider', 8, 13, 2],
-      // remédios, balcão e posto
+      // remédios na parede de cima, ao lado da porta
       ['medical_cabinet', 13, 1, 4],
       ['medical_cabinet', 15, 1, 4],
       ['cabinet_file', 18, 1, 4],
       ['sink', 19, 1, 4],
-      ['lab_bench', 12, 6, 4],
-      ['vitals_monitor', 12, 6, 4],
-      ['lab_bench', 14, 6, 4],
-      ['med_tray', 14, 6, 4],
-      ['lab_bench', 16, 6, 4],
-      ['trolley', 18, 7, 0],
-      ['desk_metal', 15, 10, 0],
-      ['computer_old', 16, 10, 0],
-      ['chair_office', 15, 11, 0],
-      ['sink', 18, 13, 0],
-      ['sink', 19, 13, 0],
-      ...lamps([3, 7], [7, 7], [11, 3], [16, 4], [13, 11]),
+      // a bancada encostada na parede da esquerda, entre os leitos, com a pia na ponta
+      ['sink', 0, 4, 2],
+      ['lab_bench', 0, 5, 2],
+      ['vitals_monitor', 0, 5, 2],
+      ['lab_bench', 0, 7, 2],
+      ['med_tray', 0, 7, 2],
+      ['lab_bench', 0, 9, 2],
+      // o posto de enfermagem de frente para a porta
+      ['desk_metal', 16, 4, 4],
+      ['computer_old', 16, 4, 4],
+      ['chair_office', 16, 5, 0],
+      ['trolley', 12, 7, 0],
+      ...lamps([3, 7], [7, 7], [11, 3], [14, 5], [13, 11]),
     ],
     wall: [
       ['clock', 'r', 1, 19.5, 3.9],

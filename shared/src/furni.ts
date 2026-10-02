@@ -143,6 +143,9 @@ const FURNI_METERS: FurniDef[] = [
   { id: 'pillar', name: 'Pilar de Concreto', category: 'decoracao', kind: 'pillar', width: 1, depth: 1, height: 2.75, rotations: [0], colors: ['#4a4540'] },
   { id: 'iwall', name: 'Parede Interna', category: 'estrutura', kind: 'iwall', width: 1, depth: 1, height: 2.4, xray: true, rotations: ALL, colors: ['#3b342f'], desc: 'Monte cômodos. Fica transparente quando você passa atrás.' },
   { id: 'iwall_low', name: 'Divisória Baixa', category: 'estrutura', kind: 'iwall', width: 1, depth: 1, height: 1.3, xray: true, rotations: ALL, colors: ['#4a433c'], desc: 'Meia parede: separa baias sem esconder quem está dentro.' },
+  { id: 'stall_panel', name: 'Divisória de Cabine', category: 'estrutura', kind: 'iwall', width: 1, depth: 1, height: 1.6, xray: true, rotations: ALL, colors: ['#c8b89a'], desc: 'Painel de fórmica entre os vasos do banheiro.' },
+  { id: 'trash_bin', name: 'Lixeira', category: 'saude', kind: 'crate', width: 1, depth: 1, height: 0.4, rotations: ALL, colors: ['#d8d0c0', '#8a8478'] },
+  { id: 'compass_floor', name: 'Rosa dos Ventos', category: 'mobilia', kind: 'rug', width: 3, depth: 3, height: 0.02, walkable: true, stackable: true, flat: true, rotations: [0], colors: ['#8a6a2a', '#c9a86a'], desc: 'Gravada em bronze no chão do Salão.' },
   { id: 'iwall_door', name: 'Parede com Vão', category: 'estrutura', kind: 'iwall_door', width: 1, depth: 1, height: 0, walkable: true, xray: true, rotations: ALL, colors: ['#3b342f', '#2a1d14'] },
   { id: 'iwall_window', name: 'Parede com Janela', category: 'estrutura', kind: 'iwall_window', width: 1, depth: 1, height: 2.4, xray: true, rotations: ALL, colors: ['#3b342f', '#2a1d14'] },
   { id: 'portal', name: 'Passagem', category: 'estrutura', kind: 'portal', width: 1, depth: 1, height: 0, walkable: true, portal: true, rotations: ALL, colors: ['#2a1d14'], desc: 'Pare em cima para ir ao quarto ligado (o mestre escolhe o destino).' },
@@ -152,7 +155,7 @@ const FURNI_METERS: FurniDef[] = [
 
   // ---------- Sede da Ordem ----------
   // escadas (passagens entre andares)
-  { id: 'stairs_up', name: 'Escada que Sobe', category: 'estrutura', kind: 'stairs_up', width: 1, depth: 1, height: 0, walkable: true, portal: true, rotations: ALL, colors: ['#4a3426', '#2a1d14'], desc: 'Pare em cima para subir ao andar ligado.' },
+  { id: 'stairs_up', name: 'Escada que Sobe', category: 'estrutura', kind: 'stairs_up', width: 1, depth: 2, height: 0, walkable: true, portal: true, rotations: ALL, colors: ['#4a3426', '#2a1d14'], desc: 'Pare em cima para subir ao andar ligado.' },
   { id: 'stairs_down', name: 'Escada Secreta', category: 'estrutura', kind: 'stairs_down', width: 1, depth: 1, height: 0, walkable: true, stackable: true, portal: true, hidden: true, rotations: ALL, colors: ['#3a2a20', '#0c0908'], desc: 'Fica escondida atrás de um mobi com senha; aparece quando ele desliza.' },
   // bar
   { id: 'bar_counter', name: 'Balcão do Bar', category: 'bar', kind: 'bar_counter', width: 2, depth: 1, height: 1.1, stackable: true, rotations: ALL, colors: ['#6a1a16', '#2e1a12', '#b8904a'] },
@@ -230,6 +233,7 @@ export const WALL_FURNI_LIST: WallFurniDef[] = [
   { id: 'dartboard', name: 'Alvo de Dardos', category: 'parede', kind: 'dartboard', w: 28, h: 28, colors: ['#1a1a1a', '#b3261e', '#d8cfb8'] },
   { id: 'screen', name: 'Tela de Projeção', category: 'parede', kind: 'screen', w: 92, h: 58, states: 2, colors: ['#e8e4dc', '#2a2d31'], desc: 'Clique duplo liga/desliga o projetor.' },
   { id: 'mirror', name: 'Espelho', category: 'parede', kind: 'mirror', w: 30, h: 40, colors: ['#9ab0b8', '#2a2622'] },
+  { id: 'towel_dispenser', name: 'Papeleira', category: 'parede', kind: 'dispenser', w: 18, h: 22, colors: ['#e8e4dc'] },
   { id: 'extinguisher', name: 'Extintor', category: 'parede', kind: 'extinguisher', w: 12, h: 30, colors: ['#b3261e', '#1a1a1a'] },
 ];
 

@@ -16,5 +16,23 @@
   "parede": {
    "arquivo": "parede-hospital.png"
   }
+ },
+ "concreto": {
+  "piso": {
+   "arquivo": "piso-concreto.png",
+   "casas": 3.53
+  },
+  "parede": {
+   "arquivo": "parede-pedra.png"
+  }
+ },
+ "xadrez": {
+  "piso": {
+   "arquivo": "piso-xadrez.png",
+   "casas": 2.35
+  },
+  "parede": {
+   "arquivo": "parede-banheiro.png"
+  }
  }
 }

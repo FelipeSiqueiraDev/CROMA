@@ -49,6 +49,13 @@ própria folha ("folha" no móvel); senão vale a da ficha.
     degrau).
   - "pe": a caixa não cobre bem o desenho (fliperama, pilha de cadeiras): o ponto mais
     baixo dele (o pé da frente) fica no chão, na quina da frente do móvel.
+  - "pisa": o móvel pisa na casa pelo desenho, não pela caixa (a caixa erra em quem não é
+    caixa: escada, poltrona, biombo). O meio do desenho fica no meio do móvel e o ponto
+    mais baixo, na quina da frente dele; com um número (o diâmetro do pé redondo, em
+    metros: luminária, planta, suporte de soro), na frente desse pé, no meio da casa.
+  - "largura": as 4 vistas ficam da largura do móvel de verdade na tela (o gerador
+    desenha cada vista de um tamanho); "forma": "oval" ou "redonda" para o tampo que não
+    é retângulo. Pisa como em "pisa".
   - "tela": {"cores", "ms", "giros": {giro: [x, y, raio]}} (frações da imagem): a tela
     acesa que troca de cor, com o brilho em cada giro que a mostra (o fliperama).
   - "pendurado": [largura da cúpula, altura do teto] em metros (a lâmpada): a imagem
@@ -68,6 +75,10 @@ própria folha ("folha" no móvel); senão vale a da ficha.
   frações do pedaço. "real": [largura na parede, quanto sai dela, altura] em metros.
   "tela": {"cores", "forca", paredes: {'r': [x, y, raio]}} (frações da imagem): a tela
   acesa, que treme como TV ligada.
+
+- "chamas" (móvel ou item de parede): {giro ou parede: [[x, y, altura], ...]} em frações
+  da imagem, a base de cada chama e a altura dela: o jogo desenha uma chama que mexe por
+  cima da chama parada do desenho (vela, candelabro, tocha, fogueira).
 
 A arte sai em dobro (2 pixels da imagem por pixel do tabuleiro no zoom 1), em
 <destino>/<móvel>/<vista>.png, e o <destino>/moveis.json que o jogo lê.
@@ -205,7 +216,7 @@ def retificar(rec):
         return rec, None
     s_esq = float(np.polyfit(xs[esq], ys[esq], 1)[0])
     s_dir = float(np.polyfit(xs[dir_], ys[dir_], 1)[0])
-    if abs(s_esq + 0.5) > 0.2 or abs(s_dir - 0.5) > 0.2:
+    if abs(s_esq + 0.5) > 0.35 or abs(s_dir - 0.5) > 0.35:
         return rec, None
     a = s_dir - s_esq
     c = 0.5 * a - s_dir
@@ -552,6 +563,32 @@ def posicao(giro, Wt, Dt, bw, bd, encosta):
     return ox, oy
 
 
+def pisar(img, Wt, Dt, ox, oy, bw, bd, escala, base=None):
+    """
+    A âncora (a quina da frente da casa, na imagem) pelo desenho: o meio da imagem em x fica
+    no meio do móvel; o ponto mais baixo, na quina da frente do móvel. base (diâmetro do pé
+    redondo, em metros): o ponto mais baixo é a frente do pé, no meio do móvel, e o meio
+    em x é o do pé (a faixa de baixo da imagem).
+    """
+    op = img[:, :, 3] > 100
+    ys, xs = np.nonzero(op)
+    baixo = ys.max() + 1
+    if base:
+        faixa = op[max(0, baixo - max(2, int(0.06 * (baixo - ys.min())))):baixo]
+        fx = np.nonzero(faixa.any(axis=0))[0]
+        xc = (fx.min() + fx.max() + 1) / 2
+    else:
+        xc = (xs.min() + xs.max() + 1) / 2
+    # o meio do móvel e a quina da frente dele, em casas, contra a quina da frente da casa
+    cx, cy = (ox + bw / 2 - Wt) / CASA, (oy + bd / 2 - Dt) / CASA
+    sx = (cx - cy) * 32
+    if base:
+        sy = (cx + cy) * 16 + base / 2 / CASA * np.sqrt(2) * 16
+    else:
+        sy = ((ox + bw - Wt) + (oy + bd - Dt)) / CASA * 16
+    return float(xc - sx / escala), float(baixo - sy / escala)
+
+
 # ---------------------------------------------------------------- tudo
 
 def main():
@@ -574,7 +611,10 @@ def main():
     arq_lista = os.path.join(destino, 'moveis.json')
     lista = json.load(open(arq_lista, encoding='utf-8')) if os.path.exists(arq_lista) else {}
     conferir = []
+    so = sys.argv[sys.argv.index('--so') + 1].split(',') if '--so' in sys.argv else None
     for m in cfg['moveis']:
+        if so and m['def'] not in so:
+            continue
         folha, caixas = folha_de(m)
         if m.get('chao'):
             ent, img = tapete(m, folha, destino)
@@ -679,9 +719,19 @@ def quatro_giros(m, folha, caixas, destino, escala):
             # pela altura da imagem inteira, presa no centro da base (planta)
             k = hr * PX_M_VERTICAL / escala / rec.shape[0]
             img = reamostrar(rec, max(1, round(rec.shape[1] * k)), max(1, round(rec.shape[0] * k)))
-            ax, ay = ancora_centro(img)
             gravar(img, os.path.join(pasta, nome))
-            ent['giros'][giro] = {'arquivo': f"{m['def']}/{nome}", 'ax': round(ax, 1), 'ay': round(ay, 1), 'ancora': 'centro'}
+            if m.get('pisa'):
+                ax, ay = pisar(img, Wt, Dt, 0.0, 0.0, Wt, Dt, escala, base=m['pisa'])
+                ent['giros'][giro] = {'arquivo': f"{m['def']}/{nome}", 'ax': round(ax, 1), 'ay': round(ay, 1)}
+            else:
+                ax, ay = ancora_centro(img)
+                ent['giros'][giro] = {'arquivo': f"{m['def']}/{nome}", 'ax': round(ax, 1), 'ay': round(ay, 1), 'ancora': 'centro'}
+            if m.get('brilho'):
+                # a luz acesa em volta da cúpula (a luminária de pé), em frações da imagem
+                bx, by, br = m['brilho']
+                ent['brilho'] = {'x': round(bx * img.shape[1], 1), 'y': round(by * img.shape[0], 1), 'r': round(br * img.shape[1], 1)}
+                if m.get('brilho_cor'):
+                    ent['brilho']['cor'] = m['brilho_cor']
             imgs.append(img)
             print(f"{m['def']} giro {giro}: pela imagem, {img.shape[1]}x{img.shape[0]}", flush=True)
             continue
@@ -709,7 +759,21 @@ def quatro_giros(m, folha, caixas, destino, escala):
             img = reamostrar(rec, max(1, round(rec.shape[1] * k)), max(1, round(rec.shape[0] * k)))
             u, vv = proj(np.array([(Wt - ox) / q, (Dt - oy) / q, 0.0]), cam)
             ax, ay = float(u) * k, float(vv) * k
-            if m.get('pe'):
+            if m.get('largura'):
+                # a largura do móvel de verdade na tela, igual nas 4 vistas
+                xs_ = np.nonzero((rec[:, :, 3] > 100).any(axis=0))[0]
+                if m.get('forma') in ('oval', 'redonda'):
+                    alvo = 2 * np.hypot(wr / 2, dr / 2) / CASA * 32 / escala
+                else:
+                    alvo = (wr + dr) / CASA * 32 / escala
+                k2 = alvo / (xs_.max() - xs_.min() + 1)
+                img = reamostrar(rec, max(1, round(rec.shape[1] * k2)), max(1, round(rec.shape[0] * k2)))
+                bw, bd, bh = wr, dr, bh * k2 / k
+                ox, oy = posicao(giro, Wt, Dt, bw, bd, m.get('encosta', False))
+            if m.get('pisa') or m.get('largura'):
+                base = m['pisa'] if isinstance(m.get('pisa'), (int, float)) and not isinstance(m.get('pisa'), bool) else None
+                ax, ay = pisar(img, Wt, Dt, ox, oy, bw, bd, escala, base=base)
+            elif m.get('pe'):
                 # preso pelo pé: o ponto mais baixo do desenho é a quina da frente do móvel, no chão
                 op = img[:, :, 3] > 100
                 baixo = int(np.nonzero(op.any(axis=1))[0].max())
@@ -736,6 +800,8 @@ def quatro_giros(m, folha, caixas, destino, escala):
             tam = f'{wr:.2f} x {dr:.2f} x {bh:.2f} m (o desenho: {Wd:.2f} x {Dd:.2f} x {Hd:.2f})' + (f'; endireitado {incl:+.3f}' if incl else '')
         gravar(img, os.path.join(pasta, nome))
         ent['giros'][giro] = {'arquivo': f"{m['def']}/{nome}", 'ax': round(ax, 1), 'ay': round(ay, 1)}
+        if giro in m.get('chamas', {}):
+            ent.setdefault('chamas', {})[giro] = [[round(cx * img.shape[1], 1), round(cy * img.shape[0], 1), round(ca * img.shape[0], 1)] for cx, cy, ca in m['chamas'][giro]]
         tela = m.get('tela')
         if tela and giro in tela['giros']:
             fx, fy, fr = tela['giros'][giro]
@@ -789,6 +855,8 @@ def parede(m, folha, caixas, destino, escala):
         nome = f'parede-{chave}.png'
         gravar(img, os.path.join(pasta, nome))
         ent['parede'][chave] = {'arquivo': f"{m['def']}/{nome}", 'ax': round(fx * img.shape[1], 1), 'ay': round(fy * img.shape[0], 1)}
+        if chave in m.get('chamas', {}):
+            ent.setdefault('chamas', {})[chave] = [[round(cx * img.shape[1], 1), round(cy * img.shape[0], 1), round(ca * img.shape[0], 1)] for cx, cy, ca in m['chamas'][chave]]
         tela = m.get('tela')
         if tela and chave in tela['paredes']:
             tx, ty, tr = tela['paredes'][chave]

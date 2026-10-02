@@ -2,7 +2,7 @@ import { Z_PER_M, type FurniDef } from '@croma/shared';
 import { rgba } from './color';
 import { N, V, type FVisual } from './furniKit';
 import { iso } from './iso';
-import type { LBox, Painter } from './painter';
+import { drawFlame, type LBox, type Painter } from './painter';
 
 /**
  * Móveis com arte (imagem) no lugar do desenho por código. A lista fica em
@@ -34,7 +34,7 @@ export interface MovelArte {
   /** onde o móvel fica no cômodo, para a ordem de quem fica na frente (a lâmpada, presa no teto): [u0, u1, v0, v1, z0, z1], z em metros */
   caixa?: LBox;
   /** o brilho da lâmpada acesa, em pixels da imagem (o centro e o raio) */
-  brilho?: { x: number; y: number; r: number };
+  brilho?: { x: number; y: number; r: number; cor?: string };
   /** tapete: a imagem vista de cima, em pé (a largura dela na lateral do móvel, a altura no comprimento) */
   chao?: { arquivo: string };
   /** item de parede: a vista presa na parede da direita ('r') e na da esquerda ('l'), e os outros estados ('r-1'...); a âncora é o ponto de encosto */
@@ -47,6 +47,8 @@ export interface MovelArte {
   tela?: { cores: string[]; ms: number; modo?: 'cores' | 'pulso' | 'tv'; forca?: number; giros: Partial<Record<'0' | '2' | '4' | '6', { x: number; y: number; r: number }>> };
   /** a lâmpada de tubo falha de vez em quando (duas piscadas rápidas) */
   falha?: boolean;
+  /** chamas que mexem, por giro ou parede ('r', 'l'): [x, y, altura] em pixels da imagem (a base da chama) */
+  chamas?: Record<string, [number, number, number][]>;
   /** a lâmpada no fio balança de leve: o ângulo máximo e o tempo de uma ida e volta */
   pendulo?: { graus: number; ms: number };
 }
@@ -140,7 +142,7 @@ export function visualComArte(def: FurniDef, base: FVisual, state = 0, seed = 0)
       const respira = 1 + 0.03 * Math.sin(performance.now() / 1700 + seed);
       luzes = luzes.map((L) => ({ ...L, u: L.u + s, v: L.v + s, intensity: L.intensity * respira }));
     }
-    return V([N(caixa, (p) => desenharGiro(p, a, prontas, aceso ? (def.colors[0] ?? '#ffd98a') : null, cor, ang, forca, falha))], luzes);
+    return V([N(caixa, (p) => desenharGiro(p, a, prontas, aceso ? (a.brilho?.cor ?? def.colors[0] ?? '#ffd98a') : null, cor, ang, forca, falha))], luzes);
   }
   if (!a.frente) return null;
   const frente = pronta(a.frente.arquivo);
@@ -169,6 +171,7 @@ export function desenharParedeComArte(ctx: CanvasRenderingContext2D, defId: stri
   const tela = (a as MovelArte & { tela?: TelaParede }).tela as TelaParede | undefined;
   const spot = tela?.paredes?.[parede];
   if (tela && spot && !state) telaDeTv(ctx, tela, spot, x - vista.ax * k, y - vista.ay * k, k, seed);
+  if (!state) acenderChamas(ctx, a.chamas?.[parede], x - vista.ax * k, y - vista.ay * k, k, seed);
   return true;
 }
 
@@ -268,6 +271,15 @@ function misturar(a: string, b: string, t: number): string {
   return '#' + ((canal(16) << 16) | (canal(8) << 8) | canal(0)).toString(16).padStart(6, '0');
 }
 
+/** As chamas do desenho, mexendo: uma chama animada por cima de cada chama parada (cada uma no seu tempo). */
+function acenderChamas(ctx: CanvasRenderingContext2D, chamas: [number, number, number][] | undefined, x0: number, y0: number, k: number, seed: number) {
+  if (!chamas?.length) return;
+  const t = performance.now() / 1000;
+  ctx.save();
+  chamas.forEach(([cx, cy, alt], i) => drawFlame(ctx, x0 + cx * k, y0 + cy * k, (alt * k) / 7, t + seed * 7.3 + i * 2.1));
+  ctx.restore();
+}
+
 /** Um brilho redondo somado à imagem, em pixels da imagem. */
 function brilhar(p: Painter, r: { x: number; y: number }, k: number, x: number, y: number, raio: number, cor: string, forca: number) {
   const ctx = p.ctx;
@@ -303,6 +315,7 @@ function desenharGiro(p: Painter, a: MovelArte, prontas: Partial<Record<string, 
   if (a.brilho && luz && p.power > 0.1) brilhar(p, r, a.escala, a.brilho.x, a.brilho.y, a.brilho.r, luz, 0.55 * p.power * falha);
   const tela = a.tela?.giros[g as '4'];
   if (tela && corTela && p.power > 0.1) brilhar(p, r, a.escala, tela.x, tela.y, tela.r, corTela, (a.tela?.forca ?? 0.42) * forcaTela * p.power);
+  if (luz) acenderChamas(p.ctx, a.chamas?.[g], r.x, r.y, a.escala, p.seed ?? 0);
   if (ang) p.ctx.restore();
 }
 

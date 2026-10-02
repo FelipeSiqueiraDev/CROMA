@@ -39,6 +39,8 @@ O mapa da Sede (Ordo Realitas) já funciona no jogo: os agentes andam, passam de
 
 Tamanho em casas (largura × fundo), altura em metros. ✱ = o móvel é importante para a cena e vale caprichar primeiro.
 
+**Arrumação (02/10):** cada cômodo é arrumado como seria de verdade. As paredes da frente não aparecem no tabuleiro, então o móvel de encostar (armário, pia, bancada, arquivo) vai nas paredes do fundo, virado para a sala; encostado na beira da frente, ele mostraria só as costas. Divisória alta na frente de outro móvel tapa o de trás: o que precisa ser visto fica à esquerda dela na parede da esquerda, ou longe dela.
+
 ### Bar (térreo)
 
 O Suvaco Seco, o bar de fachada: velho, marrom e acolhedor, com o fliperama piscando. Arrumado como a planta da Sede desenhada pelo Códex e a descrição da wiki: o balcão comprido no fundo, com o corredor do atendente entre ele e as prateleiras (a entrada fica no fim do balcão); as geladeiras no canto de cima, a amarela por último; o fliperama na parede da esquerda; as mesas amarelas, a sinuca e a pilha de cadeiras no canto. O chão e a parede têm textura desenhada (tábuas e lambri).
@@ -82,15 +84,15 @@ O coração da Sede: operações, a mesa da equipe e a escada que sobe para o ba
 | Item | Id | Qtd | Casas | Altura | O que desenhar |
 |---|---|---|---|---|---|
 | ✱ Mesa de trabalho | `table_work` | 3 | 3×2 | 0,78 m | Mesa preta comprida com papéis espalhados. |
-| ✱ Escada que sobe | `stairs_up` | 1 | 1×1 | até 0,9 m | Degraus de madeira subindo para a porta, corrimão. |
+| ✱ Escada que sobe | `stairs_up` | 1 | 1×2 | até 0,9 m | Degraus de madeira subindo para a porta, corrimão. |
 | Mesa redonda | `table_round` | 1 | 2×2 | 0,76 m | Madeira escura, redonda. |
 | Cadeira estofada | `chair_red` | 10 | 1×1 | 0,46 m | Vermelha. |
 | Cadeira de escritório | `chair_office` | 17 | 1×1 | 0,5 m | Preta, de rodinhas. |
 | Mesa oval | `table_meeting` | 1 | 3×2 | 0,8 m | Mesa comprida de madeira marrom (na planta é oval). |
 | Mesa de xadrez | `table_chess` | 1 | 1×1 | 0,72 m | Tabuleiro quadriculado, peças. |
-| Poltrona | `armchair` | 4 | 1×1 | 0,45 m | Couro escuro. |
+| Poltrona | `armchair` | 3 | 1×1 | 0,45 m | Couro escuro: duas no xadrez, uma de cada lado, e uma na mesa oval. |
 | Banco de madeira | `bench` | 2 | 2×1 | 0,45 m | — |
-| Luminária de chão, arquivo, planta | `floor_lamp`, `cabinet_file`, `plant` | 1, 2, 2 | 1×1 | 1,2–1,9 m | — |
+| Luminária de chão, arquivo, planta | `floor_lamp`, `cabinet_file`, `plant` | 1, 2, 2 | 1×1 | 1,2–1,9 m | Os arquivos na parede do fundo, ao lado da mesa redonda. |
 | Quadro, tela de projeção | `board_investigation`, `screen` (parede) | 1, 1 | — | — | Quadro de cortiça com fios vermelhos; tela branca com o mapa projetado. |
 
 ### Corredor
@@ -165,11 +167,13 @@ Computadores contornando as paredes, cadeiras viradas para as telas, o meio vazi
 
 | Item | Id | Qtd | O que desenhar |
 |---|---|---|---|
-| Vaso, pia, espelho | `toilet`, `sink`, `mirror` | 3, 2, 2 | Cabines com divisória (`iwall_low`), pias numa bancada de madeira. |
+| Vaso, pia, espelho | `toilet`, `sink`, `mirror` | 2, 2, 2 | No fundo, duas cabines com divisória (`stall_panel`); as pias e os espelhos na parede da porta, com a papeleira e a lixeira perto. A pia de agora veio desenhada de frente (encostada na parede diagonal, parece torta): pedida de novo, girada 45°. |
 
 ### Enfermaria
 
 Seis leitos separados por divisórias, o armário dos remédios, a bancada e o posto da enfermagem. Luz fria das fluorescentes.
+
+Os leitos ficam nas paredes de cima e de baixo, com a cabeceira na parede. A bancada, com a pia na ponta, encosta na parede da esquerda, entre os leitos. Os armários de remédio, o arquivo e outra pia ficam na parede da porta. O posto da enfermagem fica perto da porta, de frente para quem entra: a mesa com o computador virado para a cadeira.
 
 | Item | Id | Qtd | Casas | Altura | O que desenhar |
 |---|---|---|---|---|---|
@@ -177,8 +181,8 @@ Seis leitos separados por divisórias, o armário dos remédios, a bancada e o p
 | ✱ Divisória hospitalar | `divider` | 8 | 1×1 | 1,6 m | Biombo de um painel, armação branca com rodinhas, cortina verde-clara. |
 | ✱ Armário de remédios | `medical_cabinet` | 2 | 2×1 | 1,9 m | Metal branco, portas de vidro em cima com frascos, metal embaixo, cruz verde de farmácia. |
 | Suporte de soro | `iv_stand` | 6 | 1×1 | 1,9 m | Haste cromada, bolsa de soro com o tubo, base de 5 pés com rodinhas. |
-| Pia | `sink` | 3 | 1×1 | 0,9 m | Louça branca numa coluna, torneira de alavanca. |
-| Bancada | `lab_bench` | 3 | 2×1 | 0,8 m | Tampo de inox, gabinete branco com gavetas e portas. |
+| Pia | `sink` | 2 | 1×1 | 0,9 m | Louça branca numa coluna, torneira de alavanca. |
+| Bancada | `lab_bench` | 3 | 2×1 | 0,9 m | Tampo de inox, gabinete branco com gavetas e portas; os três módulos formam um balcão só. |
 | Carrinho de enfermagem | `trolley` | 1 | 1×1 | 0,95 m | Inox, 3 prateleiras com gaze, frascos e luvas, rodinhas. |
 | Mesa do posto | `desk_metal` | 1 | 2×1 | 0,8 m | Metal cinza, gaveteiro, papéis e uma prancheta. |
 | Cadeira de escritório | `chair_office` | 1 | 1×1 | 0,5 m de assento | Preta, de rodinhas. |
