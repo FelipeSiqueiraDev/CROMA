@@ -28,6 +28,7 @@ export interface ItemLock {
 export const FLOOR_STYLES = [
   { id: 'pedra', name: 'Pedra' },
   { id: 'concreto', name: 'Concreto' },
+  { id: 'bloco', name: 'Bloco de concreto' },
   { id: 'madeira', name: 'Madeira escura' },
   { id: 'taco', name: 'Madeira clara' },
   { id: 'ladrilho', name: 'Ladrilho branco' },

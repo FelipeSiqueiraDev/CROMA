@@ -16,7 +16,7 @@ import { buildRoom, plan, type FloorSeed, type WallSeed } from './seed';
 export const SEDE = 'Sede · ';
 export const SEDE_CODE = '0413';
 /** Versão da montagem da Sede: subiu, a Sede é refeita no lugar (mesmos cômodos, peças e registro). */
-export const SEDE_REV = 20;
+export const SEDE_REV = 22;
 
 /** Planta retangular com a porta na parede de cima (y = 0), na coluna doorX. */
 export function planTop(w: number, h: number, doorX: number): { heightmap: string; door: Door } {
@@ -283,10 +283,10 @@ const ROOMS: RoomSpec[] = [
     particles: ['dust'],
     lamp: 'fluorescent',
     name: SEDE + 'Corredor',
-    description: 'Corredor comprido de concreto. As portas levam à prisão, às salas e ao salão.',
+    description: 'Corredor comprido de blocos de concreto, vigiado pelas câmeras. As portas levam à prisão, às salas e ao salão; no fim, o zelador deixou o carrinho e a placa de piso molhado.',
     layout: plan(36, 3, 1),
     floorName: 'Subsolo',
-    style: 'concreto',
+    style: 'bloco',
     darkness: 0.6,
     fog: 0.15,
     plan: { x: 29, y: 8 },
@@ -299,18 +299,32 @@ const ROOMS: RoomSpec[] = [
       ['portal', 36, 1, 6],
       ['vent', 5, 1, 0],
       ['vent', 13, 2, 0],
-      ['vent', 31, 1, 0],
-      ['bench', 10, 0, 4],
+      ['vent', 34, 2, 0],
+      // na parede de cima: o banco, os armários do vestiário, as lixeiras perto das portas e a planta
+      ['trash_can', 4, 0, 4],
+      ['bench', 9, 0, 4],
+      ['locker_row', 12, 0, 4],
+      ['locker_row', 14, 0, 4],
+      ['trash_can', 19, 0, 4],
       ['plant', 24, 0, 0],
+      ['trash_can', 26, 0, 4],
+      // no fim do corredor, a limpeza pela metade: o carrinho, a poça e a placa
+      ['janitor_cart', 30, 0, 2],
+      ['puddle', 32, 1, 0],
+      ['wet_sign', 31, 2, 4],
       ...lamps([4, 1], [11, 1], [18, 1], [25, 1], [32, 1]),
     ],
     wall: [
+      ['cctv', 'r', 0, 2.0, 4.0],
       ['pipes', 'r', 0, 3.5, 4.2],
-      ['pipes', 'r', 0, 14.5, 4.2],
-      ['pipes', 'r', 0, 33.5, 4.2],
       ['emergency_light', 'r', 0, 9.5, 3.7],
-      ['emergency_light', 'r', 0, 30.5, 3.7],
+      ['pipes', 'r', 0, 14.5, 4.2],
+      ['notice_board', 'r', 0, 17.0, 2.2],
       ['extinguisher', 'r', 0, 18.5, 1.8],
+      ['power_box', 'r', 0, 23.0, 2.2],
+      ['emergency_light', 'r', 0, 30.5, 3.7],
+      ['pipes', 'r', 0, 33.5, 4.2],
+      ['cctv', 'r', 0, 35.2, 4.0],
     ],
     links: [
       [1, 1, 'prisao'],

@@ -98,12 +98,18 @@ O coração da Sede: operações, a mesa da equipe e a escada que sobe para o ba
 
 ### Corredor
 
-| Item | Id | Qtd | O que desenhar |
-|---|---|---|---|
-| Passagem | `portal` | 6 | Batente de porta com a escuridão atrás (serve para todas as portas da Sede). |
-| Luminária fluorescente | `fluorescent` | 5 | Calha de metal com tubo frio (usada em quase todo o subsolo). |
-| Canos, luz de emergência, extintor | `pipes`, `emergency_light`, `extinguisher` (parede) | 3, 2, 1 | — |
-| Grade de ventilação, banco, planta | `vent`, `bench`, `plant` | 3, 1, 1 | — |
+Com arte desde 02/10. Corredor comprido de blocos de concreto com a faixa verde, vigiado por duas câmeras nas pontas. Na parede de cima: o banco, os armários do vestiário, o quadro de avisos de frente para a porta do Salão, o extintor, a caixa de força, a planta e as lixeiras perto das portas. No fim, a limpeza pela metade: o carrinho do zelador, a poça e a placa de piso molhado. Chão de concreto com rachaduras (estilo `bloco`, só dele: o Salão continua com o concreto e a pedra dele).
+
+| Item | Id | Qtd | Casas | Altura |
+|---|---|---|---|---|
+| Passagem | `portal` | 6 | 1×1 | 0,9 × 2,1 m (aberta, fechada ou trancada) |
+| Armários de vestiário | `locker_row` | 2 | 2×1 | 1,9 m (três portas; emendam) |
+| Carrinho de limpeza | `janitor_cart` | 1 | 1×1 | 1,1 m |
+| Placa de piso molhado, lixeira de metal | `wet_sign`, `trash_can` | 1, 3 | 1×1 | 0,6 m |
+| Grade de ventilação, poça | `vent`, `puddle` | 3, 1 | 1×1 | chão |
+| Banco, planta | `bench`, `plant` | 1, 1 | — | — |
+| Câmera, quadro de avisos, caixa de força, extintor | `cctv`, `notice_board`, `power_box`, `extinguisher` (parede) | 2, 1, 1, 1 | — | — |
+| Canos, luz de emergência, fluorescente | `pipes`, `emergency_light`, `fluorescent` | 3, 2, 5 | — | — |
 
 ### Prisão
 

@@ -23,6 +23,7 @@ interface FloorLook {
 const FLOORS: Record<FloorStyle, FloorLook> = {
   pedra: { base: '#4f4841', grout: 'rgba(18,14,12,0.6)', kind: 'stone' },
   concreto: { base: '#585650', grout: 'rgba(20,20,18,0.28)', kind: 'stone' },
+  bloco: { base: '#5c5c58', grout: 'rgba(20,20,18,0.3)', kind: 'stone' },
   madeira: { base: '#3b2718', grout: 'rgba(10,6,4,0.7)', kind: 'plank' },
   taco: { base: '#8a4a22', grout: 'rgba(40,16,6,0.6)', kind: 'plank' },
   ladrilho: { base: '#c2beb2', grout: 'rgba(80,80,74,0.6)', kind: 'tile' },

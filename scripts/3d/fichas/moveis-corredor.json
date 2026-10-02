@@ -1,0 +1,17 @@
+{
+  "destino": "client/public/arte/mobiliario",
+  "escala": 0.5,
+  "limpar": 56,
+  "moveis": [
+    {"def": "locker_row", "folha": "client/public/arte/mobiliario/folhas/armarios-vestiario.png", "W": 2, "D": 1, "real": [1.36, 0.45, 1.9], "angulos": true, "encosta": true, "giros": {"4": 0, "6": 1, "0": 2, "2": 3}},
+    {"def": "janitor_cart", "folha": "client/public/arte/mobiliario/folhas/carrinho-limpeza.png", "real": [0.45, 0.7, 1.1], "como_esta": true, "altura": "todas", "giros": {"4": 0, "6": 1, "0": 2, "2": 3}},
+    {"def": "wet_sign", "folha": "client/public/arte/mobiliario/folhas/placa-piso-molhado.png", "real": [0.3, 0.3, 0.6], "como_esta": true, "altura": "todas", "giros": {"4": 0, "6": 1, "0": 2, "2": 3}},
+    {"def": "trash_can", "folha": "client/public/arte/mobiliario/folhas/lixeira-metal.png", "real": [0.35, 0.35, 0.6], "como_esta": true, "altura": "todas", "giros": {"4": 0, "6": 1, "0": 2, "2": 3}},
+    {"def": "extinguisher", "folha": "client/public/arte/mobiliario/folhas/extintor.png", "real": [0.25, 0.2, 0.7], "parede": {"r": [0, 0.5, 0.55], "l": [1, 0.5, 0.55]}},
+    {"def": "cctv", "folha": "client/public/arte/mobiliario/folhas/camera-seguranca.png", "real": [0.3, 0.35, 0.45], "parede": {"r": [0, 0.68, 0.45], "l": [1, 0.32, 0.45]}},
+    {"def": "notice_board", "folha": "client/public/arte/mobiliario/folhas/quadro-avisos.png", "real": [0.9, 0.04, 0.6], "parede": {"r": [0, 0.5, 0.5], "l": [1, 0.5, 0.5]}},
+    {"def": "power_box", "folha": "client/public/arte/mobiliario/folhas/caixa-forca.png", "real": [0.4, 0.15, 0.6], "parede": {"r": [0, 0.5, 0.4], "l": [1, 0.5, 0.4]}},
+    {"def": "vent", "folha": "client/public/arte/mobiliario/folhas/grade-ventilacao.png", "W": 1, "D": 1, "chao": true},
+    {"def": "puddle", "folha": "client/public/arte/mobiliario/folhas/mancha-umidade.png", "W": 1, "D": 1, "chao": true}
+  ]
+}

@@ -79,5 +79,14 @@
   "parede": {
    "arquivo": "parede-arsenal.png"
   }
+ },
+ "bloco": {
+  "piso": {
+   "arquivo": "piso-bloco.png",
+   "casas": 3.53
+  },
+  "parede": {
+   "arquivo": "parede-bloco.png"
+  }
  }
 }
