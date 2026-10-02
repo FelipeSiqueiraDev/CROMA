@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { DIR_KEYS, PORTRAIT_STATES, type CharacterDef, type DirKey, type PortraitArt, type PortraitState } from '@croma/shared';
+import { DIR_KEYS, PORTRAIT_STATES, type AnimDirecao, type AnimTabuleiro, type CharacterDef, type DirKey, type PeQuadro, type PortraitArt, type PortraitState } from '@croma/shared';
 
 /** Pasta das artes dos personagens no repositório (servida em /arte/personagens). */
 const ART_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../client/public/arte/personagens');
@@ -96,20 +96,89 @@ export function findPassos(sheet: string, dir = ART_DIR): CharacterDef['passos']
   return Object.keys(out).length ? out : undefined;
 }
 
-/** Atualiza os retratos, as poses e os passos do tabuleiro de todos os personagens. Devolve true se algo mudou. */
+/**
+ * O boneco animado do tabuleiro (gerado por scripts/boneco.py), na mesma pasta
+ * das poses: anim.json, com as tiras parado-<estado>-<direção>.png e
+ * andar-<estado>-<direção>.png. Os nomes das tiras viram endereços; tira que
+ * falta na pasta tira a direção.
+ */
+export function findAnim(sheet: string, dir = ART_DIR): AnimTabuleiro | undefined {
+  const m = /^\/arte\/personagens\/([a-z0-9-]+)\//.exec(sheet);
+  if (!m) return undefined;
+  const pasta = path.join(dir, m[1], POSES_DIR);
+  let a: ArquivoAnim;
+  try {
+    a = JSON.parse(fs.readFileSync(path.join(pasta, 'anim.json'), 'utf8')) as ArquivoAnim;
+  } catch {
+    return undefined;
+  }
+  if (a?.versao !== 1 || !a.estados || typeof a.estados !== 'object') return undefined;
+  const url = `/arte/personagens/${m[1]}/${POSES_DIR}/`;
+  const existe = (f: unknown): f is string => typeof f === 'string' && /^[a-z0-9-]+\.png$/.test(f) && fs.existsSync(path.join(pasta, f));
+  const estados: AnimTabuleiro['estados'] = {};
+  for (const s of PORTRAIT_STATES) {
+    const out: Partial<Record<DirKey, AnimDirecao>> = {};
+    for (const k of DIR_KEYS) {
+      const d = a.estados[s]?.[k];
+      if (!d || !existe(d.parado?.arquivo) || !existe(d.andar?.arquivo)) continue;
+      out[k] = {
+        w: d.w,
+        h: d.h,
+        ax: d.ax,
+        ay: d.ay,
+        olhos: !!d.olhos,
+        parado: { url: url + d.parado.arquivo, quadros: d.parado.quadros },
+        andar: { url: url + d.andar.arquivo, quadros: d.andar.quadros },
+        pesParado: d.pesParado ?? [],
+        pesAndar: d.pesAndar ?? [],
+      };
+    }
+    if (Object.keys(out).length) estados[s] = out;
+  }
+  if (!Object.keys(estados).length) return undefined;
+  return { versao: 1, msParado: a.msParado ?? 150, faseAndar: a.faseAndar ?? 0.25, estados };
+}
+
+/** O anim.json como scripts/boneco.py grava (os nomes das tiras, sem o endereço). */
+interface ArquivoAnim {
+  versao?: number;
+  msParado?: number;
+  faseAndar?: number;
+  estados?: Partial<
+    Record<
+      string,
+      Partial<
+        Record<
+          string,
+          Omit<AnimDirecao, 'parado' | 'andar' | 'pesParado' | 'pesAndar'> & {
+            parado: { arquivo: string; quadros: number };
+            andar: { arquivo: string; quadros: number };
+            pesParado?: PeQuadro[][];
+            pesAndar?: PeQuadro[][];
+          }
+        >
+      >
+    >
+  >;
+}
+
+/** Atualiza os retratos, as poses, os passos e o boneco do tabuleiro de todos os personagens. Devolve true se algo mudou. */
 export function refreshPortraits(list: CharacterDef[], dir = ART_DIR): boolean {
   let changed = false;
   for (const def of list) {
     const portraits = findPortraits(def.sheet, dir);
     const poses = findPoses(def.sheet, dir);
     const passos = findPassos(def.sheet, dir);
-    if (JSON.stringify([portraits, poses, passos]) === JSON.stringify([def.portraits, def.poses, def.passos])) continue;
+    const anim = findAnim(def.sheet, dir);
+    if (JSON.stringify([portraits, poses, passos, anim]) === JSON.stringify([def.portraits, def.poses, def.passos, def.anim])) continue;
     if (portraits) def.portraits = portraits;
     else delete def.portraits;
     if (poses) def.poses = poses;
     else delete def.poses;
     if (passos) def.passos = passos;
     else delete def.passos;
+    if (anim) def.anim = anim;
+    else delete def.anim;
     changed = true;
   }
   return changed;

@@ -133,6 +133,45 @@ export interface CharacterDef {
    * a pose parada desliza com um balanço.
    */
   passos?: Partial<Record<PortraitState, Partial<Record<DirKey, string[]>>>>;
+  /**
+   * O boneco animado do tabuleiro (parado respirando e andando, nas 8 direções),
+   * gerado por scripts/boneco.py e achado pelo servidor em tabuleiro-32bits/anim.json.
+   * Quando tem, vale no lugar de `poses` e `passos`.
+   */
+  anim?: AnimTabuleiro;
+}
+
+/** Um pé num quadro: [dx, dy, altura no ar], em pixels, a partir da âncora (o chão embaixo do corpo). */
+export type PeQuadro = [number, number, number];
+
+/** Uma tira de quadros lado a lado; com olhos, a segunda linha é igual de olhos fechados. */
+export interface AnimTira {
+  url: string;
+  quadros: number;
+}
+
+/** Uma direção do boneco: o tamanho do quadro, a âncora, as duas tiras e onde ficam os pés em cada quadro. */
+export interface AnimDirecao {
+  w: number;
+  h: number;
+  ax: number;
+  ay: number;
+  /** a direção mostra os olhos: as tiras têm a linha de olhos fechados (para piscar) */
+  olhos: boolean;
+  parado: AnimTira;
+  andar: AnimTira;
+  pesParado: PeQuadro[][];
+  pesAndar: PeQuadro[][];
+}
+
+/** O boneco animado do tabuleiro (anim.json, gerado por scripts/boneco.py). */
+export interface AnimTabuleiro {
+  versao: 1;
+  /** quanto dura cada quadro parado (a respiração) */
+  msParado: number;
+  /** a fase do ciclo de andar (0..1, um ciclo por casa) quando a peça está no meio da casa: a passagem */
+  faseAndar: number;
+  estados: Partial<Record<PortraitState, Partial<Record<DirKey, AnimDirecao>>>>;
 }
 
 export type CharacterPatch = Partial<Pick<CharacterDef, 'name' | 'cols' | 'rows' | 'dirs' | 'anims' | 'height' | 'fps' | 'sequence' | 'removeBg'>>;

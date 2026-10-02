@@ -10,15 +10,15 @@ duro (a cor mais frequente de cada bloco, sem misturar), deixa o corpo
 opaco e grava, na pasta do personagem:
 
 - idle-<estado>-<direção>.png: a pose parada;
-- andar-<estado>-<direção>-<1..8>.png: os 8 quadros do passo, montados a
-  partir da pose parada (as pernas de baixo se mexem e o tronco sobe e desce
-  um pouco; o pé que apoia fica no chão). Quadros de andar desenhados à mão,
-  com os mesmos nomes, substituem estes.
+- com --passos, também andar-<estado>-<direção>-<1..8>.png: um passo simples
+  montado da pose parada (só as pernas de baixo se mexem). O boneco animado
+  de verdade (respirando, piscando e com o ciclo de andar inteiro) sai de
+  scripts/boneco.py, a partir destas poses paradas: npm run arte:boneco.
 
 Todos os quadros de uma direção têm o mesmo tamanho e os pés no mesmo ponto.
 
 Uso:
-  python scripts/poses.py <imagem.png> <personagem> [--estado desarmado] [--altura 104]
+  python scripts/poses.py <imagem.png> <personagem> [--estado desarmado] [--altura 104] [--passos]
 
 Precisa de Python com PyMuPDF e numpy (os mesmos do Veríssimo).
 """
@@ -325,6 +325,7 @@ def main():
     ap.add_argument('--estado', default='desarmado', choices=ESTADOS)
     ap.add_argument('--altura', type=int, default=104, help='altura da pessoa no tabuleiro, em pixels da arte')
     ap.add_argument('--previa', help='grava também uma prévia ampliada dos quadros')
+    ap.add_argument('--passos', action='store_true', help='grava também o passo simples (andar-<estado>-<direção>-<n>.png)')
     a = ap.parse_args()
     destino = os.path.join(PASTA, a.personagem, SUB)
     if not os.path.isdir(os.path.join(PASTA, a.personagem)):
@@ -337,7 +338,7 @@ def main():
     for d in ['s', 'se', 'e', 'ne', 'n', 'nw', 'w', 'sw']:
         q = enquadrar(limpar(reduzir(poses[d], escala)))
         gravar(q, os.path.join(destino, f'idle-{a.estado}-{d}.png'))
-        qs = passos(q, d, a.altura)
+        qs = passos(q, d, a.altura) if a.passos else []
         for i, f in enumerate(qs):
             gravar(f, os.path.join(destino, f'andar-{a.estado}-{d}-{i + 1}.png'))
         linhas.append([q] + qs)

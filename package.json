@@ -21,7 +21,8 @@
     "banco:parar": "docker compose stop banco",
     "banco:backup": "node scripts/banco.mjs backup",
     "banco:restaurar": "node scripts/banco.mjs restaurar",
-    "arte:poses": "python scripts/poses.py"
+    "arte:poses": "python scripts/poses.py",
+    "arte:boneco": "python scripts/boneco.py"
   },
   "devDependencies": {
     "concurrently": "^10.0.5",

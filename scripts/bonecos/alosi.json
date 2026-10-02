@@ -1,0 +1,621 @@
+{
+  "personagem": "alosi",
+  "estado": "desarmado",
+  "leia": "Marcações do boneco (scripts/boneco.py): por direção, as juntas na pose parada (x, y em pixels da imagem idle-<estado>-<direção>.png; o joelho e o cotovelo são calculados), o chão embaixo do corpo, onde fica cada peça (polígonos ou caixas), as pontas do cabelo, a barra do casaco, o que o tronco esconde atrás do braço, os membros de longe (de lado), a ordem de desenho (de trás para a frente) e os pixels dos olhos para piscar.",
+  "direcoes": {
+    "s": {
+      "juntas": {
+        "quadril": [36, 72],
+        "quadril_d": [27, 74],
+        "quadril_e": [45, 74],
+        "joelho_d": [26, 88],
+        "joelho_e": [46, 88],
+        "tornozelo_d": [25, 96],
+        "tornozelo_e": [47, 96],
+        "peito": [36, 50],
+        "pescoco": [36, 41],
+        "cabeca": [36, 24],
+        "ombro_d": [20, 44],
+        "ombro_e": [50, 44],
+        "cotovelo_d": [16, 57],
+        "cotovelo_e": [55, 57],
+        "pulso_d": [15, 68],
+        "pulso_e": [55, 68]
+      },
+      "chao": [36, 103],
+      "pecas": {
+        "cabeca": {
+          "poli": [[10, 0], [60, 0], [60, 34], [48, 34], [45, 37], [42, 38], [41, 41.5], [30, 41.5], [28, 38], [25, 36], [22, 34], [10, 34]]
+        },
+        "braco_d": {
+          "poli": [[2, 37], [18, 37], [22.5, 45], [21.5, 47], [21.5, 82], [2, 82]]
+        },
+        "braco_e": {
+          "poli": [[68, 37], [52, 37], [48, 45], [48.5, 47], [48.5, 82], [68, 82]]
+        },
+        "perna_d": {
+          "poli": [[2, 73.5], [35.5, 73.5], [35.5, 110], [2, 110]]
+        },
+        "perna_e": {
+          "poli": [[35.5, 73.5], [68, 73.5], [68, 110], [35.5, 110]]
+        }
+      },
+      "pontas": [
+        {
+          "caixa": [10, 22, 24, 34]
+        },
+        {
+          "caixa": [47, 22, 60, 34]
+        }
+      ],
+      "barra": [
+        {
+          "caixa": [21, 68, 30, 74]
+        },
+        {
+          "caixa": [41, 68, 49, 74]
+        }
+      ],
+      "cortes": {
+        "cotovelo_d": 57,
+        "cotovelo_e": 57,
+        "joelho_d": 88,
+        "joelho_e": 88,
+        "tornozelo_d": 96,
+        "tornozelo_e": 96
+      },
+      "ordem": [
+        "perna_d",
+        "perna_e",
+        "braco_d",
+        "braco_e",
+        "tronco",
+        "barra",
+        "cabeca",
+        "pontas"
+      ],
+      "olhos": {
+        "pele": [[30, 30], [31, 30], [32, 30], [33, 30], [39, 30], [40, 30], [41, 30], [42, 30]],
+        "cilio": [[30, 31], [31, 31], [32, 31], [33, 31], [39, 31], [40, 31], [41, 31], [42, 31]]
+      }
+    },
+    "n": {
+      "juntas": {
+        "quadril": [36, 72],
+        "quadril_e": [27, 75],
+        "quadril_d": [45, 75],
+        "joelho_e": [26, 87],
+        "joelho_d": [46, 87],
+        "tornozelo_e": [24, 93],
+        "tornozelo_d": [48, 93],
+        "peito": [36, 50],
+        "pescoco": [36, 38],
+        "cabeca": [36, 20],
+        "ombro_e": [21, 45],
+        "ombro_d": [50, 45],
+        "cotovelo_e": [16, 56],
+        "cotovelo_d": [55, 56],
+        "pulso_e": [15, 67],
+        "pulso_d": [55, 67]
+      },
+      "chao": [36, 101],
+      "pecas": {
+        "cabeca": {
+          "poli": [[10, 0], [62, 0], [62, 33], [52, 33], [48, 36], [42, 38.5], [30, 38.5], [24, 36], [20, 33], [10, 33]]
+        },
+        "braco_e": {
+          "poli": [[2, 40], [19, 40], [21.5, 45], [21.5, 82], [2, 82]]
+        },
+        "braco_d": {
+          "poli": [[69, 40], [52, 40], [49.5, 45], [49.5, 82], [69, 82]]
+        },
+        "perna_e": {
+          "poli": [[2, 72.5], [35.5, 72.5], [35.5, 110], [2, 110]]
+        },
+        "perna_d": {
+          "poli": [[35.5, 72.5], [70, 72.5], [70, 110], [35.5, 110]]
+        }
+      },
+      "pontas": [
+        {
+          "caixa": [12, 24, 60, 38]
+        }
+      ],
+      "barra": [
+        {
+          "caixa": [22, 68, 49, 72]
+        }
+      ],
+      "cortes": {
+        "cotovelo_d": 56,
+        "cotovelo_e": 56,
+        "joelho_d": 87,
+        "joelho_e": 87,
+        "tornozelo_d": 93,
+        "tornozelo_e": 93
+      },
+      "ordem": [
+        "perna_e",
+        "perna_d",
+        "braco_e",
+        "braco_d",
+        "tronco",
+        "barra",
+        "cabeca",
+        "pontas"
+      ]
+    },
+    "e": {
+      "juntas": {
+        "quadril": [26, 76],
+        "quadril_d": [25, 78],
+        "joelho_d": [24, 90],
+        "tornozelo_d": [24, 98],
+        "peito": [30, 52],
+        "pescoco": [31, 39],
+        "cabeca": [32, 22],
+        "ombro_d": [21, 44],
+        "cotovelo_d": [20, 58],
+        "pulso_d": [21, 70]
+      },
+      "chao": [25, 103],
+      "longe": {
+        "perna_e": {
+          "de": "perna_d",
+          "desloca": [3, -2],
+          "escurece": 0.62
+        },
+        "braco_e": {
+          "de": "braco_d",
+          "desloca": [5, -2],
+          "escurece": 0.8,
+          "so_mao": true
+        }
+      },
+      "pecas": {
+        "cabeca": {
+          "poli": [[8, 0], [56, 0], [56, 37.5], [42, 37.5], [40, 38.5], [30, 38.5], [26, 37.5], [8, 37.5]]
+        },
+        "braco_d": {
+          "poli": [[6, 35], [27, 37], [28.5, 45], [28.5, 73], [30, 82], [12, 83], [6, 60]]
+        },
+        "braco_e": {
+          "poli": [[38.5, 58], [48, 58], [48, 75], [38.5, 75]],
+          "cor": "pele"
+        },
+        "perna_d": {
+          "poli": [[10, 75.5], [33.5, 75.5], [33.5, 100], [38, 100], [38, 110], [10, 110]]
+        },
+        "perna_e": {
+          "poli": [[33.5, 75.5], [50, 75.5], [50, 101.5], [37.5, 101.5], [37.5, 100], [33.5, 100]]
+        }
+      },
+      "pontas": [
+        {
+          "caixa": [8, 24, 26, 37]
+        }
+      ],
+      "barra": [
+        {
+          "caixa": [28, 69, 43, 76]
+        }
+      ],
+      "oculto": {
+        "tronco": {
+          "poli": [[15, 40], [28, 37], [40, 40], [40.5, 75.5], [16, 76.5]]
+        }
+      },
+      "cortes": {
+        "cotovelo_d": 58,
+        "joelho_d": 90,
+        "tornozelo_d": 98
+      },
+      "ordem": [
+        "perna_e",
+        "braco_e",
+        "perna_d",
+        "tronco",
+        "barra",
+        "braco_d",
+        "cabeca",
+        "pontas"
+      ],
+      "olhos": {
+        "pele": [[33, 30], [34, 30], [35, 30], [36, 30]],
+        "cilio": [[33, 31], [34, 31], [35, 31], [36, 31]]
+      }
+    },
+    "w": {
+      "juntas": {
+        "quadril": [31, 76],
+        "quadril_e": [32, 78],
+        "joelho_e": [33, 90],
+        "tornozelo_e": [33, 98],
+        "peito": [27, 52],
+        "pescoco": [26, 39],
+        "cabeca": [25, 22],
+        "ombro_e": [36, 44],
+        "cotovelo_e": [37, 58],
+        "pulso_e": [36, 70]
+      },
+      "chao": [32, 103],
+      "longe": {
+        "perna_d": {
+          "de": "perna_e",
+          "desloca": [-3, -2],
+          "escurece": 0.62
+        },
+        "braco_d": {
+          "de": "braco_e",
+          "desloca": [-5, -2],
+          "escurece": 0.8,
+          "so_mao": true
+        }
+      },
+      "pecas": {
+        "cabeca": {
+          "poli": [[2, 0], [52, 0], [52, 37.5], [31, 37.5], [27, 38.5], [16, 38.5], [14, 37.5], [2, 37.5]]
+        },
+        "braco_e": {
+          "poli": [[29, 35], [52, 35], [52, 83], [26.5, 83], [26.5, 72], [28.5, 72], [28.5, 45], [29.5, 37]]
+        },
+        "braco_d": {
+          "poli": [[10, 58], [19.5, 58], [19.5, 75], [10, 75]],
+          "cor": "pele"
+        },
+        "perna_e": {
+          "poli": [[24, 75.5], [48, 75.5], [48, 110], [24, 110], [24, 100], [30.5, 100], [30.5, 89], [24, 89]]
+        },
+        "perna_d": {
+          "poli": [[8, 75.5], [24, 75.5], [24, 89], [30.5, 89], [30.5, 100], [24, 100], [24, 101.5], [8, 101.5]]
+        }
+      },
+      "pontas": [
+        {
+          "caixa": [30, 24, 48, 37]
+        }
+      ],
+      "barra": [
+        {
+          "caixa": [16, 69, 29, 76]
+        }
+      ],
+      "oculto": {
+        "tronco": {
+          "poli": [[18, 40], [29, 37], [42, 40], [41, 76.5], [18, 75.5]]
+        }
+      },
+      "cortes": {
+        "cotovelo_e": 58,
+        "joelho_e": 90,
+        "tornozelo_e": 98
+      },
+      "ordem": [
+        "perna_d",
+        "braco_d",
+        "perna_e",
+        "tronco",
+        "barra",
+        "braco_e",
+        "cabeca",
+        "pontas"
+      ],
+      "olhos": {
+        "pele": [[22, 29], [23, 29], [23, 30]],
+        "cilio": [[21, 30], [22, 30]]
+      }
+    },
+    "se": {
+      "juntas": {
+        "quadril": [36, 75],
+        "quadril_d": [28, 77],
+        "quadril_e": [43, 76],
+        "joelho_d": [27, 89],
+        "joelho_e": [44, 88],
+        "tornozelo_d": [25, 93],
+        "tornozelo_e": [46, 92],
+        "peito": [36, 52],
+        "pescoco": [36, 41],
+        "cabeca": [36, 24],
+        "ombro_d": [21, 45],
+        "ombro_e": [50, 46],
+        "cotovelo_d": [17, 58],
+        "cotovelo_e": [53, 57],
+        "pulso_d": [17, 71],
+        "pulso_e": [53, 67]
+      },
+      "chao": [35, 103],
+      "pecas": {
+        "cabeca": {
+          "poli": [[8, 0], [62, 0], [62, 35], [50, 35], [46, 38], [43, 41.5], [31, 41.5], [28, 38], [25, 35], [8, 35]]
+        },
+        "braco_d": {
+          "poli": [[2, 36], [22, 36], [25, 44], [24.5, 47], [24.5, 72], [23, 83], [2, 83]]
+        },
+        "braco_e": {
+          "poli": [[63, 40], [49, 40], [47.5, 46], [47.5, 82], [63, 82]]
+        },
+        "perna_d": {
+          "poli": [[8, 74.5], [36.5, 74.5], [36.5, 92], [33, 110], [8, 110]]
+        },
+        "perna_e": {
+          "poli": [[36.5, 74.5], [63, 74.5], [63, 110], [33, 110], [36.5, 92]]
+        }
+      },
+      "pontas": [
+        {
+          "caixa": [8, 22, 25, 36]
+        },
+        {
+          "caixa": [47, 22, 62, 36]
+        }
+      ],
+      "barra": [
+        {
+          "caixa": [24, 68, 32, 76]
+        },
+        {
+          "caixa": [40, 68, 48, 77]
+        }
+      ],
+      "oculto": {
+        "tronco": {
+          "poli": [[20, 42], [30, 40], [30, 74], [22, 74]]
+        }
+      },
+      "cortes": {
+        "cotovelo_d": 58,
+        "cotovelo_e": 57,
+        "joelho_d": 89,
+        "joelho_e": 88,
+        "tornozelo_d": 93,
+        "tornozelo_e": 92
+      },
+      "ordem": [
+        "perna_e",
+        "braco_e",
+        "perna_d",
+        "tronco",
+        "barra",
+        "braco_d",
+        "cabeca",
+        "pontas"
+      ],
+      "olhos": {
+        "pele": [[34, 30], [35, 30], [36, 30], [37, 30], [42, 30], [43, 30]],
+        "cilio": [[34, 31], [35, 31], [36, 31], [37, 31]]
+      }
+    },
+    "sw": {
+      "juntas": {
+        "quadril": [30, 75],
+        "quadril_e": [37, 77],
+        "quadril_d": [23, 76],
+        "joelho_e": [39, 89],
+        "joelho_d": [22, 88],
+        "tornozelo_e": [45, 94],
+        "tornozelo_d": [20, 92],
+        "peito": [30, 52],
+        "pescoco": [29, 41],
+        "cabeca": [29, 24],
+        "ombro_e": [45, 45],
+        "ombro_d": [15, 46],
+        "cotovelo_e": [49, 58],
+        "cotovelo_d": [12, 57],
+        "pulso_e": [49, 71],
+        "pulso_d": [13, 65]
+      },
+      "chao": [31, 103],
+      "pecas": {
+        "cabeca": {
+          "poli": [[2, 0], [58, 0], [58, 35], [40, 35], [37, 38], [34, 41.5], [22, 41.5], [19, 38], [15, 35], [2, 35]]
+        },
+        "braco_e": {
+          "poli": [[63, 36], [43, 36], [40, 44], [39.5, 47], [39.5, 72], [41, 83], [63, 83]]
+        },
+        "braco_d": {
+          "poli": [[2, 40], [16, 40], [18.5, 46], [18.5, 80], [2, 80]]
+        },
+        "perna_e": {
+          "poli": [[29.5, 74.5], [63, 74.5], [63, 110], [29.5, 110]]
+        },
+        "perna_d": {
+          "poli": [[2, 74.5], [29.5, 74.5], [29.5, 110], [2, 110]]
+        }
+      },
+      "pontas": [
+        {
+          "caixa": [2, 22, 18, 36]
+        },
+        {
+          "caixa": [40, 22, 58, 36]
+        }
+      ],
+      "barra": [
+        {
+          "caixa": [17, 66, 25, 74]
+        },
+        {
+          "caixa": [33, 68, 41, 76]
+        }
+      ],
+      "oculto": {
+        "tronco": {
+          "poli": [[34, 42], [42, 40], [43, 74], [34, 74]]
+        }
+      },
+      "cortes": {
+        "cotovelo_e": 58,
+        "cotovelo_d": 57,
+        "joelho_e": 89,
+        "joelho_d": 88,
+        "tornozelo_e": 94,
+        "tornozelo_d": 92
+      },
+      "ordem": [
+        "perna_d",
+        "braco_d",
+        "perna_e",
+        "tronco",
+        "barra",
+        "braco_e",
+        "cabeca",
+        "pontas"
+      ],
+      "olhos": {
+        "pele": [[21, 29], [22, 30], [23, 30], [29, 30], [30, 30], [31, 30]],
+        "cilio": [[22, 31], [23, 31], [29, 31], [30, 31]]
+      }
+    },
+    "ne": {
+      "juntas": {
+        "quadril": [31, 73],
+        "quadril_d": [37, 76],
+        "quadril_e": [23, 75],
+        "joelho_d": [38, 89],
+        "joelho_e": [22, 87],
+        "tornozelo_d": [39, 97],
+        "tornozelo_e": [20, 93],
+        "peito": [28, 52],
+        "pescoco": [29, 38],
+        "cabeca": [30, 22],
+        "ombro_d": [40, 46],
+        "ombro_e": [17, 48],
+        "cotovelo_d": [44, 58],
+        "cotovelo_e": [14, 57],
+        "pulso_d": [47, 70],
+        "pulso_e": [14, 65]
+      },
+      "chao": [32, 103],
+      "pecas": {
+        "cabeca": {
+          "poli": [[2, 0], [58, 0], [58, 36], [44, 36], [40, 38], [24, 38], [18, 36], [2, 36]]
+        },
+        "braco_d": {
+          "poli": [[60, 38], [37, 38], [34.5, 46], [34.5, 72], [42, 84], [60, 84]]
+        },
+        "braco_e": {
+          "poli": [[2, 44], [18, 44], [19.5, 48], [19.5, 80], [2, 80]]
+        },
+        "perna_d": {
+          "poli": [[30.5, 71.5], [60, 71.5], [60, 110], [29, 110], [29, 96], [30.5, 96]]
+        },
+        "perna_e": {
+          "poli": [[2, 71.5], [30.5, 71.5], [30.5, 96], [29, 96], [29, 102], [2, 102]]
+        }
+      },
+      "pontas": [
+        {
+          "caixa": [8, 24, 52, 37]
+        }
+      ],
+      "barra": [
+        {
+          "caixa": [19, 66, 42, 72]
+        }
+      ],
+      "oculto": {
+        "tronco": {
+          "poli": [[30, 44], [36, 42], [37, 72], [30, 72]]
+        }
+      },
+      "cortes": {
+        "cotovelo_d": 58,
+        "cotovelo_e": 57,
+        "joelho_d": 89,
+        "joelho_e": 87,
+        "tornozelo_d": 97,
+        "tornozelo_e": 93
+      },
+      "ordem": [
+        "perna_e",
+        "braco_e",
+        "perna_d",
+        "tronco",
+        "barra",
+        "braco_d",
+        "cabeca",
+        "pontas"
+      ],
+      "olhos": {
+        "pele": [[40, 29], [41, 29], [42, 29], [43, 29]],
+        "cilio": [[40, 30], [41, 30]]
+      }
+    },
+    "nw": {
+      "juntas": {
+        "quadril": [34, 73],
+        "quadril_e": [27, 76],
+        "quadril_d": [41, 75],
+        "joelho_e": [26, 89],
+        "joelho_d": [42, 87],
+        "tornozelo_e": [23, 98],
+        "tornozelo_d": [43, 94],
+        "peito": [34, 52],
+        "pescoco": [33, 38],
+        "cabeca": [32, 22],
+        "ombro_e": [22, 46],
+        "ombro_d": [47, 48],
+        "cotovelo_e": [18, 58],
+        "cotovelo_d": [49, 57],
+        "pulso_e": [15, 70],
+        "pulso_d": [48, 64]
+      },
+      "chao": [31, 103],
+      "pecas": {
+        "cabeca": {
+          "poli": [[2, 0], [58, 0], [58, 36], [46, 36], [40, 38], [24, 38], [20, 36], [2, 36]]
+        },
+        "braco_e": {
+          "poli": [[2, 38], [26, 38], [28, 44], [26.5, 47], [26.5, 72], [20, 84], [2, 84]]
+        },
+        "braco_d": {
+          "poli": [[62, 44], [46, 44], [44.5, 48], [44.5, 80], [62, 80]]
+        },
+        "perna_e": {
+          "poli": [[2, 71.5], [34, 71.5], [34, 97], [35, 97], [35, 110], [2, 110]]
+        },
+        "perna_d": {
+          "poli": [[34, 71.5], [62, 71.5], [62, 102], [35, 102], [35, 97], [34, 97]]
+        }
+      },
+      "pontas": [
+        {
+          "caixa": [8, 24, 50, 37]
+        }
+      ],
+      "barra": [
+        {
+          "caixa": [22, 66, 45, 72]
+        }
+      ],
+      "oculto": {
+        "tronco": {
+          "poli": [[25, 44], [32, 42], [32, 72], [24, 72]]
+        }
+      },
+      "cortes": {
+        "cotovelo_e": 58,
+        "cotovelo_d": 57,
+        "joelho_e": 89,
+        "joelho_d": 87,
+        "tornozelo_e": 98,
+        "tornozelo_d": 94
+      },
+      "ordem": [
+        "perna_d",
+        "braco_d",
+        "perna_e",
+        "tronco",
+        "barra",
+        "braco_e",
+        "cabeca",
+        "pontas"
+      ],
+      "olhos": {
+        "pele": [[19, 31], [20, 31]],
+        "cilio": [[19, 32], [20, 32]]
+      }
+    }
+  }
+}

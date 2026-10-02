@@ -1,4 +1,15 @@
-import { PORTRAIT_STATES, portraitState, sheetDirFor, TICK_MS, type AnimKey, type CharacterDef, type PortraitState } from '@croma/shared';
+import {
+  PORTRAIT_STATES,
+  portraitState,
+  sheetDirFor,
+  TICK_MS,
+  type AnimDirecao,
+  type AnimKey,
+  type AnimTabuleiro,
+  type AnimTira,
+  type CharacterDef,
+  type PortraitState,
+} from '@croma/shared';
 
 /** Quadro pronto para desenhar. w/h/ax/ay em pixels de mundo (zoom 1). */
 export interface SpriteFrame {
@@ -340,6 +351,84 @@ async function processPoses(def: CharacterDef): Promise<LoadedPoses> {
   return { frames, passos };
 }
 
+/** Uma direção do boneco animado, com os quadros já cortados das tiras. */
+export interface BonecoDir {
+  info: AnimDirecao;
+  parado: SpriteFrame[];
+  andar: SpriteFrame[];
+  /** os mesmos quadros de olhos fechados (para piscar); null se a direção não mostra os olhos */
+  paradoFechado: SpriteFrame[] | null;
+  andarFechado: SpriteFrame[] | null;
+}
+
+/** O boneco animado do tabuleiro carregado: por "estado:direção". */
+export interface LoadedAnim {
+  anim: AnimTabuleiro;
+  dirs: Record<string, BonecoDir>;
+}
+
+/** Corta a tira em quadros (uma linha de olhos abertos e, se houver, uma de fechados). */
+async function cortarTira(tira: AnimTira, info: AnimDirecao): Promise<SpriteFrame[][]> {
+  const img = await loadImage(tira.url);
+  const linhas = Math.max(1, Math.round(img.naturalHeight / info.h));
+  const out: SpriteFrame[][] = [];
+  for (let r = 0; r < linhas; r++) {
+    const qs: SpriteFrame[] = [];
+    for (let i = 0; i < tira.quadros; i++) {
+      const c = document.createElement('canvas');
+      c.width = info.w;
+      c.height = info.h;
+      c.getContext('2d')!.drawImage(img, i * info.w, r * info.h, info.w, info.h, 0, 0, info.w, info.h);
+      qs.push({ canvas: c, w: info.w, h: info.h, ax: info.ax, ay: info.ay, pixel: true });
+    }
+    out.push(qs);
+  }
+  return out;
+}
+
+async function processAnim(anim: AnimTabuleiro): Promise<LoadedAnim> {
+  const dirs: Record<string, BonecoDir> = {};
+  const pedidos: Promise<void>[] = [];
+  for (const [estado, porDir] of Object.entries(anim.estados))
+    for (const [dir, info] of Object.entries(porDir ?? {})) {
+      if (!info) continue;
+      pedidos.push(
+        Promise.all([cortarTira(info.parado, info), cortarTira(info.andar, info)]).then(([p, a]) => {
+          dirs[`${estado}:${dir}`] = {
+            info,
+            parado: p[0],
+            andar: a[0],
+            paradoFechado: info.olhos && p[1] ? p[1] : null,
+            andarFechado: info.olhos && a[1] ? a[1] : null,
+          };
+        }),
+      );
+    }
+  const r = await Promise.allSettled(pedidos);
+  for (const x of r) if (x.status === 'rejected') console.warn('[sprites]', x.reason);
+  if (!Object.keys(dirs).length) throw new Error('Nenhuma direção do boneco carregou');
+  return { anim, dirs };
+}
+
+/**
+ * A direção do boneco para o estado e a direção da peça: sem o estado, o mais
+ * parecido (como no retrato); sem a direção, a vizinha (ver sheetDirFor).
+ */
+export function bonecoFor(la: LoadedAnim, estado: PortraitState, dir: number): BonecoDir | null {
+  const armado = estado.startsWith('armado');
+  const machucado = estado.endsWith('machucado');
+  for (const e of [estado, portraitState(armado, false), portraitState(!armado, machucado), ...PORTRAIT_STATES]) {
+    const k = sheetDirFor(dir, (d) => !!la.dirs[`${e}:${d}`]);
+    if (k) return la.dirs[`${e}:${k}`];
+  }
+  return null;
+}
+
+/** Desenha um quadro do boneco com os pés (a âncora) em (x, y). sit = abaixa e esconde as pernas atrás do assento. */
+export function drawBoneco(ctx: CanvasRenderingContext2D, q: SpriteFrame, x: number, y: number, sit = false, alpha = 1, luz?: LuzNaPeca | null) {
+  paint(ctx, q, x, y, sit, alpha, luz);
+}
+
 export function spriteKey(def: CharacterDef) {
   return [def.sheet, def.cols, def.rows, def.height, def.removeBg, def.dirs.join(''), (def.anims ?? []).join('')].join('|');
 }
@@ -351,8 +440,11 @@ class SpriteStore {
 
   setDefs(list: CharacterDef[]) {
     this.defs = new Map(list.map((d) => [d.id, d]));
-    // as poses do tabuleiro são grandes: começam a carregar antes de a cena pedir
-    for (const d of list) this.poses(d);
+    // as poses e o boneco do tabuleiro começam a carregar antes de a cena pedir
+    for (const d of list) {
+      this.poses(d);
+      this.anim(d);
+    }
   }
 
   def(id: number | null | undefined) {
@@ -379,6 +471,29 @@ class SpriteStore {
         .catch((e) => {
           console.warn('[sprites]', e);
           this.cache.set(key, 'error');
+        });
+    }
+    return null;
+  }
+
+  private animCache = new Map<string, LoadedAnim | 'loading' | 'error'>();
+
+  /** O boneco animado do personagem; null enquanto carrega (ou se ele não tem). */
+  anim(def: CharacterDef): LoadedAnim | null {
+    if (!def.anim) return null;
+    const key = JSON.stringify(def.anim);
+    const c = this.animCache.get(key);
+    if (c && c !== 'loading' && c !== 'error') return c;
+    if (!c) {
+      this.animCache.set(key, 'loading');
+      processAnim(def.anim)
+        .then((la) => {
+          this.animCache.set(key, la);
+          this.onLoad?.();
+        })
+        .catch((e) => {
+          console.warn('[sprites]', e);
+          this.animCache.set(key, 'error');
         });
     }
     return null;

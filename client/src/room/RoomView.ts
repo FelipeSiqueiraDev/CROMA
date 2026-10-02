@@ -13,6 +13,7 @@ import {
   type Hint,
   type PortraitState,
   type RollResult,
+  type PeQuadro,
   type RoomInfo,
   type UserInfo,
   type UserStatus,
@@ -35,6 +36,8 @@ import { boxSilhouette, Mapper, Painter, pointInPoly, type WBox } from '../rende
 import { buildStatic, doorClipPath, roomBounds, type StaticLayer } from '../render/roomStatic';
 import { cmp, sortDrawables, type Drawable } from '../render/sort';
 import {
+  bonecoFor,
+  drawBoneco,
   drawPose,
   drawSombraProjetada,
   drawSprite,
@@ -70,6 +73,31 @@ export interface ClientUser {
   turnAt?: number;
   /** começou a andar neste instante: o passo segue contínuo de casa em casa */
   andandoDesde?: number;
+  /** andando: as casas já andadas nesta caminhada e o início do passo de agora (o ciclo do boneco segue a casa) */
+  casas?: number;
+  passoDesde?: number;
+  /** o boneco pisca: quando vem a próxima piscada, até quando os olhos ficam fechados e a segunda piscada (dupla) */
+  piscaEm?: number;
+  piscaAte?: number;
+  piscaDupla?: number;
+}
+
+/**
+ * Os olhos do boneco estão fechados agora? Pisca de 2,4 a 6 s, por 120 ms; uma
+ * vez em quatro, pisca duas vezes seguidas.
+ */
+function piscando(u: ClientUser, now: number): boolean {
+  u.piscaEm ??= now + 900 + Math.random() * 3200;
+  if (now >= u.piscaEm) {
+    u.piscaAte = now + 120;
+    u.piscaDupla = Math.random() < 0.25 ? now + 260 : undefined;
+    u.piscaEm = now + 2400 + Math.random() * 3600;
+  }
+  if (u.piscaDupla !== undefined && now >= u.piscaDupla) {
+    u.piscaAte = now + 110;
+    u.piscaDupla = undefined;
+  }
+  return now < (u.piscaAte ?? 0);
 }
 
 /** Duração do efeito de giro da peça parada. */
@@ -1160,6 +1188,37 @@ export class RoomView {
       // o relógio do passo: começa quando a peça sai andando e segue de casa em casa até parar
       if (p.moving) u.andandoDesde ??= now;
       else delete u.andandoDesde;
+      // o quanto a peça já andou, em casas: o ciclo do boneco (dois passos por casa) segue o chão, e não o
+      // relógio; no meio de cada casa ele está na passagem, então parar ali é natural
+      if (p.moving && u.anim) {
+        if (u.passoDesde !== u.anim.start) {
+          if (u.passoDesde !== undefined) u.casas = (u.casas ?? 0) + 1;
+          u.passoDesde = u.anim.start;
+        }
+      } else {
+        delete u.casas;
+        delete u.passoDesde;
+      }
+      const casas = p.moving && u.anim ? (u.casas ?? 0) + Math.min(1, Math.max(0, (now - u.anim.start) / TICK_MS)) : 0;
+      // o boneco animado (respira, pisca e anda com o ciclo inteiro): quando tem, vale no lugar da pose
+      const la = cdef ? sprites.anim(cdef) : null;
+      const bd = la ? bonecoFor(la, estado, u.dir) : null;
+      let bq: SpriteFrame | null = null;
+      let bpes: PeQuadro[] | null = null;
+      if (la && bd) {
+        const fechado = bd.info.olhos && piscando(u, now);
+        if (p.moving) {
+          const n = bd.andar.length;
+          const i = Math.floor((((casas + la.anim.faseAndar) % 1) + 1) % 1 * n) % n;
+          bq = (fechado && bd.andarFechado ? bd.andarFechado : bd.andar)[i];
+          bpes = bd.info.pesAndar[i] ?? null;
+        } else {
+          const n = bd.parado.length;
+          const i = Math.floor(now / la.anim.msParado + u.phase * n) % n;
+          bq = (fechado && bd.paradoFechado ? bd.paradoFechado : bd.parado)[i];
+          bpes = bd.info.pesParado[i] ?? null;
+        }
+      }
       const passos = lp && p.moving ? passosFor(lp, estado, u.dir) : null;
       // folha sem pose de sentar: fica de pé no chão, junto do assento (não em cima dele)
       const standBy = !!sp && u.sit === 1 && !p.moving && !framesFor(sp.lc, u.dir, 'sit');
@@ -1167,7 +1226,7 @@ export class RoomView {
       const baseZ = standBy ? (map.floorHeight(u.x, u.y) ?? p.z) : p.z;
       const half = seated ? 0.25 : 0.3;
       const [sx, sy] = iso(cx, cy, baseZ);
-      const H = sp ? sp.def.height : pf ? pf.h : PIXEL_AVATAR_HEIGHT;
+      const H = bq ? bq.ay : sp ? sp.def.height : pf ? pf.h : PIXEL_AVATAR_HEIGHT;
       const isSel = sel?.kind === 'user' && sel.id === u.id;
       const pose: Pose = p.moving ? 'walk' : seated || u.sit === 2 ? 'sit' : 'stand';
       const wave = u.waveUntil > now;
@@ -1176,14 +1235,17 @@ export class RoomView {
       const deitada = !!marcas?.deitadas.has(u.id);
       // a peça pisa no meio da casa: o centro da pegada das botas fica no centro dela, e não a ponta
       // da bota (sem isso, a sombra e o anel aparecem na frente dos pés e ela parece flutuar)
-      const afunda = (pf || sp) && !deitada && !seated && u.sit !== 2 ? Math.round(H * 0.05) : 0;
+      // (o boneco já vem com a âncora no meio da pegada)
+      const afunda = !bq && (pf || sp) && !deitada && !seated && u.sit !== 2 ? Math.round(H * 0.05) : 0;
       const fy = u.sit === 2 ? sy - 8 : sy;
       const door = this.door;
       const clip = !!door && (door.seg.wall === 'l' ? cx < door.seg.plane : cy < door.seg.plane);
       const sPose = pose === 'sit' ? 'sit' : pose;
       const andando = now - (u.andandoDesde ?? now);
       // o quadro que vai à tela agora (andando, o do passo): a sombra projetada é a silhueta dele
-      const quadro: SpriteFrame | null = pf
+      const quadro: SpriteFrame | null = bq
+        ? bq
+        : pf
         ? quadroDaPose(pf, now, sPose, passos, andando).q
         : sp
           ? (quadroDaFolha(sp.def, sp.lc, u.dir, now, u.phase, sPose)?.q ?? null)
@@ -1196,7 +1258,9 @@ export class RoomView {
             ctx.clip(door!.path, 'evenodd');
           }
           {
-            const pes = pf?.pes ? Math.max(15, Math.min(26, pf.pes + 4)) : 19;
+            // a sombra cobre os dois pés: com o boneco, da largura entre eles
+            const abre = bpes ? Math.max(...bpes.map((pe) => Math.abs(pe[0]))) + 8 : 0;
+            const pes = bpes ? Math.max(15, Math.min(26, abre)) : pf?.pes ? Math.max(15, Math.min(26, pf.pes + 4)) : 19;
             const rx = deitada ? 30 : pes;
             const ry = deitada ? 10 : Math.max(6, Math.round(pes * 0.42));
             // em volta: o chão escurece um pouco, sumindo para fora (o corpo tapa a luz)
@@ -1219,8 +1283,14 @@ export class RoomView {
                 const v = vetoresDaSombra(s.D, Math.max(0.4, Math.min(0.85, 0.3 + 0.25 * s.dist)));
                 drawSombraProjetada(ctx, quadro, sx, sy + afunda, v.lado, v.comp, Math.min(0.45, s.a * 2));
               }
-            // embaixo das botas: a sombra de contato, escura e de borda firme, como no pixel art
-            if (!deitada) desenharSombraPes(ctx, sx, sy, Math.round(rx * 0.86), Math.round(ry * 0.86));
+            // embaixo das botas: a sombra de contato, escura e de borda firme, como no pixel art; com o boneco,
+            // uma embaixo de cada pé, menor e mais clara quando o pé está no ar
+            if (!deitada && bpes && u.sit !== 2)
+              for (const [dx, dy, alt] of bpes) {
+                const k = Math.max(0.45, 1 - alt / 9);
+                desenharSombraPes(ctx, sx + Math.round(dx), sy + Math.round(dy), Math.round(8 * k), Math.max(2, Math.round(3.5 * k)));
+              }
+            else if (!deitada) desenharSombraPes(ctx, sx, sy, Math.round(rx * 0.86), Math.round(ry * 0.86));
             // anel na cor do personagem (no combate, na cor do lado): fino, em volta da sombra; a peça ativa pulsa
             const active = u.id === this.myId;
             const pulse = active ? 1 + Math.sin(now / 260) * 0.06 : 1;
@@ -1270,7 +1340,8 @@ export class RoomView {
             ctx.scale(0.92, 1);
             ctx.translate(-sx, -fy);
           }
-          if (pf) drawPose(ctx, pf, sx, fy + afunda + dance, now, sPose, 1, passos, andando, luz);
+          if (bq) drawBoneco(ctx, bq, sx, fy + dance, sPose === 'sit', 1, luz);
+          else if (pf) drawPose(ctx, pf, sx, fy + afunda + dance, now, sPose, 1, passos, andando, luz);
           else if (sp) drawSprite(ctx, sp.def, sp.lc, u.dir, sx, fy + afunda + dance, now, u.phase, sPose, 1, luz);
           else
             drawPixelAvatar(ctx, u.look, sx, fy, u.dir, u.headDir, {
