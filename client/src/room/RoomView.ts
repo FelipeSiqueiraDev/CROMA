@@ -986,6 +986,8 @@ export class RoomView {
       if (t >= 1) this.camAnim = null;
     }
     const ctx = this.ctx;
+    // tudo do zero a cada quadro: um erro no meio de um desenho não deixa o pincel torto para os próximos
+    (ctx as CanvasRenderingContext2D & { reset?: () => void }).reset?.();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = BG;
     ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);

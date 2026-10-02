@@ -135,8 +135,11 @@ export class RoomMap {
   }
 
   floorHeight(x: number, y: number): number | null {
-    if (x < 0 || y < 0 || x >= this.hm.width || y >= this.hm.height) return null;
-    return this.hm.tiles[y][x];
+    // posição quebrada (um mobi deslizando, com o tremido): vale a casa embaixo
+    const tx = Math.floor(x + 1e-6);
+    const ty = Math.floor(y + 1e-6);
+    if (tx < 0 || ty < 0 || tx >= this.hm.width || ty >= this.hm.height) return null;
+    return this.hm.tiles[ty][tx];
   }
 
   isDoor(x: number, y: number) {
