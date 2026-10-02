@@ -324,6 +324,15 @@ Os móveis vêm em **folhas de objetos** como a primeira do Códex (`mobiliario/
 
 O construtor converte com `scripts/3d/moveis.py` (a ficha diz qual objeto é qual móvel): sai `mobiliario/<id>/frente.png` e `costas.png`, em arte em dobro (2 pixels da imagem por pixel do tabuleiro no zoom 1), e a lista `mobiliario/moveis.json` que o jogo lê. O jogo espelha as imagens para os outros dois giros e mantém as luzes e os estados do móvel.
 
+### Móvel nos 4 giros (decidido em 02/10)
+
+O jeito certo de cada móvel: **uma folha por móvel, com ele girando**, para virar no tabuleiro sem espelho (o primeiro foi a cadeira do bar, `mobiliario/folhas/cadeira-bar.png`).
+
+- **Linha de cima, isométrica** (2:1, de cima a uns 30°, girada 45°), **no sentido horário, começando pela frente**: 1) frente virada para baixo à esquerda; 2) de costas, virada para cima à esquerda; 3) de costas, virada para cima à direita; 4) frente virada para baixo à direita. É a mesma ordem do botão Girar do jogo.
+- **Linha de baixo, vista de cima** (de cima e de frente, a uns 55°, para o combate), **também no sentido horário**: 5) virada para baixo; 6) para a esquerda; 7) para cima; 8) para a direita.
+- O mesmo objeto em todas: mesmo tamanho, pés na mesma altura, separadas, fundo transparente, sem chão, sem sombra, sem texto. Estilo da folha de objetos do Códex (pixel art detalhada, contorno escuro fino, cores quentes).
+- Nome: `client/public/arte/mobiliario/folhas/<nome-do-movel>.png`. O construtor recorta, acerta tamanho e âncora e grava `mobiliario/<id>/giro-<0|2|4|6>.png`.
+
 A lista dos cômodos e dos móveis de cada um está em [`SEDE-DA-ORDEM.md`](SEDE-DA-ORDEM.md); o que falta desenhar, folha por folha, no [`CHECKLIST-ARTE.md`](CHECKLIST-ARTE.md).
 
 ## Como entregar
