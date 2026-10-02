@@ -113,12 +113,27 @@
  },
  "chair_bar": {
   "escala": 0.5,
-  "frente": {
-   "arquivo": "chair_bar/frente.png",
-   "ax": 39.0,
-   "ay": 95.5,
-   "lado": "esquerda",
-   "ancora": "centro"
+  "giros": {
+   "4": {
+    "arquivo": "chair_bar/giro-4.png",
+    "ax": 74.0,
+    "ay": 161.7
+   },
+   "2": {
+    "arquivo": "chair_bar/giro-2.png",
+    "ax": 41.9,
+    "ay": 164.1
+   },
+   "0": {
+    "arquivo": "chair_bar/giro-0.png",
+    "ax": 71.7,
+    "ay": 150.2
+   },
+   "6": {
+    "arquivo": "chair_bar/giro-6.png",
+    "ax": 58.0,
+    "ay": 149.0
+   }
   }
  },
  "pool_table": {

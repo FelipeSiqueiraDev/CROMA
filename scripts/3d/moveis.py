@@ -19,7 +19,9 @@ frente; D de fundo) e de que lado do desenho está a frente.
   "giros": {"4": pedaço, "2": pedaço, "0": pedaço, "6": pedaço}. Cada vista é
   acertada no ângulo exato do tabuleiro, sem espelho: o giro 4 é a frente virada
   para baixo à esquerda; o 2, para baixo à direita; o 0, de costas para cima à
-  direita; o 6, de costas para cima à esquerda.
+  direita; o 6, de costas para cima à esquerda. Com "como_esta", o desenho não é
+  redesenhado (cadeira, planta: a caixa deformaria): só vai ao tamanho do tabuleiro,
+  com a âncora na quina da caixa que cobre o desenho.
 
 A arte sai em dobro (2 pixels da imagem por pixel do tabuleiro no zoom 1), em
 <destino>/<móvel>/<vista>.png, e o <destino>/moveis.json que o jogo lê.
@@ -364,7 +366,14 @@ def quatro_giros(m, folha, caixas, destino, escala):
         # nos giros 2 e 6 o comprimento do móvel corre na outra diagonal
         Wm, Dm = (W * CASA, D * CASA) if giro in ('0', '4') else (D * CASA, W * CASA)
         cam, nota = ajustar_camera(rec[:, :, 3] > 100, Wm, Dm, m['altura'])
-        img, (ax, ay) = renderizar(rec, cam, Wm, Dm, cam['H'], escala, solido=m.get('solido', False))
+        if m.get('como_esta'):
+            # o desenho como é: a escala da caixa ajustada (px por metro) vira a do tabuleiro
+            k = (PX_M_TABULEIRO / escala) / cam['S']
+            img = reamostrar(rec, max(1, round(rec.shape[1] * k)), max(1, round(rec.shape[0] * k)))
+            u, v = proj(np.array([Wm, Dm, 0.0]), cam)
+            ax, ay = float(u) * k, float(v) * k
+        else:
+            img, (ax, ay) = renderizar(rec, cam, Wm, Dm, cam['H'], escala, solido=m.get('solido', False))
         nome = f'giro-{giro}.png'
         gravar(img, os.path.join(pasta, nome))
         ent['giros'][giro] = {'arquivo': f"{m['def']}/{nome}", 'ax': round(ax, 1), 'ay': round(ay, 1)}
