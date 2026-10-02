@@ -32,11 +32,24 @@ própria folha ("folha" no móvel); senão vale a da ficha.
     presa no centro da base ("por": "imagem", a planta).
   - Sem "como_esta", a caixa de verdade é redesenhada na câmera do tabuleiro com o
     desenho por cima: o balcão que veio baixo fica com 1,1 m. "faixa": [de, até, vezes]
-    (frações da altura do desenho) repete esse pedaço da altura, alternando o espelho,
+    (frações da altura do desenho) repete esse pedaço da altura
     em vez de esticar (as fileiras de garrafas da prateleira); a altura sai daí.
+    "fatia": [de, até, vezes] (frações do comprimento): a frente e o tampo repetem essa
+    fatia do meio do desenho, sem a moldura das pontas e sem a inclinação que o desenho
+    tem de uma ponta à outra, para os módulos emendarem retos (o balcão: a fatia tem um
+    número inteiro de frisos).
+  - "endireitar": o desenho do gerador costuma ter as linhas da frente (tábuas, topo,
+    rodapé) um pouco inclinadas em relação à caixa; dois móveis lado a lado ficavam em
+    degrau. Mede a inclinação (a esquerda contra a direita da frente desdobrada) e
+    corrige ao redesenhar.
+  - "pe": a caixa não cobre bem o desenho (fliperama, pilha de cadeiras): o ponto mais
+    baixo dele (o pé da frente) fica no chão, na quina da frente do móvel.
+  - "tela": {"cores", "ms", "giros": {giro: [x, y, raio]}} (frações da imagem): a tela
+    acesa que troca de cor, com o brilho em cada giro que a mostra (o fliperama).
   - "pendurado": [largura da cúpula, altura do teto] em metros (a lâmpada): a imagem
     vai pela largura, presa no teto no meio da casa; "brilho": [x, y, raio] (frações da
-    imagem) é a luz em volta dela quando acesa.
+    imagem) é a luz em volta dela quando acesa; "pendulo": {"graus", "ms"} o balanço
+    (quase parado) dela no fio.
 
 - Tapete ("chao": true): a folha é o tapete visto de cima, em pé (a largura dele na
   lateral do móvel, o comprimento na frente); vai a 128 px por casa e o jogo deita no chão.
@@ -45,6 +58,8 @@ própria folha ("folha" no móvel); senão vale a da ficha.
   e na da esquerda ('l'), e os outros estados ('r-1', 'l-1': a arandela apagada). Cada
   vista: [pedaço, x, y], o ponto onde ele encosta na parede (o meio da plaquinha), em
   frações do pedaço. "real": [largura na parede, quanto sai dela, altura] em metros.
+  "tela": {"cores", "forca", paredes: {'r': [x, y, raio]}} (frações da imagem): a tela
+  acesa, que treme como TV ligada.
 
 A arte sai em dobro (2 pixels da imagem por pixel do tabuleiro no zoom 1), em
 <destino>/<móvel>/<vista>.png, e o <destino>/moveis.json que o jogo lê.
@@ -354,12 +369,44 @@ def renderizar(desenho, cam, Wm, Dm, H, escala, costas=None, solido=False):
     return np.clip(out, 0, 255).round().astype(np.uint8), (float(ub), float(vb))
 
 
-def renderizar_caixa(desenho, cam, caixa, casa, escala, faixa=None, troca=False):
+def frente_desdobrada(desenho, cam, troca, n=400):
+    """A face da frente do desenho (a do comprimento), reta: x ao longo dela, z para cima."""
+    W, Dd, H = cam['W'], cam['D'], cam['H']
+    L = Dd if troca else W
+    alt = max(8, int(n * H / L))
+    zz, xx = np.mgrid[0:alt, 0:n].astype(float)
+    if troca:
+        pts = np.stack([np.full_like(xx, W), (n - xx - 0.5) / n * Dd, (alt - zz - 0.5) / alt * H], axis=-1)
+    else:
+        pts = np.stack([(xx + 0.5) / n * W, np.full_like(xx, Dd), (alt - zz - 0.5) / alt * H], axis=-1)
+    return amostrar(desenho, *proj(pts, cam)), L
+
+
+def inclinacao(desenho, cam, troca):
+    """Quanto as linhas da frente sobem por metro ao longo dela (metros do desenho): compara as bordas da esquerda com as da direita."""
+    img, L = frente_desdobrada(desenho, cam, troca)
+    lum = img[:, :, :3].mean(axis=2) * (img[:, :, 3] / 255.0)
+    g = np.abs(np.diff(lum, axis=0))
+    h, w = g.shape
+    a = g[:, int(w * 0.1):int(w * 0.35)].mean(axis=1)
+    b = g[:, int(w * 0.65):int(w * 0.9)].mean(axis=1)
+    a = (a - a.mean()) / (a.std() + 1e-6)
+    b = (b - b.mean()) / (b.std() + 1e-6)
+    melhor, d = -1e9, 0
+    for desl in range(-25, 26):
+        c = (a[desl:] * b[:h - desl]).mean() if desl >= 0 else (a[:h + desl] * b[-desl:]).mean()
+        if c > melhor:
+            melhor, d = c, desl
+    # d > 0: a direita está d px acima da esquerda; os centros das duas faixas ficam a 0,55 da largura
+    return d / (0.55 * w), melhor
+
+
+def renderizar_caixa(desenho, cam, caixa, casa, escala, faixa=None, troca=False, fatia=None, incl=0.0):
     """
     O desenho (ajustado na caixa cam['W'] x cam['D'] x cam['H']) redesenhado na caixa do
     móvel de verdade (ox, oy, largura, fundo, altura, em metros dentro da casa), na câmera
     do tabuleiro, em dobro. faixa (de, até, em metros do desenho): na caixa mais alta, esse
-    pedaço da altura se repete, espelhado a cada volta, em vez de esticar; embaixo e em
+    pedaço da altura se repete, em vez de esticar; embaixo e em
     cima ficam como no desenho, na escala da frente. troca: a frente corre no eixo y
     (giros 2 e 6). Devolve a imagem e a âncora (a quina de baixo da casa).
     """
@@ -369,6 +416,15 @@ def renderizar_caixa(desenho, cam, caixa, casa, escala, faixa=None, troca=False)
     q = p.copy()
     q[..., 0] = (p[..., 0] - ox) * (Wd / bw)
     q[..., 1] = (p[..., 1] - oy) * (Dd / bd)
+    if fatia:
+        # a frente e o tampo repetem uma fatia do meio do desenho; a ponta continua a do desenho
+        f0, f1, voltas = fatia
+        if troca:
+            s_ = ((p[..., 1] - oy) / bd * voltas) % 1.0
+            q[..., 1] = np.where(face != 1, (f0 + s_ * (f1 - f0)) * Dd, q[..., 1])
+        else:
+            s_ = ((p[..., 0] - ox) / bw * voltas) % 1.0
+            q[..., 0] = np.where(face != 0, (f0 + s_ * (f1 - f0)) * Wd, q[..., 0])
     z = p[..., 2]
     if faixa:
         z0, z1 = faixa
@@ -377,16 +433,18 @@ def renderizar_caixa(desenho, cam, caixa, casa, escala, faixa=None, troca=False)
         meio = (z > baixo) & (z < alto)
         volta = np.where(meio, (z - baixo) / ((z1 - z0) / e), 0.0)
         n = np.floor(volta)
+        # a faixa se repete igual: espelhada, a perspectiva das tábuas e do fundo da estante virava ao contrário
         zd = np.where(z <= baixo, z * e, np.where(z >= alto, Hd - (bh - z) * e, z0 + (volta - n) * (z1 - z0)))
-        # nas voltas ímpares, a frente espelhada (as garrafas não se repetem iguais)
-        impar = meio & (n % 2 == 1)
-        if troca:
-            q[..., 1] = np.where(impar & (face == 0), Dd - q[..., 1], q[..., 1])
-        else:
-            q[..., 0] = np.where(impar & (face == 1), Wd - q[..., 0], q[..., 0])
         q[..., 2] = zd
     else:
         q[..., 2] = z * (Hd / bh)
+    if incl:
+        # na frente, as linhas do desenho sobem incl metros por metro: procura cada uma onde ela está (o tampo e a ponta ficam como estão)
+        if troca:
+            ao_longo = Dd - q[..., 1]
+            q[..., 2] = np.where(face == 0, q[..., 2] + incl * (ao_longo - Dd / 2), q[..., 2])
+        else:
+            q[..., 2] = np.where(face == 1, q[..., 2] + incl * (q[..., 0] - Wd / 2), q[..., 2])
     cor = amostrar(desenho, *proj(q, cam))
     out = np.zeros(p.shape[:2] + (4,))
     out[acerta] = cor[acerta]
@@ -507,6 +565,8 @@ def quatro_giros(m, folha, caixas, destino, escala):
         if m.get('pendurado'):
             img, (ax, ay), caixa = pendurar(rec, m['pendurado'], escala)
             ent['caixa'] = caixa
+            if m.get('pendulo'):
+                ent['pendulo'] = m['pendulo']
             if m.get('brilho'):
                 bx, by, br = m['brilho']
                 ent['brilho'] = {'x': round(bx * img.shape[1], 1), 'y': round(by * img.shape[0], 1), 'r': round(br * img.shape[1], 1)}
@@ -555,6 +615,14 @@ def quatro_giros(m, folha, caixas, destino, escala):
             img = reamostrar(rec, max(1, round(rec.shape[1] * k)), max(1, round(rec.shape[0] * k)))
             u, vv = proj(np.array([(Wt - ox) / q, (Dt - oy) / q, 0.0]), cam)
             ax, ay = float(u) * k, float(vv) * k
+            if m.get('pe'):
+                # preso pelo pé: o ponto mais baixo do desenho é a quina da frente do móvel, no chão
+                op = img[:, :, 3] > 100
+                baixo = int(np.nonzero(op.any(axis=1))[0].max())
+                xs = np.nonzero(op[baixo])[0]
+                dx, dy = (Wt - ox - bw) / CASA, (Dt - oy - bd) / CASA
+                ax = (xs.min() + xs.max() + 1) / 2 + (dx - dy) * 32 / escala
+                ay = baixo + 1 + (dx + dy) * 16 / escala
             tam = f'{bw:.2f} x {bd:.2f} x {bh:.2f} m'
         else:
             bh = hr if real else Hd
@@ -565,10 +633,20 @@ def quatro_giros(m, folha, caixas, destino, escala):
                 faixa = (f0 * Hd, f1 * Hd)
                 bh = (f0 * Hd + n * (f1 - f0) * Hd + (1 - f1) * Hd) / e
             ox, oy = posicao(giro, Wt, Dt, wr, dr, m.get('encosta', False))
-            img, (ax, ay) = renderizar_caixa(rec, cam, (ox, oy, wr, dr, bh), (Wt, Dt), escala, faixa=faixa, troca=v['troca'])
-            tam = f'{wr:.2f} x {dr:.2f} x {bh:.2f} m (o desenho: {Wd:.2f} x {Dd:.2f} x {Hd:.2f})'
+            incl = 0.0
+            if m.get('endireitar'):
+                incl, conf = inclinacao(rec, cam, v['troca'])
+                if conf < 0.3:
+                    incl = 0.0
+            img, (ax, ay) = renderizar_caixa(rec, cam, (ox, oy, wr, dr, bh), (Wt, Dt), escala, faixa=faixa, troca=v['troca'], fatia=m.get('fatia'), incl=incl)
+            tam = f'{wr:.2f} x {dr:.2f} x {bh:.2f} m (o desenho: {Wd:.2f} x {Dd:.2f} x {Hd:.2f})' + (f'; endireitado {incl:+.3f}' if incl else '')
         gravar(img, os.path.join(pasta, nome))
         ent['giros'][giro] = {'arquivo': f"{m['def']}/{nome}", 'ax': round(ax, 1), 'ay': round(ay, 1)}
+        tela = m.get('tela')
+        if tela and giro in tela['giros']:
+            fx, fy, fr = tela['giros'][giro]
+            t = ent.setdefault('tela', {'cores': tela['cores'], 'ms': tela['ms'], 'giros': {}})
+            t['giros'][giro] = {'x': round(fx * img.shape[1], 1), 'y': round(fy * img.shape[0], 1), 'r': round(fr * img.shape[1], 1)}
         imgs.append(img)
         print(f"{m['def']} giro {giro}: encaixe {nota:.3f}; desenho a {np.degrees(cam['a']):.0f}° e {np.degrees(cam['t']):.0f}°; {tam}", flush=True)
     return ent, imgs
@@ -617,6 +695,11 @@ def parede(m, folha, caixas, destino, escala):
         nome = f'parede-{chave}.png'
         gravar(img, os.path.join(pasta, nome))
         ent['parede'][chave] = {'arquivo': f"{m['def']}/{nome}", 'ax': round(fx * img.shape[1], 1), 'ay': round(fy * img.shape[0], 1)}
+        tela = m.get('tela')
+        if tela and chave in tela['paredes']:
+            tx, ty, tr = tela['paredes'][chave]
+            t = ent.setdefault('tela', {'cores': tela['cores'], 'forca': tela['forca'], 'paredes': {}})
+            t['paredes'][chave] = {'x': round(tx * img.shape[1], 1), 'y': round(ty * img.shape[0], 1), 'r': round(tr * img.shape[1], 1)}
         imgs.append(img)
         print(f"{m['def']} {chave}: {img.shape[1]}x{img.shape[0]}", flush=True)
     return ent, imgs

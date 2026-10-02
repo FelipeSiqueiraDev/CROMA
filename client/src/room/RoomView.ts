@@ -949,7 +949,7 @@ export class RoomView {
     // com arte: a vista desenhada daquela parede, presa no meio do item
     const zc = it.z + def.h / 64;
     const [px, py] = it.wall === 'l' ? iso(it.plane, it.pos, zc) : iso(it.pos, it.plane, zc);
-    const comArte = desenharParedeComArte(ctx, def.id, it.wall, it.state, px, py);
+    const comArte = desenharParedeComArte(ctx, def.id, it.wall, it.state, px, py, it.id);
     ctx.transform(1, k, 0, 1, ox, oy);
     if (!comArte) drawWallFurni(ctx, def, it.state, it.id, t);
     if (outline) {
@@ -1081,7 +1081,7 @@ export class RoomView {
       const def = getFurni(it.defId);
       if (!def) return;
       const base = furniVisual(def, it.state, it.id);
-      const vis = visualComArte(def, base, it.state) ?? base;
+      const vis = visualComArte(def, base, it.state, it.id) ?? base;
       m.set(it.rot, def.width, def.depth, it.x, it.y, it.z);
       const floorH = map.floorHeight(it.x, it.y) ?? 0;
       const flat = !!def.flat && it.z <= floorH + 0.05 && !ghost;

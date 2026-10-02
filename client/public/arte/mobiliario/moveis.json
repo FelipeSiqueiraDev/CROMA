@@ -126,13 +126,13 @@
    },
    "0": {
     "arquivo": "chair_bar/giro-0.png",
-    "ax": 53.2,
-    "ay": 133.9
+    "ax": 54.0,
+    "ay": 133.7
    },
    "6": {
     "arquivo": "chair_bar/giro-6.png",
-    "ax": 54.0,
-    "ay": 133.7
+    "ax": 53.2,
+    "ay": 133.9
    }
   }
  },
@@ -327,23 +327,47 @@
   "giros": {
    "4": {
     "arquivo": "arcade/giro-4.png",
-    "ax": 66.5,
-    "ay": 236.4
+    "ax": 70.4,
+    "ay": 201.4
    },
    "2": {
     "arquivo": "arcade/giro-2.png",
-    "ax": 54.3,
-    "ay": 235.6
+    "ax": 51.3,
+    "ay": 201.7
    },
    "0": {
     "arquivo": "arcade/giro-0.png",
-    "ax": 54.2,
-    "ay": 231.9
+    "ax": 64.7,
+    "ay": 192.4
    },
    "6": {
     "arquivo": "arcade/giro-6.png",
-    "ax": 66.5,
-    "ay": 230.9
+    "ax": 56.2,
+    "ay": 192.4
+   }
+  },
+  "tela": {
+   "cores": [
+    "#5ad8ff",
+    "#ffd84a",
+    "#c06aff",
+    "#5aff8a",
+    "#ff5a5a",
+    "#5a7aff",
+    "#ffa04a"
+   ],
+   "ms": 1100,
+   "giros": {
+    "4": {
+     "x": 60.5,
+     "y": 83.6,
+     "r": 50.8
+    },
+    "2": {
+     "x": 59.3,
+     "y": 83.6,
+     "r": 50.8
+    }
    }
   }
  },
@@ -407,23 +431,23 @@
   "giros": {
    "4": {
     "arquivo": "chair_stack/giro-4.png",
-    "ax": 56.8,
-    "ay": 199.3
+    "ax": 53.0,
+    "ay": 158.8
    },
    "2": {
     "arquivo": "chair_stack/giro-2.png",
-    "ax": 45.1,
-    "ay": 194.4
+    "ax": 50.0,
+    "ay": 159.4
    },
    "6": {
     "arquivo": "chair_stack/giro-6.png",
-    "ax": 59.0,
-    "ay": 199.4
+    "ax": 58.0,
+    "ay": 148.5
    },
    "0": {
     "arquivo": "chair_stack/giro-0.png",
-    "ax": 54.9,
-    "ay": 177.2
+    "ax": 50.0,
+    "ay": 148.1
    }
   }
  },
@@ -457,23 +481,23 @@
   "giros": {
    "2": {
     "arquivo": "bar_cabinet/giro-2.png",
-    "ax": 63.5,
-    "ay": 173.4
+    "ax": 57.3,
+    "ay": 136.2
    },
    "4": {
     "arquivo": "bar_cabinet/giro-4.png",
-    "ax": 40.8,
-    "ay": 173.7
+    "ax": 41.2,
+    "ay": 137.2
    },
    "6": {
     "arquivo": "bar_cabinet/giro-6.png",
-    "ax": 36.6,
-    "ay": 148.8
+    "ax": 46.9,
+    "ay": 126.1
    },
    "0": {
     "arquivo": "bar_cabinet/giro-0.png",
-    "ax": 65.2,
-    "ay": 160.2
+    "ax": 59.4,
+    "ay": 126.4
    }
   }
  },
@@ -634,6 +658,10 @@
    2.12,
    2.75
   ],
+  "pendulo": {
+   "graus": 1.6,
+   "ms": 4600
+  },
   "brilho": {
    "x": 24.0,
    "y": 69.3,
@@ -699,6 +727,26 @@
     "ax": 5.8,
     "ay": 81.4
    }
+  },
+  "tela": {
+   "cores": [
+    "#9fe3ae",
+    "#b8d0ff",
+    "#e8f0d0"
+   ],
+   "forca": 0.16,
+   "paredes": {
+    "r": {
+     "x": 29.8,
+     "y": 40.2,
+     "r": 28.8
+    },
+    "l": {
+     "x": 66.2,
+     "y": 40.2,
+     "r": 28.8
+    }
+   }
   }
  },
  "fan_wall": {
@@ -714,6 +762,12 @@
     "ax": 5.3,
     "ay": 9.2
    }
+  }
+ },
+ "rug_ornate": {
+  "escala": 1,
+  "chao": {
+   "arquivo": "rug_ornate/chao.png"
   }
  }
 }

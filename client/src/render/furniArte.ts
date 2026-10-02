@@ -39,6 +39,17 @@ export interface MovelArte {
   chao?: { arquivo: string };
   /** item de parede: a vista presa na parede da direita ('r') e na da esquerda ('l'), e os outros estados ('r-1'...); a âncora é o ponto de encosto */
   parede?: Record<string, VistaArte>;
+  /** tela acesa que troca de cor (o fliperama): as cores, o tempo de cada uma e o brilho em cada giro que mostra a tela, em pixels da imagem */
+  tela?: { cores: string[]; ms: number; giros: Partial<Record<'0' | '2' | '4' | '6', { x: number; y: number; r: number }>> };
+  /** a lâmpada no fio balança de leve: o ângulo máximo e o tempo de uma ida e volta */
+  pendulo?: { graus: number; ms: number };
+}
+
+/** A tela de TV ligada (item de parede): treme de leve entre as cores, bem mais fraca que o fliperama. */
+interface TelaParede {
+  cores: string[];
+  forca: number;
+  paredes: Partial<Record<'l' | 'r', { x: number; y: number; r: number }>>;
 }
 
 interface Imagens {
@@ -88,7 +99,7 @@ function pronta(arquivo: string): Imagens | null {
  * ordem de quem fica na frente), ou null se ele não tem arte (ou ela ainda não chegou).
  * As luzes continuam as do desenho por código. state: o estado do móvel (0 = aceso).
  */
-export function visualComArte(def: FurniDef, base: FVisual, state = 0): FVisual | null {
+export function visualComArte(def: FurniDef, base: FVisual, state = 0, seed = 0): FVisual | null {
   const a = lista?.[def.id];
   if (!a) return null;
   const alto = Math.max(0.1, def.height / Z_PER_M);
@@ -107,7 +118,19 @@ export function visualComArte(def: FurniDef, base: FVisual, state = 0): FVisual 
       prontas[g] = img;
     }
     const aceso = state === 0;
-    return V([N(caixa, (p) => desenharGiro(p, a, prontas, aceso ? (def.colors[0] ?? '#ffd98a') : null))], base.lights);
+    // a tela que troca de cor tinge também a luz que ela joga no cômodo
+    const cor = a.tela && aceso ? corDaTela(a.tela) : null;
+    let luzes = cor ? base.lights.map((L) => ({ ...L, color: cor })) : base.lights;
+    // a lâmpada balança no fio: a luz vai junto, de leve, e respira um pouco
+    const ang = a.pendulo ? balanco(a.pendulo, seed) : 0;
+    if (a.pendulo) {
+      const braco = Math.max(0.2, (a.caixa?.[5] ?? 2.75) - 1.95);
+      // para o lado na tela (u e v juntos, no giro 0 da lâmpada): o fundo dela vai para o lado contrário do giro
+      const s = (-Math.sin(ang) * braco) / (0.68 * Math.SQRT2);
+      const respira = 1 + 0.03 * Math.sin(performance.now() / 1700 + seed);
+      luzes = luzes.map((L) => ({ ...L, u: L.u + s, v: L.v + s, intensity: L.intensity * respira }));
+    }
+    return V([N(caixa, (p) => desenharGiro(p, a, prontas, aceso ? (def.colors[0] ?? '#ffd98a') : null, cor, ang))], luzes);
   }
   if (!a.frente) return null;
   const frente = pronta(a.frente.arquivo);
@@ -120,7 +143,7 @@ export function visualComArte(def: FurniDef, base: FVisual, state = 0): FVisual 
  * Item de parede com arte: a vista daquela parede (e do estado), com o ponto onde ele
  * encosta na parede em (x, y). false se ele não tem arte (ou ela ainda não chegou).
  */
-export function desenharParedeComArte(ctx: CanvasRenderingContext2D, defId: string, parede: 'l' | 'r', state: number, x: number, y: number): boolean {
+export function desenharParedeComArte(ctx: CanvasRenderingContext2D, defId: string, parede: 'l' | 'r', state: number, x: number, y: number, seed = 0): boolean {
   const a = lista?.[defId];
   if (!a?.parede) return false;
   const vista = (state ? a.parede[`${parede}-${state}`] : undefined) ?? a.parede[parede];
@@ -133,6 +156,9 @@ export function desenharParedeComArte(ctx: CanvasRenderingContext2D, defId: stri
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(img.normal, x - vista.ax * k, y - vista.ay * k, img.normal.width * k, img.normal.height * k);
   ctx.restore();
+  const tela = (a as MovelArte & { tela?: TelaParede }).tela as TelaParede | undefined;
+  const spot = tela?.paredes?.[parede];
+  if (tela && spot && !state) telaDeTv(ctx, tela, spot, x - vista.ax * k, y - vista.ay * k, k, seed);
   return true;
 }
 
@@ -155,27 +181,103 @@ function pintar(p: Painter, img: HTMLCanvasElement, ax: number, ay: number, k: n
   return r;
 }
 
-/** Desenhado nos 4 giros: a imagem do giro, como ela é (e o brilho da lâmpada acesa). */
-function desenharGiro(p: Painter, a: MovelArte, prontas: Partial<Record<string, Imagens>>, luz: string | null) {
+/** O ângulo da lâmpada no fio agora (em radianos): cada uma no seu tempo, pela semente. */
+function balanco(p: NonNullable<MovelArte['pendulo']>, seed: number): number {
+  const t = performance.now() / p.ms;
+  return ((p.graus * Math.PI) / 180) * Math.sin(t * Math.PI * 2 + seed * 1.7) * (0.75 + 0.25 * Math.sin(t * 0.37 + seed));
+}
+
+/** Um número de 0 a 1 que muda aos saltos suaves com o tempo (a cena da TV trocando). */
+function ruido(t: number, passo: number, seed: number): number {
+  const h = (n: number) => {
+    const x = Math.sin(n * 127.1 + seed * 311.7) * 43758.5453;
+    return x - Math.floor(x);
+  };
+  const i = Math.floor(t / passo);
+  const f = (t / passo) % 1;
+  const s = Math.min(1, f / 0.25);
+  return h(i - 1) + (h(i) - h(i - 1)) * s * s * (3 - 2 * s);
+}
+
+/**
+ * Item de parede com tela ligada (a TV): um brilho fraco, que muda de força e de cor
+ * como a imagem mudando, em volta da tela daquela vista. (x, y): a tela, na tela.
+ */
+function telaDeTv(ctx: CanvasRenderingContext2D, t: TelaParede, spot: { x: number; y: number; r: number }, x0: number, y0: number, k: number, seed: number) {
+  const agora = performance.now();
+  const forca = t.forca * (0.55 + 0.45 * ruido(agora, 640, seed)) * (0.92 + 0.08 * Math.sin(agora / 41));
+  const i = Math.floor(ruido(agora, 2300, seed + 5) * t.cores.length) % t.cores.length;
+  const cor = t.cores[i];
+  const cx = x0 + spot.x * k;
+  const cy = y0 + spot.y * k;
+  const rr = spot.r * k;
+  const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, rr);
+  g.addColorStop(0, rgba(cor, forca));
+  g.addColorStop(1, rgba(cor, 0));
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.fillStyle = g;
+  ctx.fillRect(cx - rr, cy - rr, rr * 2, rr * 2);
+  ctx.restore();
+}
+
+/** A cor da tela agora: cada cor fica um tempo e passa depressa para a próxima, como as peças do Tetris. */
+function corDaTela(t: NonNullable<MovelArte['tela']>): string {
+  const n = t.cores.length;
+  const f = performance.now() / t.ms;
+  const i = Math.floor(f) % n;
+  const s = Math.min(1, Math.max(0, ((f % 1) - 0.7) / 0.3));
+  return misturar(t.cores[i], t.cores[(i + 1) % n], s * s * (3 - 2 * s));
+}
+
+function misturar(a: string, b: string, t: number): string {
+  const ca = parseInt(a.slice(1), 16);
+  const cb = parseInt(b.slice(1), 16);
+  const canal = (sh: number) => Math.round(((ca >> sh) & 255) * (1 - t) + ((cb >> sh) & 255) * t);
+  return '#' + ((canal(16) << 16) | (canal(8) << 8) | canal(0)).toString(16).padStart(6, '0');
+}
+
+/** Um brilho redondo somado à imagem, em pixels da imagem. */
+function brilhar(p: Painter, r: { x: number; y: number }, k: number, x: number, y: number, raio: number, cor: string, forca: number) {
+  const ctx = p.ctx;
+  const cx = r.x + x * k;
+  const cy = r.y + y * k;
+  const rr = raio * k;
+  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, rr);
+  grad.addColorStop(0, rgba(cor, forca));
+  grad.addColorStop(1, rgba(cor, 0));
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.fillStyle = grad;
+  ctx.fillRect(cx - rr, cy - rr, rr * 2, rr * 2);
+  ctx.restore();
+}
+
+/** Desenhado nos 4 giros: a imagem do giro, como ela é (e o brilho da lâmpada acesa e da tela). ang: o balanço da lâmpada. */
+function desenharGiro(p: Painter, a: MovelArte, prontas: Partial<Record<string, Imagens>>, luz: string | null, corTela: string | null = null, ang = 0) {
   const g = String(p.m.rot);
   const vista = a.giros?.[g as '4'] ?? a.giros?.['4'] ?? Object.values(a.giros ?? {})[0];
   const imgs = prontas[g] ?? prontas['4'] ?? Object.values(prontas)[0];
   if (!vista || !imgs) return;
-  const r = pintar(p, imgs.normal, vista.ax, vista.ay, a.escala, vista.ancora === 'centro');
-  if (a.brilho && luz && p.power > 0.1) {
-    const ctx = p.ctx;
-    const x = r.x + a.brilho.x * a.escala;
-    const y = r.y + a.brilho.y * a.escala;
-    const raio = a.brilho.r * a.escala;
-    const grad = ctx.createRadialGradient(x, y, 0, x, y, raio);
-    grad.addColorStop(0, rgba(luz, 0.55 * p.power));
-    grad.addColorStop(1, rgba(luz, 0));
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.fillStyle = grad;
-    ctx.fillRect(x - raio, y - raio, raio * 2, raio * 2);
-    ctx.restore();
+  if (ang) {
+    // gira em volta do ponto onde o fio prende (o meio de cima da imagem)
+    const r0 = lugar(p, imgs.normal, vista.ax, vista.ay, a.escala, vista.ancora === 'centro');
+    const px = r0.x + r0.w / 2;
+    p.ctx.save();
+    p.ctx.translate(px, r0.y);
+    p.ctx.rotate(ang);
+    p.ctx.translate(-px, -r0.y);
   }
+  const r = pintar(p, imgs.normal, vista.ax, vista.ay, a.escala, vista.ancora === 'centro');
+  if (a.brilho && luz && p.power > 0.1) brilhar(p, r, a.escala, a.brilho.x, a.brilho.y, a.brilho.r, luz, 0.55 * p.power);
+  const tela = a.tela?.giros[g as '4'];
+  if (tela && corTela && p.power > 0.1) {
+    // a tela pisca de leve, como um tubo velho
+    const t = performance.now();
+    const pisca = 0.85 + 0.1 * Math.sin(t / 97) + 0.05 * Math.sin(t / 23);
+    brilhar(p, r, a.escala, tela.x, tela.y, tela.r, corTela, 0.42 * pisca * p.power);
+  }
+  if (ang) p.ctx.restore();
 }
 
 /** O tapete: a imagem vista de cima deitada no chão do móvel (a largura na lateral, a altura no comprimento). */
