@@ -61,5 +61,14 @@
   "parede": {
    "arquivo": "parede-musgo.png"
   }
+ },
+ "carpete": {
+  "piso": {
+   "arquivo": "piso-carpete.png",
+   "casas": 3.53
+  },
+  "parede": {
+   "arquivo": "parede-tecnologia.png"
+  }
  }
 }

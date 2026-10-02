@@ -16,7 +16,7 @@ import { buildRoom, plan, type FloorSeed, type WallSeed } from './seed';
 export const SEDE = 'Sede · ';
 export const SEDE_CODE = '0413';
 /** Versão da montagem da Sede: subiu, a Sede é refeita no lugar (mesmos cômodos, peças e registro). */
-export const SEDE_REV = 16;
+export const SEDE_REV = 18;
 
 /** Planta retangular com a porta na parede de cima (y = 0), na coluna doorX. */
 export function planTop(w: number, h: number, doorX: number): { heightmap: string; door: Door } {
@@ -472,7 +472,7 @@ const ROOMS: RoomSpec[] = [
     lamp: 'fluorescent',
     name: SEDE + 'Sala de Tecnologia',
     was: [SEDE + 'Sala de Reunião'],
-    description: 'Computadores contornando as paredes, cadeiras viradas para as telas e o carpete roxo no meio.',
+    description: 'As estações de trabalho na parede do fundo, embaixo do painel das câmeras; os servidores, a impressora e as fitas na parede da esquerda; o quadro branco no meio do carpete roxo.',
     layout: planTop(13, 10, 2),
     floorName: 'Subsolo',
     style: 'carpete',
@@ -480,26 +480,32 @@ const ROOMS: RoomSpec[] = [
     plan: { x: 40, y: -3, r: 2 },
     floor: [
       ['portal', 2, 1, 4],
-      // bancada no fundo
+      // as estações de trabalho na parede do fundo, cada uma com a sua cadeira
       ['console', 4, 1, 4],
-      ['console', 6, 1, 4],
-      ['console', 8, 1, 4],
+      ['chair_office', 5, 2, 0],
+      ['console', 7, 1, 4],
+      ['chair_office', 8, 2, 0],
       ['console', 10, 1, 4],
-      ['chair_office', 4, 2, 0],
-      ['chair_office', 7, 2, 0],
-      ['chair_office', 10, 2, 0],
-      // bancada na parede esquerda
-      ['console', 0, 3, 2],
-      ['console', 0, 5, 2],
-      ['console', 0, 7, 2],
-      ['chair_office', 1, 4, 6],
-      ['chair_office', 1, 7, 6],
-      // bancada da frente, telas para o lado de cá
-      ['console', 7, 10, 0],
-      ['console', 9, 10, 0],
-      ['chair_office', 8, 9, 4],
-      ['chair_office', 10, 9, 4],
-      ...lamps([6, 5], [3, 8], [10, 6]),
+      ['chair_office', 11, 2, 0],
+      // na parede da esquerda: os servidores com o nobreak, a impressora, as fitas e o bebedouro
+      ['server_rack', 0, 2, 2],
+      ['server_rack', 0, 3, 2],
+      ['ups', 0, 4, 2],
+      ['cables_floor', 1, 3, 4],
+      ['printer_dot', 0, 6, 2],
+      ['media_shelf', 0, 8, 2],
+      ['water_cooler', 0, 10, 2],
+      // o quadro branco no meio, virado para a sala, e as caixas de peças no canto
+      ['whiteboard', 5, 6, 4],
+      ['parts_boxes', 11, 9, 4],
+      ['parts_boxes', 12, 9, 6],
+      ...lamps([3, 4], [9, 4], [8, 8]),
+    ],
+    wall: [
+      ['monitor_wall', 'r', 1, 8.0, 2.9],
+      ['shelf_wall', 'r', 1, 4.8, 2.7],
+      ['ac_wall', 'r', 1, 11.6, 4.3],
+      ['shelf_wall', 'l', 0, 6.0, 2.9],
     ],
     links: [[2, 1, 'corredor']],
   },

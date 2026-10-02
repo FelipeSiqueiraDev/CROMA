@@ -144,12 +144,18 @@ Com arte desde 02/10. As bancadas de inox da enfermaria ficam encostadas na pare
 
 ### Sala de Tecnologia
 
-Computadores contornando as paredes, cadeiras viradas para as telas, o meio vazio.
+Com arte desde 02/10. Três estações de trabalho separadas na parede do fundo, cada uma com a sua cadeira, embaixo do painel com as câmeras da Sede; a prateleira de manuais perto da porta e o ar-condicionado no canto. Na parede da esquerda, os dois racks de servidores com o nobreak e os cabos, a impressora matricial, a estante de fitas e o bebedouro. O quadro branco fica no meio do carpete roxo, virado para a sala, e as caixas de peças, no canto da frente. Parede de reboco cinza-arroxeado descascando, com a canaleta dos fios.
 
-| Item | Id | Qtd | Casas | Altura | O que desenhar |
+| Item | Id | Qtd | Casas | Altura | Estados |
 |---|---|---|---|---|---|
-| ✱ Bancada de computadores | `console` | 9 | 2×1 | 0,78 m | Bancada lilás com dois monitores acesos e teclado; ligada/desligada. |
-| Cadeira de escritório | `chair_office` | 7 | 1×1 | 0,5 m | — |
+| ✱ Bancada de computadores | `console` | 3 | 2×1 | tampo a 0,75 m, monitores a 1,2 m | ligada (as telas brilham) / desligada |
+| Cadeira de escritório | `chair_office` | 3 | 1×1 | 1 m | — |
+| Rack de servidores | `server_rack` | 2 | 1×1 | 1,3 m (o desenho veio largo: na largura da casa, ficou um rack de meia altura) | — |
+| Impressora matricial | `printer_dot` | 1 | 1×1 | 0,65 m | — |
+| Quadro branco | `whiteboard` | 1 | 3×1 | 1,8 m | — |
+| Estante de mídias, bebedouro, caixas de peças, nobreak | `media_shelf`, `water_cooler`, `parts_boxes`, `ups` | 1, 1, 2, 1 | — | — | — |
+| Cabos no chão | `cables_floor` | 1 | 3×1 | chão | — |
+| Painel de monitoramento, ar-condicionado, prateleira | `monitor_wall`, `ac_wall`, `shelf_wall` (parede) | 1, 1, 2 | — | — | o painel: ligado / desligado |
 
 ### Gabinete
 
