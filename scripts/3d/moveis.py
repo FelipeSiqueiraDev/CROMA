@@ -85,7 +85,12 @@ própria folha ("folha" no móvel); senão vale a da ficha.
 
 - "chamas" (móvel ou item de parede): {giro ou parede: [[x, y, altura], ...]} em frações
   da imagem, a base de cada chama e a altura dela: o jogo desenha uma chama que mexe por
-  cima da chama parada do desenho (vela, candelabro, tocha, fogueira).
+  cima da chama parada do desenho (vela, candelabro, tocha, fogueira). "chamas": "auto"
+  acha sozinho as chamas do desenho (os pontos quentes e claros) em cada giro.
+- "estados": {"1": folha, ...} (móvel desenhado como está): o mesmo móvel em outro estado
+  (o armário aberto, o candelabro apagado), numa folha com as vistas no mesmo lugar e no
+  mesmo tamanho. Cada vista sai na escala e na âncora do estado 0, para o móvel não pular
+  ao trocar de estado; vai em <móvel>/giro-<g>-<estado>.png e em "estados" no moveis.json.
 
 A arte sai em dobro (2 pixels da imagem por pixel do tabuleiro no zoom 1), em
 <destino>/<móvel>/<vista>.png, e o <destino>/moveis.json que o jogo lê.
@@ -163,6 +168,79 @@ def recortar(folha, caixas, i):
             rec[iy0 - y0:iy1 - y0, ix0 - x0:ix1 - x0, 3] = 0
     ys, xs = np.nonzero(rec[:, :, 3] > 16)
     return rec[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
+
+
+def recortar_origem(folha, caixas, i):
+    """Como recortar, e onde o recorte começa na folha (x, y)."""
+    x0, y0, x1, y1 = caixas[i]
+    rec = folha[y0:y1, x0:x1].copy()
+    for j, (a0, b0, a1, b1) in enumerate(caixas):
+        if j == i:
+            continue
+        ix0, iy0, ix1, iy1 = max(a0, x0), max(b0, y0), min(a1, x1), min(b1, y1)
+        if ix0 < ix1 and iy0 < iy1:
+            rec[iy0 - y0:iy1 - y0, ix0 - x0:ix1 - x0, 3] = 0
+    ys, xs = np.nonzero(rec[:, :, 3] > 16)
+    return rec[ys.min():ys.max() + 1, xs.min():xs.max() + 1], (x0 + xs.min(), y0 + ys.min())
+
+
+def achar_chamas(img):
+    """As chamas do desenho: os pedaços quentes e claros. [[x, y, altura], ...] em pixels da imagem (a base de cada uma)."""
+    f = img.astype(int)
+    r, g, b, a = f[..., 0], f[..., 1], f[..., 2], f[..., 3]
+    quente = (a > 150) & (r > 200) & (g > 120) & (r - b > 90)
+    h, w = quente.shape
+    vistos = np.zeros_like(quente)
+    out = []
+    for y0 in range(h):
+        for x0 in np.nonzero(quente[y0] & ~vistos[y0])[0]:
+            pilha = [(y0, x0)]
+            vistos[y0, x0] = True
+            pts = []
+            while pilha:
+                y, x = pilha.pop()
+                pts.append((y, x))
+                for dy in (-1, 0, 1):
+                    for dx in (-1, 0, 1):
+                        ny, nx = y + dy, x + dx
+                        if 0 <= ny < h and 0 <= nx < w and quente[ny, nx] and not vistos[ny, nx]:
+                            vistos[ny, nx] = True
+                            pilha.append((ny, nx))
+            if len(pts) < 3:
+                continue
+            ys = np.array([p[0] for p in pts])
+            xs = np.array([p[1] for p in pts])
+            out.append([xs.min(), xs.max(), ys.min(), ys.max(), ys, xs])
+    # a chama partida em dois pedaços (o miolo claro no meio) vira uma só: juntos na coluna e quase encostados
+    juntou = True
+    while juntou:
+        juntou = False
+        for i in range(len(out)):
+            for j in range(i + 1, len(out)):
+                a, b = out[i], out[j]
+                # na mesma coluna (os meios a até 4 px) e encostados na altura (até 2 px de vão)
+                if abs((a[0] + a[1]) - (b[0] + b[1])) / 2 <= 4 and min(a[3], b[3]) - max(a[2], b[2]) >= -2:
+                    out[i] = [min(a[0], b[0]), max(a[1], b[1]), min(a[2], b[2]), max(a[3], b[3]), np.concatenate([a[4], b[4]]), np.concatenate([a[5], b[5]])]
+                    del out[j]
+                    juntou = True
+                    break
+            if juntou:
+                break
+    chamas = []
+    alturas = [c[3] - c[2] + 1 for c in out if c[3] - c[2] + 1 >= 6]
+    if not alturas:
+        return chamas
+    tipica = float(np.median(alturas))
+    for x0, x1, y0, y1, ys, xs in out:
+        if y1 - y0 + 1 < 0.6 * tipica:
+            continue
+        # a chama grudada num brilho da cera embaixo: fica só a chama (a altura de uma chama, de cima)
+        if y1 - y0 + 1 > 1.4 * tipica:
+            y1 = int(y0 + tipica - 1)
+            xs, ys = xs[ys <= y1], ys[ys <= y1]
+        pe = xs[ys >= y1 - max(1, (y1 - y0) * 0.3)]
+        chamas.append([round(float(pe.mean()) + 0.5, 1), round(float(y1) + 1, 1), round(float(y1 - y0 + 1), 1)])
+    return chamas
 
 
 def bordas_de_cima(rec):
@@ -690,9 +768,11 @@ def quatro_giros(m, folha, caixas, destino, escala):
     ent = {'escala': escala, 'giros': {}}
     imgs = []
     vistas = []
+    origens = {}
     for giro, qual in m['giros'].items():
         pedaco, espelho = (qual, False) if isinstance(qual, int) else (qual['pedaco'], qual.get('espelho', False))
-        rec = recortar(folha, caixas, pedaco)
+        rec, origem = recortar_origem(folha, caixas, pedaco)
+        origens[giro] = (pedaco, origem, rec.shape[1], rec.shape[0], espelho)
         if espelho:
             rec = rec[:, ::-1].copy()
         if m.get('retificar'):
@@ -733,6 +813,8 @@ def quatro_giros(m, folha, caixas, destino, escala):
             else:
                 ax, ay = ancora_centro(img)
                 ent['giros'][giro] = {'arquivo': f"{m['def']}/{nome}", 'ax': round(ax, 1), 'ay': round(ay, 1), 'ancora': 'centro'}
+            if m.get('chamas') == 'auto':
+                ent.setdefault('chamas', {})[giro] = achar_chamas(img)
             if m.get('brilho'):
                 # a luz acesa em volta da cúpula (a luminária de pé), em frações da imagem
                 bx, by, br = m['brilho']
@@ -826,7 +908,9 @@ def quatro_giros(m, folha, caixas, destino, escala):
             tam = f'{wr:.2f} x {dr:.2f} x {bh:.2f} m (o desenho: {Wd:.2f} x {Dd:.2f} x {Hd:.2f})' + (f'; endireitado {incl:+.3f}' if incl else '')
         gravar(img, os.path.join(pasta, nome))
         ent['giros'][giro] = {'arquivo': f"{m['def']}/{nome}", 'ax': round(ax, 1), 'ay': round(ay, 1)}
-        if giro in m.get('chamas', {}):
+        if m.get('chamas') == 'auto':
+            ent.setdefault('chamas', {})[giro] = achar_chamas(img)
+        elif giro in m.get('chamas', {}):
             ent.setdefault('chamas', {})[giro] = [[round(cx * img.shape[1], 1), round(cy * img.shape[0], 1), round(ca * img.shape[0], 1)] for cx, cy, ca in m['chamas'][giro]]
         tela = m.get('tela')
         if tela and giro in tela['giros']:
@@ -835,7 +919,47 @@ def quatro_giros(m, folha, caixas, destino, escala):
             t['giros'][giro] = {'x': round(fx * img.shape[1], 1), 'y': round(fy * img.shape[0], 1), 'r': round(fr * img.shape[1], 1)}
         imgs.append(img)
         print(f"{m['def']} giro {giro}: encaixe {nota:.3f}; desenho a {np.degrees(cam['a']):.0f}° e {np.degrees(cam['t']):.0f}°; {tam}", flush=True)
+    if m.get('estados'):
+        outros_estados(m, ent, origens, caixas, pasta, imgs)
     return ent, imgs
+
+
+def outros_estados(m, ent, origens, caixas, pasta, imgs):
+    """
+    As vistas dos outros estados (o armário aberto): cada uma recortada na folha dela, no pedaço
+    que cai no mesmo lugar do estado 0, e levada na mesma escala, com a âncora no mesmo ponto
+    da folha. Assim o móvel não muda de tamanho nem pula ao trocar de estado.
+    """
+    assert m.get('como_esta') and not m.get('retificar'), 'estados: só para o móvel desenhado como está'
+    for estado, arq in m['estados'].items():
+        f = ler(os.path.join(REPO, arq))
+        f[:, :, 3] = np.where(f[:, :, 3] < 56, 0, f[:, :, 3])
+        cx = pedacos(f[:, :, 3] > 16)
+        dest = ent.setdefault('estados', {}).setdefault(estado, {'giros': {}})
+        for giro, vista in ent['giros'].items():
+            pedaco, (x0, y0), w0, h0, espelho = origens[giro]
+            assert not espelho, 'estados: a vista espelhada não tem par na outra folha'
+            # o pedaço da outra folha que mais se sobrepõe ao do estado 0
+            a0, b0, a1, b1 = caixas[pedaco]
+
+            def sobra(c):
+                ix = max(0, min(a1, c[2]) - max(a0, c[0]))
+                iy = max(0, min(b1, c[3]) - max(b0, c[1]))
+                return ix * iy / ((a1 - a0) * (b1 - b0) + (c[2] - c[0]) * (c[3] - c[1]) - ix * iy)
+            j = int(np.argmax([sobra(c) for c in cx]))
+            rec, (vx, vy) = recortar_origem(f, cx, j)
+            base = ler(os.path.join(pasta, os.path.basename(vista['arquivo'])))
+            kx, ky = base.shape[1] / w0, base.shape[0] / h0
+            img = reamostrar(rec, max(1, round(rec.shape[1] * kx)), max(1, round(rec.shape[0] * ky)))
+            # o ponto da âncora na folha, e na vista nova
+            X, Y = x0 + vista['ax'] / kx, y0 + vista['ay'] / ky
+            nome = f'giro-{giro}-{estado}.png'
+            gravar(img, os.path.join(pasta, nome))
+            dest['giros'][giro] = {'arquivo': f"{m['def']}/{nome}", 'ax': round((X - vx) * kx, 1), 'ay': round((Y - vy) * ky, 1)}
+            if 'ancora' in vista:
+                dest['giros'][giro]['ancora'] = vista['ancora']
+            imgs.append(img)
+            print(f"{m['def']} giro {giro}, estado {estado}: {img.shape[1]}x{img.shape[0]} (sobreposição {sobra(cx[j]):.2f})", flush=True)
 
 
 def pendurar(rec, pendurado, escala):

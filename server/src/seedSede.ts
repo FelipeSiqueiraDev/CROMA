@@ -16,7 +16,7 @@ import { buildRoom, plan, type FloorSeed, type WallSeed } from './seed';
 export const SEDE = 'Sede · ';
 export const SEDE_CODE = '0413';
 /** Versão da montagem da Sede: subiu, a Sede é refeita no lugar (mesmos cômodos, peças e registro). */
-export const SEDE_REV = 12;
+export const SEDE_REV = 14;
 
 /** Planta retangular com a porta na parede de cima (y = 0), na coluna doorX. */
 export function planTop(w: number, h: number, doorX: number): { heightmap: string; door: Door } {
@@ -513,27 +513,31 @@ const ROOMS: RoomSpec[] = [
     plan: { x: 54, y: -3, r: 2 },
     floor: [
       ['portal', 6, 1, 4],
-      ['rug_ornate', 1, 4, 2],
-      ['armchair_leather', 1, 6, 4],
-      ['armchair_leather', 2, 6, 4],
-      ['armchair_leather', 3, 6, 4],
-      ['armchair_leather', 4, 6, 4],
-      ['desk_wood', 2, 8, 0],
-      ['papers', 2, 8, 0],
-      ['desk_lamp', 3, 8, 0],
-      ['armchair_leather', 2, 9, 0],
-      ['table_small', 0, 1, 4],
-      ['books_stack', 0, 1, 4],
-      ['cabinet_file', 8, 1, 4],
-      ['locker', 8, 5, 6],
-      ['candelabra', 8, 9, 0],
+      // a mesa de quem manda: de costas para a parede da esquerda, de frente para a sala;
+      // quem vem prestar contas senta do outro lado, no tapete
+      ['rug_ornate', 2, 3, 2],
+      ['armchair_leather', 0, 5, 2],
+      ['desk_wood', 1, 4, 6],
+      ['desk_lamp', 1, 4, 6],
+      ['armchair_leather', 2, 4, 6],
+      ['armchair_leather', 2, 5, 6],
+      ['papers', 4, 6, 0],
+      // o canto de conversa, com o candelabro
+      ['armchair_leather', 1, 8, 2],
+      ['table_small', 2, 8, 4],
+      ['books_stack', 2, 8, 4],
+      ['armchair_leather', 3, 8, 6],
+      ['candelabra', 0, 7, 0],
       ['plant', 0, 10, 0],
-      ...lamps([4, 3], [6, 8]),
+      // o que se guarda, na parede do fundo, ao lado da porta
+      ['cabinet_file', 7, 1, 4],
+      ['locker', 8, 1, 4],
+      ...lamps([3, 5], [4, 8]),
     ],
     wall: [
-      ['painting', 'r', 1, 3.5, 2.7],
-      ['painting', 'l', 0, 6.0, 2.6],
-      ['clock', 'r', 1, 8.5, 3.9],
+      ['painting', 'l', 0, 5.0, 2.6],
+      ['painting', 'r', 1, 2.5, 2.7],
+      ['clock', 'r', 1, 4.5, 3.9],
     ],
     links: [[6, 1, 'corredor']],
   },

@@ -147,13 +147,19 @@ Computadores contornando as paredes, cadeiras viradas para as telas, o meio vazi
 
 ### Gabinete
 
-| Item | Id | Qtd | Casas | Altura | O que desenhar |
+Com arte desde 02/10. A mesa de quem manda fica de costas para a parede da esquerda, de frente para a sala, com o quadro atrás. Quem vem prestar contas senta do outro lado, no tapete. No canto, duas poltronas e a mesinha com os livros, perto do candelabro. O arquivo e o armário de metal ficam na parede do fundo, ao lado da porta. Chão de taco em espinha de peixe; parede de lambri com papel verde.
+
+| Item | Id | Qtd | Casas | Altura | Estados |
 |---|---|---|---|---|---|
-| ✱ Mesa do gabinete | `desk_wood` | 1 | 2×1 | 0,8 m | Mesa de madeira nobre com papéis. |
-| ✱ Poltrona de couro | `armchair_leather` | 5 | 1×1 | 0,45 m | Couro marrom de botões. |
-| Tapete persa | `rug_ornate` | 1 | 4×3 | chão | — |
-| Quadros | `painting` (parede) | 2 | 60×40 px | — | Moldura dourada, paisagem escura. |
-| Mesinha, arquivo, armário, candelabro, planta | — | 1 cada | — | — | — |
+| ✱ Mesa do gabinete | `desk_wood` | 1 | 2×1 | 0,8 m | — (gavetas e vão das pernas na frente, painel fechado atrás) |
+| ✱ Poltrona de couro | `armchair_leather` | 5 | 1×1 | 0,78 m | — |
+| Luminária de mesa | `desk_lamp` | 1 | em cima da mesa | 0,45 m | acesa / apagada |
+| Armário de metal | `locker` | 1 | 1×1 | 1,95 m | fechado / aberto |
+| Candelabro | `candelabra` | 1 | 1×1 | 1,6 m | aceso (as chamas mexem) / apagado |
+| Pilha de livros | `books_stack` | 1 | em cima da mesinha | 0,4 m | — (dois giros) |
+| Papéis espalhados | `papers` | 1 | 1×1 | chão | — |
+| Tapete persa, mesinha, arquivo, planta | `rug_ornate`, `table_small`, `cabinet_file`, `plant` | 1 cada | — | — | — |
+| Quadros, relógio | `painting`, `clock` (parede) | 2, 1 | — | — | — |
 
 ### Sala de Rituais
 

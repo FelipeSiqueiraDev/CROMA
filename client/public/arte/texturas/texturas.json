@@ -34,5 +34,14 @@
   "parede": {
    "arquivo": "parede-banheiro.png"
   }
+ },
+ "taco": {
+  "piso": {
+   "arquivo": "piso-taco.png",
+   "casas": 2.2
+  },
+  "parede": {
+   "arquivo": "parede-gabinete.png"
+  }
  }
 }

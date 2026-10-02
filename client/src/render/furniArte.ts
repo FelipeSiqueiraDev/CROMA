@@ -51,6 +51,8 @@ export interface MovelArte {
   chamas?: Record<string, [number, number, number][]>;
   /** a lâmpada no fio balança de leve: o ângulo máximo e o tempo de uma ida e volta */
   pendulo?: { graus: number; ms: number };
+  /** os outros estados do móvel (o armário aberto, o candelabro apagado): as vistas de cada um, no lugar das do estado 0 */
+  estados?: Record<string, { giros: Partial<Record<'0' | '2' | '4' | '6', VistaArte>>; chamas?: Record<string, [number, number, number][]> }>;
 }
 
 /** A tela de TV ligada (item de parede): treme de leve entre as cores, bem mais fraca que o fliperama. */
@@ -108,8 +110,9 @@ function pronta(arquivo: string): Imagens | null {
  * As luzes continuam as do desenho por código. state: o estado do móvel (0 = aceso).
  */
 export function visualComArte(def: FurniDef, base: FVisual, state = 0, seed = 0): FVisual | null {
-  const a = lista?.[def.id];
-  if (!a) return null;
+  const salvo = lista?.[def.id];
+  if (!salvo) return null;
+  let a: MovelArte = salvo;
   const alto = Math.max(0.1, def.height / Z_PER_M);
   const caixa: LBox = a.caixa ?? [0, def.depth, 0, def.width, 0, alto];
   if (a.chao) {
@@ -118,9 +121,12 @@ export function visualComArte(def: FurniDef, base: FVisual, state = 0, seed = 0)
     return V([N(caixa, (p) => deitar(p, img.normal))], base.lights);
   }
   if (a.giros) {
+    // outro estado com as vistas dele (o armário aberto): no lugar das do estado 0
+    const outro = state ? a.estados?.[String(state)] : undefined;
+    if (outro) a = { ...a, giros: outro.giros, chamas: outro.chamas };
     // todas as vistas precisam ter chegado: senão o móvel troca de cara ao girar
     const prontas: Partial<Record<string, Imagens>> = {};
-    for (const [g, v] of Object.entries(a.giros)) {
+    for (const [g, v] of Object.entries(a.giros ?? {})) {
       const img = v && pronta(v.arquivo);
       if (!img) return null;
       prontas[g] = img;
