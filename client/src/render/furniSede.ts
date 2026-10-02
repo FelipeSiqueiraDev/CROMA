@@ -1,3 +1,4 @@
+import { Z_PER_M } from '@croma/shared';
 import { rgba, rng, shade } from './color';
 import { B, drawers, faceRange, lightIf, N, V, type Builder, type FNode } from './furniKit';
 import { OUTLINE, type LBox, type LFace, type Painter } from './painter';
@@ -198,7 +199,9 @@ export const SEDE_BUILDERS: Record<string, Builder> = {
   /** Geladeira de porta de vidro, acesa por dentro (apaga no apagão). */
   beer_fridge(def, _s, seed) {
     const [body, glow] = def.colors;
-    const b: LBox = [0.1, 0.92, 0.06, 0.94, 0, 2.0];
+    // desenhada para 2 m; mais baixa (frigobar), encolhe por igual
+    const k = Math.min(1, def.height / Z_PER_M / 2.0);
+    const b: LBox = [0.1, 0.92, 0.06, 0.94, 0, 2.0 * k];
     const r = rng(seed + 5);
     const rows = [0.25, 0.62, 0.99, 1.36].map((z) => Array.from({ length: 5 }, (_, i) => ({ a: 0.2 + i * 0.13 + r() * 0.02, h: 0.16 + r() * 0.08, c: BOTTLES[Math.floor(r() * 4)], z })));
     return V(
@@ -208,8 +211,9 @@ export const SEDE_BUILDERS: Record<string, Builder> = {
           if (!p.m.visible('front')) return;
           const lit = p.power > 0.1;
           // placa acesa no alto
-          p.face(b, 'front', 0.1, 0.9, 1.74, 1.94, lit ? glow : shade(glow, -0.7), true);
+          p.face(b, 'front', 0.1, 0.9, 1.74 * k, 1.94 * k, lit ? glow : shade(glow, -0.7), true);
           p.withFace(b, 'front', (ctx) => {
+            ctx.scale(1, k);
             ctx.fillStyle = lit ? 'rgba(120,20,10,0.8)' : 'rgba(40,10,10,0.8)';
             ctx.fillRect(0.2, 1.8, 0.6, 0.02);
             ctx.fillRect(0.3, 1.86, 0.4, 0.02);
@@ -235,10 +239,10 @@ export const SEDE_BUILDERS: Record<string, Builder> = {
             ctx.fillStyle = '#c9c4bc';
             ctx.fillRect(0.8, 0.7, 0.03, 0.45);
           });
-          p.face(b, 'front', 0.1, 0.9, 0, 0.1, '#1a1210');
+          p.face(b, 'front', 0.1, 0.9, 0, 0.1 * k, '#1a1210');
         }),
       ],
-      [{ u: 1.05, v: 0.5, z: 1.1, radius: 125, color: glow, intensity: 0.75, kind: 'electric' }],
+      [{ u: 1.05, v: 0.5, z: 1.1 * k, radius: 125 * (0.5 + k / 2), color: glow, intensity: 0.75, kind: 'electric' }],
     );
   },
 

@@ -381,12 +381,13 @@ const builders: Record<string, Builder> = {
 
   crate(def) {
     const [c0] = def.colors;
-    const b: LBox = [0.04, 0.96, 0.04, 0.96, 0, 0.8];
+    const h = Math.max(0.2, def.height / Z_PER_M);
+    const b: LBox = [0.04, 0.96, 0.04, 0.96, 0, h];
     return V([
       N(b, (p) => {
         p.box(b, c0, { edge: 0.2 });
         for (const f of ['front', 'back', 'left', 'right'] as LFace[]) crateFace(p, b, f, c0);
-        p.withTop(0.8, (ctx) => {
+        p.withTop(h, (ctx) => {
           ctx.fillStyle = rgba('#000000', 0.25);
           for (let k = 1; k < 4; k++) ctx.fillRect(0.04, 0.04 + k * 0.23 - 0.01, 0.92, 0.02);
         });
