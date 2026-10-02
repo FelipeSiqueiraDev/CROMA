@@ -309,6 +309,8 @@ export class Shell {
   private planTabs!: HTMLElement;
   /** senha sendo digitada no painel de um mobi com fechadura */
   private kpTyped = { id: 0, value: '' };
+  /** redesenha os quadradinhos do painel de senha aberto */
+  private kpShow: (() => void) | null = null;
   /** painel da direita: controle do RPG */
   private rpgTab: RpgTab = 'PLAYERS';
   /** aba ITENS: a mochila de cada agente, pela ficha */
@@ -1628,7 +1630,9 @@ export class Shell {
 
   /**
    * Painel de senha de um mobi com fechadura: os jogadores dizem a senha, o
-   * mestre digita (teclas ou números do teclado). Certa = o mobi desliza.
+   * mestre clica nas teclas do painel (sem campo de texto: no tablet, o teclado
+   * da tela abria e fechava a cada redesenho e o tabuleiro piscava). Certa = o
+   * mobi desliza.
    */
   private keypad(it: FloorItem) {
     const lock = it.lock!;
@@ -1642,37 +1646,27 @@ export class Shell {
       );
     const len = Math.max(1, Math.min(8, lock.code?.length || 4));
     if (this.kpTyped.id !== it.id) this.kpTyped = { id: it.id, value: '' };
-    const input = h('input', { class: 'kp-in', inputmode: 'numeric', autocomplete: 'off', maxlength: String(len), 'aria-label': 'Senha', value: this.kpTyped.value });
-    const slots = h('div', { class: 'kp-slots', 'aria-hidden': 'true' });
+    const slots = h('div', { class: 'kp-slots', 'aria-live': 'polite', 'aria-label': 'Senha' });
     const show = () => {
-      this.kpTyped.value = input.value;
-      clear(slots).append(...Array.from({ length: len }, (_, i) => h('span', { class: `kp-slot${input.value[i] ? ' on' : ''}` }, input.value[i] ?? '')));
+      const v = this.kpTyped.value;
+      clear(slots).append(...Array.from({ length: len }, (_, i) => h('span', { class: `kp-slot${v[i] ? ' on' : ''}` }, v[i] ?? '')));
     };
+    this.kpShow = show;
     const press = (d: string) => {
-      if (input.value.length >= len) return;
-      input.value += d;
+      if (this.kpTyped.value.length >= len) return;
+      this.kpTyped.value += d;
       sfx.beep(Number(d));
       show();
     };
     const back = () => {
-      input.value = input.value.slice(0, -1);
+      this.kpTyped.value = this.kpTyped.value.slice(0, -1);
       sfx.click();
       show();
     };
     const send = () => {
-      if (!input.value) return;
-      net.send({ t: 'unlock', id: it.id, code: input.value });
+      if (!this.kpTyped.value) return;
+      net.send({ t: 'unlock', id: it.id, code: this.kpTyped.value });
     };
-    input.addEventListener('input', () => {
-      input.value = input.value.replace(/\D/g, '').slice(0, len);
-      const last = input.value.slice(-1);
-      if (last) sfx.beep(Number(last));
-      show();
-    });
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') (e.preventDefault(), send());
-      if (e.key === 'Escape') input.blur();
-    });
     const key = (label: string, fn: () => void, cls = '') => h('button', { class: `kp-key${cls}`, type: 'button', onclick: fn }, label);
     const grid = h(
       'div',
@@ -1683,12 +1677,11 @@ export class Shell {
       key('OK', send, ' ok'),
     );
     show();
-    setTimeout(() => input.focus({ preventScroll: true }), 0);
     return h(
       'div',
       { class: 'keypad' },
       h('div', { class: 'kp-head' }, h('b', null, 'SENHA'), lock.code ? h('small', null, `mestre: ${lock.code}`) : null),
-      h('label', { class: 'kp-display' }, slots, input),
+      h('div', { class: 'kp-display' }, slots),
       grid,
     );
   }
@@ -1706,11 +1699,7 @@ export class Shell {
       if (box) shake(box, 0.6);
       this.stampCard(at, m.reason ? 'NÃO DÁ' : 'SENHA ERRADA', false);
       if (m.reason) toast(m.reason, 'error');
-      const input = box?.querySelector<HTMLInputElement>('.kp-in');
-      if (input) {
-        input.value = '';
-        input.dispatchEvent(new Event('input'));
-      }
+      this.kpShow?.();
     }
   }
 

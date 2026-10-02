@@ -1577,17 +1577,6 @@ html {
 .kp-slot.on {
   box-shadow: inset 0 0 0 0.12rem #7b2019;
 }
-/* o campo fica por baixo dos quadradinhos: recebe o teclado do computador */
-.kp-in {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  width: 100%;
-  cursor: text;
-}
-.keypad:focus-within .kp-slots .kp-slot:not(.on) {
-  box-shadow: inset 0 0 0 0.12rem #5a4a3a;
-}
 .kp-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
