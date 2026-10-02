@@ -142,6 +142,30 @@ describe('passagem secreta (geladeira)', () => {
     assert.equal(stairs().state, 0);
   });
 
+  test('arrastar a geladeira aberta de volta para cima da escada fecha a passagem (a senha volta a abrir)', () => {
+    const id = fridge().id;
+    gm.send({ t: 'unlock', id, code: SEDE_CODE });
+    assert.deepEqual([fridge().x, fridge().y], [19, 0]);
+    gm.send({ t: 'moveItem', id, x: 20, y: 0, rot: 4 });
+    assert.deepEqual([fridge().x, fridge().y], [20, 0]);
+    assert.equal(fridge().lock?.open, false);
+    assert.equal(stairs().state, 0);
+    gm.send({ t: 'unlock', id, code: SEDE_CODE });
+    assert.deepEqual([fridge().x, fridge().y], [19, 0]);
+    assert.equal(stairs().state, 1);
+    gm.send({ t: 'relock', id });
+    assert.deepEqual([fridge().x, fridge().y], [20, 0]);
+  });
+
+  test('girar a geladeira no lugar mantém a passagem fechada', () => {
+    const id = fridge().id;
+    gm.send({ t: 'moveItem', id, x: 20, y: 0, rot: 2 });
+    assert.equal(fridge().rot, 2);
+    assert.equal(fridge().lock?.open, false);
+    assert.equal(stairs().state, 0);
+    gm.send({ t: 'moveItem', id, x: 20, y: 0, rot: 4 });
+  });
+
   test('quem sobe pela escada com a passagem fechada abre por dentro', () => {
     const bar = room('Bar');
     const salao = room('Salão Principal');

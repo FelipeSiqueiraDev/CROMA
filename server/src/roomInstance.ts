@@ -780,11 +780,33 @@ export class RoomInstance {
         return this.err(c, 'Tem alguém no caminho.');
       }
     }
-    const moved: FloorItem = { ...it, x: m.x, y: m.y, rot: m.rot, z: res.z };
+    let moved: FloorItem = { ...it, x: m.x, y: m.y, rot: m.rot, z: res.z };
+    // mobi de fechadura (a geladeira da passagem): o lugar novo é o fechado. Arrastada aberta, ela
+    // ficava "aberta" em cima da escada: a senha não fazia mais nada e fechar empurrava para fora
+    if (it.lock) moved = { ...moved, lock: { ...it.lock, open: false } };
     this.map.updateItem(moved);
+    if (it.lock) this.cobrirEscondidos(it, moved);
     this.persist();
     this.broadcastFloor('itemUpdate', moved);
     this.resettleAll();
+  }
+
+  /** O mobi de fechadura mudou de lugar: o escondido que ficou descoberto aparece; o que ficou embaixo dele some. */
+  private cobrirEscondidos(antes: FloorItem, depois: FloorItem) {
+    const embaixo = new Set(this.map.tilesFor(depois.defId, depois.x, depois.y, depois.rot).map((t) => `${t.x},${t.y}`));
+    const mudar = (x: number, y: number, state: number) => {
+      for (const o of this.map.itemsAt(x, y)) {
+        if (!getFurni(o.defId)?.hidden || o.state === state) continue;
+        const novo: FloorItem = { ...o, state };
+        this.map.updateItem(novo);
+        this.broadcastFloor('itemUpdate', novo);
+      }
+    };
+    for (const t of this.map.tilesFor(antes.defId, antes.x, antes.y, antes.rot)) if (!embaixo.has(`${t.x},${t.y}`)) mudar(t.x, t.y, 1);
+    for (const k of embaixo) {
+      const [x, y] = k.split(',').map(Number);
+      mudar(x, y, 0);
+    }
   }
 
   private moveWallItem(u: RoomUser, m: Record<string, unknown>) {
