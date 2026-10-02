@@ -227,6 +227,33 @@ describe('passagem secreta (geladeira)', () => {
     hotel.moveToken(salao, tokens[0].id, bar.data.id);
     assert.equal(fridge().lock?.open, true);
   });
+
+  test('regra absoluta: com o bar vazio, a senha certa não abre', () => {
+    const bar = room('Bar');
+    const salao = room('Salão Principal');
+    for (const tk of bar.tokenList()) hotel.moveToken(bar, tk.id, salao.data.id);
+    gm.send({ t: 'unlock', id: fridge().id, code: SEDE_CODE });
+    assert.equal(gm.last('lockResult')?.ok, false);
+    assert.equal(fridge().lock?.open, false);
+    assert.deepEqual([fridge().x, fridge().y], [20, 0]);
+  });
+
+  test('regra absoluta: carregou com a passagem aberta e o bar vazio, ela se fecha', () => {
+    const db = seedDb();
+    upgradeDb(db);
+    const bar = db.rooms.find((r) => r.name === SEDE + 'Bar')!;
+    const g = bar.items.find((i) => i.lock)!;
+    g.lock = { ...g.lock!, open: true };
+    g.x = 19;
+    bar.items.find((i) => i.defId === 'stairs_down')!.state = 1;
+    bar.tokens = [];
+    const h = new Hotel({ db, persist: false, timers: false });
+    const r = h.rooms.get(bar.id)!;
+    const f = r.map.allItems().find((i) => i.lock)!;
+    assert.equal(f.lock?.open, false);
+    assert.deepEqual([f.x, f.y], [20, 0]);
+    assert.equal(r.map.allItems().find((i) => i.defId === 'stairs_down')!.state, 0);
+  });
 });
 
 describe('clima: quantidade de partículas', () => {

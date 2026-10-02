@@ -181,6 +181,8 @@ export class RoomInstance {
     this.hotel = hotel;
     this.map = new RoomMap(data.heightmap, data.door, data.items, data.wallItems);
     for (const t of data.tokens ?? []) this.spawnToken(t, null);
+    // regra absoluta: sem ninguém na sala, a passagem secreta fica fechada (também ao carregar)
+    if (!this.users.size) this.closeWhenEmpty(false);
   }
 
   get userCount() {
@@ -321,11 +323,14 @@ export class RoomInstance {
     return this.tokenData(u);
   }
 
-  /** Sem ninguém na sala, a passagem secreta se fecha sozinha: o mobi volta para o lugar. */
-  private closeWhenEmpty() {
+  /**
+   * Regra absoluta: sem ninguém na sala, a passagem secreta se fecha. O mobi volta para o
+   * lugar mesmo com algo no caminho (não sobrou ninguém para ver).
+   */
+  private closeWhenEmpty(avisar = true) {
     for (const it of this.map.allItems()) {
       if (!it.lock?.open) continue;
-      if (!this.slideLock(it, false)) this.hotel.log(this.data.id, 'scene', `Sem ninguém na sala, a passagem se fechou: ${anyFurniName(it.defId)} voltou para o lugar.`);
+      if (!this.slideLock(it, false, true) && avisar) this.hotel.log(this.data.id, 'scene', `Sem ninguém na sala, a passagem se fechou: ${anyFurniName(it.defId)} voltou para o lugar.`);
     }
   }
 
@@ -877,7 +882,7 @@ export class RoomInstance {
    * Abre (ou fecha) a fechadura: o mobi desliza `slide` casas e a passagem
    * escondida que ficava embaixo dele aparece (ou some). Devolve o motivo quando não dá.
    */
-  private slideLock(it: FloorItem, open: boolean): string | null {
+  private slideLock(it: FloorItem, open: boolean, forcar = false): string | null {
     const lock = it.lock;
     if (!lock) return 'Esse mobi não tem senha.';
     if (lock.open === open) return null;
@@ -886,9 +891,10 @@ export class RoomInstance {
     const nx = it.x + dx;
     const ny = it.y + dy;
     const res = this.map.canPlace(it.defId, nx, ny, it.rot, it.id);
-    if (!res.ok) return 'Tem algo no caminho: não dá para arrastar.';
+    if (!res.ok && !forcar) return 'Tem algo no caminho: não dá para arrastar.';
     const dest = this.map.tilesFor(it.defId, nx, ny, it.rot);
-    if (this.usersOn(dest)) return 'Tem alguém no caminho.';
+    if (!forcar && this.usersOn(dest)) return 'Tem alguém no caminho.';
+    if (!res.ok) res.z = this.map.floorHeight(nx, ny) ?? it.z;
     // casas que ficam livres ao abrir (ou que voltam a ser cobertas ao fechar)
     const spot = open ? this.map.tilesFor(it.defId, it.x, it.y, it.rot) : dest;
     const next: FloorItem = { ...it, x: nx, y: ny, z: res.z, lock: { ...lock, open } };
@@ -911,6 +917,8 @@ export class RoomInstance {
     const it = this.map.getItem(id);
     if (!it?.lock) return;
     if (it.lock.open) return c.send({ t: 'lockResult', id, ok: true });
+    // regra absoluta: sem ninguém na sala, a passagem fica fechada
+    if (!this.users.size) return c.send({ t: 'lockResult', id, ok: false, reason: 'Sem ninguém aqui, a passagem fica fechada.' });
     const code = typeof raw === 'string' ? raw.replace(/\D/g, '').slice(0, 12) : '';
     if (!code || code !== it.lock.code) return c.send({ t: 'lockResult', id, ok: false });
     const why = this.slideLock(it, true);
