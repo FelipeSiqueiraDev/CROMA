@@ -908,25 +908,25 @@
  "lab_bench": {
   "escala": 0.5,
   "giros": {
-   "4": {
-    "arquivo": "lab_bench/giro-4.png",
-    "ax": 27.3,
-    "ay": 121.3
-   },
-   "6": {
-    "arquivo": "lab_bench/giro-6.png",
-    "ax": 115.6,
-    "ay": 121.7
+   "2": {
+    "arquivo": "lab_bench/giro-2.png",
+    "ax": 41.9,
+    "ay": 154.4
    },
    "0": {
     "arquivo": "lab_bench/giro-0.png",
-    "ax": 26.1,
-    "ay": 118.0
+    "ax": 141.3,
+    "ay": 155.4
    },
-   "2": {
-    "arquivo": "lab_bench/giro-2.png",
-    "ax": 120.0,
-    "ay": 116.7
+   "6": {
+    "arquivo": "lab_bench/giro-6.png",
+    "ax": 44.0,
+    "ay": 152.0
+   },
+   "4": {
+    "arquivo": "lab_bench/giro-4.png",
+    "ax": 144.1,
+    "ay": 156.6
    }
   }
  },
