@@ -266,19 +266,27 @@
  },
  "gun_table": {
   "escala": 0.5,
-  "frente": {
-   "arquivo": "gun_table/frente.png",
-   "ax": 193.0,
-   "ay": 238.0,
-   "lado": "esquerda",
-   "ancora": "quina"
-  },
-  "costas": {
-   "arquivo": "gun_table/costas.png",
-   "ax": 193.0,
-   "ay": 238.0,
-   "lado": "esquerda",
-   "ancora": "quina"
+  "giros": {
+   "4": {
+    "arquivo": "gun_table/giro-4.png",
+    "ax": 191.5,
+    "ay": 202.5
+   },
+   "6": {
+    "arquivo": "gun_table/giro-6.png",
+    "ax": 63.5,
+    "ay": 197.5
+   },
+   "0": {
+    "arquivo": "gun_table/giro-0.png",
+    "ax": 191.5,
+    "ay": 198.5
+   },
+   "2": {
+    "arquivo": "gun_table/giro-2.png",
+    "ax": 63.0,
+    "ay": 191.5
+   }
   }
  },
  "plant": {
@@ -1240,23 +1248,23 @@
   "giros": {
    "4": {
     "arquivo": "toilet/giro-4.png",
-    "ax": 51.6,
-    "ay": 148.2
-   },
-   "6": {
-    "arquivo": "toilet/giro-6.png",
-    "ax": 48.1,
-    "ay": 129.3
+    "ax": 51.7,
+    "ay": 148.3
    },
    "0": {
     "arquivo": "toilet/giro-0.png",
-    "ax": 54.8,
-    "ay": 139.2
+    "ax": 55.4,
+    "ay": 138.0
+   },
+   "6": {
+    "arquivo": "toilet/giro-6.png",
+    "ax": 53.5,
+    "ay": 146.9
    },
    "2": {
     "arquivo": "toilet/giro-2.png",
     "ax": 56.4,
-    "ay": 150.6
+    "ay": 150.7
    }
   }
  },
@@ -2765,6 +2773,234 @@
   "escala": 1,
   "chao": {
    "arquivo": "cables_floor/chao.png"
+  }
+ },
+ "weapon_rack": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "weapon_rack/giro-4.png",
+    "ax": 113.0,
+    "ay": 328.0
+   },
+   "0": {
+    "arquivo": "weapon_rack/giro-0.png",
+    "ax": 129.0,
+    "ay": 320.0
+   },
+   "6": {
+    "arquivo": "weapon_rack/giro-6.png",
+    "ax": 49.0,
+    "ay": 320.0
+   },
+   "2": {
+    "arquivo": "weapon_rack/giro-2.png",
+    "ax": 65.0,
+    "ay": 328.0
+   }
+  }
+ },
+ "locker_ammo": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "locker_ammo/giro-4.png",
+    "ax": 57.1,
+    "ay": 274.9
+   },
+   "6": {
+    "arquivo": "locker_ammo/giro-6.png",
+    "ax": 56.0,
+    "ay": 270.5
+   },
+   "0": {
+    "arquivo": "locker_ammo/giro-0.png",
+    "ax": 65.3,
+    "ay": 270.4
+   },
+   "2": {
+    "arquivo": "locker_ammo/giro-2.png",
+    "ax": 65.6,
+    "ay": 274.3
+   }
+  },
+  "estados": {
+   "1": {
+    "giros": {
+     "4": {
+      "arquivo": "locker_ammo/giro-4-1.png",
+      "ax": 106.4,
+      "ay": 278.5
+     },
+     "6": {
+      "arquivo": "locker_ammo/giro-6-1.png",
+      "ax": 90.7,
+      "ay": 272.3
+     },
+     "0": {
+      "arquivo": "locker_ammo/giro-0-1.png",
+      "ax": 61.2,
+      "ay": 276.3
+     },
+     "2": {
+      "arquivo": "locker_ammo/giro-2-1.png",
+      "ax": 64.4,
+      "ay": 276.0
+     }
+    }
+   }
+  }
+ },
+ "chest_army": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "chest_army/giro-4.png",
+    "ax": 65.0,
+    "ay": 103.5
+   },
+   "6": {
+    "arquivo": "chest_army/giro-6.png",
+    "ax": 64.5,
+    "ay": 103.9
+   },
+   "0": {
+    "arquivo": "chest_army/giro-0.png",
+    "ax": 64.0,
+    "ay": 104.1
+   },
+   "2": {
+    "arquivo": "chest_army/giro-2.png",
+    "ax": 65.0,
+    "ay": 103.4
+   }
+  },
+  "estados": {
+   "1": {
+    "giros": {
+     "4": {
+      "arquivo": "chest_army/giro-4-1.png",
+      "ax": 52.4,
+      "ay": 106.3
+     },
+     "6": {
+      "arquivo": "chest_army/giro-6-1.png",
+      "ax": 72.3,
+      "ay": 109.7
+     },
+     "0": {
+      "arquivo": "chest_army/giro-0-1.png",
+      "ax": 55.5,
+      "ay": 107.8
+     },
+     "2": {
+      "arquivo": "chest_army/giro-2-1.png",
+      "ax": 65.9,
+      "ay": 104.3
+     }
+    }
+   }
+  }
+ },
+ "ammo_box": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "ammo_box/giro-4.png",
+    "ax": 45.5,
+    "ay": 81.4
+   },
+   "6": {
+    "arquivo": "ammo_box/giro-6.png",
+    "ax": 46.0,
+    "ay": 81.1
+   },
+   "0": {
+    "arquivo": "ammo_box/giro-0.png",
+    "ax": 44.5,
+    "ay": 81.7
+   },
+   "2": {
+    "arquivo": "ammo_box/giro-2.png",
+    "ax": 45.0,
+    "ay": 82.5
+   }
+  }
+ },
+ "stool_metal": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "stool_metal/giro-4.png",
+    "ax": 46.5,
+    "ay": 115.9
+   },
+   "6": {
+    "arquivo": "stool_metal/giro-6.png",
+    "ax": 46.0,
+    "ay": 116.0
+   },
+   "0": {
+    "arquivo": "stool_metal/giro-0.png",
+    "ax": 46.0,
+    "ay": 116.0
+   },
+   "2": {
+    "arquivo": "stool_metal/giro-2.png",
+    "ax": 46.0,
+    "ay": 116.1
+   }
+  }
+ },
+ "tool_board": {
+  "escala": 0.5,
+  "parede": {
+   "r": {
+    "arquivo": "tool_board/parede-r.png",
+    "ax": 52.0,
+    "ay": 53.5
+   },
+   "l": {
+    "arquivo": "tool_board/parede-l.png",
+    "ax": 52.0,
+    "ay": 53.5
+   }
+  }
+ },
+ "blade_rack": {
+  "escala": 0.5,
+  "parede": {
+   "r": {
+    "arquivo": "blade_rack/parede-r.png",
+    "ax": 54.0,
+    "ay": 46.0
+   },
+   "l": {
+    "arquivo": "blade_rack/parede-l.png",
+    "ax": 54.0,
+    "ay": 44.8
+   }
+  }
+ },
+ "target_paper": {
+  "escala": 0.5,
+  "parede": {
+   "r": {
+    "arquivo": "target_paper/parede-r.png",
+    "ax": 24.0,
+    "ay": 51.0
+   },
+   "l": {
+    "arquivo": "target_paper/parede-l.png",
+    "ax": 24.0,
+    "ay": 51.5
+   }
+  }
+ },
+ "oil_stain": {
+  "escala": 1,
+  "chao": {
+   "arquivo": "oil_stain/chao.png"
   }
  }
 }

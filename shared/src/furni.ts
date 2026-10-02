@@ -137,7 +137,9 @@ const FURNI_METERS: FurniDef[] = [
   { id: 'pilha_chao', name: 'Itens no Chão', category: 'armazenamento', kind: 'pilha', width: 1, depth: 1, height: 0.12, walkable: true, interno: true, rotations: [0], colors: ['#5c4630', '#2e241a'], desc: 'O que alguém largou aqui. Quem passar pode pegar.' },
   { id: 'crate_wood', name: 'Caixote de Madeira', category: 'armazenamento', kind: 'crate', width: 1, depth: 1, height: 0.8, stackable: true, rotations: ALL, colors: ['#6b4a2e', '#4a321f'] },
   { id: 'crate_metal', name: 'Caixa Metálica', category: 'armazenamento', kind: 'crate_metal', width: 1, depth: 1, height: 0.8, stackable: true, rotations: ALL, colors: ['#35393f', '#24272b', '#7a6a4a'] },
-  { id: 'chest_military', name: 'Baú Militar', category: 'armazenamento', kind: 'chest', width: 2, depth: 1, height: 0.7, stackable: true, rotations: ALL, colors: ['#3e3a2c', '#2a271e', '#8a8060'] },
+  { id: 'chest_military', name: 'Baú Militar Grande', category: 'armazenamento', kind: 'chest', width: 2, depth: 1, height: 0.7, stackable: true, rotations: ALL, colors: ['#3e3a2c', '#2a271e', '#8a8060'] },
+  { id: 'chest_army', name: 'Baú Militar', category: 'arsenal', kind: 'chest', width: 1, depth: 1, height: 0.45, stackable: true, states: 2, rotations: ALL, colors: ['#5a6a2a', '#2a2d1e', '#8a7a5a'], desc: 'Madeira e metal verde-oliva. Clique duplo abre: coletes e lanternas dentro.' },
+  { id: 'ammo_box', name: 'Caixa de Munição', category: 'arsenal', kind: 'crate_metal', width: 1, depth: 1, height: 0.3, stackable: true, rotations: ALL, colors: ['#4a5a2a', '#2a2d1e', '#8a7a5a'] },
   { id: 'barrel', name: 'Barril', category: 'armazenamento', kind: 'barrel', width: 1, depth: 1, height: 1.0, stackable: true, rotations: ALL, colors: ['#3a3f2e', '#1f2219'] },
 
   // ---------- Decoração ----------
@@ -204,6 +206,9 @@ const FURNI_METERS: FurniDef[] = [
   // arsenal
   { id: 'weapon_rack', name: 'Armário de Armas', category: 'arsenal', kind: 'weapon_rack', width: 2, depth: 1, height: 2.0, rotations: ALL, colors: ['#2a2d31', '#1a1c1f'] },
   { id: 'gun_table', name: 'Bancada de Armas', category: 'arsenal', kind: 'table_big', width: 3, depth: 1, height: 0.9, stackable: true, rotations: ALL, colors: ['#2a3a2a', '#1f2219', '#6a7a5a'] },
+  { id: 'locker_ammo', name: 'Armário de Munição', category: 'arsenal', kind: 'locker', width: 1, depth: 1, height: 1.9, states: 2, rotations: ALL, colors: ['#5a6a3a', '#2a2d1e'], desc: 'Aço verde-oliva com cadeado. Clique duplo abre: caixas de munição e carregadores.' },
+  { id: 'stool_metal', name: 'Banqueta Giratória', category: 'arsenal', kind: 'stool', width: 1, depth: 1, height: 0.6, sit: true, rotations: ALL, colors: ['#8a5a3a', '#5a6a3a'] },
+  { id: 'oil_stain', name: 'Mancha de Óleo', category: 'decoracao', kind: 'dirt', width: 1, depth: 1, height: 0.01, walkable: true, stackable: true, flat: true, rotations: [0], colors: ['#1a1a14', '#3a3a2a'] },
   // depósito
   { id: 'rubble', name: 'Entulho', category: 'armazenamento', kind: 'rubble', width: 2, depth: 2, height: 0.5, rotations: [0], colors: ['#5a5550', '#4a3222'] },
   { id: 'console', name: 'Bancada de Computadores', category: 'escritorio', kind: 'console', width: 2, depth: 1, height: 0.78, stackable: true, states: 2, rotations: ALL, colors: ['#2e2a36', '#8a78c0', '#7fd0ff'], desc: 'Dois monitores e teclado. Clique duplo liga/desliga.' },
@@ -246,6 +251,9 @@ export const WALL_FURNI_LIST: WallFurniDef[] = [
   { id: 'monitor_wall', name: 'Painel de Monitoramento', category: 'parede', kind: 'tv', w: 61, h: 52, states: 2, colors: ['#3a3d42', '#d8e0e8'], desc: 'Quatro monitores com as câmeras da Sede. Clique duplo liga/desliga.' },
   { id: 'ac_wall', name: 'Ar-condicionado', category: 'parede', kind: 'fan', w: 38, h: 17, colors: ['#d8ccb0'] },
   { id: 'shelf_wall', name: 'Prateleira de Parede', category: 'parede', kind: 'shelf', w: 42, h: 20, colors: ['#8a6a4a'], desc: 'Manuais, um rádio e um telefone velho.' },
+  { id: 'tool_board', name: 'Painel de Ferramentas', category: 'parede', kind: 'board', w: 58, h: 41, colors: ['#5a6a3a', '#b3261e'], desc: 'Chaves, alicates, uma lanterna e fita.' },
+  { id: 'blade_rack', name: 'Suporte de Armas Brancas', category: 'parede', kind: 'board', w: 58, h: 35, colors: ['#5a6a3a', '#8a6a4a'], desc: 'Facão, machado, duas facas e um bastão.' },
+  { id: 'target_paper', name: 'Alvo de Papel', category: 'parede', kind: 'poster_sigil', w: 29, h: 46, colors: ['#e8d8b0', '#2a2a2a'], desc: 'A silhueta furada de bala.' },
   { id: 'towel_dispenser', name: 'Papeleira', category: 'parede', kind: 'dispenser', w: 18, h: 22, colors: ['#e8e4dc'] },
   { id: 'extinguisher', name: 'Extintor', category: 'parede', kind: 'extinguisher', w: 12, h: 30, colors: ['#b3261e', '#1a1a1a'] },
 ];

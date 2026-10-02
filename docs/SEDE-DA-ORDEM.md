@@ -223,11 +223,18 @@ Os leitos ficam nas paredes de cima e de baixo, com a cabeceira na parede. A ban
 
 ### Arsenal
 
-| Item | Id | Qtd | Casas | Altura | O que desenhar |
+Com arte desde 02/10. Os armários de armas ficam na parede do fundo, dos dois lados da porta, com o suporte de facas e machado entre eles. Os armários de munição ficam no canto do fundo e na parede da esquerda, junto do painel de ferramentas, dos baús (um aberto) e do alvo de papel furado. A bancada em U fica no meio, com as banquetas e uma mancha de óleo no chão, e as caixas de munição ficam empilhadas no canto da frente. Chão de chapa xadrez; parede de blocos verde-oliva e cinza.
+
+| Item | Id | Qtd | Casas | Altura | Estados |
 |---|---|---|---|---|---|
-| ✱ Bancada de armas | `gun_table` | 4 | 3×1 | 0,9 m | Tampo verde; montada em U no meio da sala. |
-| Armário de armas | `weapon_rack` | 4 | 2×1 | 2,0 m | Fuzis em pé, gaveta embaixo. |
-| Armários, baú, caixas | `locker`, `chest_military`, `crate_metal` | 6, 1, 4 | 1×1 | — | Verde-escuro militar. |
+| ✱ Bancada de armas | `gun_table` | 4 | 3×1 | 0,85 m | — |
+| Armário de armas | `weapon_rack` | 4 | 2×1 | 2,0 m | — (as costas são o espelho de uma vista só: a folha trouxe as duas iguais) |
+| Armário de munição | `locker_ammo` | 5 | 1×1 | 1,9 m | fechado / aberto |
+| Baú militar | `chest_army` | 2 | 1×1 | 0,45 m | fechado / aberto |
+| Caixa de munição | `ammo_box` | 4 | 1×1 | 0,3 m | — (empilha) |
+| Banqueta giratória | `stool_metal` | 2 | 1×1 | 0,6 m | — |
+| Mancha de óleo | `oil_stain` | 1 | 1×1 | chão | — |
+| Painel de ferramentas, suporte de armas brancas, alvo de papel | `tool_board`, `blade_rack`, `target_paper` (parede) | 1 cada | — | — | — |
 
 ## Personagens
 

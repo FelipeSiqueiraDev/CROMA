@@ -70,5 +70,14 @@
   "parede": {
    "arquivo": "parede-tecnologia.png"
   }
+ },
+ "metal": {
+  "piso": {
+   "arquivo": "piso-metal.png",
+   "casas": 3.53
+  },
+  "parede": {
+   "arquivo": "parede-arsenal.png"
+  }
  }
 }

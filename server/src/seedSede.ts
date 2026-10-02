@@ -16,7 +16,7 @@ import { buildRoom, plan, type FloorSeed, type WallSeed } from './seed';
 export const SEDE = 'Sede · ';
 export const SEDE_CODE = '0413';
 /** Versão da montagem da Sede: subiu, a Sede é refeita no lugar (mesmos cômodos, peças e registro). */
-export const SEDE_REV = 18;
+export const SEDE_REV = 20;
 
 /** Planta retangular com a porta na parede de cima (y = 0), na coluna doorX. */
 export function planTop(w: number, h: number, doorX: number): { heightmap: string; door: Door } {
@@ -700,7 +700,7 @@ const ROOMS: RoomSpec[] = [
     particles: ['dust'],
     lamp: 'fluorescent',
     name: SEDE + 'Arsenal',
-    description: 'Armas nas paredes, armários de munição e a bancada em U onde tudo é limpo e conferido.',
+    description: 'Os armários de armas dos dois lados da porta, os de munição e os baús nas paredes, e a bancada em U onde tudo é limpo e conferido.',
     layout: planTop(14, 10, 6),
     floorName: 'Subsolo',
     style: 'metal',
@@ -709,33 +709,39 @@ const ROOMS: RoomSpec[] = [
     plan: { x: 51, y: 26 },
     floor: [
       ['portal', 6, 1, 4],
+      // os armários de armas na parede do fundo, dos dois lados da porta, e os de munição no canto
       ['weapon_rack', 0, 1, 4],
       ['weapon_rack', 2, 1, 4],
       ['weapon_rack', 8, 1, 4],
       ['weapon_rack', 10, 1, 4],
-      ['locker', 12, 1, 4],
-      ['locker', 13, 1, 4],
-      ['locker', 0, 4, 2],
-      ['locker', 0, 5, 2],
-      ['locker', 0, 6, 2],
-      ['locker', 0, 7, 2],
-      // bancada em U no meio
+      ['locker_ammo', 12, 1, 4],
+      ['locker_ammo', 13, 1, 4],
+      // mais armários de munição e os baús na parede da esquerda
+      ['locker_ammo', 0, 4, 2],
+      ['locker_ammo', 0, 5, 2],
+      ['locker_ammo', 0, 6, 2],
+      ['chest_army', 0, 8, 2],
+      ['chest_army', 0, 10, 2, undefined, 1],
+      // a bancada em U no meio, as bancadas viradas para dentro, com as banquetas
       ['gun_table', 4, 4, 4],
       ['gun_table', 7, 4, 4],
       ['gun_table', 4, 5, 2],
-      ['gun_table', 9, 5, 2],
-      ['stool', 6, 6, 0],
-      ['stool', 7, 6, 0],
-      ['chest_military', 13, 3, 2],
-      ['crate_metal', 11, 8, 0],
-      ['crate_metal', 12, 8, 0],
-      ['crate_metal', 12, 9, 0],
-      ['crate_metal', 13, 9, 0],
-      ...lamps([5, 3], [10, 3], [7, 9]),
+      ['gun_table', 9, 5, 6],
+      ['stool_metal', 6, 6, 0],
+      ['stool_metal', 7, 6, 0],
+      ['oil_stain', 6, 8, 0],
+      // as caixas de munição empilhadas no canto da frente
+      ['ammo_box', 12, 9, 4],
+      ['ammo_box', 13, 9, 4],
+      ['ammo_box', 13, 8, 2],
+      ['ammo_box', 13, 9, 4],
+      ...lamps([5, 3], [10, 3], [7, 8]),
     ],
     wall: [
-      ['emergency_light', 'r', 1, 7.5, 3.8],
-      ['board_investigation', 'l', 0, 9.2, 2.4],
+      ['blade_rack', 'r', 1, 5.0, 2.3],
+      ['emergency_light', 'r', 1, 5.0, 4.4],
+      ['tool_board', 'l', 0, 2.7, 1.8],
+      ['target_paper', 'l', 0, 9.0, 1.9],
     ],
     links: [[6, 1, 'salao']],
   },
