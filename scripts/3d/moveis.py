@@ -15,6 +15,12 @@ frente; D de fundo) e de que lado do desenho está a frente.
 - Planta, cadeira (ancora 'centro'): a imagem vai como está, pela altura, presa no
   centro da base.
 
+- Móvel desenhado nos 4 giros (uma folha só com as 4 vistas, ou 4 pedaços da folha):
+  "giros": {"4": pedaço, "2": pedaço, "0": pedaço, "6": pedaço}. Cada vista é
+  acertada no ângulo exato do tabuleiro, sem espelho: o giro 4 é a frente virada
+  para baixo à esquerda; o 2, para baixo à direita; o 0, de costas para cima à
+  direita; o 6, de costas para cima à esquerda.
+
 A arte sai em dobro (2 pixels da imagem por pixel do tabuleiro no zoom 1), em
 <destino>/<móvel>/<vista>.png, e o <destino>/moveis.json que o jogo lê.
 
@@ -302,6 +308,13 @@ def main():
     lista = json.load(open(arq_lista, encoding='utf-8')) if os.path.exists(arq_lista) else {}
     conferir = []
     for m in cfg['moveis']:
+        if 'giros' in m:
+            ent, imgs = quatro_giros(m, folha, caixas, destino, escala)
+            lista[m['def']] = ent
+            conferir.append((m['def'], imgs[0], None))
+            for img in imgs[1:]:
+                conferir.append((m['def'], img, None))
+            continue
         rec = recortar(folha, caixas, m['pedaco'])
         if m.get('lado', 'esquerda') == 'direita':
             # tudo trabalha com a frente à esquerda; o jogo espelha quando precisa
@@ -337,6 +350,28 @@ def main():
         f.write('\n')
     if '--conferir' in sys.argv:
         folha_conf(conferir, sys.argv[sys.argv.index('--conferir') + 1])
+
+
+def quatro_giros(m, folha, caixas, destino, escala):
+    """O móvel desenhado nos 4 giros: cada vista acertada no ângulo do tabuleiro, como foi desenhada."""
+    pasta = os.path.join(destino, m['def'])
+    os.makedirs(pasta, exist_ok=True)
+    W, D = m.get('W', 1), m.get('D', 1)
+    ent = {'escala': escala, 'giros': {}}
+    imgs = []
+    for giro, pedaco in m['giros'].items():
+        rec = recortar(folha, caixas, pedaco)
+        # nos giros 2 e 6 o comprimento do móvel corre na outra diagonal
+        Wm, Dm = (W * CASA, D * CASA) if giro in ('0', '4') else (D * CASA, W * CASA)
+        cam, nota = ajustar_camera(rec[:, :, 3] > 100, Wm, Dm, m['altura'])
+        img, (ax, ay) = renderizar(rec, cam, Wm, Dm, cam['H'], escala, solido=m.get('solido', False))
+        nome = f'giro-{giro}.png'
+        gravar(img, os.path.join(pasta, nome))
+        ent['giros'][giro] = {'arquivo': f"{m['def']}/{nome}", 'ax': round(ax, 1), 'ay': round(ay, 1)}
+        imgs.append(img)
+        print(f"{m['def']} giro {giro}: encaixe {nota:.3f}; desenho a {np.degrees(cam['a']):.0f}° e {np.degrees(cam['t']):.0f}°, "
+              f"altura {cam['H']:.2f} m", flush=True)
+    return ent, imgs
 
 
 def folha_conf(itens, saida):
