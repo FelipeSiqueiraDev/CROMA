@@ -128,13 +128,19 @@ Dezesseis celas: cama, vaso e a frente de grade com a porta.
 
 ### Laboratório
 
-Bancadas nas paredes e uma ilha comprida no meio.
+Com arte desde 02/10. As bancadas de inox da enfermaria ficam encostadas na parede do fundo (com o microscópio e o computador) e na da esquerda (com o radar), e duas formam a ilha no meio, de frente para a sala, com as banquetas. A estante fica no canto, ao lado da porta, e os arquivos, na outra ponta. Chão de lajotas brancas e azuis; parede de azulejo branco com faixa azul e reboco cinza em cima.
 
-| Item | Id | Qtd | Casas | Altura | O que desenhar |
+| Item | Id | Qtd | Casas | Altura | Estados |
 |---|---|---|---|---|---|
-| ✱ Bancada de laboratório | `lab_bench` | 6 | 2×1 | 0,8 m | Tampo verde-água, como na planta. |
-| Microscópio, frascos, monitores | `microscope`, `flasks`, `monitor`, `monitor_green` | 2, 3, 2 | 1×1 | — | Placas de Petri, tubos de ensaio. |
-| Estante, arquivos, carrinho | `bookshelf`, `cabinet_file`, `trolley` | 1, 2, 1 | — | — | — |
+| ✱ Bancada de laboratório | `lab_bench` | 6 | 2×1 | 0,92 m | — (emendam) |
+| Microscópio | `microscope` | 2 | em cima da bancada | 0,42 m | — |
+| Frascos (tubos de ensaio, erlenmeyers, placas de Petri) | `flasks` | 3 | em cima da bancada | 0,25 m | — |
+| Computador de tela plana | `monitor` | 1 | em cima da bancada | 0,45 m | ligado (a tela brilha) / desligado |
+| Monitor de radar | `monitor_green` | 1 | em cima da bancada | 0,42 m | — (a tela pulsa) |
+| Banqueta de laboratório | `stool_lab` | 3 | 1×1 | 0,62 m | — |
+| Estante de livros | `bookshelf` | 1 | 2×1 | 2,2 m | — (também na Sala de Rituais) |
+| Arquivos, cadeiras, carrinho | `cabinet_file`, `chair_office`, `trolley` | 2, 2, 1 | — | — | — |
+| Quadro de investigação, anotações | `board_investigation`, `notes_wall` (parede) | 1, 1 | — | — | — |
 
 ### Sala de Tecnologia
 

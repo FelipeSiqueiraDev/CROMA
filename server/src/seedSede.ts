@@ -16,7 +16,7 @@ import { buildRoom, plan, type FloorSeed, type WallSeed } from './seed';
 export const SEDE = 'Sede · ';
 export const SEDE_CODE = '0413';
 /** Versão da montagem da Sede: subiu, a Sede é refeita no lugar (mesmos cômodos, peças e registro). */
-export const SEDE_REV = 14;
+export const SEDE_REV = 15;
 
 /** Planta retangular com a porta na parede de cima (y = 0), na coluna doorX. */
 export function planTop(w: number, h: number, doorX: number): { heightmap: string; door: Door } {
@@ -432,29 +432,32 @@ const ROOMS: RoomSpec[] = [
     plan: { x: 30, y: -3, r: 2 },
     floor: [
       ['portal', 2, 1, 4],
-      // bancadas encostadas no fundo e na parede esquerda
+      // a estante no canto; as bancadas da parede do fundo, com o microscópio e o computador
+      ['bookshelf', 0, 1, 4],
       ['lab_bench', 3, 1, 4],
       ['microscope', 3, 1, 4],
+      ['flasks', 4, 1, 4],
+      ['stool_lab', 3, 2, 0],
       ['lab_bench', 5, 1, 4],
-      ['flasks', 5, 1, 4],
-      ['monitor', 6, 1, 4],
-      ['bookshelf', 7, 1, 4],
+      ['monitor', 5, 1, 4],
+      ['chair_office', 5, 2, 0],
+      ['cabinet_file', 7, 1, 4],
+      ['cabinet_file', 8, 1, 4],
+      // a bancada da parede esquerda, com o radar
       ['lab_bench', 0, 3, 2],
       ['monitor_green', 0, 3, 2],
+      ['chair_office', 1, 3, 6],
       ['lab_bench', 0, 5, 2],
       ['flasks', 0, 6, 2],
-      ['cabinet_file', 0, 8, 2],
-      ['cabinet_file', 0, 9, 2],
-      // ilha comprida no meio
-      ['lab_bench', 4, 4, 2],
-      ['flasks', 4, 4, 2],
-      ['lab_bench', 4, 6, 2],
-      ['microscope', 4, 7, 2],
-      ['chair_office', 6, 3, 6],
-      ['stool', 3, 6, 2],
-      ['chair_office', 1, 5, 6],
-      ['trolley', 7, 9, 0],
-      ...lamps([2, 3], [6, 6], [2, 9]),
+      // a ilha no meio, de frente para a sala, com as banquetas
+      ['lab_bench', 4, 5, 4],
+      ['microscope', 4, 5, 4],
+      ['lab_bench', 6, 5, 4],
+      ['flasks', 7, 5, 4],
+      ['stool_lab', 4, 6, 0],
+      ['stool_lab', 6, 6, 0],
+      ['trolley', 7, 8, 0],
+      ...lamps([2, 3], [5, 4], [5, 8]),
     ],
     wall: [
       ['board_investigation', 'r', 1, 4.6, 2.4],

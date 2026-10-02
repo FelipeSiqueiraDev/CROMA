@@ -43,5 +43,14 @@
   "parede": {
    "arquivo": "parede-gabinete.png"
   }
+ },
+ "azulejo": {
+  "piso": {
+   "arquivo": "piso-azulejo.png",
+   "casas": 3.53
+  },
+  "parede": {
+   "arquivo": "parede-laboratorio.png"
+  }
  }
 }

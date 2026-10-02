@@ -110,19 +110,27 @@
  },
  "bookshelf": {
   "escala": 0.5,
-  "frente": {
-   "arquivo": "bookshelf/frente.png",
-   "ax": 129.0,
-   "ay": 351.0,
-   "lado": "esquerda",
-   "ancora": "quina"
-  },
-  "costas": {
-   "arquivo": "bookshelf/costas.png",
-   "ax": 129.0,
-   "ay": 351.0,
-   "lado": "esquerda",
-   "ancora": "quina"
+  "giros": {
+   "4": {
+    "arquivo": "bookshelf/giro-4.png",
+    "ax": 98.0,
+    "ay": 351.0
+   },
+   "6": {
+    "arquivo": "bookshelf/giro-6.png",
+    "ax": 34.0,
+    "ay": 336.0
+   },
+   "0": {
+    "arquivo": "bookshelf/giro-0.png",
+    "ax": 129.0,
+    "ay": 336.0
+   },
+   "2": {
+    "arquivo": "bookshelf/giro-2.png",
+    "ax": 65.0,
+    "ay": 351.0
+   }
   }
  },
  "desk_wood": {
@@ -1919,6 +1927,214 @@
   "escala": 1,
   "chao": {
    "arquivo": "papers/chao.png"
+  }
+ },
+ "flasks": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "flasks/giro-4.png",
+    "ax": 41.0,
+    "ay": 75.5
+   },
+   "6": {
+    "arquivo": "flasks/giro-6.png",
+    "ax": 41.0,
+    "ay": 72.5
+   },
+   "0": {
+    "arquivo": "flasks/giro-0.png",
+    "ax": 41.0,
+    "ay": 66.5
+   },
+   "2": {
+    "arquivo": "flasks/giro-2.png",
+    "ax": 41.5,
+    "ay": 75.4
+   }
+  }
+ },
+ "microscope": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "microscope/giro-4.png",
+    "ax": 23.0,
+    "ay": 97.5
+   },
+   "0": {
+    "arquivo": "microscope/giro-0.png",
+    "ax": 23.0,
+    "ay": 97.6
+   },
+   "6": {
+    "arquivo": "microscope/giro-6.png",
+    "ax": 24.5,
+    "ay": 96.7
+   },
+   "2": {
+    "arquivo": "microscope/giro-2.png",
+    "ax": 23.5,
+    "ay": 97.3
+   }
+  }
+ },
+ "monitor": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "monitor/giro-4.png",
+    "ax": 41.5,
+    "ay": 105.4
+   },
+   "6": {
+    "arquivo": "monitor/giro-6.png",
+    "ax": 48.5,
+    "ay": 101.7
+   },
+   "0": {
+    "arquivo": "monitor/giro-0.png",
+    "ax": 46.5,
+    "ay": 102.9
+   },
+   "2": {
+    "arquivo": "monitor/giro-2.png",
+    "ax": 43.0,
+    "ay": 104.5
+   }
+  },
+  "tela": {
+   "cores": [
+    "#5ad0e0",
+    "#4ab8d8",
+    "#6ae0f0"
+   ],
+   "ms": 900,
+   "modo": "tv",
+   "forca": 0.22,
+   "giros": {
+    "4": {
+     "x": 44.8,
+     "y": 36.7,
+     "r": 26.6
+    },
+    "2": {
+     "x": 31.8,
+     "y": 36.7,
+     "r": 27.5
+    }
+   }
+  },
+  "estados": {
+   "1": {
+    "giros": {
+     "4": {
+      "arquivo": "monitor/giro-4-1.png",
+      "ax": 41.5,
+      "ay": 105.4
+     },
+     "6": {
+      "arquivo": "monitor/giro-6-1.png",
+      "ax": 48.5,
+      "ay": 101.7
+     },
+     "0": {
+      "arquivo": "monitor/giro-0-1.png",
+      "ax": 46.5,
+      "ay": 102.9
+     },
+     "2": {
+      "arquivo": "monitor/giro-2-1.png",
+      "ax": 43.0,
+      "ay": 104.5
+     }
+    }
+   }
+  }
+ },
+ "monitor_green": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "monitor_green/giro-4.png",
+    "ax": 48.0,
+    "ay": 97.0
+   },
+   "0": {
+    "arquivo": "monitor_green/giro-0.png",
+    "ax": 48.0,
+    "ay": 96.1
+   },
+   "6": {
+    "arquivo": "monitor_green/giro-6.png",
+    "ax": 47.0,
+    "ay": 97.6
+   },
+   "2": {
+    "arquivo": "monitor_green/giro-2.png",
+    "ax": 47.5,
+    "ay": 97.3
+   }
+  },
+  "tela": {
+   "cores": [
+    "#4fe39a"
+   ],
+   "ms": 2400,
+   "modo": "pulso",
+   "forca": 0.35,
+   "giros": {
+    "4": {
+     "x": 27.8,
+     "y": 49.0,
+     "r": 19.2
+    },
+    "2": {
+     "x": 57.9,
+     "y": 54.3,
+     "r": 19.0
+    }
+   }
+  }
+ },
+ "stool_lab": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "stool_lab/giro-4.png",
+    "ax": 45.0,
+    "ay": 123.5
+   },
+   "6": {
+    "arquivo": "stool_lab/giro-6.png",
+    "ax": 41.5,
+    "ay": 125.3
+   },
+   "0": {
+    "arquivo": "stool_lab/giro-0.png",
+    "ax": 43.0,
+    "ay": 124.6
+   },
+   "2": {
+    "arquivo": "stool_lab/giro-2.png",
+    "ax": 43.0,
+    "ay": 124.5
+   }
+  }
+ },
+ "notes_wall": {
+  "escala": 0.5,
+  "parede": {
+   "r": {
+    "arquivo": "notes_wall/parede-r.png",
+    "ax": 29.0,
+    "ay": 30.0
+   },
+   "l": {
+    "arquivo": "notes_wall/parede-l.png",
+    "ax": 29.0,
+    "ay": 30.0
+   }
   }
  }
 }
