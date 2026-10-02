@@ -28,9 +28,14 @@ from mathutils import Matrix, Vector
 cfg = json.load(open(sys.argv[sys.argv.index('--') + 1], encoding='utf-8'))
 SAIDA = cfg['saida']
 PX_POR_M_ALTURA = cfg.get('pxPorMetro', 115.2)
+if cfg.get('pxPorMetroPlano'):
+    # o tamanho do pixel no plano da imagem (o mesmo da arte do personagem): a altura sai dele
+    PX_POR_M_ALTURA = cfg['pxPorMetroPlano'] * math.cos(math.radians(cfg.get('elevacao', 30)))
 W, H = cfg.get('largura', 192), cfg.get('altura', 256)
 # o chão (a origem do personagem) cai nesta linha da imagem, contando de cima
 CHAO_Y = cfg.get('chaoY', 232)
+# quantos graus a câmera fica acima do chão (o tabuleiro é 30°: grade 2:1)
+ELEVACAO = cfg.get('elevacao', 30)
 
 # as 8 direções: para onde a frente olha, no chão do tabuleiro (x, y)
 R2 = math.sqrt(0.5)
@@ -73,6 +78,27 @@ def materiais_de_passe(objs):
         for slot in o.material_slots:
             m = slot.material
             if not m or m.name in originais:
+                continue
+            if m.get('croma_vistas'):
+                # personagem tirado da arte (montar_arte.py): a cor já vem pronta, uma por direção
+                mc = m.copy()
+                mc.name = m.name + '__cor'
+                mn = bpy.data.materials.new(m.name + '__normal')
+                mn.use_nodes = True
+                nt = mn.node_tree
+                for n in list(nt.nodes):
+                    nt.nodes.remove(n)
+                saida = nt.nodes.new('ShaderNodeOutputMaterial')
+                geo = nt.nodes.new('ShaderNodeNewGeometry')
+                mul = nt.nodes.new('ShaderNodeVectorMath')
+                mul.operation = 'MULTIPLY_ADD'
+                mul.inputs[1].default_value = (0.5, 0.5, 0.5)
+                mul.inputs[2].default_value = (0.5, 0.5, 0.5)
+                emi = nt.nodes.new('ShaderNodeEmission')
+                nt.links.new(geo.outputs['Normal'], mul.inputs[0])
+                nt.links.new(mul.outputs[0], emi.inputs['Color'])
+                nt.links.new(emi.outputs[0], saida.inputs['Surface'])
+                originais[m.name] = (m, mc, mn)
                 continue
             tex, cor = cor_base(m)
             alfa_tex = None
@@ -146,13 +172,13 @@ def montar_camera(scene):
     # sensor AUTO: o ortho_scale vale para o lado maior da imagem
     lado = max(W, H)
     # 1 m vertical no mundo vira cos(30°) m no plano da imagem
-    px_por_m_plano = PX_POR_M_ALTURA / math.cos(math.radians(30))
+    px_por_m_plano = cfg.get('pxPorMetroPlano') or PX_POR_M_ALTURA / math.cos(math.radians(ELEVACAO))
     cam_d.ortho_scale = lado / px_por_m_plano
     cam_d.clip_start = 0.1
     cam_d.clip_end = 100
     cam = bpy.data.objects.new('camera', cam_d)
     scene.collection.objects.link(cam)
-    cam.rotation_euler = (math.radians(60), 0, math.radians(45))
+    cam.rotation_euler = (math.radians(90 - ELEVACAO), 0, math.radians(45))
     frente = cam.rotation_euler.to_matrix() @ Vector((0, 0, -1))
     alvo = Vector((0, 0, 0.9))
     cam.location = alvo - frente * 20
@@ -195,6 +221,157 @@ def acao_em(arm, acao):
         ad.action_slot = acao.slots[0]
 
 
+def curvas_da_acao(acao):
+    """As curvas da ação (Blender 4.4+: por camada, faixa e slot; antes: direto na ação)."""
+    out = []
+    for lay in getattr(acao, 'layers', []) or []:
+        for st in lay.strips:
+            for cb in getattr(st, 'channelbags', []) or []:
+                out.extend((cb, fc) for fc in cb.fcurves)
+    if not out and hasattr(acao, 'fcurves'):
+        out = [(acao, fc) for fc in acao.fcurves]
+    return out
+
+
+def chibi(arm, spec):
+    """
+    Proporção chibi (como a arte dos agentes): escala fixa em alguns ossos (cabeça,
+    mãos, pés maiores; pernas, tronco e braços mais curtos, no comprimento do osso).
+    As animações não mexem na escala desses ossos (as curvas de escala saem), então a
+    proporção vale em todo quadro. O boneco desce o que as pernas encurtaram.
+    """
+    if not spec:
+        return
+    regras = {}
+    for nome, valor in spec.items():
+        if nome == 'ergue':
+            continue
+        if nome in ('cabeca', 'Head'):
+            regras['Head'] = (valor, valor, valor)
+        elif nome == 'pescoco':
+            regras['neck_01'] = (valor, valor, valor)
+        elif nome == 'maos':
+            for l in ('l', 'r'):
+                regras[f'hand_{l}'] = (valor, valor, valor)
+        elif nome == 'pes':
+            for l in ('l', 'r'):
+                regras[f'foot_{l}'] = (valor, valor, valor)
+        elif nome == 'pernas':
+            # a coxa e a canela encurtam (a canela herda da coxa)
+            for l in ('l', 'r'):
+                regras[f'thigh_{l}'] = (1.0, valor, 1.0)
+        elif nome == 'tronco':
+            regras['spine_02'] = (1.0, valor, 1.0)
+        elif nome == 'bracos':
+            for l in ('l', 'r'):
+                regras[f'upperarm_{l}'] = (1.0, valor, 1.0)
+    # quem fica depois de um osso encurtado não herda a escala dele (só a posição): senão a cabeça
+    # achata junto com o tronco e o pé, junto com a perna
+    for b in ('spine_03', 'neck_01', 'Head', 'clavicle_l', 'clavicle_r', 'foot_l', 'foot_r', 'hand_l', 'hand_r'):
+        if b in arm.data.bones:
+            arm.data.bones[b].inherit_scale = 'NONE'
+    ossos = set(regras)
+    for acao in bpy.data.actions:
+        for dono, fc in curvas_da_acao(acao):
+            if fc.data_path.endswith('.scale'):
+                b = fc.data_path.split('"')[1] if '"' in fc.data_path else ''
+                if b in ossos:
+                    dono.fcurves.remove(fc)
+    # o chibi olha para a câmera: a cabeça vai um pouco para trás em todo quadro (giro no eixo X do osso)
+    graus = spec.get('ergue', 0)
+    if graus:
+        from mathutils import Quaternion
+        q_off = Quaternion((1, 0, 0), math.radians(graus))
+        for acao in bpy.data.actions:
+            curvas = {}
+            for dono, fc in curvas_da_acao(acao):
+                if fc.data_path == 'pose.bones["Head"].rotation_quaternion':
+                    curvas[fc.array_index] = fc
+            if len(curvas) != 4:
+                continue
+            n = len(curvas[0].keyframe_points)
+            if any(len(curvas[i].keyframe_points) != n for i in range(4)):
+                continue
+            for k in range(n):
+                q = Quaternion([curvas[i].keyframe_points[k].co[1] for i in range(4)])
+                q2 = q @ q_off
+                for i in range(4):
+                    kp = curvas[i].keyframe_points[k]
+                    d = q2[i] - kp.co[1]
+                    kp.co[1] += d
+                    kp.handle_left[1] += d
+                    kp.handle_right[1] += d
+            for fc in curvas.values():
+                fc.update()
+    # quanto o pé está acima do chão antes e depois (na pose de repouso)
+    def pe_z():
+        bpy.context.view_layer.update()
+        return min((arm.matrix_world @ arm.pose.bones[f'ball_{l}'].head).z for l in ('l', 'r'))
+    ad = arm.animation_data
+    guardada = ad.action if ad else None
+    if ad:
+        ad.action = None
+    for pb in arm.pose.bones:
+        pb.location = (0, 0, 0)
+        pb.rotation_quaternion = (1, 0, 0, 0)
+        pb.rotation_euler = (0, 0, 0)
+        pb.scale = (1, 1, 1)
+    antes = pe_z()
+    for nome, esc in regras.items():
+        if nome in arm.pose.bones:
+            arm.pose.bones[nome].scale = esc
+    depois = pe_z()
+    arm.location.z -= (depois - antes)
+    if ad and guardada:
+        ad.action = guardada
+    print('chibi:', {k: v for k, v in spec.items()}, 'desceu', round(depois - antes, 3), flush=True)
+
+
+def ajustar_acoes(cfg):
+    """
+    Para esqueletos com outro tamanho (montar_arte.py): o deslocamento do quadril nas
+    animações encolhe junto com as pernas ('quadril': fator), e a 'postura' soma um giro
+    fixo (graus, em X, Y e Z do osso) a alguns ossos em todo quadro (braço mais aberto
+    para não entrar na jaqueta, cabeça erguida...).
+    """
+    from mathutils import Euler, Quaternion
+    fator = cfg.get('quadril')
+    postura = {b: Euler([math.radians(g) for g in graus]).to_quaternion() for b, graus in (cfg.get('postura') or {}).items()}
+    if not fator and not postura:
+        return
+    for acao in bpy.data.actions:
+        if acao.name == 'Referencia':
+            continue
+        rot = {}
+        for dono, fc in curvas_da_acao(acao):
+            if fator and fc.data_path == 'pose.bones["pelvis"].location':
+                for kp in fc.keyframe_points:
+                    kp.co[1] *= fator
+                    kp.handle_left[1] *= fator
+                    kp.handle_right[1] *= fator
+                fc.update()
+            if fc.data_path.endswith('.rotation_quaternion') and '"' in fc.data_path:
+                b = fc.data_path.split('"')[1]
+                if b in postura:
+                    rot.setdefault(b, {})[fc.array_index] = fc
+        for b, curvas in rot.items():
+            if len(curvas) != 4:
+                continue
+            n = len(curvas[0].keyframe_points)
+            if any(len(curvas[i].keyframe_points) != n for i in range(4)):
+                continue
+            for k in range(n):
+                q = Quaternion([curvas[i].keyframe_points[k].co[1] for i in range(4)]) @ postura[b]
+                for i in range(4):
+                    kp = curvas[i].keyframe_points[k]
+                    d = q[i] - kp.co[1]
+                    kp.co[1] += d
+                    kp.handle_left[1] += d
+                    kp.handle_right[1] += d
+            for fc in curvas.values():
+                fc.update()
+
+
 def projetar(scene, cam, co):
     p = world_to_camera_view(scene, cam, co)
     return [round(p.x * W, 2), round((1 - p.y) * H, 2), round(p.z, 4)]
@@ -224,6 +401,8 @@ def main():
     if 'escala' in cfg:
         e = cfg['escala']
         arm.scale = (e, e, e)
+    chibi(arm, cfg.get('chibi'))
+    ajustar_acoes(cfg)
     mats = materiais_de_passe(objs)
     preparar_render(scene)
     cam = montar_camera(scene)
@@ -233,7 +412,7 @@ def main():
     rot0_q = arm.rotation_quaternion.copy() if arm.rotation_mode == 'QUATERNION' else None
     arm.rotation_mode = 'XYZ'
     base_rot = rot0 if rot0_q is None else rot0_q.to_euler()
-    info = {'largura': W, 'altura': H, 'chao': [W / 2, CHAO_Y], 'pxPorMetro': PX_POR_M_ALTURA, 'animacoes': {}}
+    info = {'largura': W, 'altura': H, 'chao': [W / 2, CHAO_Y], 'pxPorMetro': PX_POR_M_ALTURA, 'elevacao': ELEVACAO, 'animacoes': {}}
     # a cena fica guardada entre um quadro e outro (só a malha deformada muda)
     scene.render.use_persistent_data = True
 
@@ -264,6 +443,9 @@ def main():
                 info['animacoes'][anim['nome']] = {'acao': anim['acao'], 'quadros': n, 'laco': laco, 'faixa': [ini, fim], 'direcoes': {}}
             for d in direcoes:
                 virar(d)
+                for m, mc, mn in mats.values():
+                    if m.get('croma_vistas'):
+                        mc.node_tree.nodes['vista'].attribute_name = f'cor_{d}'
                 pasta = os.path.join(SAIDA, anim['nome'], d)
                 os.makedirs(pasta, exist_ok=True)
                 ossos_quadros = []

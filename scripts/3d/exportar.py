@@ -9,6 +9,7 @@ Uso: python exportar.py <pasta pixelada> <filmagem.json> <destino> <tocar.json> 
 """
 import argparse
 import json
+import math
 import os
 import sys
 
@@ -30,9 +31,10 @@ def gravar(a, p):
     fitz.Pixmap(fitz.csRGB, w, h, np.ascontiguousarray(a).tobytes(), True).save(p)
 
 
-def pes_do_quadro(ossos, chao, escala):
+def pes_do_quadro(ossos, chao, escala, red=1):
     """Os dois pés: [dx, dy, altura no ar] em pixels da tela no zoom 1, a partir da âncora."""
     out = []
+    ossos = {k: [c / red for c in v[:5]] + v[5:] for k, v in ossos.items()}
     for lado in ('l', 'r'):
         b, f = ossos.get(f'ball_{lado}'), ossos.get(f'foot_{lado}')
         if not b or not f:
@@ -46,6 +48,29 @@ def pes_do_quadro(ossos, chao, escala):
     return out
 
 
+def casas_do_andar(info, anim, casa=0.68):
+    """
+    Quantas casas do tabuleiro o corpo anda por ciclo: a velocidade do pé apoiado
+    (visto de lado, onde o chão anda na horizontal da imagem) vezes o ciclo inteiro.
+    """
+    dados = info['animacoes'][anim]
+    d = 'e' if 'e' in dados['direcoes'] else next(iter(dados['direcoes']))
+    ossos = dados['direcoes'][d]['ossos']
+    n = len(ossos)
+    px_plano = info['pxPorMetro'] / math.cos(math.radians(info.get('elevacao', 30)))
+    vel = []
+    for lado in ('l', 'r'):
+        gx = [o[f'ball_{lado}'][3] for o in ossos]
+        z = [o[f'ball_{lado}'][5] for o in ossos]
+        baixo = min(z) + 0.01
+        for i in range(n):
+            j = (i + 1) % n
+            if z[i] < baixo and z[j] < baixo:
+                vel.append(abs(gx[j] - gx[i]))
+    vel.sort()
+    return round(vel[len(vel) // 2] * n / px_plano / casa, 3)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('pixel')
@@ -54,10 +79,11 @@ def main():
     ap.add_argument('tocar')
     ap.add_argument('--estado', default='desarmado')
     ap.add_argument('--escala', type=float, default=0.5)
+    ap.add_argument('--reduzir', type=int, default=1, help='o mesmo do pixelar.py (pixel grosso)')
     a = ap.parse_args()
     info = json.load(open(a.filmagem, encoding='utf-8'))
     tocar = json.load(open(a.tocar, encoding='utf-8'))
-    chao = info['chao']
+    chao = [c / a.reduzir for c in info['chao']]
     os.makedirs(a.destino, exist_ok=True)
     caminho_json = os.path.join(a.destino, 'anim.json')
     saida = json.load(open(caminho_json, encoding='utf-8')) if os.path.exists(caminho_json) else {'versao': 2, 'escala': a.escala, 'estados': {}}
@@ -85,11 +111,13 @@ def main():
                 'arquivo': arq, 'quadros': len(qs), 'w': int(w), 'h': int(h),
                 'ax': round(float(chao[0] - x0), 1), 'ay': round(float(chao[1] - y0), 1),
                 'laco': bool(dados.get('laco', True)),
-                'pes': [pes_do_quadro(o, chao, a.escala) for o in dd['ossos']],
+                'pes': [pes_do_quadro(o, chao, a.escala, a.reduzir) for o in dd['ossos']],
             }
             for k in ('ms', 'casasPorCiclo', 'fase', 'segura'):
                 if k in regra:
                     ent[k] = regra[k]
+            if ent.get('casasPorCiclo') == 'auto':
+                ent['casasPorCiclo'] = casas_do_andar(info, anim)
             estado.setdefault(d, {})[anim] = ent
         print(f'{anim}: {len(dados["direcoes"])} direções')
     with open(caminho_json, 'w', encoding='utf-8', newline='\n') as f:

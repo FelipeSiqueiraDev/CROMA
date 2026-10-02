@@ -78,9 +78,13 @@ def main():
     ap.add_argument('saida')
     ap.add_argument('--casas', type=float, default=1.91)
     ap.add_argument('--anim', default='andar')
+    ap.add_argument('--reduzir', type=int, default=1, help='o mesmo do pixelar.py (pixel grosso)')
+    ap.add_argument('--ampliar', type=int, default=1, help='amplia o GIF (pixel grosso fica visível)')
     a = ap.parse_args()
     info = json.load(open(a.filmagem, encoding='utf-8'))
-    chao = info['chao']
+    chao = [c / a.reduzir for c in info['chao']]
+    global PASSO_TELA
+    PASSO_TELA = {k: (v[0] / a.reduzir, v[1] / a.reduzir) for k, v in PASSO_TELA.items()}
     n = info['animacoes'][a.anim]['quadros']
     qs = {d: [ler(os.path.join(a.pasta, a.anim, d, f'{i:02d}.png')) for i in range(n)] for l in ORDEM for d in l}
     Hq, Wq = next(iter(qs.values()))[0].shape[:2]
@@ -89,7 +93,7 @@ def main():
     for f in os.listdir(tmp):
         os.remove(os.path.join(tmp, f))
     # 1) grade no lugar
-    cw, ch = 150, 230
+    cw, ch = int(150 / a.reduzir), int(230 / a.reduzir)
     c = 0
     for volta in range(3):
         for i in range(n):
@@ -97,9 +101,10 @@ def main():
             img[:] = (36, 33, 40)
             for r, l in enumerate(ORDEM):
                 for col, d in enumerate(l):
-                    cx, cy = col * cw + cw // 2, r * ch + ch - 18
-                    sombra(img, cx, cy, 26, 10)
+                    cx, cy = col * cw + cw // 2, r * ch + ch - int(18 / a.reduzir)
+                    sombra(img, cx, cy, 26 / a.reduzir, 10 / a.reduzir)
                     colar(img, qs[d][i], int(cx - chao[0]), int(cy - chao[1]))
+            img = np.repeat(np.repeat(img, a.ampliar, 0), a.ampliar, 1)
             gravar_rgb(img.astype(np.uint8), os.path.join(tmp, f'g{c:03d}.png'))
             c += 1
     ms_quadro = 2 * 500 * a.casas / n / 2  # duração de um quadro do ciclo no tabuleiro
@@ -107,9 +112,9 @@ def main():
                     '-vf', 'split[a][b];[a]palettegen=max_colors=96:stats_mode=diff[p];[b][p]paletteuse=dither=none:diff_mode=rectangle',
                     '-loop', '0', a.saida + '-8direcoes.gif'], check=True)
     # 2) andando no piso: ida e volta em 4 direções (se, sw, e, s)
-    W, H = 760, 420
-    ox, oy = W // 2, 110
-    fundo = piso(W, H, ox, oy)
+    W, H = int(760 / a.reduzir), int(420 / a.reduzir)
+    ox, oy = W // 2, int(110 / a.reduzir)
+    fundo = piso(W, H, ox, oy) if a.reduzir == 1 else piso(W * a.reduzir, H * a.reduzir, ox * a.reduzir, oy * a.reduzir)[::a.reduzir, ::a.reduzir]
     fps = 25
     c = 0
     for d in ('se', 'e', 's', 'sw'):
@@ -118,7 +123,7 @@ def main():
         t_total = casas_total * 500 * COMPR[d]
         quadros = int(t_total / (1000 / fps))
         # começa num canto de forma que o caminho fique no meio
-        x0, y0 = ox - vx * casas_total / 2, oy + 160 - vy * casas_total / 2
+        x0, y0 = ox - vx * casas_total / 2, oy + 160 / a.reduzir - vy * casas_total / 2
         for k in range(quadros + 8):
             t = min(k, quadros) * (1000 / fps)
             andou = t / (500 * COMPR[d])  # casas andadas
@@ -127,8 +132,9 @@ def main():
             img = fundo.copy()
             px, py = x0 + vx * andou, y0 + vy * andou
             q = qs[d][int(fase * n) % n] if k < quadros else qs[d][int(fase * n) % n]
-            sombra(img, px, py, 26, 10)
+            sombra(img, px, py, 26 / a.reduzir, 10 / a.reduzir)
             colar(img, q, int(round(px - chao[0])), int(round(py - chao[1])))
+            img = np.repeat(np.repeat(img, a.ampliar, 0), a.ampliar, 1)
             gravar_rgb(img.astype(np.uint8), os.path.join(tmp, f'p{c:03d}.png'))
             c += 1
     subprocess.run(['ffmpeg', '-v', 'error', '-y', '-framerate', str(fps), '-i', os.path.join(tmp, 'p%03d.png'),

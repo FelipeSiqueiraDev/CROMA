@@ -167,6 +167,24 @@ def proporcoes(p):
 proporcoes(cfg.get('proporcoes'))
 DOM = dominantes(corpo)
 
+
+def crescer_em_volta(obj, fator, por_lado=True, avanca=0.0):
+    """Cresce os vértices em volta do centro de cada lado (olho esquerdo e direito), e puxa um pouco para a frente."""
+    if not obj or fator == 1.0:
+        return
+    vs = obj.data.vertices
+    grupos_lado = [[v for v in vs if v.co.x > 0], [v for v in vs if v.co.x <= 0]] if por_lado else [list(vs)]
+    for g in grupos_lado:
+        if not g:
+            continue
+        c = sum((v.co for v in g), Vector()) / len(g)
+        for v in g:
+            v.co = c + (v.co - c) * fator + Vector((0, -avanca, 0))
+
+
+crescer_em_volta(olhos, cfg.get('olhos_escala', 1.0), avanca=cfg.get('olhos_avanca', 0.0))
+crescer_em_volta(sobrancelhas, cfg.get('sobrancelha_escala', 1.0), avanca=cfg.get('olhos_avanca', 0.0))
+
 # a pele: cor chapada (o sombreado vem depois, na pixel art)
 com_um_material(corpo, material(cfg['nome'] + '_pele', cfg['pele']))
 if sobrancelhas:
@@ -514,8 +532,42 @@ def capuz(spec):
 if cfg.get('capuz'):
     capuz(cfg['capuz'])
 
-# acessórios: tubos (correntes) e caixas, presos a um osso
+def mecha(nome, pontos, raio, cor, achatada=0.55):
+    """Uma mecha de cabelo: um tubo que afina até a ponta, um pouco achatado (como o cabelo cai)."""
+    verts, faces = [], []
+    lados = 6
+    n = len(pontos)
+    for i, p in enumerate(pontos):
+        p = Vector(p)
+        a = Vector(pontos[min(i + 1, n - 1)])
+        b = Vector(pontos[max(i - 1, 0)])
+        t = (a - b).normalized()
+        u = t.cross(Vector((0, 0, 1)))
+        if u.length < 1e-4:
+            u = t.orthogonal()
+        u.normalize()
+        w = t.cross(u).normalized()
+        r = raio * (1 - i / max(1, n - 1)) ** 0.8 + 0.0015
+        for k in range(lados):
+            ang = 2 * math.pi * k / lados
+            verts.append(tuple(p + (u * math.cos(ang) + w * math.sin(ang) * achatada) * r))
+    for i in range(n - 1):
+        for k in range(lados):
+            k2 = (k + 1) % lados
+            faces.append((i * lados + k, i * lados + k2, (i + 1) * lados + k2, (i + 1) * lados + k))
+    faces.append(tuple(range(lados - 1, -1, -1)))
+    return malha(nome, verts, faces, cor, 0.6)
+
+
+# acessórios: tubos (correntes), caixas e mechas de cabelo, presos a um osso
 for ac in cfg.get('acessorios', []):
+    if ac['tipo'] == 'mechas':
+        for j, pts in enumerate(ac['mechas']):
+            o = mecha(cfg['nome'] + f'_{ac["nome"]}{j}', pts, ac['raio'], ac['cor'])
+            sub = o.modifiers.new('suave', 'SUBSURF')
+            sub.levels = sub.render_levels = 1
+            prender(o, ac['osso'])
+        continue
     if ac['tipo'] == 'tubo':
         o = tubo(cfg['nome'] + '_' + ac['nome'], ac['pontos'], ac['raio'], ac['cor'], fechado=ac.get('fechado', False))
     elif ac['tipo'] == 'caixa':

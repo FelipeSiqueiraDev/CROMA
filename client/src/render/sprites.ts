@@ -451,7 +451,7 @@ async function cortarClipe(c: BonecoClipe, escala: number): Promise<SpriteFrame[
     cv.width = c.w;
     cv.height = c.h;
     cv.getContext('2d')!.drawImage(img, i * c.w, 0, c.w, c.h, 0, 0, c.w, c.h);
-    // na tela, a arte em dobro vale meio pixel: nítida no zoom 2, suave no zoom 1
+    // a escala do boneco: quantos pixels do tabuleiro (no zoom 1) vale cada pixel da arte
     out.push({ canvas: cv, w: c.w * escala, h: c.h * escala, ax: c.ax * escala, ay: c.ay * escala, pixel: true });
   }
   return out;
@@ -892,6 +892,28 @@ export function drawSombraProjetada(ctx: CanvasRenderingContext2D, f: SpriteFram
   ctx.restore();
 }
 
+const ampliacoes = new Map<string, HTMLCanvasElement>();
+
+/** O quadro ampliado `n` vezes sem suavizar (num rascunho por tamanho: vale até o próximo desenho). */
+function ampliado(img: HTMLCanvasElement, n: number): HTMLCanvasElement {
+  const w = img.width * n;
+  const h = img.height * n;
+  const chave = `${w}x${h}`;
+  let c = ampliacoes.get(chave);
+  if (!c) {
+    c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    ampliacoes.set(chave, c);
+  }
+  const g = c.getContext('2d')!;
+  g.imageSmoothingEnabled = false;
+  g.globalCompositeOperation = 'copy';
+  g.drawImage(img, 0, 0, w, h);
+  g.globalCompositeOperation = 'source-over';
+  return c;
+}
+
 /** Pinta o quadro com os pés em (x, y). sit = sem quadro de sentado: abaixa o corpo e esconde as pernas atrás do assento. */
 function paint(ctx: CanvasRenderingContext2D, f: SpriteFrame, x: number, y: number, sit: boolean, alpha: number, luz?: LuzNaPeca | null) {
   const img = comLuz(f, luz);
@@ -901,16 +923,19 @@ function paint(ctx: CanvasRenderingContext2D, f: SpriteFrame, x: number, y: numb
   ctx.imageSmoothingQuality = 'high';
   if (f.pixel) {
     const m = ctx.getTransform();
-    // pixel art: numa escala inteira (cada pixel da arte vira 1, 2, 3 pixels da tela), sem suavizar; em escala
-    // quebrada (diminuindo, ou 1,25×, 2,5×), suaviza: senão uns pixels saem maiores que outros e a peça "treme"
+    // pixel art: numa escala inteira (cada pixel da arte vira 1, 2, 3 pixels da tela), sem suavizar; diminuindo,
+    // suaviza; aumentando numa escala quebrada (1,6×, 2,4×), amplia inteiro sem suavizar e só o resto é suave:
+    // o pixel continua nítido e nenhum sai maior que o outro (a peça não "treme")
     const ef = Math.abs(m.a) * (f.w / f.canvas.width);
-    ctx.imageSmoothingEnabled = ef < 0.999 || Math.abs(ef - Math.round(ef)) > 0.02;
+    const inteira = ef >= 0.999 && Math.abs(ef - Math.round(ef)) <= 0.02;
+    ctx.imageSmoothingEnabled = !inteira;
     if (!sit && !m.b && !m.c) {
       // no pixel inteiro da tela: andando, a peça não treme nem borra
       const px = Math.round(m.a * (x - f.ax) + m.e);
       const py = Math.round(m.d * (y - f.ay) + m.f);
       ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.drawImage(img, px, py, Math.round(f.w * m.a), Math.round(f.h * m.d));
+      const fonte = !inteira && ef > 1 ? ampliado(img, Math.ceil(ef)) : img;
+      ctx.drawImage(fonte, px, py, Math.round(f.w * m.a), Math.round(f.h * m.d));
       ctx.restore();
       return;
     }
