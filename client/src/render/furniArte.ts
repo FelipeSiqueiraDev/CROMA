@@ -64,6 +64,10 @@ export interface MovelArte {
   real?: [number, number, number];
   /** encostado no fundo da casa (a prateleira na parede), em vez de no meio */
   encosta?: boolean;
+  /** o móvel visto de cima (mapa tático), com a frente para baixo; a imagem tem a pegada inteira, 128 px por casa (scripts/3d/cima.py) */
+  cima?: { arquivo: string };
+  /** os estados que mudam o que se vê de cima (o baú aberto) */
+  cimaEstados?: Record<string, { arquivo: string }>;
 }
 
 /** A tela de TV ligada (item de parede): treme de leve entre as cores, bem mais fraca que o fliperama. */
@@ -199,6 +203,13 @@ export function visualComArte(def: FurniDef, base: FVisual, state = 0, seed = 0,
 export function imagemDoChao(defId: string): HTMLCanvasElement | null {
   const a = lista?.[defId];
   return a?.chao ? (pronta(a.chao.arquivo)?.normal ?? null) : null;
+}
+
+/** O móvel visto de cima (mapa tático), no estado dele; null sem arte ou enquanto ela carrega. */
+export function imagemDeCima(defId: string, estado = 0): HTMLCanvasElement | null {
+  const a = lista?.[defId];
+  const arquivo = a?.cimaEstados?.[String(estado)]?.arquivo ?? a?.cima?.arquivo;
+  return arquivo ? (pronta(arquivo)?.normal ?? null) : null;
 }
 
 /** O tamanho de verdade do móvel (metros) e se ele encosta no fundo da casa, pela arte dele; null sem arte. */

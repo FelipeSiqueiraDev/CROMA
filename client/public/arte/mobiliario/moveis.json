@@ -274,7 +274,10 @@
    0.56,
    0.56,
    0.82
-  ]
+  ],
+  "cima": {
+   "arquivo": "chair_bar/cima.png"
+  }
  },
  "pool_table": {
   "escala": 0.5,
@@ -304,7 +307,10 @@
    1.36,
    2.5,
    0.82
-  ]
+  ],
+  "cima": {
+   "arquivo": "pool_table/cima.png"
+  }
  },
  "gun_table": {
   "escala": 0.5,
@@ -364,7 +370,10 @@
    0.5,
    0.5,
    1.1
-  ]
+  ],
+  "cima": {
+   "arquivo": "plant/cima.png"
+  }
  },
  "table_bar": {
   "escala": 0.5,
@@ -394,7 +403,10 @@
    0.7,
    0.7,
    0.75
-  ]
+  ],
+  "cima": {
+   "arquivo": "table_bar/cima.png"
+  }
  },
  "bar_counter": {
   "escala": 0.5,
@@ -424,7 +436,10 @@
    1.36,
    0.6,
    1.1
-  ]
+  ],
+  "cima": {
+   "arquivo": "bar_counter/cima.png"
+  }
  },
  "stool_bar": {
   "escala": 0.5,
@@ -454,7 +469,10 @@
    0.42,
    0.42,
    0.76
-  ]
+  ],
+  "cima": {
+   "arquivo": "stool_bar/cima.png"
+  }
  },
  "bar_shelf": {
   "escala": 0.5,
@@ -485,7 +503,10 @@
    0.4,
    2.0
   ],
-  "encosta": true
+  "encosta": true,
+  "cima": {
+   "arquivo": "bar_shelf/cima.png"
+  }
  },
  "beer_fridge": {
   "escala": 0.5,
@@ -516,7 +537,10 @@
    0.62,
    2.0
   ],
-  "encosta": true
+  "encosta": true,
+  "cima": {
+   "arquivo": "beer_fridge/cima.png"
+  }
  },
  "arcade": {
   "escala": 0.5,
@@ -571,7 +595,10 @@
    0.66,
    1.8
   ],
-  "encosta": true
+  "encosta": true,
+  "cima": {
+   "arquivo": "arcade/cima.png"
+  }
  },
  "fridge_drinks": {
   "escala": 0.5,
@@ -602,7 +629,10 @@
    0.62,
    2.0
   ],
-  "encosta": true
+  "encosta": true,
+  "cima": {
+   "arquivo": "fridge_drinks/cima.png"
+  }
  },
  "minibar": {
   "escala": 0.5,
@@ -633,7 +663,10 @@
    0.55,
    0.88
   ],
-  "encosta": true
+  "encosta": true,
+  "cima": {
+   "arquivo": "minibar/cima.png"
+  }
  },
  "beer_crate": {
   "escala": 0.5,
@@ -663,7 +696,10 @@
    0.4,
    0.33,
    0.33
-  ]
+  ],
+  "cima": {
+   "arquivo": "beer_crate/cima.png"
+  }
  },
  "chair_stack": {
   "escala": 0.5,
@@ -693,7 +729,10 @@
    0.56,
    0.56,
    1.25
-  ]
+  ],
+  "cima": {
+   "arquivo": "chair_stack/cima.png"
+  }
  },
  "sideboard": {
   "escala": 0.5,
@@ -724,7 +763,10 @@
    0.5,
    0.9
   ],
-  "encosta": true
+  "encosta": true,
+  "cima": {
+   "arquivo": "sideboard/cima.png"
+  }
  },
  "bar_cabinet": {
   "escala": 0.5,
@@ -755,7 +797,10 @@
    0.45,
    0.95
   ],
-  "encosta": true
+  "encosta": true,
+  "cima": {
+   "arquivo": "bar_cabinet/cima.png"
+  }
  },
  "armchair_red": {
   "escala": 0.5,
@@ -785,7 +830,10 @@
    0.66,
    0.66,
    0.78
-  ]
+  ],
+  "cima": {
+   "arquivo": "armchair_red/cima.png"
+  }
  },
  "sofa_booth": {
   "escala": 0.5,
@@ -815,7 +863,10 @@
    1.36,
    0.72,
    0.85
-  ]
+  ],
+  "cima": {
+   "arquivo": "sofa_booth/cima.png"
+  }
  },
  "keg": {
   "escala": 0.5,
@@ -845,7 +896,10 @@
    0.42,
    0.42,
    0.6
-  ]
+  ],
+  "cima": {
+   "arquivo": "keg/cima.png"
+  }
  },
  "beer_glass": {
   "escala": 0.5,
@@ -4089,7 +4143,10 @@
    0.68,
    0.68,
    0.06
-  ]
+  ],
+  "cima": {
+   "arquivo": "stairs_down/cima.png"
+  }
  },
  "portal": {
   "escala": 0.5,

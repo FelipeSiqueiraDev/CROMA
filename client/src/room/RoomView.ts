@@ -1150,7 +1150,7 @@ export class RoomView {
     let topo: FloorItem | null = null;
     for (const it of map.allItems()) {
       const def = getFurni(it.defId);
-      if (!def || /lamp|fluorescent|luz/.test(def.kind) || (def.flat && !this.info?.canBuild && !it.hint)) continue;
+      if (!def || /lamp|fluorescent|luz/.test(def.kind) || (def.hidden && it.state !== 1) || (def.flat && !this.info?.canBuild && !it.hint)) continue;
       const fp = footprint(def, it.rot);
       if (x >= it.x && x < it.x + fp.sx && y >= it.y && y < it.y + fp.sy && (!topo || it.z >= topo.z)) topo = it;
     }

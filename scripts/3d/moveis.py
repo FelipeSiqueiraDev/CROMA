@@ -767,6 +767,7 @@ def main():
                 # só estes giros têm arte (a porta nas paredes do fundo): nos outros, o desenho por código
                 ent['soGiros'] = True
             marcar_real(ent, m)
+            manter_cima(ent, lista.get(m['def']))
             lista[m['def']] = ent
             for img in imgs:
                 conferir.append((m['def'], img, None))
@@ -801,6 +802,7 @@ def main():
             print(f"{m['def']}: encaixe {nota:.3f}; desenho a {np.degrees(cam['a']):.0f}° e {np.degrees(cam['t']):.0f}°, "
                   f"altura {H:.2f} m (ficha {m['altura']:.2f})", flush=True)
         marcar_real(ent, m)
+        manter_cima(ent, lista.get(m['def']))
         lista[m['def']] = ent
     with open(arq_lista, 'w', encoding='utf-8', newline='\n') as f:
         json.dump(lista, f, ensure_ascii=False, indent=1)
@@ -815,6 +817,13 @@ def marcar_real(ent, m):
         ent['real'] = m['real']
         if m.get('encosta'):
             ent['encosta'] = True
+
+
+def manter_cima(ent, antigo):
+    """A vista de cima (scripts/3d/cima.py) fica: refazer as vistas isométricas não apaga."""
+    for k in ('cima', 'cimaEstados'):
+        if antigo and k in antigo:
+            ent[k] = antigo[k]
 
 
 def quatro_giros(m, folha, caixas, destino, escala):

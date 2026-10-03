@@ -349,6 +349,16 @@ As portas das passagens têm arte de madeira (`porta-madeira-aberta.png`, `-fech
 - **Tapete**: visto exatamente de cima, reto, preenchendo a imagem na proporção dele (o tapete gasto, 2×3 casas, em pé). O jogo deita no chão: `mobiliario/<id>/chao.png`.
 - **Chão e parede**: texturas planas, sem perspectiva e sem emenda. O chão visto de cima (quadrado, repete nos dois sentidos); a parede vista de frente, do rodapé ao topo (deitada, 2 por 1, repete na horizontal). O jogo entorta cada uma para o isométrico. Ficam em `client/public/arte/texturas/`, ligadas ao estilo de piso do cômodo em `texturas.json` (o bar: `madeira`).
 
+### Vista de cima: o mapa tático (decidido em 03/10)
+
+Na vista tática a câmera sobe e mostra a sala de cima, como um mapa de batalha. Cada móvel ganha uma imagem vista **exatamente de cima** (ortográfica, sem nenhuma lateral), no mesmo estilo das folhas isométricas:
+
+- **Móvel:** `<folha isométrica>-cima.png` (ex.: `mesa-sinuca-cima.png`), **128 px por casa** na pegada inteira do móvel (largura × fundo em casas: a mesa de sinuca, 2×4, tem 256×512). A **frente para baixo** (o lado de sentar, as portas, a frente do balcão); o jogo gira para os outros giros. O objeto no tamanho de verdade, no meio, e o resto transparente. Sem sombra (o jogo faz pela altura), sem chão, sem texto. O estado que muda o que se vê de cima vem como `<folha>-cima-<estado>.png` (o baú aberto).
+- **Parede:** `parede-cima-<piso>.png`, 512×80, o topo da parede visto de cima, emendando dos dois lados; a beira de baixo (o lambri, o rodapé) fica para dentro da sala. Uma por estilo de piso (`madeira`, `concreto`, `cela`...).
+- **Fichas das peças:** `ficha-agente.png` e `ficha-ameaca.png`, 256×256, o aro visto de cima com o **meio transparente** (o retrato entra no furo; o furo do agente vai até 0,78 do raio do aro). O jogo pinta o aro do agente na cor dele; o da ameaça fica como veio.
+
+Para pôr no jogo: `python scripts/3d/cima.py <pasta com as PNGs>`. Cada móvel vai para `mobiliario/<móvel>/cima.png` (pela ficha que usa aquela folha) e entra no `moveis.json` (`cima`); a parede e as fichas vão para `client/public/arte/tatico/`. Sem a imagem, o jogo desenha o móvel por código. O pedido da vez está na pasta da arte do GPT (`PROMPT-VISTA-DE-CIMA.txt`). **Feito:** o Bar (teste, 03/10).
+
 A lista dos cômodos e dos móveis de cada um está em [`SEDE-DA-ORDEM.md`](SEDE-DA-ORDEM.md); o que falta desenhar, folha por folha, no [`CHECKLIST-ARTE.md`](CHECKLIST-ARTE.md).
 
 ## Como entregar

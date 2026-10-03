@@ -1,7 +1,7 @@
 import { combate as cb, footprint, getFurni, Z_PER_M, type FloorItem, type FloorStyle, type FurniDef, type RoomMap } from '@croma/shared';
 import { contornoArea, type Casa } from '../room/combateGeo';
 import type { MarcasCombate } from './combateMarcas';
-import { imagemDoChao, tamanhoReal } from './furniArte';
+import { imagemDeCima, imagemDoChao, tamanhoReal } from './furniArte';
 import { texturaPiso } from './texturas';
 
 /**
@@ -16,6 +16,8 @@ import { texturaPiso } from './texturas';
  *   quanto mais cobrem: até 0,8 m não cobrem, de 0,8 m dão cobertura, de 1,8 m tapam como
  *   parede (as mesmas medidas do combateGeo).
  * - As peças como fichas redondas com o retrato, o anel na cor do lado, o PV em arco e o nome.
+ * - Com arte (scripts/3d/cima.py): o móvel visto de cima no tampo, a parede do piso da sala e o
+ *   aro das fichas (client/public/arte/tatico/); sem ela, o desenho por código.
  */
 
 export interface PecaTatica {
@@ -257,7 +259,7 @@ export function desenharMesa(ctx: CanvasRenderingContext2D, map: RoomMap, piso: 
   const itens = map
     .allItems()
     .map((it) => ({ it, def: getFurni(it.defId) }))
-    .filter((m): m is { it: FloorItem; def: FurniDef } => !!m.def);
+    .filter((m): m is { it: FloorItem; def: FurniDef } => !!m.def && !(m.def.hidden && m.it.state !== 1));
   ctx.save();
   if (opcoes.fundo) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -305,7 +307,7 @@ export function desenharMesa(ctx: CanvasRenderingContext2D, map: RoomMap, piso: 
     const fp = footprint(def, it.rot);
     blocos.push({ prof: prof(it.x + fp.sx / 2, it.y + fp.sy / 2), z: it.z ?? 0, desenhar: () => desenharMovel(ctx, v, it, def) });
   }
-  for (const p of paredes(map)) blocos.push({ prof: prof((p.x0 + p.x1) / 2, (p.y0 + p.y1) / 2) - (p.fundo ? 100 : 0), z: 0, desenhar: () => desenharParede(ctx, v, p) });
+  for (const p of paredes(map)) blocos.push({ prof: prof((p.x0 + p.x1) / 2, (p.y0 + p.y1) / 2) - (p.fundo ? 100 : 0), z: 0, desenhar: () => desenharParede(ctx, v, p, piso) });
   for (const p of pecas) blocos.push({ prof: prof(p.x + 0.5, p.y + 0.5) + 0.02, z: 0.2, desenhar: () => desenharPeca(ctx, v, p) });
   blocos.sort((a, b) => a.prof - b.prof || a.z - b.z);
   for (const b of blocos) b.desenhar();
@@ -430,19 +432,30 @@ function desenharMovel(ctx: CanvasRenderingContext2D, v: CameraVoo, it: FloorIte
   const corBase = def.colors?.[0] ?? '#6a5a4a';
   const cor = misturar(clarear(corBase, 0.18), tapa ? '#15110d' : cobre ? '#2a231c' : '#6a5a48', tapa ? 0.5 : cobre ? 0.3 : 0.2);
   const { path, pts, r, planta, mesa } = formaDoMovel(it, def);
-  // a sombra no chão, para baixo e à direita, do tamanho da altura (como no tático)
+  const arte = imagemDeCima(def.id, it.state);
+  // a sombra no chão, para baixo e à direita, do tamanho da altura (com arte, a silhueta dela)
   if (base <= 0.01) {
     const s = Math.min(0.42, 0.06 + (alto / Z_PER_M) * 0.13);
     ctx.setTransform(matrizNaAltura(v, 0).translate(s * 0.6, s));
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.42)';
-    ctx.fill(path);
+    if (arte) {
+      ctx.globalAlpha = 0.5;
+      desenharDeCima(ctx, silhueta(arte), it, def);
+      ctx.globalAlpha = 1;
+    } else {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.42)';
+      ctx.fill(path);
+    }
   }
   // o corpo: as faces de lado (retângulo) ou o contorno erguido (forma redonda)
   const topo = base + Math.max(0.02, alto);
   if (pts.length) corpoConvexo(ctx, v, pts, base, topo, misturar(cor, '#000000', 0.3));
   else caixa(ctx, v, r.x, r.y, r.x + r.w, r.y + r.h, base, topo, null, misturar(cor, '#000000', 0.25), misturar(cor, '#000000', 0.45));
-  // o tampo
+  // o tampo: a arte vista de cima; sem ela, a forma com os detalhes
   ctx.setTransform(matrizNaAltura(v, topo));
+  if (arte) {
+    desenharDeCima(ctx, arte, it, def);
+    return;
+  }
   ctx.fillStyle = cor;
   ctx.fill(path);
   ctx.save();
@@ -486,6 +499,71 @@ function desenharMovel(ctx: CanvasRenderingContext2D, v: CameraVoo, it: FloorIte
   ctx.strokeStyle = '#0f0c0a';
   ctx.lineWidth = Math.max(1 / v.escala, 0.05);
   ctx.stroke(path);
+}
+
+/** A arte vista de cima deitada na pegada do móvel (a frente da imagem para baixo é o giro 4), girada pelo giro dele. */
+function desenharDeCima(ctx: CanvasRenderingContext2D, img: CanvasImageSource, it: FloorItem, def: FurniDef) {
+  const fp = footprint(def, it.rot);
+  ctx.save();
+  ctx.translate(it.x + fp.sx / 2, it.y + fp.sy / 2);
+  ctx.rotate(it.rot === 0 ? Math.PI : it.rot === 2 ? -Math.PI / 2 : it.rot === 6 ? Math.PI / 2 : 0);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, -def.width / 2, -def.depth / 2, def.width, def.depth);
+  ctx.restore();
+}
+
+const silhuetas = new WeakMap<HTMLCanvasElement, HTMLCanvasElement>();
+/** A imagem toda preta (a sombra dela). */
+function silhueta(img: HTMLCanvasElement): HTMLCanvasElement {
+  let s = silhuetas.get(img);
+  if (s) return s;
+  s = document.createElement('canvas');
+  s.width = img.width;
+  s.height = img.height;
+  const g = s.getContext('2d')!;
+  g.drawImage(img, 0, 0);
+  g.globalCompositeOperation = 'source-in';
+  g.fillStyle = '#000';
+  g.fillRect(0, 0, s.width, s.height);
+  silhuetas.set(img, s);
+  return s;
+}
+
+const artesTaticas = new Map<string, HTMLImageElement | null>();
+/** Uma imagem de client/public/arte/tatico/ (a parede do piso, o aro das fichas); null enquanto carrega ou se não existe. */
+function arteTatica(nome: string): HTMLImageElement | null {
+  const img = artesTaticas.get(nome);
+  if (img === undefined) {
+    const el = new Image();
+    el.decoding = 'async';
+    el.onerror = () => artesTaticas.set(nome, null);
+    el.src = `/arte/tatico/${nome}`;
+    artesTaticas.set(nome, el);
+    return null;
+  }
+  return img && img.complete && img.naturalWidth ? img : null;
+}
+
+const aneisDaCor = new Map<string, HTMLCanvasElement>();
+/** O aro de latão da ficha de agente tingido na cor dele (o brilho e o desgaste do metal ficam). */
+function anelDaCor(img: HTMLImageElement, cor: string): HTMLCanvasElement {
+  let c = aneisDaCor.get(cor);
+  if (c) return c;
+  c = document.createElement('canvas');
+  c.width = img.naturalWidth;
+  c.height = img.naturalHeight;
+  const g = c.getContext('2d')!;
+  g.drawImage(img, 0, 0);
+  g.globalCompositeOperation = 'color';
+  g.globalAlpha = 0.8;
+  g.fillStyle = cor;
+  g.fillRect(0, 0, c.width, c.height);
+  g.globalAlpha = 1;
+  g.globalCompositeOperation = 'destination-in';
+  g.drawImage(img, 0, 0);
+  aneisDaCor.set(cor, c);
+  return c;
 }
 
 interface Parede {
@@ -539,10 +617,31 @@ function paredes(map: RoomMap): Parede[] {
   return out;
 }
 
-/** Um trecho de parede: a do fundo de pé, com a face de dentro clara; a da frente baixinha (como no tabuleiro). */
-function desenharParede(ctx: CanvasRenderingContext2D, v: CameraVoo, p: Parede) {
+/**
+ * Um trecho de parede: a do fundo de pé, com a face de dentro clara; a da frente baixinha (como
+ * no tabuleiro). O topo leva a arte da parede do piso da sala, com a beira de baixo dela (o
+ * lambri) virada para dentro da sala.
+ */
+function desenharParede(ctx: CanvasRenderingContext2D, v: CameraVoo, p: Parede, piso: FloorStyle | undefined) {
   const alto = p.fundo ? ALTO_PAREDE : 0.12 * Z_PER_M;
-  caixa(ctx, v, p.x0, p.y0, p.x1, p.y1, 0, alto, '#2f2a25', p.fundo ? '#4a4038' : '#1f1b17', p.fundo ? '#3b332c' : '#1a1714');
+  const tex = piso ? arteTatica(`parede-${piso}.png`) : null;
+  caixa(ctx, v, p.x0, p.y0, p.x1, p.y1, 0, alto, tex ? null : '#2f2a25', p.fundo ? '#4a4038' : '#1f1b17', p.fundo ? '#3b332c' : '#1a1714');
+  if (!tex) return;
+  const pad = ctx.createPattern(tex, 'repeat');
+  if (!pad) return;
+  const s = PAREDE / tex.naturalHeight;
+  const deitada = p.x1 - p.x0 >= p.y1 - p.y0;
+  pad.setTransform(
+    new DOMMatrix(
+      deitada ? (p.fundo ? [s, 0, 0, s, p.x0, p.y0] : [-s, 0, 0, -s, p.x1, p.y1]) : p.fundo ? [0, -s, s, 0, p.x0, p.y1] : [0, s, -s, 0, p.x1, p.y0],
+    ),
+  );
+  ctx.setTransform(matrizNaAltura(v, alto));
+  ctx.fillStyle = pad;
+  ctx.fillRect(p.x0, p.y0, p.x1 - p.x0, p.y1 - p.y0);
+  ctx.strokeStyle = '#0c0a08';
+  ctx.lineWidth = Math.max(1 / v.escala, 0.03);
+  ctx.strokeRect(p.x0, p.y0, p.x1 - p.x0, p.y1 - p.y0);
 }
 
 /**
@@ -702,11 +801,20 @@ function desenharPeca(ctx: CanvasRenderingContext2D, v: CameraVoo, p: PecaTatica
     ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
   }
   ctx.restore();
-  ctx.strokeStyle = cor;
-  ctx.lineWidth = r * 0.15;
-  ctx.beginPath();
-  ctx.arc(cx, cy, r * 0.93, 0, Math.PI * 2);
-  ctx.stroke();
+  // o aro: a arte (latão na cor do agente; ferro com espinhos na ameaça) ou o anel na cor do lado
+  const ameaca = p.lado === 'ameaca';
+  const aro = arteTatica(ameaca ? 'ficha-ameaca.png' : 'ficha-agente.png');
+  if (aro) {
+    // o furo do meio fica a 0,78 da borda do aro; o da ameaça tem os espinhos para fora
+    const S = r * (ameaca ? 2.415 : 2.1);
+    ctx.drawImage(ameaca ? aro : anelDaCor(aro, cor), cx - S / 2, cy - S / 2, S, S);
+  } else {
+    ctx.strokeStyle = cor;
+    ctx.lineWidth = r * 0.15;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * 0.93, 0, Math.PI * 2);
+    ctx.stroke();
+  }
   if (p.mira || p.naArea) {
     ctx.strokeStyle = 'rgba(255, 64, 56, 0.95)';
     ctx.lineWidth = r * 0.09;
@@ -733,14 +841,16 @@ function desenharPeca(ctx: CanvasRenderingContext2D, v: CameraVoo, p: PecaTatica
   }
   if (p.pv !== undefined) {
     const val = Math.max(0, Math.min(1, p.pv));
+    // na ameaça, por fora dos espinhos
+    const rp = r * (p.lado === 'ameaca' ? 1.24 : 1.11);
     ctx.lineWidth = r * 0.11;
     ctx.strokeStyle = 'rgba(0, 0, 0, 0.65)';
     ctx.beginPath();
-    ctx.arc(cx, cy, r * 1.11, 0, Math.PI * 2);
+    ctx.arc(cx, cy, rp, 0, Math.PI * 2);
     ctx.stroke();
     ctx.strokeStyle = val > 0.5 ? '#4fc06a' : val > 0.25 ? '#e0a23a' : '#e04a3a';
     ctx.beginPath();
-    ctx.arc(cx, cy, r * 1.11, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * val);
+    ctx.arc(cx, cy, rp, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * val);
     ctx.stroke();
   }
   if (p.caido) {

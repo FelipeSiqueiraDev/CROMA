@@ -128,6 +128,9 @@ Nada novo: usa os retratos, os ícones e as folhas da FICHAS. Os cartões de res
 - [ ] **Folha de objetos 4: Arsenal, Prisão e Rituais** (`mobiliario/folha-4.png`): armário de metal (`locker`, 1×1, 2,1), armário de armas (`weapon_rack`, 2×1, 2,0), caixa metálica (`crate_metal`, 1×1, 0,8), baú militar (`chest_military`, 2×1, 0,7), barril (`barrel`, 1×1, 1,0), velas (`candles`, 1×1, 0,35), candelabro (`candelabra`, 1×1, 1,6), altar de pedra (`altar`, 2×1, 1,0, sigilos próprios), mesa de trabalho (`table_work`, 3×2, 0,78), balcão de madeira (`counter_wood`, 2×1, 0,9), mesinha (`table_small`, 1×1, 0,7)
 - [ ] **Costas dos assentos** (`mobiliario/folha-1-costas.png` e `folha-2-costas.png`): as cadeiras, poltronas e sofás das folhas 1 e 2 girados de meia-volta, na mesma ordem
 - [ ] Pisos e paredes no mesmo estilo: o formato entra no [ARTE.md](ARTE.md) quando o jogo aceitar textura de piso
+- [x] **Vista de cima do Bar** (teste do mapa tático, 03/10): os 19 móveis, a parede de madeira e as duas fichas, no formato do [ARTE.md](ARTE.md) ("Vista de cima").
+- [ ] **Vista de cima das outras 11 salas da Sede**, uma parte por sala, com a parede do piso de cada uma (o pedido completo está na pasta da arte do GPT).
+- [ ] **Prisão: a porta de aço da cela** (`mobiliario/folhas/porta-cela-aco-fechada.png` e `-aberta.png`, "Móvel nos 4 giros"): 0,68 × 0,12 × 2,2 m, chapa de aço com visor gradeado e portinhola; aberta, a folha gira 90° e encosta no batente. Hoje é desenhada por código.
 
 ## Para depois: o tabuleiro
 
