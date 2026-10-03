@@ -85,7 +85,7 @@ Formato em [ARTE.md](ARTE.md) (Itens, "Arte pintada dos itens"). O que está mar
 - [ ] **Sigilo de cada elemento**, no círculo do ritual aprendido (hoje só há o "+"): `icones/sigilo-sangue.png`, `sigilo-morte.png`, `sigilo-conhecimento.png`, `sigilo-energia.png`, `sigilo-medo.png`, sigilos próprios na cor do elemento · entram sozinhos
 - [ ] **Botões de baixo**: `icones/botao-editar.png` (lápis), `botao-adicionar-item.png` (caixa), `botao-adicionar-ritual.png` (pentagrama próprio), `botao-salvar.png` (disquete), `botao-novo-agente.png` (mais)
 - [ ] ✱ **Foto do companheiro**: na referência é o retrato do cão; hoje é uma pata. `companheiros/cao-de-guarda.png`, 300×360 · entra sozinho
-- [ ] ✱ **Ícone de cada item**, na tabela de equipamentos e nos espaços do inventário: na referência cada item tem o seu desenho; hoje são ícones de linha genéricos. `itens/<id>.png`, 128×128, traço branco, objeto solto · entram sozinhos. Os que os agentes carregam:
+- [ ] ✱ **Ícone de cada item**, na tabela de equipamentos e nos espaços do inventário: na referência cada item tem o seu desenho. Desde 03/10 a FICHAS usa a mesma arte pintada da aba ITENS (`itens/pintados/<id>.png`, 87 de 202 prontos; o resto no pedido de ícones do GPT) · entram sozinhos. Os que os agentes carregam:
   - armas: `fuzil-de-caca`, `katana`, `faca`, `corrente`, `arma-improvisada`, `granada-de-fragmentacao`, `granada-de-fumaca`, `balas-longas`, `bandoleira`
   - equipamento: `protecao-leve`, `mochila-militar`, `kit-de-ladrao`, `algemas`, `corda`, `celular`, `isqueiro`, `alarme-de-movimento`, `coagulante`, `cao-adestrado`
   - paranormal: `componentes-ritualisticos-de-elemento`, `amuleto-sagrado`, `cranio-espiral`

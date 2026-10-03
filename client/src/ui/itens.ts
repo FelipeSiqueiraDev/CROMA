@@ -8,7 +8,8 @@
 import { regras, vitalConditions, type AcaoMochila, type FichaSalva, type LootKind, type PartyMember } from '@croma/shared';
 import { portraitCanvas } from '../render/portrait';
 import type { App } from './app';
-import { adicionarDoCatalogo } from './catalogoItens';
+import { arteDoItem } from './arteItem';
+import { abrirRequisicao } from './requisicao';
 import { h } from './dom';
 import { infoItem, romano, textoRef } from './fichaRegras';
 import { arteOu, ic } from './icons';
@@ -32,9 +33,6 @@ const TIPOS: { nome: string; icone: () => Element; conta: (it: regras.ItemFicha)
 ];
 
 const LUGAR: Record<regras.LugarItem, string> = { mao: 'Na mão', vestido: 'Vestido', mochila: 'Na mochila' };
-
-/** Nome do tipo do item do cenário nos arquivos de arte (docs/ARTE.md, Itens). */
-const TIPO_CENA: Record<LootKind, string> = { weapon: 'arma', document: 'documento', key: 'chave', letter: 'carta', potion: 'consumivel', tape: 'midia', box: 'caixa', misc: 'item' };
 
 /** Item que se lê: o documento, a carta e a mídia achados no cenário. */
 export const ehDocumento = (it: regras.ItemFicha) => it.tipo === 'cena' && ['document', 'letter', 'tape'].includes(it.tipoCena ?? '');
@@ -199,13 +197,7 @@ export class AbaItens {
    * pelo nome ("chave-do-arsenal") e, depois, pelo tipo ("tipo-chave").
    */
   private arteDoItem(it: regras.ItemFicha, icone: string) {
-    if (it.tipo === 'cena') {
-      const kind = ((it.tipoCena as LootKind) || 'misc') as LootKind;
-      const nome = regras.slug(it.nome || it.id);
-      const tipo = `tipo-${TIPO_CENA[kind]}`;
-      return arteOu([`/arte/itens/pintados/${nome}.png`, `/arte/itens/${nome}.png`, `/arte/itens/pintados/${tipo}.png`, `/arte/itens/${tipo}.png`], lootIcon(kind, 44), 'ic it-ic');
-    }
-    return arteOu([`/arte/itens/pintados/${it.id}.png`, `/arte/itens/${it.id}.png`], ic(icone), 'ic it-ic');
+    return arteDoItem(it, icone, 'ic it-ic');
   }
 
   private slot(a: Agente, it: regras.ItemFicha) {
@@ -393,11 +385,13 @@ export class AbaItens {
 
   /** "+": o catálogo do livro; cada escolha entra na mochila na hora (requisitada à Ordem). */
   private adicionar(f: FichaSalva) {
-    adicionarDoCatalogo(
-      structuredClone(f.ficha),
-      (it) => it.tipo !== 'cena' && this.app.net.send({ t: 'mochilaNova', fichaId: f.id, tipo: it.tipo, id: it.id }),
-      () => {},
-    );
+    abrirRequisicao({
+      ficha: structuredClone(f.ficha),
+      nome: f.ficha.nome,
+      mestre: true,
+      aoAdicionar: (it) => it.tipo !== 'cena' && this.app.net.send({ t: 'mochilaNova', fichaId: f.id, tipo: it.tipo, id: it.id }),
+      aoFechar: () => {},
+    });
   }
 }
 

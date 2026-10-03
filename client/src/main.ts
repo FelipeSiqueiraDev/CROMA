@@ -8,6 +8,7 @@ import './ui/fichas.css';
 import './ui/combate.css';
 import './ui/itens.css';
 import './ui/teclado.css';
+import './ui/requisicao.css';
 import { anyFurniName, getFurni, getWallFurni, portraitState, vitalConditions, type ServerMsg } from '@croma/shared';
 import { Net } from './net';
 import { clearIconCache } from './render/bubbles';
@@ -24,6 +25,7 @@ import { Shell } from './ui/shell';
 import { loadLogin, saveLogin } from './ui/login';
 import { TableScreen } from './ui/table';
 import { esquecerChaveFicha, lerChaveFicha, TelaFicha } from './ui/telaFicha';
+import { janelaAberta } from './ui/fichaModal';
 import { NavigatorWin } from './ui/navigator';
 import { RoomSettingsWin } from './ui/roomSettings';
 import { forgetGmKey, readGmKey, tableName, tableRequested } from './session/access';
@@ -426,6 +428,8 @@ window.addEventListener('keydown', (e) => {
   if (tgt && (tgt.tagName === 'INPUT' || tgt.tagName === 'TEXTAREA' || tgt.tagName === 'SELECT')) return;
   // a tela da mesa é só para ver
   if (!app.state.me || !shell) return;
+  // com uma janela da ficha aberta (a requisição, uma escolha), os atalhos do tabuleiro ficam quietos; o Esc fecha a janela
+  if (janelaAberta()) return;
   const v = app.view;
   if (e.key === 'Escape') {
     if (v.placement) endPlacement();

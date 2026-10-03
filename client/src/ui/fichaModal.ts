@@ -24,6 +24,11 @@ window.addEventListener('keydown', (e) => {
   abertas[abertas.length - 1].fechar();
 });
 
+/** Alguma janela aberta (os atalhos do tabuleiro ficam quietos enquanto isso). */
+export function janelaAberta(): boolean {
+  return abertas.length > 0;
+}
+
 /** Janela de papel no meio da tela. `aoFechar` roda uma vez. */
 export function janela(titulo: string, icone: NomeIcone, aoFechar: () => void, largura = 62): Janela {
   const corpo = h('div', { class: 'fj-corpo' });

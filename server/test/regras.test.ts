@@ -666,3 +666,70 @@ describe('correções da conferência de 01/10 (Veríssimo): a ficha', () => {
     assert.ok(ops.find((o) => o.id === r2[1])!.ok);
   });
 });
+
+describe('requisição de equipamento (a janela de escolher itens)', () => {
+  const op = (f: Ficha, id: string) => regras.opcoesDeItens(f).find((o) => o.id === id)!;
+
+  test('recruta: categoria II não entra; a terceira de categoria I também não (LR p. 52)', () => {
+    const f = combatente();
+    const cat2 = catalogo.CATALOGO.armas.find((a) => a.categoria === 2)!;
+    assert.equal(op(f, cat2.id).ok, false);
+    assert.ok(op(f, cat2.id).motivos[0].startsWith('Categoria II'));
+    const cat1 = catalogo.CATALOGO.armas.filter((a) => a.categoria === 1);
+    f.inventario = cat1.slice(0, 2).map((a) => ({ id: a.id, tipo: 'arma' as const }));
+    const terceira = op(f, cat1[2].id);
+    assert.equal(terceira.ok, false);
+    assert.ok(terceira.motivos[0].startsWith('Limite da patente: categoria I já tem 2 de 2'));
+    // o achado na missão não ocupa vaga
+    f.inventario[1].achado = true;
+    assert.equal(op(f, cat1[2].id).ok, true);
+  });
+
+  test('carga: até o dobro entra sobrecarregado; acima, não cabe (LR p. 53)', () => {
+    const f = combatente();
+    const id = 'item-extremamente-volumoso';
+    assert.deepEqual(op(f, id).avisos, []);
+    f.inventario = [{ id, tipo: 'equipamento' }];
+    assert.ok(op(f, id).avisos[0].startsWith('Fica sobrecarregado'));
+    assert.equal(op(f, id).ok, true);
+    f.inventario.push({ id, tipo: 'equipamento' });
+    assert.equal(op(f, id).ok, false);
+    assert.ok(op(f, id).motivos[0].startsWith('Não cabe'));
+  });
+
+  test('arma de fogo: diz a munição e se a mochila tem (LR p. 59)', () => {
+    const f = combatente();
+    const sem = op(f, 'pistola');
+    assert.deepEqual(sem.municao, { id: 'balas-curtas', nome: 'Balas Curtas', tem: false });
+    assert.ok(sem.avisos.some((a) => a.startsWith('Usa Balas Curtas')));
+    f.inventario = [{ id: 'balas-curtas', tipo: 'equipamento' }];
+    assert.equal(op(f, 'pistola').municao!.tem, true);
+    assert.ok(!op(f, 'pistola').avisos.some((a) => a.startsWith('Usa')));
+  });
+
+  test('sem proficiência: avisa e deixa levar', () => {
+    const f = combatente();
+    f.pp = 200;
+    const pesada = catalogo.CATALOGO.armas.find((a) => a.proficiencia === 'pesada')!;
+    assert.ok(op(f, pesada.id).avisos.includes('Sem proficiência: −2d20 nos ataques com ela.'));
+  });
+
+  test('amaldiçoados: só a partir de agente especial; fora do catálogo o golpe de coronha e o desarmado', () => {
+    const f = combatente();
+    const x = catalogo.CATALOGO.amaldicoados.find((a) => a.categoria === 1)!;
+    assert.ok(op(f, x.id).motivos.some((m) => m.startsWith('Itens amaldiçoados')));
+    f.pp = 50;
+    assert.ok(!op(f, x.id).motivos.some((m) => m.startsWith('Itens amaldiçoados')));
+    const ids = new Set(regras.opcoesDeItens(f).map((o) => o.id));
+    assert.ok(!ids.has('coronhada') && !ids.has('ataque-desarmado'));
+  });
+
+  test('Sobrevivendo ao Horror desligado: os itens dele somem da lista', () => {
+    const f = combatente();
+    const sah = catalogo.CATALOGO.armas.find((a) => a.ref.fonte === 'SaH')!;
+    f.regras = { ...f.regras, sah: false };
+    assert.equal(regras.opcoesDeItens(f).some((o) => o.id === sah.id), false);
+    f.regras = { ...f.regras, sah: true };
+    assert.equal(regras.opcoesDeItens(f).some((o) => o.id === sah.id), true);
+  });
+});

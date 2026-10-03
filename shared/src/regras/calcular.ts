@@ -179,7 +179,7 @@ function vale(escopo: Escopo, a: Arma, favorita?: string): boolean {
 }
 
 /** Sabe usar a arma? Proficiência geral ou a parcial que cobre a arma (LR p. 29 e 30). */
-function proficiente(a: Arma, tem: Set<Proficiencia>): boolean {
+export function proficiente(a: Arma, tem: Set<Proficiencia>): boolean {
   if (a.proficiencia === 'simples') return tem.has('armasSimples');
   if (a.tipo === 'fogo' && a.municao === 'balas-longas' && tem.has('armasFogoBalasLongas')) return true;
   if (a.proficiencia === 'pesada') return tem.has('armasPesadas');

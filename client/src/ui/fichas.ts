@@ -13,7 +13,8 @@ import { portraitCanvas } from '../render/portrait';
 import type { App } from './app';
 import { CorpoView } from './corpo';
 import { h, toast } from './dom';
-import { adicionarDoCatalogo } from './catalogoItens';
+import { arteDoItem } from './arteItem';
+import { abrirRequisicao } from './requisicao';
 import { confirmar, escolher, janela, mostrar, perguntarTexto } from './fichaModal';
 import {
   escolherCampo,
@@ -1197,7 +1198,7 @@ export class FichasScreen {
       return h(
         'div',
         { class: `fx-tab-l${it.empunhado ? ' empunhado' : ''}`, 'data-dica': `${inf.nome} · categoria ${romano(inf.categoria)} · ${inf.espacos} espaço${inf.espacos === 1 ? '' : 's'}${inf.ref ? ` · ${textoRef(inf.ref)}` : ''}` },
-        h('span', { class: 'fx-eq-ic' }, arte(`/arte/itens/${it.id}.png`, inf.icone)),
+        h('span', { class: 'fx-eq-ic' }, arteDoItem(it, inf.icone)),
         h('span', { class: 'fx-tab-n' }, inf.nome),
         h('span', null, inf.tipo),
         h('span', null, inf.efeito),
@@ -1343,7 +1344,7 @@ export class FichasScreen {
       return h(
         'button',
         { class: `fx-sl${lugar !== 'mochila' ? ' em-uso' : ''}`, type: 'button', 'data-dica': `${inf.nome} · ${romano(inf.categoria)} · ${fmtNum(esp)} esp.${lugar === 'mao' ? ' · na mão' : lugar === 'vestido' ? ' · vestido' : ''}`, 'aria-label': inf.nome, onclick: () => this.detalheItem(i) },
-        arte(`/arte/itens/${it.id}.png`, inf.icone, `ic fx-sl-ic ${inf.icone === 'kitMedico' ? 'vermelho' : ''}`),
+        arteDoItem(it, inf.icone, `ic fx-sl-ic ${inf.icone === 'kitMedico' ? 'vermelho' : ''}`),
         (it.qtd ?? 1) > 1 ? h('small', null, `×${it.qtd}`) : null,
         // espaços do item, quando não é o 1 de sempre (LR p. 53)
         esp !== 1 ? h('i', { class: 'fx-sl-esp', 'aria-hidden': 'true' }, fmtNum(esp)) : null,
@@ -1365,8 +1366,8 @@ export class FichasScreen {
     if (!this.editando) this.entrarEdicao();
     const fs = this.rascunho;
     if (!fs) return;
-    // o item entra no rascunho: Salvar grava
-    adicionarDoCatalogo(fs.ficha, () => {}, () => this.render());
+    // a requisição: o item entra no rascunho (Salvar grava) e a ficha atrás acompanha
+    abrirRequisicao({ ficha: fs.ficha, nome: fs.ficha.nome, mestre: this.gm, aoAdicionar: () => this.render(), aoFechar: () => this.render() });
   }
 
   private adicionarRitual() {
