@@ -4,7 +4,19 @@
     {
       "name": "croma",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "port": 5173
+    },
+    {
+      "name": "croma-visual",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "scripts/dev/visual.mjs",
+        "subir"
+      ],
       "port": 5173
     }
   ]

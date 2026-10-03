@@ -4,6 +4,14 @@
 
 Tabuleiro digital isométrico para sessões de **Ordem Paranormal RPG**. São duas telas: a do **mestre** (a interface completa, só ele vê; as telas seguem as referências de `docs/referencias/`) e a da **mesa** (só o tabuleiro, num tablet que os jogadores olham, sem toque). O plano do MVP está em `docs/guia-mvp.html`; o contrato entre interface e servidor, em `docs/CONTRATO.md`; as regras do jogo, em `docs/REGRAS.md`; a mecânica do combate, em `docs/COMBATE.md`.
 
+## Para o Claude: comece aqui
+
+Conversa nova, ou outra conta? Antes de qualquer coisa:
+1. Leia o [`docs/GUIA-DO-CLAUDE.md`](docs/GUIA-DO-CLAUDE.md): os combinados com o Felipe, o caminho da arte com o Códex e como conferir o trabalho.
+2. Leia o [`docs/EM-ABERTO.md`](docs/EM-ABERTO.md): onde paramos, o que está pela metade, a fila do Códex e as decisões que esperam o Felipe.
+
+Ao terminar um bloco de trabalho, atualize o `EM-ABERTO.md`.
+
 ## Rodar
 
 ```bash
@@ -42,9 +50,10 @@ npm run banco:parar
 | `client/src/net.ts`, `client/src/ui/app.ts` | Conexão com o servidor e estado do cliente |
 | `server/test/` | Testes das regras (`npm test`) |
 | `client/src/main.ts` | Liga rede, estado e interface (trata as mensagens do servidor) |
-| `docs/` | Referências das telas (`referencias/`, com o emblema oficial coberto), o guia do MVP, o contrato da sessão (`CONTRATO.md`), o guia de arte (`ARTE.md`) e a lista do que falta desenhar (`CHECKLIST-ARTE.md`), o mapa das regras de Ordem Paranormal (`REGRAS.md`) e a mecânica do combate (`COMBATE.md`) |
+| `docs/` | O guia do Claude (`GUIA-DO-CLAUDE.md`) e onde paramos (`EM-ABERTO.md`), as referências das telas (`referencias/`, com o emblema oficial coberto), o guia do MVP, o contrato da sessão (`CONTRATO.md`), o guia de arte (`ARTE.md`) e a lista do que falta desenhar (`CHECKLIST-ARTE.md`), o mapa das regras de Ordem Paranormal (`REGRAS.md`) e a mecânica do combate (`COMBATE.md`) |
 | `client/public/arte/` | Arte entregue pelo Codex (servida em `/arte/...`) |
 | `.claude/agents/verissimo.md`, `.claude/skills/verissimo/`, `docs/verissimo/` | O Veríssimo (`/verissimo`): confere com os livros só o que mudou desde a última conferência (ver `docs/verissimo/README.md`) |
+| `scripts/` | Arte para dentro do jogo: móveis (`3d/moveis.py`), vista de cima (`3d/cima.py`), ícones (`icones.py`), poses e boneco (`poses.py`, `boneco.py`), o 3D (`3d/README.md`) e a conferência dos móveis (`3d/auditoria.py`, `eixos.py`, `fila.py`, `folha_cima.py`). Em `dev/`: o banco de teste (`visual.mjs`), a captura do tabuleiro (`salvar.mjs`), o vigia de zips da arte e a folha dos giros. Tudo explicado no [`docs/GUIA-DO-CLAUDE.md`](docs/GUIA-DO-CLAUDE.md) |
 
 ## Divisão de trabalho
 
@@ -72,7 +81,7 @@ Pediram arte ("começa a arte", "faz os retratos", "faz os ícones da FICHAS")? 
 - Mexeu em regra (motor, catálogo, contas, documentos de regra) ou as fichas subiram de NEX? Rode `/verissimo`: ele confere com os livros só o que mudou e registra a conferência.
 - Textos da interface, comentários e mensagens de commit em português.
 
-## Estado em 30/09/2026
+## Estado (atualizado em 03/10/2026; o que está em aberto fica no `docs/EM-ABERTO.md`)
 
 - **Sede da Ordem** (campanha que abre por padrão): o bar no térreo e onze cômodos no subsolo, montados a partir da planta "Mapa Base Ordo Realitas" (`server/src/seedSede.ts`). A lista do visual, cômodo por cômodo, está em `docs/SEDE-DA-ORDEM.md`. Mudou a montagem? Suba `SEDE_REV`: a Sede é refeita no lugar, mantendo cômodos, peças e registro.
 - **Passagem secreta:** a geladeira do bar tem fechadura com senha (0413). O mestre digita no painel do objeto; certa, ela desliza e a escada escondida aparece. Quem sobe pela escada com a passagem fechada abre por dentro. Quando não sobra ninguém na sala, a passagem se fecha sozinha.
@@ -96,5 +105,10 @@ Pediram arte ("começa a arte", "faz os retratos", "faz os ícones da FICHAS")? 
 - **Aba COMBATE (30/09):** o combate fica na campanha (`combate` em `CampaignData`), e as regras dele em `shared/src/combate/` (turnos, `ataque.ts` com as contas do ataque e do dano, `ameaca.ts` com a ficha rápida). O mestre monta o combate, digita a Iniciativa e passa os turnos; no ataque, escolhe a arma e o alvo, confere a situação que o tabuleiro viu (`client/src/room/combateGeo.ts`: alcance, cobertura, flanquear, posição elevada, áreas), digita o d20, o d10 da camuflagem e a soma do dano, e confirma: o servidor aplica o dano na peça e o registro guarda tudo, com Desfazer (que devolve também os PV). Ritual e habilidade gastam PE com o limite do turno; ritual sustentado, condições, primeiros socorros e acalmar entram no combate. As ameaças têm ficha rápida (Defesa, resistências, RD, ataques), guardada na campanha (`ameacas`); "Do livro" preenche com uma das 74 ameaças do livro de regras (`shared/src/combate/ameacasLivro.ts`, só nome, números e página). As manobras (`manobra.ts`, `combateManobra.ts`) fazem o teste oposto e aplicam o efeito, e o empurrão move a peça; o ritual (`ritual.ts`, `combateRitual.ts`) vai da forma ao Custo do Paranormal, com a resistência de cada alvo e o elemento contra o da criatura. As marcações do tabuleiro ficam em `client/src/render/combateMarcas.ts`, e a mesa mostra a vez, os caídos e o carimbo de cada ataque. A tela está descrita em `docs/TELA-COMBATE.md`; o que falta, lá e em `docs/CHECKLIST-TELA-COMBATE.md`.
 - **Vista tática (03/10):** o mestre troca a câmera do tabuleiro (ISO | TÁTICA no canto do MAPA, Tática nas ferramentas do COMBATE, ou a tecla T). A câmera sai do isométrico, gira e sobe até ver a sala de cima, como um mapa de batalha (`client/src/render/mapaTatico.ts`). No caminho, a sala vira maquete; em cima ficam o piso com a grade de 1,5 m, os móveis no tamanho de verdade (`real` no `moveis.json`, que o `moveis.py` escreve), as peças como fichas redondas (retrato, cor do lado, PV em arco, a vez brilhando) e as marcações do combate. Clicar, escolher a peça, andar e as ferramentas do combate funcionam lá em cima. A escolha fica na cena (`tatico`, pelo `roomFx`) e a mesa acompanha. Enquanto não chega a arte de cada móvel vista de cima, eles são desenhados por código.
 - **Fazenda Olhos de Águia (02/10), primeira missão em mundo aberto:** outra campanha (`server/src/seedFazenda.ts`), aberta pelo menu ⚙ → Todas as cenas. A fazenda de fora (72×36 casas) é uma cena ao ar livre (`aberto`: sem parede) com o chão casa por casa (`terreno`: grama, estrada, terra arada, pedra clara, píer e água, que é casa vazia na planta). Os prédios (casarão, celeiro, casa de mantimentos) são mobis grandes desenhados em código (`client/src/render/furniFazenda.ts`), cada um com uma Entrada na frente da porta que leva para o interior; a porteira leva para os Arredores (rio, ponte, mata, roças e as placas para Santo Berço e a rodovia, ainda sem cena). Por dentro: o casarão com térreo e 2º andar (cada cômodo uma cena, a escada liga os andares), a casa de mantimentos e o celeiro. Peça atrás de árvore, prédio ou parede interna deixa o mobi transparente (raio-x de todas as peças), e o que está fora da tela não é desenhado. A lista das cenas e o que falta está em `docs/FAZENDA.md`. Mudou a montagem? Suba `FAZENDA_REV`.
+- **O calabouço do celeiro (03/10):**
+  - Embaixo de um fardo de feno do celeiro fica um alçapão escondido. É a passagem secreta da geladeira, só que sem senha (`lock.semSenha`): o clique duplo do mestre empurra o feno e o alçapão aparece.
+  - Desce-se por uma escada de mão (`escada_vertical`) até o Calabouço: computadores, tanques com corpos e o altar num estrado redondo mais alto (altura 1 na planta).
+  - No fundo, o Corredor Escuro leva à Sala de Sangue.
+  - O pedido da arte da fazenda inteira e do calabouço é o `PROMPT-FAZENDA.txt`, na pasta da arte do GPT.
 - **Mochila (30/09):** um inventário só. O item achado no cenário vai para a mochila da ficha ao ser pego (`shared/src/itens.ts`); cada item está na mão, vestido ou na mochila (`shared/src/regras/mochila.ts`), com as duas mãos do livro, e a arma na mão deixa a peça armada (retrato, pose, mesa). A aba ITENS do MAPA (referência `docs/ref-itens.jpg`, fora do git) mostra a mochila de cada agente e faz empunhar, abrir documento, usar, vestir, inspecionar, entregar e largar (no chão, numa pilha). No combate, a arma da mochila tem "Sacar" e o Desarmar derruba a arma. Os itens do cenário ocupam espaços (antes, peso).
 - Testes das regras em `server/test/` (sessão, Sede, passagem secreta, ficha, fichas no servidor, banco, proporção, retratos, motor de regras, combate, mochila).
