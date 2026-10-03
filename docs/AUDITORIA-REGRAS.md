@@ -64,13 +64,13 @@ Conferidos e certos: atributos, perícias, trilhas e requisitos, poderes (Combat
 
 | | Dúvida | Leituras | Sugestão |
 |---|---|---|---|
-| D1 | Quando Vigor ou Presença sobem, os PV e PE dos NEX anteriores também sobem? | O livro não diz. (a) retroativo (o CROMA faz assim); (b) só a partir do NEX do aumento. Alosi PE 32 × 29; Cora PV 40 × 37 | (a), a leitura comum; registrar como regra da mesa |
+| D1 | Quando Vigor ou Presença sobem, os PV e PE dos NEX anteriores também sobem? | O livro não diz. (a) retroativo (o CRONA faz assim); (b) só a partir do NEX do aumento. Alosi PE 32 × 29; Cora PV 40 × 37 | (a), a leitura comum; registrar como regra da mesa |
 | D2 | Tepes: qual atributo subiu em NEX 20%? | O PV 48 do C.R.I.S aponta para Vigor | Confirmar com o jogador |
 | D3 | Cora: o aumento de NEX 20% foi no Vigor? | Com D1 (a), os números são iguais | Só para o registro |
-| D4 | O "pé de mesa" é arma improvisada ou bastão? | Improvisada: 1d6, −1d20 (LR p. 57). Bastão: 1d6/1d8, sem penalidade (LR p. 56 e 58) | Improvisada, pelo livro; o CROMA já aplica o −1d20 |
+| D4 | O "pé de mesa" é arma improvisada ou bastão? | Improvisada: 1d6, −1d20 (LR p. 57). Bastão: 1d6/1d8, sem penalidade (LR p. 56 e 58) | Improvisada, pelo livro; o CRONA já aplica o −1d20 |
 | D5 | Qual kit da Catarina? | Ladrão (Crime) ou eletrônica (Tecnologia) | Kit de ladrão |
 | D6 | Como o Crânio Espiral chegou à Alosi? | Requisitado à Ordem: ilegal para operadora. Achado em missão: pode ficar e nem ocupa a vaga de categoria II | Decidir; o preço da maldição vale nos dois casos |
 | D7 | Tepes a partir de NEX 25% | A progressão do Monstruoso muda perícias e PE (SaH p. 98–99) | Registrar nas próximas subidas de NEX |
 | D8 | Forma Monstruosa: 2º ou 3º círculo? | A descrição diz 2º; a lista por círculo diz 3º | Ficou o 2º |
-| D9 | Resistir a <Elemento> em outro elemento conta como outro poder? | A regra geral é escolher cada poder paranormal uma vez | Hoje o CROMA deixa em outro elemento |
+| D9 | Resistir a <Elemento> em outro elemento conta como outro poder? | A regra geral é escolher cada poder paranormal uma vez | Hoje o CRONA deixa em outro elemento |
 | D10 | Cultista Arrependido que começa em NEX 0%: SAN 6 ou 8? | Depende de como a regra do treinamento conta | Decidir |

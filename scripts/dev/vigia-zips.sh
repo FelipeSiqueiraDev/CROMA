@@ -5,10 +5,10 @@
 #
 #   bash scripts/dev/vigia-zips.sh
 #
-# A pasta: CROMA_ARTE_GPT, ou a de sempre (Área de Trabalho\TEXTURAS MAPA\BASE - Ordo Realitas).
+# A pasta: CRONA_ARTE_GPT, ou a de sempre (Área de Trabalho\TEXTURAS MAPA\BASE - Ordo Realitas).
 # Os zips já vistos ficam numa lista no temp (apague-a para começar do zero).
-PASTA="${CROMA_ARTE_GPT:-$HOME/OneDrive/Área de Trabalho/TEXTURAS MAPA/BASE - Ordo Realitas}"
-VISTOS="${TMPDIR:-${TEMP:-/tmp}}/croma-vigia-zips.txt"
+PASTA="${CRONA_ARTE_GPT:-$HOME/OneDrive/Área de Trabalho/TEXTURAS MAPA/BASE - Ordo Realitas}"
+VISTOS="${TMPDIR:-${TEMP:-/tmp}}/crona-vigia-zips.txt"
 [ -d "$PASTA" ] || { echo "pasta não existe: $PASTA"; exit 1; }
 lista() { ls -1 "$PASTA" 2>/dev/null | grep -i ".zip$" | sort; }
 [ -f "$VISTOS" ] || lista > "$VISTOS"

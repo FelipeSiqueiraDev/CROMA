@@ -1,4 +1,4 @@
-import type { AvatarLook, ChatKind, RollResult } from '@croma/shared';
+import type { AvatarLook, ChatKind, RollResult } from '@crona/shared';
 import { drawPixelHead } from './avatarPixel';
 import { framesFor, sprites } from './sprites';
 

@@ -2,9 +2,9 @@
  * O que o tabuleiro sabe dizer para as regras do combate (COMBATE.md 7.2):
  * distância e faixa de alcance, adjacência, cobertura pelos mobis e pelas
  * outras peças, posição elevada, flanquear e as áreas de ritual e granada.
- * Tudo em casas do CROMA (1 casa = 0,75 m).
+ * Tudo em casas do CRONA (1 casa = 0,75 m).
  */
-import { combate as cb, getFurni, RoomMap, Z_PER_M } from '@croma/shared';
+import { combate as cb, getFurni, RoomMap, Z_PER_M } from '@crona/shared';
 
 export interface Casa {
   x: number;

@@ -1,4 +1,4 @@
-# Arte do CROMA — como entregar
+# Arte do CRONA — como entregar
 
 Quem faz a arte entrega **só arquivos de imagem**. Todo o código (encaixar, animar, ligar aos botões) é feito por quem constrói o jogo. Este guia diz o formato, o tamanho, o nome e a pasta de cada arte.
 

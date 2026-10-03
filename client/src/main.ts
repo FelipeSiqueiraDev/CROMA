@@ -1,3 +1,4 @@
+import './migrarNome';
 import './style.css';
 import './ui/shell.css';
 import './ui/table.css';
@@ -9,7 +10,7 @@ import './ui/combate.css';
 import './ui/itens.css';
 import './ui/teclado.css';
 import './ui/requisicao.css';
-import { anyFurniName, getFurni, getWallFurni, portraitState, vitalConditions, type ServerMsg } from '@croma/shared';
+import { anyFurniName, getFurni, getWallFurni, portraitState, vitalConditions, type ServerMsg } from '@crona/shared';
 import { Net } from './net';
 import { clearIconCache } from './render/bubbles';
 import { sprites } from './render/sprites';
@@ -30,8 +31,8 @@ import { NavigatorWin } from './ui/navigator';
 import { RoomSettingsWin } from './ui/roomSettings';
 import { forgetGmKey, readGmKey, tableName, tableRequested } from './session/access';
 
-const LAST_ROOM = 'croma.lastRoom';
-const HOME_SEEN = 'croma.homeSeen';
+const LAST_ROOM = 'crona.lastRoom';
+const HOME_SEEN = 'crona.homeSeen';
 const net = new Net();
 const app = new App(net);
 /** chave do link do mestre (?mestre=...), para mestre em outro aparelho */
@@ -134,7 +135,7 @@ view.pvDe = (id) => {
   const v = app.session.session?.characters.find((c) => c.id === -id)?.vitals;
   return v && v.pvMax > 0 ? Math.max(0, Math.min(1, v.pv / v.pvMax)) : null;
 };
-if (import.meta.env.DEV) (window as unknown as { __croma: App }).__croma = app;
+if (import.meta.env.DEV) (window as unknown as { __crona: App }).__crona = app;
 
 const navigator = new NavigatorWin(app);
 const catalog = new CatalogWin(app, startPlace);

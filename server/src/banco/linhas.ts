@@ -3,7 +3,7 @@
  * volta. Cada linha tem as colunas legíveis e `dados` com o objeto inteiro,
  * então nada se perde quando um tipo ganha campo novo.
  */
-import type { CharacterDef, FloorItem, LogEntry, WallItem } from '@croma/shared';
+import type { CharacterDef, FloorItem, LogEntry, WallItem } from '@crona/shared';
 import type { CampaignData, Database, FichaSalva, RoomData, TokenData, UserData } from '../db';
 
 export interface Tabela {

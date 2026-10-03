@@ -1,4 +1,4 @@
-import type { WallFurniDef } from '@croma/shared';
+import type { WallFurniDef } from '@crona/shared';
 import { rgba, rng, shade } from './color';
 import { drawBlood, drawSigil, type LightKind } from './furniFloor';
 import { drawFlame, OUTLINE } from './painter';

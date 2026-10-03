@@ -3,8 +3,8 @@
  * uma ameaça do livro (preenche tudo, PV incluídos) ou copia à mão os números
  * que o combate usa. PV ficam na peça, como os dos agentes.
  */
-import { combate as cb, type Vitals } from '@croma/shared';
-import type { regras } from '@croma/shared';
+import { combate as cb, type Vitals } from '@crona/shared';
+import type { regras } from '@crona/shared';
 import { h } from './dom';
 import { janela } from './fichaModal';
 import { ic, type NomeIcone } from './icons';

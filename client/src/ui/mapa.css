@@ -226,17 +226,18 @@
   opacity: 0.85;
   transform: rotate(-1.2deg);
 }
+/* canvas posicionado não estica entre left/right e top/bottom (com width auto, ele fica do
+   tamanho de dentro e vazava do cartão para cima do tabuleiro): o tamanho vai explícito */
 .plan-canvas {
   position: absolute;
   left: 1.6rem;
-  right: 1.6rem;
   top: 6.8rem;
-  bottom: 1.4rem;
-  width: auto;
-  height: auto;
+  width: calc(100% - 3.2rem);
+  height: calc(100% - 8.2rem);
 }
 .plan-tabs.hidden ~ .plan-canvas {
   top: 4.6rem;
+  height: calc(100% - 6rem);
 }
 .p-plan .tachinha {
   position: absolute;

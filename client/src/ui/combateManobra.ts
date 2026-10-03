@@ -2,10 +2,10 @@
  * Resolução da manobra na aba COMBATE (regras em docs/COMBATE.md, seção 9; LR
  * p. 85–86, 90, 179): 1. Manobra, 2. Teste oposto, 3. Rolagem e 4. Efeito.
  * Os dados são físicos: o mestre digita o d20 que ficou de cada lado. As contas
- * saem de @croma/shared (combate/manobra.ts); o servidor aplica a condição, o
+ * saem de @crona/shared (combate/manobra.ts); o servidor aplica a condição, o
  * dano e o registro quando o mestre confirma, e a tela move a peça empurrada.
  */
-import { combate as cb, regras } from '@croma/shared';
+import { combate as cb, regras } from '@crona/shared';
 import { campoDado, type AlvoAtaque, type ArmaOpcao, type TabuleiroAtaque } from './combateAtaque';
 import { h } from './dom';
 import { textoTeste } from './fichaRegras';

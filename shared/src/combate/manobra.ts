@@ -73,7 +73,7 @@ export function resolverOposto(a: { d20: number; bonus: number }, b: { d20: numb
   return { totalA, totalB, vencedor, diferenca: Math.abs(totalA - totalB) };
 }
 
-/** Empurrar: 1,5 m, mais 1,5 m a cada 5 de diferença (LR p. 85). Em casas do CROMA (0,75 m). */
+/** Empurrar: 1,5 m, mais 1,5 m a cada 5 de diferença (LR p. 85). Em casas do CRONA (0,75 m). */
 export function casasEmpurrao(diferenca: number): number {
   const metros = 1.5 * (1 + Math.floor(Math.max(0, diferenca) / 5));
   return Math.round(metros / METROS_POR_CASA);

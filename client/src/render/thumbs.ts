@@ -1,4 +1,4 @@
-import { getFurni, getWallFurni } from '@croma/shared';
+import { getFurni, getWallFurni } from '@crona/shared';
 import { furniVisual } from './furniFloor';
 import { drawWallFurni } from './furniWall';
 import { boxSilhouette, Mapper, Painter } from './painter';

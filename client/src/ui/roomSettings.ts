@@ -1,4 +1,4 @@
-import { FLOOR_STYLES, heightToChar, MAX_ROOM_SIZE, PARTICLE_KINDS, parseHeightmap, type Door, type FloorStyle, type ParticleKind } from '@croma/shared';
+import { FLOOR_STYLES, heightToChar, MAX_ROOM_SIZE, PARTICLE_KINDS, parseHeightmap, type Door, type FloorStyle, type ParticleKind } from '@crona/shared';
 import type { App } from './app';
 import { clear, h, icon, Win } from './dom';
 
@@ -35,7 +35,7 @@ export class RoomSettingsWin {
       darkV.textContent = `${dark.value}%`;
       if (this.app.view.info) this.app.view.info.darkness = Number(dark.value) / 100;
     });
-    const system = r.owner === 'CROMA';
+    const system = r.owner === 'CRONA';
     const pub = h('input', { type: 'checkbox', checked: r.publicBuild, disabled: system });
     const floorName = h('input', { class: 'input', maxlength: 20, value: r.floor ?? '', placeholder: 'Térreo, Subsolo… (vazio = um andar só)' });
     const area = h('input', { class: 'input', maxlength: 24, value: r.area ?? '', placeholder: 'Área técnica, Área restrita… (vazio = nenhuma)' });

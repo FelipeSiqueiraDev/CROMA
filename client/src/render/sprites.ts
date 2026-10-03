@@ -11,7 +11,7 @@ import {
   type BonecoTabuleiro,
   type CharacterDef,
   type PortraitState,
-} from '@croma/shared';
+} from '@crona/shared';
 
 /** Quadro pronto para desenhar. w/h/ax/ay em pixels de mundo (zoom 1). */
 export interface SpriteFrame {

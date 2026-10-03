@@ -1,4 +1,4 @@
-import type { RoomMap } from '@croma/shared';
+import type { RoomMap } from '@crona/shared';
 import { rng } from './color';
 import { iso } from './iso';
 

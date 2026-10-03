@@ -1,5 +1,5 @@
 /**
- * Tipos das regras de Ordem Paranormal RPG no CROMA: os catálogos (classes,
+ * Tipos das regras de Ordem Paranormal RPG no CRONA: os catálogos (classes,
  * origens, trilhas, poderes, rituais, itens) e a linguagem de requisitos e
  * efeitos que amarra uma escolha na outra.
  *
@@ -154,7 +154,7 @@ export type Requisito =
   | { tipo: 'algum'; de: Requisito[] }
   /** não pode cumprir este requisito (ex.: não ter o poder X) */
   | { tipo: 'nao'; req: Requisito }
-  /** requisito que o CROMA não confere sozinho: o mestre decide */
+  /** requisito que o CRONA não confere sozinho: o mestre decide */
   | { tipo: 'texto'; texto: string };
 
 // ================= escolhas =================
@@ -259,7 +259,7 @@ export type Efeito = { condicional?: string; afinidade?: boolean; soElemento?: E
   | { alvo: 'multiplicador'; escopo: Escopo; valor: number }
   /** vestimentas a mais que dão bônus ao mesmo tempo (o normal são 2) */
   | { alvo: 'vestimentas'; valor: number }
-  /** efeito que o CROMA só mostra */
+  /** efeito que o CRONA só mostra */
   | { alvo: 'nota'; texto: string }
 );
 

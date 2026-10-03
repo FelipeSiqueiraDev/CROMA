@@ -1,5 +1,5 @@
 {
-  "name": "@croma/client",
+  "name": "@crona/client",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@croma/shared": "*"
+    "@crona/shared": "*"
   },
   "devDependencies": {
     "vite": "^8.3.1"

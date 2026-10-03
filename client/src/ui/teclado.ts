@@ -1,4 +1,4 @@
-import type { FloorItem } from '@croma/shared';
+import type { FloorItem } from '@crona/shared';
 import type { App } from './app';
 import { h } from './dom';
 import { existeArte } from './icons';

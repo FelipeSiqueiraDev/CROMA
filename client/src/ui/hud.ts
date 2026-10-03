@@ -1,4 +1,4 @@
-import { MAX_CHAT, type ChatKind, type RollResult } from '@croma/shared';
+import { MAX_CHAT, type ChatKind, type RollResult } from '@crona/shared';
 import type { App } from './app';
 import { h, icon } from './dom';
 
@@ -89,7 +89,7 @@ export class Hud {
         h(
           'div',
           { class: 'hud-left' },
-          h('div', { class: 'hud-logo' }, 'CROMA'),
+          h('div', { class: 'hud-logo' }, 'CRONA'),
           btn('nav', 'Navegador', act.navigator),
           btn('catalog', 'Catálogo', act.catalog),
           btn('box', 'Inventário', act.inventory),

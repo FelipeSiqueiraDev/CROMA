@@ -7,7 +7,7 @@ import {
   terrenoEm,
   type ClientMsg,
   type ServerMsg,
-} from "@croma/shared";
+} from "@crona/shared";
 import { Hotel } from "../src/hotel";
 import { seedDb, upgradeDb } from "../src/seed";
 import { FAZENDA, FAZENDA_REV, rebuildFazenda } from "../src/seedFazenda";

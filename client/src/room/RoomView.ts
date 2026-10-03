@@ -21,7 +21,7 @@ import {
   type WallItem,
   type WallSeg,
   ESCALA_ARTE_PESSOA,
-} from '@croma/shared';
+} from '@crona/shared';
 import { drawPixelAvatar, PIXEL_AVATAR_HEIGHT, type Pose } from '../render/avatarPixel';
 import { Bubbles, UI_FONT } from '../render/bubbles';
 import { COR_LADO, desenharChao, desenharCima, desenharRotulos, type MarcasCombate } from '../render/combateMarcas';

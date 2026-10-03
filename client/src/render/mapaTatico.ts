@@ -1,4 +1,4 @@
-import { combate as cb, footprint, getFurni, M_POR_CASA, Z_PER_M, type FloorItem, type FloorStyle, type FurniDef, type RoomMap } from '@croma/shared';
+import { combate as cb, footprint, getFurni, M_POR_CASA, Z_PER_M, type FloorItem, type FloorStyle, type FurniDef, type RoomMap } from '@crona/shared';
 import { contornoArea, type Casa } from '../room/combateGeo';
 import type { MarcasCombate } from './combateMarcas';
 import { imagemDeCima, imagemDoChao, tamanhoReal } from './furniArte';
@@ -11,7 +11,7 @@ import { texturaPiso } from './texturas';
  * deles, as paredes do fundo de pé), que vai achatando enquanto a câmera sobe.
  *
  * - O piso de verdade da sala (as texturas já são vistas de cima), os tapetes com a arte
- *   deles e a grade do livro: o quadrado de 1,5 m = 2×2 casas do CROMA (0,75 m cada).
+ *   deles e a grade do livro: o quadrado de 1,5 m = 2×2 casas do CRONA (0,75 m cada).
  * - Os móveis com forma (cadeira redonda, mesa com tábuas, planta de folhas), mais escuros
  *   quanto mais cobrem: até 0,8 m não cobrem, de 0,8 m dão cobertura, de 1,8 m tapam como
  *   parede (as mesmas medidas do combateGeo).

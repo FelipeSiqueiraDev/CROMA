@@ -174,14 +174,16 @@ function lerEnv(): Record<string, string> {
   return out;
 }
 
-/** As fichas do banco (só leitura). Sem CROMA_DB_URL, lê o db.json. `ok` = conseguiu ler. */
+/** As fichas do banco (só leitura). Sem CRONA_DB_URL, lê o db.json. `ok` = conseguiu ler. */
 async function lerFichas(): Promise<{ fichas: FichaSalva[]; ok: boolean; aviso?: string }> {
-  const url = process.env.CROMA_DB_URL ?? lerEnv().CROMA_DB_URL;
+  const env = lerEnv();
+  // o nome antigo (CROMA_DB_URL) continua valendo
+  const url = process.env.CRONA_DB_URL ?? process.env.CROMA_DB_URL ?? env.CRONA_DB_URL ?? env.CROMA_DB_URL;
   if (!url) {
     const txt = lerTexto(path.join(RAIZ, 'server/data/db.json'));
-    if (!txt) return { fichas: [], ok: false, aviso: 'sem CROMA_DB_URL e sem server/data/db.json: não há fichas para ler' };
+    if (!txt) return { fichas: [], ok: false, aviso: 'sem CRONA_DB_URL e sem server/data/db.json: não há fichas para ler' };
     const db = JSON.parse(txt) as { fichas?: FichaSalva[] };
-    return { fichas: db.fichas ?? [], ok: true, aviso: 'sem CROMA_DB_URL: fichas lidas do server/data/db.json' };
+    return { fichas: db.fichas ?? [], ok: true, aviso: 'sem CRONA_DB_URL: fichas lidas do server/data/db.json' };
   }
   const sql = postgres(url, { max: 1, connect_timeout: 5, onnotice: () => {} });
   try {

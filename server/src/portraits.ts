@@ -13,7 +13,7 @@ import {
   type PeQuadro,
   type PortraitArt,
   type PortraitState,
-} from '@croma/shared';
+} from '@crona/shared';
 
 /** Pasta das artes dos personagens no repositório (servida em /arte/personagens). */
 const ART_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../client/public/arte/personagens');

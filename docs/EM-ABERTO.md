@@ -4,9 +4,9 @@ O que está pela metade, o que falta e o que o Códex ainda vai entregar. Leia j
 
 ## O git agora
 
-- **Branch:** `claude/personagens-3d`, enviada para o GitHub em 03/10. Tudo de 30/09 a 03/10 está nela e **ainda não entrou na `main`**: o PR depende do OK do Felipe.
-  - Antes de começar coisa nova, pergunte se o PR já entrou.
-  - Se não entrou, continue nesta branch ou abra a próxima a partir dela. Nunca parta da `main` velha.
+- **Branch:** `claude/personagens-3d`, com tudo de 30/09 a 03/10. Em 03/10 o Felipe mandou abrir o PR e juntar na `main`.
+  - Confira no GitHub se o PR entrou.
+  - Se entrou, a próxima branch sai da `main` atualizada. Se não, continue nesta branch ou abra a próxima a partir dela. Nunca parta da `main` velha.
 - **As branches antigas já estão dentro desta.** A `main` está toda nela (o PR entra sem conflito). As branches enviadas desde 29/09 também:
   - `claude/combate-completo`, `mapa-sem-arte`, `mochila-itens`, `tepes-32bits`, `verissimo-erros`;
   - `codex/arte-telas-checklist`, `arte-tepes-32bits`;
@@ -17,9 +17,50 @@ O que está pela metade, o que falta e o que o Códex ainda vai entregar. Leia j
 
 | Arquivo | O que é |
 |---|---|
-| `client/src/render/iso.ts` (modificado) | Sobra da câmera de cima recusada em 02/10 (a vista tática ficou noutro arquivo). Recomendado descartar com `git checkout -- client/src/render/iso.ts`, mas pergunte antes. |
 | `client/public/arte/cenarios/` | A ilustração da Sede do Códex, alvo de estilo. Só neste computador. |
 | `client/public/arte/mobiliario/bar-128/`, `bar-chair/`, `bar/` | Arte antiga do Códex, guardada como referência. O jogo não usa. |
+
+(A sobra da câmera de cima, em `client/src/render/iso.ts`, foi descartada em 03/10 a pedido do Felipe.)
+
+## A troca de nome: CROMA virou CRONA (03/10)
+
+O Felipe trocou o nome do jogo para **CRONA**, de Cronos e de crônica. A regra foi **não perder nada**: o que era arriscado de renomear ganhou uma **cópia** com o nome novo, e o original ficou guardado.
+
+**O que mudou**
+- **Tela, documentos e pedidos de arte:**
+  - a tela, o título da aba e os registros do servidor (`[crona]`);
+  - os documentos;
+  - os `.txt` da pasta da arte do GPT.
+- **Código:**
+  - os pacotes (`@crona/shared`, `@crona/server`, `@crona/client`);
+  - o `window.__crona` de desenvolvimento;
+  - os presets `crona` e `crona-visual` do `.claude/launch.json`.
+- **Variáveis:**
+  - `CRONA_DB_URL`, `CRONA_PORT`, `CRONA_3D`, `CRONA_ARTE_GPT`, `CRONA_LR_PDF`, `CRONA_SAH_PDF`;
+  - **as `CROMA_...` antigas continuam valendo.**
+- **No navegador de cada aparelho** (`client/src/migrarNome.ts`):
+  - o que estava guardado como `croma.*` é copiado para `crona.*` (a chave do mestre, a ficha do jogador, o nome, o som);
+  - ninguém perde o acesso.
+- **No banco:**
+  - os cômodos do sistema passaram a ser do dono `CRONA`;
+  - o saguão antigo virou "Saguão CRONA" (`upgradeDb`).
+
+**O que ganhou cópia (o original está guardado, não apague)**
+
+| O que | O novo | O antigo, guardado |
+|---|---|---|
+| Banco (Docker) | Container `crona-postgres`, volume `crona_crona-dados`, usuário e base `crona` (`docker-compose.yml`, projeto `crona`). Os dados foram restaurados do backup e as 11 tabelas conferidas, linha a linha na contagem. | Container `croma-postgres` **desligado**, com o volume `croma_croma-dados` inteiro. Backup em `server/data/backups/croma_2026-10-03_20-00-07.dump` (os backups novos saem como `crona_*.dump`). |
+| `server/.env` | `CRONA_DB_URL=.../crona` | A linha antiga fica comentada no próprio arquivo. |
+| Pasta do Blender | `C:\Users\felip\CRONA-3D` (cópia idêntica: 7.152 arquivos) | `C:\Users\felip\CROMA-3D`. Os `.blend` antigos marcam `croma_vistas`, e o `filmar.py` lê os dois. |
+| Pasta do projeto | `...\MEUS PROJETOS\CRONA` (cópia feita no fim de 03/10) | `...\MEUS PROJETOS\CROMA`, que vira backup; a memória do Claude antigo fica ligada ao caminho dela. |
+
+**Voltar atrás, se precisar**
+1. `docker stop crona-postgres` e `docker start croma-postgres`.
+2. No `server/.env`, volte para a linha `CROMA_DB_URL` antiga.
+
+**Ficou com o nome antigo de propósito**
+- a migração `001_inicio.sql` (já aplicada; não se mexe em migração aplicada);
+- os caminhos que apontam para a pasta e a memória antigas no `GUIA-DO-CLAUDE.md`.
 
 ## O que a branch tem (de 30/09 a 03/10)
 
@@ -129,11 +170,11 @@ Todos os pedidos estão na pasta da arte do GPT. O Felipe cola no Códex: *"Leia
 
 ## Decisões que são do Felipe
 
-- Abrir o PR desta branch e juntar na `main`.
 - Aprovar o estilo da vista de cima do Bar, que libera as outras salas.
 - Ícones pintados no COMBATE e no inventário rápido do MAPA.
 - O que vem primeiro: as modificações na requisição ou a FICHAS bonita.
-- Descartar o `client/src/render/iso.ts`.
+- Fechar o PR `#2` do Códex (`codex/arte-tepes-32bits`), que ficou sobrando.
+- Quando apagar as cópias antigas da troca de nome (o container `croma-postgres`, a pasta `CROMA-3D`, a pasta `CROMA` do projeto). Por enquanto, guardar.
 - Ligar a Sede aos arredores da Fazenda.
 - Fichas grandes na vista tática fora do combate.
 

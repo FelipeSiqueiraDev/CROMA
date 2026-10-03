@@ -15,12 +15,12 @@ import {
   type Hint,
   type Loot,
   type WallItem,
-} from '@croma/shared';
+} from '@crona/shared';
 import type { Database, RoomData, TokenData } from './db';
 import { montarFazenda } from './seedFazenda';
 import { rebuildSede, seedSede } from './seedSede';
 
-export const SYSTEM_OWNER = 'CROMA';
+export const SYSTEM_OWNER = 'CRONA';
 
 export type FloorSeed = [defId: string, x: number, y: number, rot: number, hint?: Hint, state?: number];
 export type WallSeed = [defId: string, wall: 'l' | 'r', plane: number, pos: number, z: number, hint?: Hint];
@@ -643,11 +643,17 @@ function liftWallItems(r: RoomData) {
 /** Aplica conteúdo novo em bancos antigos sem apagar nada. */
 export function upgradeDb(db: Database): boolean {
   const v = db.seedVersion ?? 1;
+  // o jogo mudou de nome (CROMA → CRONA, 03/10): os cômodos do sistema e o saguão antigo
+  let renomeou = false;
+  for (const r of db.rooms) {
+    if (r.owner === 'CROMA') (r.owner = SYSTEM_OWNER), (renomeou = true);
+    if (r.name === 'Saguão CROMA') (r.name = 'Saguão CRONA'), (renomeou = true);
+  }
   // a Sede e a fazenda mudam de montagem sem esperar versão nova do banco
   if (v >= SEED_VERSION) {
     const sede = rebuildSede(db);
     const fazenda = montarFazenda(db);
-    return sede || fazenda;
+    return sede || fazenda || renomeou;
   }
   for (const r of db.rooms) {
     r.lightMode ??= 'normal';
@@ -818,7 +824,7 @@ export function seedDb(): Database {
   db.rooms.push(
     buildRoom(
       db,
-      'Saguão CROMA',
+      'Saguão CRONA',
       'Ponto de encontro. Todo mundo pode construir.',
       'saguao',
       [

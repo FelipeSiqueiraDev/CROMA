@@ -22,7 +22,7 @@ from mathutils import Matrix, Vector
 
 FICHA = sys.argv[sys.argv.index('--') + 1]
 cfg = json.load(open(FICHA, encoding='utf-8'))
-RAIZ = os.environ.get('CROMA_3D', 'C:/Users/felip/CROMA-3D')
+RAIZ = os.environ.get('CRONA_3D') or os.environ.get('CROMA_3D') or 'C:/Users/felip/CRONA-3D'
 UAL = os.path.join(RAIZ, 'fontes', 'Universal Animation Library[Standard]', 'Unreal-Godot', 'UAL1_Standard.glb')
 
 
@@ -184,7 +184,7 @@ at.name = 'vista'
 at.attribute_name = 'cor_s'
 nt.links.new(at.outputs['Color'], emi.inputs['Color'])
 nt.links.new(emi.outputs[0], saida_no.inputs['Surface'])
-mat['croma_vistas'] = 1
+mat['crona_vistas'] = 1
 
 for nome in ('corpo', 'braco_l', 'braco_r'):
     v = dados[f'{nome}_v'].astype(float)

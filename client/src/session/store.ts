@@ -1,4 +1,4 @@
-import type { Character, ClientMsg, Item, NormPoint, Scene, SceneObject, ServerMsg, Session, SessionAction, Tile, Token } from '@croma/shared';
+import type { Character, ClientMsg, Item, NormPoint, Scene, SceneObject, ServerMsg, Session, SessionAction, Tile, Token } from '@crona/shared';
 
 type Fn<T extends unknown[]> = (...args: T) => void;
 

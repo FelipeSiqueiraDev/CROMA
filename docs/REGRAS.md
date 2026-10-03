@@ -1,20 +1,20 @@
-# Regras do CROMA (Ordem Paranormal RPG)
+# Regras do CRONA (Ordem Paranormal RPG)
 
-Mapa das regras que o CROMA segue e do que cada uma muda no personagem e no tabuleiro. Serve para construir item a item: cada parte nova de regra começa por aqui, e o que for decidido volta para cá.
+Mapa das regras que o CRONA segue e do que cada uma muda no personagem e no tabuleiro. Serve para construir item a item: cada parte nova de regra começa por aqui, e o que for decidido volta para cá.
 
-## Como o CROMA usa as regras
+## Como o CRONA usa as regras
 
-- **Tudo do jogo fica no CROMA:** fichas, regras, dados e regras da casa. O C.R.I.S (o sistema do mestre) serviu só de referência para entender o sistema de RPG e como tratá-lo aqui. O CROMA não depende dele: não lê o banco de lá e não importa código nem arte (nem o tabuleiro CRONA nem as folhas de sprite).
+- **Tudo do jogo fica no CRONA:** fichas, regras, dados e regras da casa. O C.R.I.S (o sistema do mestre) serviu só de referência para entender o sistema de RPG e como tratá-lo aqui. O CRONA não depende dele: não lê o banco de lá e não importa código nem arte (nem o tabuleiro CRONA nem as folhas de sprite).
 - **Fontes, nesta ordem:**
   1. o livro de regras de Ordem Paranormal RPG (2022). As páginas citadas são o número impresso no rodapé. O PDF usado é a versão 1.0; se a edição impressa da mesa disser outra coisa, vale a da mesa;
   2. as regras da casa da mesa (seção 12);
   3. como o C.R.I.S resolveu cada conta (`src/systems/ordem-paranormal/`), só como referência.
   - *Sobrevivendo ao Horror* (origens, rituais e regras extras): o PDF é só imagem, sem texto. O que a mesa usar dele entra aos poucos, quando chegarmos lá.
   - Fica de fora, por decisão do mestre: a classe Sobrevivente do *Sobrevivendo ao Horror* (sobe por estágio, não por NEX).
-- **Ninguém rola dado no CROMA.** Os jogadores rolam na mesa. Quando o CROMA precisa de um resultado (um ataque, um teste de resistência), o mestre digita o d20 que ficou, como no C.R.I.S.
-- **O CROMA faz as contas e guarda o estado** (ficha, condições, turno, mochila). O tabuleiro mostra o efeito.
+- **Ninguém rola dado no CRONA.** Os jogadores rolam na mesa. Quando o CRONA precisa de um resultado (um ataque, um teste de resistência), o mestre digita o d20 que ficou, como no C.R.I.S.
+- **O CRONA faz as contas e guarda o estado** (ficha, condições, turno, mochila). O tabuleiro mostra o efeito.
 - **As regras ficam em código próprio:** `shared/src/regras/`, em TypeScript puro e sem tela, com testes em `server/test/`. O servidor aplica as regras; a interface mostra e pede.
-- **Direitos autorais:** o texto do livro é protegido e este repositório é público. Aqui entram só resumos com nossas palavras, números e tabelas de regra. Descrições de poderes, rituais, itens e criaturas não entram no repositório: o CROMA guarda nome, números e a página do livro.
+- **Direitos autorais:** o texto do livro é protegido e este repositório é público. Aqui entram só resumos com nossas palavras, números e tabelas de regra. Descrições de poderes, rituais, itens e criaturas não entram no repositório: o CRONA guarda nome, números e a página do livro.
 
 ## O que muda no personagem e no tabuleiro
 
@@ -26,7 +26,7 @@ Mapa das regras que o CROMA segue e do que cada uma muda no personagem e no tabu
 | 0 PV: inconsciente e morrendo | respiração de quem está morrendo, marca "Morrendo" | peça deitada, sem andar nem agir; no combate, 3 turnos até morrer | retrato já tem; o resto é proposta (2 e 6) |
 | Perturbado: SAN abaixo da metade | respiração rápida | — | já tem |
 | Enlouquecendo: SAN 0 | respiração rápida; 3 turnos até ficar insano (vira personagem do mestre) | — | retrato já tem; contagem é proposta (6) |
-| PE abaixo da metade (regra só do CROMA: o livro não dá penalidade) | respiração lenta | — | já tem |
+| PE abaixo da metade (regra só do CRONA: o livro não dá penalidade) | respiração lenta | — | já tem |
 | Arma empunhada | retrato e sprite armados | peça armada | proposta (3): o botão Armado passa a vir da mochila |
 | Sobrecarregado | Defesa −5, perícias de carga −5 | deslocamento −3 m | proposta (3) |
 | Caído | Defesa −5 contra corpo a corpo e +5 contra ataque à distância | peça deitada; anda só 1,5 m; levantar gasta ação de movimento | proposta (2) |
@@ -35,7 +35,7 @@ Mapa das regras que o CROMA segue e do que cada uma muda no personagem e no tabu
 | Sem ações: inconsciente, pasmo, atordoado, surpreendido, paralisado, petrificado | marca na carta | turno pulado no combate | proposta (2 e 6) |
 | Apavorado, confuso | penalidades nos testes | o mestre move a peça (fuga, passo ao acaso) | proposta (2) |
 | Em chamas, sangrando | dano a cada turno | fogo na peça, gotas no chão (partículas) | proposta (2) |
-| Posição das peças | — | o CROMA pode ver sozinho: quem está adjacente (corpo a corpo), flanqueando (lados opostos), ao alcance da arma, atrás de cobertura (mobi ou parede no meio), em posição elevada (altura do piso ou do mobi) | proposta (6) |
+| Posição das peças | — | o CRONA pode ver sozinho: quem está adjacente (corpo a corpo), flanqueando (lados opostos), ao alcance da arma, atrás de cobertura (mobi ou parede no meio), em posição elevada (altura do piso ou do mobi) | proposta (6) |
 | Escuridão total | — | camuflagem total (a escuridão da cena pode sugerir) | proposta (6) |
 | Portas | — | no combate, abrir ou fechar porta gasta ação de movimento | proposta (6) |
 | Membrana do cômodo (p. 97) | — | campo novo no clima da cena: intacta, estável, danificada ou arruinada. Muda o que os rituais e as criaturas podem fazer; arruinada dá 1d6 de dano mental por cena | proposta (7) |
@@ -55,12 +55,12 @@ Um item por vez, cada um com testes e com sua aprovação antes do próximo. O m
 
 ## Decisões (com a proposta de cada uma)
 
-1. **Ficha própria no CROMA.** Decidido: tudo do jogo fica no CROMA, e o mestre monta e edita a ficha aqui. O C.R.I.S foi só referência.
+1. **Ficha própria no CRONA.** Decidido: tudo do jogo fica no CRONA, e o mestre monta e edita a ficha aqui. O C.R.I.S foi só referência.
 2. **Dados.** Decidido (30/09): sempre dados físicos na mesa, também os das ameaças, e só o mestre mexe na tela: ele digita o d20 que ficou e a soma dos dados de dano. Os jogadores assistem ao tabuleiro na mesa (`docs/COMBATE.md`, seção 2.2).
 3. **Regras da casa.** Proposta: começar pelas que o C.R.I.S prevê (seção 12), por campanha, todas desligadas (= livro puro) até o mestre ligar. Falta saber quais a mesa usa.
 4. **Conflitos do livro.** Proposta: seguir o que o C.R.I.S já decidiu (seção 13), com a chave da casa quando existir.
 5. **Catálogos (itens, rituais, poderes, origens).** Proposta: nome, números e página no repositório; a descrição fica fora dele (ou o repositório passa a ser privado).
-6. **Escala do combate.** Proposta: 1 quadrado do livro (1,5 m) = 2 casas do CROMA. Cada casa tem 0,75 m, também no desenho (03/10; antes ~0,68 m). Deslocamento de 9 m = 12 casas.
+6. **Escala do combate.** Proposta: 1 quadrado do livro (1,5 m) = 2 casas do CRONA. Cada casa tem 0,75 m, também no desenho (03/10; antes ~0,68 m). Deslocamento de 9 m = 12 casas.
 
 ---
 
@@ -121,7 +121,7 @@ Um item por vez, cada um com testes e com sua aprovação antes do próximo. O m
   - PE máx = base + Pre + passo × (ganho + Pre).
   - SAN máx = base + ganho × (passo − vezes que usou Transcender).
   - Exemplo: combatente com Vig 2 tem 22 PV em 5% e 28 em 10%.
-- O C.R.I.S soma um ajuste manual e tira perdas permanentes: total = máx(0, fórmula + ajuste − perda). O CROMA faz igual.
+- O C.R.I.S soma um ajuste manual e tira perdas permanentes: total = máx(0, fórmula + ajuste − perda). O CRONA faz igual.
 - **Trilhas:** 5 por classe no livro. Escolhe em 10%; as habilidades chegam em 10, 40, 65 e 99%.
   - Combatente: Aniquilador, Comandante de Campo, Guerreiro, Operações Especiais, Tropa de Choque.
   - Especialista: Atirador de Elite, Infiltrador, Médico de Campo, Negociador, Técnico.
@@ -203,7 +203,7 @@ São 28. ✱ = só treinada (sem treino não pode usar); (c) = sofre penalidade 
 - **Proteções:** leve +5 na Defesa (cat. I, 2 espaços); pesada +10 (cat. II, 5 espaços, RD 2 contra balístico, corte, impacto e perfuração, −5 nas perícias de carga); escudo +2 (cat. 0, 2 espaços, numa mão). Proteção sem proficiência: −2d20 em testes de For e Agi.
 - **Munição:** abstrata, por cena. Balas curtas duram 2 cenas; balas longas, cartuchos e combustível, 1 cena; flechas, a missão inteira; foguete, 1 tiro. Contar tiro a tiro é regra opcional.
 - Itens amaldiçoados só para agente especial ou acima, a partir de 50 PP (LR p. 144; patentes na p. 52).
-- **No CROMA (30/09):** um inventário só. O item achado no cenário entra na mochila da ficha ao ser pego (achado na missão: não ocupa vaga da patente, que limita o que a Ordem fornece), e o do livro vira o item de verdade (a faca da gaveta ataca). Os itens do cenário ocupam espaços, como os da ficha. Cada item está na mão, vestido ou na mochila (`shared/src/regras/mochila.ts`); o que se veste, pego no cenário, entra guardado, porque vestir é uma ação (LR p. 53, 63). Duas mãos no máximo (a arma de duas mãos ocupa as duas; escudo e itens "empunhado", uma); o escudo vale na mão; o item que se empunha só faz efeito na mão (a soqueira). Arma na mão deixa a peça armada (retrato, pose e mesa). Passar do dobro da carga não deixa; o limite da patente avisa e o mestre decide. Largar deixa o item no chão do cômodo, numa pilha. No combate, a arma da mochila aparece com "Sacar" (ação de movimento) e o Desarmar faz o item cair na casa do alvo; o Desfazer volta os dois.
+- **No CRONA (30/09):** um inventário só. O item achado no cenário entra na mochila da ficha ao ser pego (achado na missão: não ocupa vaga da patente, que limita o que a Ordem fornece), e o do livro vira o item de verdade (a faca da gaveta ataca). Os itens do cenário ocupam espaços, como os da ficha. Cada item está na mão, vestido ou na mochila (`shared/src/regras/mochila.ts`); o que se veste, pego no cenário, entra guardado, porque vestir é uma ação (LR p. 53, 63). Duas mãos no máximo (a arma de duas mãos ocupa as duas; escudo e itens "empunhado", uma); o escudo vale na mão; o item que se empunha só faz efeito na mão (a soqueira). Arma na mão deixa a peça armada (retrato, pose e mesa). Passar do dobro da carga não deixa; o limite da patente avisa e o mestre decide. Largar deixa o item no chão do cômodo, numa pilha. No combate, a arma da mochila aparece com "Sacar" (ação de movimento) e o Desarmar faz o item cair na casa do alvo; o Desfazer volta os dois.
 
 ## 4. Combate (p. 82–91)
 
@@ -230,7 +230,7 @@ Resumo. O detalhe de cada regra do combate, com o que a tela faz, está em `docs
 - **Diagonal custa o dobro** (1 quadrado na diagonal conta 2). Terreno difícil também custa o dobro. Nem corrida nem investida em terreno difícil.
 - Pode passar por aliado. Por inimigo, só se ele estiver indefeso, tiver 3 categorias de tamanho de diferença, com Acrobacia ou atropelando.
 - Tamanhos: Médio (e menores) 1×1, Grande 2×2, Enorme 3×3, Colossal 6×6 quadrados.
-- **No CROMA** (proposta): 1 quadrado = 2 casas. Deslocamento de 9 m = 12 casas; alcance curto = 12 casas, médio 24, longo 48. A diagonal conta dobrado do mesmo jeito, em casas.
+- **No CRONA** (proposta): 1 quadrado = 2 casas. Deslocamento de 9 m = 12 casas; alcance curto = 12 casas, médio 24, longo 48. A diagonal conta dobrado do mesmo jeito, em casas.
 
 ### Ataque, dano e crítico (p. 54–55, 82, 89–90)
 
@@ -369,7 +369,7 @@ Cena de descanso em lugar seguro. Cada personagem faz até **duas ações**:
   - ajudar.
 - **Urgência (Tab. 4.3):** muito baixa 6 rodadas, baixa 5, média 4, alta 3, muito alta 2. Quando acaba, a cena termina e pode haver penalidade. Opcional: a cada 3 falhas, −1 rodada.
 - **Ficha do grupo:** resumo do caso, objetivo, perguntas e pistas anotadas.
-- No CROMA as pistas já ficam nos mobis e os objetivos no painel; falta contar as rodadas de urgência da cena.
+- No CRONA as pistas já ficam nos mobis e os objetivos no painel; falta contar as rodadas de urgência da cena.
 
 ## 10. Ameaças (p. 176–181)
 
@@ -385,7 +385,7 @@ Cena de descanso em lugar seguro. Cada personagem faz até **duas ações**:
 
 ## 12. Regras da casa
 
-Por campanha, guardadas no CROMA. Tudo desligado = livro puro. Só o mestre liga e desliga. A lista começa pelas que o C.R.I.S prevê:
+Por campanha, guardadas no CRONA. Tudo desligado = livro puro. Só o mestre liga e desliga. A lista começa pelas que o C.R.I.S prevê:
 
 | Chave | O que muda |
 |---|---|
@@ -400,7 +400,7 @@ Por campanha, guardadas no CROMA. Tudo desligado = livro puro. Só o mestre liga
 
 No C.R.I.S só as três primeiras funcionam de fato; as outras cinco têm a chave, mas nada no código usa.
 
-Decisões do C.R.I.S que não têm chave e que o CROMA segue (proposta, decisão 4):
+Decisões do C.R.I.S que não têm chave e que o CRONA segue (proposta, decisão 4):
 - atributo ≤ 0 com penalidade soma dados no grupo em que fica o pior;
 - no teste oposto, um único 20 vence;
 - os contadores de morrendo e enlouquecendo valem o combate inteiro, e o turno de quem está morrendo é pulado;
@@ -409,9 +409,9 @@ Decisões do C.R.I.S que não têm chave e que o CROMA segue (proposta, decisão
 - Transcender exige NEX 15%;
 - proteção pesada só reduz dano físico.
 
-Uma decisão do C.R.I.S que o CROMA não segue: deixar o primeiro gasto de PE da rodada passar inteiro, mesmo acima do limite. O livro só garante uma habilidade no custo mínimo por turno (p. 23; ver `docs/COMBATE.md`, seção 14).
+Uma decisão do C.R.I.S que o CRONA não segue: deixar o primeiro gasto de PE da rodada passar inteiro, mesmo acima do limite. O livro só garante uma habilidade no custo mínimo por turno (p. 23; ver `docs/COMBATE.md`, seção 14).
 
-## 13. Conflitos do livro e a escolha do CROMA
+## 13. Conflitos do livro e a escolha do CRONA
 
 | Ponto | O livro diz | Escolha (proposta) |
 |---|---|---|
@@ -424,7 +424,7 @@ Uma decisão do C.R.I.S que o CROMA não segue: deixar o primeiro gasto de PE da
 
 Os conflitos do combate (atacante caído, fintar, falta de ar, limite de PE e outros) estão em `docs/COMBATE.md`, seção 22.
 
-## 14. O que o CROMA já tem
+## 14. O que o CRONA já tem
 
 - **Motor de criação de personagem** (`shared/src/regras/`, sem tela ainda): classes, origens, trilhas, poderes de classe e gerais, poderes paranormais, rituais, armas, proteções, modificações, equipamentos, itens amaldiçoados e maldições, do livro e do *Sobrevivendo ao Horror*. A ficha guarda as escolhas NEX a NEX (de 0% a 99%); `calcular()` dá os números, as pendências e os problemas; `opcoes*()` dão cada opção liberada ou travada com o motivo. Testes em `server/test/regras.test.ts`. O passo a passo das telas está em `docs/CRIACAO-DE-PERSONAGEM.md`.
 

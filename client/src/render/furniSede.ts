@@ -1,4 +1,4 @@
-import { Z_PER_M } from '@croma/shared';
+import { Z_PER_M } from '@crona/shared';
 import { rgba, rng, shade } from './color';
 import { B, drawers, faceRange, lightIf, N, V, wallBlock, type Builder, type FNode } from './furniKit';
 import { OUTLINE, type LBox, type LFace, type Painter } from './painter';

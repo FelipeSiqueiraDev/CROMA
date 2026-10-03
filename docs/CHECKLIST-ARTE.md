@@ -1,6 +1,6 @@
 # Arte que falta: o que deixa a tela diferente da referência
 
-As telas do CROMA foram montadas a partir das imagens de referência. A disposição, os textos, as barras, os botões, as molduras e a luz já estão no código. O que ainda deixa a tela diferente da referência é o que o código não desenha igual: **o retrato de um personagem, um ícone, o clipe, o papel manchado**. Esta é a lista dessas imagens, para produzir no GPT/Codex. Marque com `x` o que ficar pronto (`- [x]`).
+As telas do CRONA foram montadas a partir das imagens de referência. A disposição, os textos, as barras, os botões, as molduras e a luz já estão no código. O que ainda deixa a tela diferente da referência é o que o código não desenha igual: **o retrato de um personagem, um ícone, o clipe, o papel manchado**. Esta é a lista dessas imagens, para produzir no GPT/Codex. Marque com `x` o que ficar pronto (`- [x]`).
 
 **Foco agora: a tela** (painéis, menus, botões, ícones e retratos). O tabuleiro (móveis, pisos, peças) fica para depois, no fim da lista. **✱ = o que mais muda a tela: comece por esses.**
 

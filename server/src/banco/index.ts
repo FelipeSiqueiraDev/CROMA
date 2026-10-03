@@ -1,5 +1,5 @@
 /**
- * Onde o CROMA guarda tudo. Com CROMA_DB_URL, no Postgres (docker-compose.yml,
+ * Onde o CRONA guarda tudo. Com CRONA_DB_URL, no Postgres (docker-compose.yml,
  * `npm run banco`); sem ela, no arquivo server/data/db.json. Na primeira vez
  * no Postgres, o conteúdo do db.json é importado.
  */
@@ -15,7 +15,8 @@ export interface Banco {
 }
 
 export async function abrirBanco(): Promise<Banco> {
-  const url = process.env.CROMA_DB_URL;
+  // o nome antigo (CROMA_DB_URL, de antes de 03/10) continua valendo
+  const url = process.env.CRONA_DB_URL ?? process.env.CROMA_DB_URL;
   if (!url) {
     const json = new BancoJson();
     await usarBanco(json);
@@ -28,7 +29,7 @@ export async function abrirBanco(): Promise<Banco> {
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error(`[banco] não consegui abrir o Postgres (${msg}).`);
-    console.error('[banco] Suba o banco com `npm run banco` ou tire CROMA_DB_URL de server/.env para usar o db.json.');
+    console.error('[banco] Suba o banco com `npm run banco` ou tire CRONA_DB_URL de server/.env para usar o db.json.');
     process.exit(1);
   }
   // primeira vez: traz o que estava no db.json

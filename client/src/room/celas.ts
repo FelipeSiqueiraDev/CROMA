@@ -1,4 +1,4 @@
-import { getFurni, type RoomMap } from '@croma/shared';
+import { getFurni, type RoomMap } from '@crona/shared';
 import { iso } from '../render/iso';
 
 /**

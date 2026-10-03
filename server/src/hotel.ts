@@ -41,7 +41,7 @@ import {
   noCatalogo,
   type AcaoMochila,
   type Loot,
-} from '@croma/shared';
+} from '@crona/shared';
 import { loadDb, saveDbNow, scheduleSave, type CampaignData, type Database, type RoomData, type UserData } from './db';
 import { RoomInstance, type Client, type HotelApi } from './roomInstance';
 import { refreshPortraits } from './portraits';

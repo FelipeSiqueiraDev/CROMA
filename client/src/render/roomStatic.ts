@@ -1,4 +1,4 @@
-import { DIRS, M_POR_CASA, terrenoEm, Z_PER_M, type FloorStyle, type RoomMap, type WallSeg } from '@croma/shared';
+import { DIRS, M_POR_CASA, terrenoEm, Z_PER_M, type FloorStyle, type RoomMap, type WallSeg } from '@crona/shared';
 import { hash, shade } from './color';
 import { iso } from './iso';
 import { texturaParede, texturaPiso } from './texturas';

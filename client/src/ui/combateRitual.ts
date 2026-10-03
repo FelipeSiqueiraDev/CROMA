@@ -2,11 +2,11 @@
  * Resolução do ritual na aba COMBATE (regras em docs/COMBATE.md, seção 15.1;
  * LR p. 117–121): 1. Ritual e forma, 2. Alvos e resistência, 3. Efeito e 4.
  * Custo do Paranormal. Os dados são físicos: o mestre digita o d20 que ficou de
- * cada teste e a soma do dano. As contas saem de @croma/shared
+ * cada teste e a soma do dano. As contas saem de @crona/shared
  * (combate/ritual.ts); o servidor gasta o PE, aplica o dano e as condições e
  * escreve o registro quando o mestre confirma.
  */
-import { combate as cb, regras } from '@croma/shared';
+import { combate as cb, regras } from '@crona/shared';
 import { campoDado, linhaInfo, type AlvoAtaque } from './combateAtaque';
 import { h } from './dom';
 import { textoTeste } from './fichaRegras';

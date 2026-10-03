@@ -4,7 +4,7 @@
  * de linha. O item achado no cenário procura pelo nome ("chave-do-arsenal") e depois pelo tipo
  * ("tipo-chave"); sem arte, o desenho do tipo.
  */
-import { regras, type LootKind } from '@croma/shared';
+import { regras, type LootKind } from '@crona/shared';
 import { arteOu, ic } from './icons';
 import { lootIcon } from './lootIcons';
 

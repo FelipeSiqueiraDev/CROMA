@@ -1,4 +1,4 @@
-import { combate as cb, type CampaignState } from '@croma/shared';
+import { combate as cb, type CampaignState } from '@crona/shared';
 import { COR_LADO, marcasVazias } from '../render/combateMarcas';
 import type { App } from './app';
 import { h } from './dom';

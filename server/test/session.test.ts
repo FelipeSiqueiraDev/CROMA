@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { beforeEach, describe, test } from 'node:test';
-import { DIR_KEYS, DIR_TO_SHEET, distinctFacings, parseHeightmap, pointToTile, sheetDirFor, tileCenter, turnFacing, type ClientMsg, type DirKey, type ServerMsg, type Session, type SessionAction } from '@croma/shared';
+import { DIR_KEYS, DIR_TO_SHEET, distinctFacings, parseHeightmap, pointToTile, sheetDirFor, tileCenter, turnFacing, type ClientMsg, type DirKey, type ServerMsg, type Session, type SessionAction } from '@crona/shared';
 import { Hotel } from '../src/hotel';
 import { seedDb, upgradeDb } from '../src/seed';
 

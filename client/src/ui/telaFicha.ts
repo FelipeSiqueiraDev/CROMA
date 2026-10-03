@@ -10,7 +10,7 @@ import { ic } from './icons';
 import { sfx } from './sfx';
 import { TopBar } from './topbar';
 
-const CHAVE = 'croma.fichaKey';
+const CHAVE = 'crona.fichaKey';
 
 /** Chave do link da ficha (?ficha=...), guardada para abrir de novo sem o link. */
 export function lerChaveFicha(): string | null {

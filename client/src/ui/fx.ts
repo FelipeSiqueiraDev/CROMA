@@ -1,4 +1,4 @@
-import { DEFAULT_PARTICLE_LEVEL, type LightMode } from '@croma/shared';
+import { DEFAULT_PARTICLE_LEVEL, type LightMode } from '@crona/shared';
 import type { App } from './app';
 import { clear, h, Win } from './dom';
 

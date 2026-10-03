@@ -1,4 +1,4 @@
-import { M_POR_CASA, Z_PER_M, type FurniDef } from '@croma/shared';
+import { M_POR_CASA, Z_PER_M, type FurniDef } from '@crona/shared';
 import { hash, rgba, rng, shade } from './color';
 import { OUTLINE, type LBox, type LFace, type Painter } from './painter';
 import { B, crateFace, drawers, faceRange, lightIf, N, PAPER, V, vents, wallBlock, WARM, type Builder, type FNode, type FVisual, type LightDef } from './furniKit';

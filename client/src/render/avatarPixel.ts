@@ -1,4 +1,4 @@
-import type { AvatarLook } from '@croma/shared';
+import type { AvatarLook } from '@crona/shared';
 import { shade } from './color';
 
 export type Pose = 'stand' | 'walk' | 'sit';

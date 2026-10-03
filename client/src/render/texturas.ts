@@ -1,4 +1,4 @@
-import type { FloorStyle } from '@croma/shared';
+import type { FloorStyle } from '@crona/shared';
 
 /**
  * Texturas de chão e parede desenhadas (arte em /arte/texturas/), por estilo de piso

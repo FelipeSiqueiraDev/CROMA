@@ -1,4 +1,4 @@
-import { LAYOUTS, parseHeightmap, type Door } from '@croma/shared';
+import { LAYOUTS, parseHeightmap, type Door } from '@crona/shared';
 import type { App } from './app';
 import { clear, h, icon, Win } from './dom';
 

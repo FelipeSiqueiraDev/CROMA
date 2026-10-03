@@ -32,7 +32,7 @@ import {
   type RoomInfo,
   type SceneInfo,
   type WallItem,
-} from '@croma/shared';
+} from '@crona/shared';
 import { breathMode, livePortrait, portraitCanvas } from '../render/portrait';
 import { sprites } from '../render/sprites';
 import { thumbCopy } from '../render/thumbs';
@@ -69,7 +69,7 @@ export interface ShellActions {
 type InspTab = 'desc' | 'inter' | 'items';
 type Sel = { kind: 'floor' | 'wall'; item: FloorItem | WallItem } | null;
 
-const THUMB_KEY = 'croma.thumb.';
+const THUMB_KEY = 'crona.thumb.';
 const COLORS = ['#e3a94c', '#d83a2e', '#3f6fd8', '#f2efe6', '#6fdc8c', '#c78bff', '#3fe0c0', '#ff6fb0'];
 const INSP_TABS: InspTab[] = ['desc', 'inter', 'items'];
 
@@ -711,7 +711,7 @@ export class Shell {
     if (!this.campaign) return;
     const r = this.app.state.room;
     // marca: organização e sede; à direita, a campanha e o andar da cena aberta
-    this.topo.setMarca(this.campaign.subtitle || 'Ordo Realitas', this.campaign.title || r?.name || 'CROMA');
+    this.topo.setMarca(this.campaign.subtitle || 'Ordo Realitas', this.campaign.title || r?.name || 'CRONA');
     const cena = this.campaign.scenes.find((x) => x.id === r?.id);
     this.topo.setLocal(this.campaign.title || null, cena?.floor ? `Andar ${cena.floor}` : (r?.name.split('·').pop()?.trim() ?? ''));
     this.topo.setOperacao(this.campaign.operacao ? `Operação ${this.campaign.operacao}` : null);

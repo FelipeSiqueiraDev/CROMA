@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { beforeEach, describe, test } from 'node:test';
-import { applyVital, DEFAULT_VITALS, findPath, getFurni, vitalConditions, Z_PER_M, type ClientMsg, type FloorItem, type ServerMsg } from '@croma/shared';
+import { applyVital, DEFAULT_VITALS, findPath, getFurni, vitalConditions, Z_PER_M, type ClientMsg, type FloorItem, type ServerMsg } from '@crona/shared';
 import type { RoomData } from '../src/db';
 import { Hotel } from '../src/hotel';
 import { findAnim, findBoneco, findPassos, findPortraits, findPoses, refreshPortraits } from '../src/portraits';
@@ -396,7 +396,7 @@ describe('proporção dos móveis', () => {
 
 describe('retratos por estado', () => {
   test('acha os retratos (e os de olhos fechados) na pasta do personagem', () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'croma-'));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crona-'));
     fs.mkdirSync(path.join(dir, 'tepes'));
     for (const f of ['retrato-desarmado.png', 'retrato-desarmado-olhos-fechados.png', 'retrato-armado-machucado.webp', 'folha.webp']) fs.writeFileSync(path.join(dir, 'tepes', f), '');
     const p = findPortraits('/arte/personagens/tepes/folha.webp', dir);
@@ -411,7 +411,7 @@ describe('retratos por estado', () => {
 
 describe('poses do tabuleiro (32 bits)', () => {
   test('acha as poses por estado e direção; sem a direção no nome, é a frente para a direita (se)', () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'croma-'));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crona-'));
     const pasta = path.join(dir, 'tepes', 'tabuleiro-32bits');
     fs.mkdirSync(pasta, { recursive: true });
     fs.writeFileSync(path.join(dir, 'tepes', 'folha.webp'), '');
@@ -438,7 +438,7 @@ describe('poses do tabuleiro (32 bits)', () => {
   });
 
   test('acha os quadros de andar por estado e direção, em ordem, e para no primeiro que falta', () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'croma-'));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crona-'));
     const pasta = path.join(dir, 'alosi', 'tabuleiro-32bits');
     fs.mkdirSync(pasta, { recursive: true });
     fs.writeFileSync(path.join(dir, 'alosi', 'folha.webp'), '');
@@ -458,7 +458,7 @@ describe('poses do tabuleiro (32 bits)', () => {
   });
 
   test('acha o boneco filmado em 3D (tabuleiro-3d/anim.json, versão 2): cada animação com a sua tira', () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'croma-'));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crona-'));
     const pasta = path.join(dir, 'alosi', 'tabuleiro-3d');
     fs.mkdirSync(pasta, { recursive: true });
     fs.writeFileSync(path.join(dir, 'alosi', 'folha.webp'), '');
@@ -496,7 +496,7 @@ describe('poses do tabuleiro (32 bits)', () => {
   });
 
   test('acha o boneco animado (anim.json): as tiras viram endereços e a direção sem tira sai', () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'croma-'));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crona-'));
     const pasta = path.join(dir, 'alosi', 'tabuleiro-32bits');
     fs.mkdirSync(pasta, { recursive: true });
     fs.writeFileSync(path.join(dir, 'alosi', 'folha.webp'), '');

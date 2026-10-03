@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { regras } from '@croma/shared';
+import { regras } from '@crona/shared';
 import { assinaturas, linhasDe, montar, TABELAS, type Linha } from '../src/banco/linhas';
 import type { Database } from '../src/db';
 import { seedDb, upgradeDb } from '../src/seed';

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { beforeEach, describe, test } from 'node:test';
-import { combate, type ClientMsg, type ServerMsg } from '@croma/shared';
+import { combate, type ClientMsg, type ServerMsg } from '@crona/shared';
 import { Hotel } from '../src/hotel';
 import { seedDb, upgradeDb } from '../src/seed';
 

@@ -8,7 +8,7 @@
  * A janela fica aberta: dá para pedir vários itens de uma vez. O mestre passa por cima dos limites
  * (com o aviso); o jogador, não. No celular, ela ocupa a tela e o item escolhido sobe de baixo.
  */
-import { regras } from '@croma/shared';
+import { regras } from '@crona/shared';
 import { arteDoItem } from './arteItem';
 import { h } from './dom';
 import { janela } from './fichaModal';

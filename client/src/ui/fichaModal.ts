@@ -3,7 +3,7 @@
  * opções do motor de regras (liberadas ou travadas, com o motivo), escrever
  * um texto e confirmar. Tudo por cima da tela, com Esc para fechar.
  */
-import type { regras } from '@croma/shared';
+import type { regras } from '@crona/shared';
 import { h } from './dom';
 import type { Escolher } from './fichaRegras';
 import { textoRef } from './fichaRegras';

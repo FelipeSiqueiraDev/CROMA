@@ -1,4 +1,4 @@
-import { anyFurniName, CATEGORY_NAMES, getFurni, getWallFurni, HINT_ICONS, nextRotation, type Hint, type HintIcon } from '@croma/shared';
+import { anyFurniName, CATEGORY_NAMES, getFurni, getWallFurni, HINT_ICONS, nextRotation, type Hint, type HintIcon } from '@crona/shared';
 import { drawHintGlyph } from '../render/hints';
 import { thumbCopy } from '../render/thumbs';
 import type { App } from './app';

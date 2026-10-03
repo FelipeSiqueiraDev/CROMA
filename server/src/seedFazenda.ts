@@ -7,7 +7,7 @@ import {
   type Hint,
   type LightMode,
   type ParticleKind,
-} from "@croma/shared";
+} from "@crona/shared";
 import type { Database, RoomData } from "./db";
 import { buildRoom, plan, type FloorSeed, type WallSeed } from "./seed";
 import { partyTokens, planTop } from "./seedSede";

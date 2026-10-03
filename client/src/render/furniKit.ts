@@ -1,4 +1,4 @@
-import type { FurniDef } from '@croma/shared';
+import type { FurniDef } from '@crona/shared';
 import { rgba, shade } from './color';
 import type { LBox, LFace, Painter } from './painter';
 

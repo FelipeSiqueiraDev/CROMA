@@ -3,11 +3,11 @@
  * em docs/COMBATE.md, seções 5.6 a 8): 1. Arma, 2. Situação, 3. Rolagem e
  * 4. Dano, com Desfazer e Confirmar ação. Os dados são físicos: o mestre digita
  * o d20 que ficou, o d10 da falha e a soma dos dados de dano. As contas saem de
- * @croma/shared (combate/ataque.ts); o servidor aplica o dano e escreve o
+ * @crona/shared (combate/ataque.ts); o servidor aplica o dano e escreve o
  * registro quando o mestre confirma.
  */
-import { combate as cb, type Vitals } from '@croma/shared';
-import type { regras } from '@croma/shared';
+import { combate as cb, type Vitals } from '@crona/shared';
+import type { regras } from '@crona/shared';
 import type { Cobertura } from '../room/combateGeo';
 import { h } from './dom';
 import { textoTeste } from './fichaRegras';

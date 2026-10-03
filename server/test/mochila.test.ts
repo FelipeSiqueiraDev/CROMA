@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { beforeEach, describe, test } from 'node:test';
-import { PILHA_CHAO, regras, type ClientMsg, type FichaSalva, type Loot, type ServerMsg, type Session } from '@croma/shared';
+import { PILHA_CHAO, regras, type ClientMsg, type FichaSalva, type Loot, type ServerMsg, type Session } from '@crona/shared';
 import type { Database } from '../src/db';
 import { Hotel } from '../src/hotel';
 import { seedDb, upgradeDb } from '../src/seed';

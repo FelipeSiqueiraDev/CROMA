@@ -5,7 +5,7 @@
  * (nas mãos e vestido), a mochila em grade e o item selecionado, com Usar,
  * Entregar para…, Mover e Descartar. Cada ação vai para o servidor (`mochila`).
  */
-import { regras, vitalConditions, type AcaoMochila, type FichaSalva, type LootKind, type PartyMember } from '@croma/shared';
+import { regras, vitalConditions, type AcaoMochila, type FichaSalva, type LootKind, type PartyMember } from '@crona/shared';
 import { portraitCanvas } from '../render/portrait';
 import type { App } from './app';
 import { arteDoItem } from './arteItem';

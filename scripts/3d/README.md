@@ -8,8 +8,8 @@ e as decisões estão em [`docs/PERSONAGENS-3D.md`](../../docs/PERSONAGENS-3D.md
 
 - Blender 5.2 (`C:/Program Files/Blender Foundation/Blender 5.2/blender.exe`).
 - Python com PyMuPDF e numpy (os mesmos do Veríssimo) e o ffmpeg (para as prévias).
-- A pasta de trabalho do 3D, fora do repositório (`CROMA_3D`, por padrão
-  `C:/Users/felip/CROMA-3D`), com os três pacotes CC0 do Quaternius em `fontes/`:
+- A pasta de trabalho do 3D, fora do repositório (`CRONA_3D`, por padrão
+  `C:/Users/felip/CRONA-3D`), com os três pacotes CC0 do Quaternius em `fontes/`:
   *Universal Base Characters [Standard]*, *Universal Animation Library [Standard]*
   e *Universal Animation Library 2 [Standard]* (quaternius.itch.io).
 
@@ -33,9 +33,9 @@ se é laço). Exemplo:
 
 ```json
 {
-  "personagem": "C:/Users/felip/CROMA-3D/personagens/alosi.blend",
-  "animacoes_arquivo": ["C:/Users/felip/CROMA-3D/fontes/Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb"],
-  "saida": "C:/Users/felip/CROMA-3D/filmagens/alosi",
+  "personagem": "C:/Users/felip/CRONA-3D/personagens/alosi.blend",
+  "animacoes_arquivo": ["C:/Users/felip/CRONA-3D/fontes/Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb"],
+  "saida": "C:/Users/felip/CRONA-3D/filmagens/alosi",
   "animacoes": [
     {"nome": "andar", "acao": "Walk_Loop", "quadros": 16},
     {"nome": "parado", "acao": "Idle_Loop", "quadros": 20},

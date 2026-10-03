@@ -259,7 +259,7 @@ Com arte desde 02/10. Os armários de armas ficam na parede do fundo, dos dois l
 
 - **Retratos (cartas do grupo):** 4 estados por personagem, olhando para a direita, corpo inteiro: `retrato-desarmado.png`, `retrato-armado.png`, `retrato-desarmado-machucado.png`, `retrato-armado-machucado.png`, na pasta do personagem (`client/public/arte/personagens/<nome>/`). Para piscar, a mesma imagem de olhos fechados: `retrato-<estado>-olhos-fechados.png`. O jogo acha os arquivos sozinho (sem reiniciar) e tira fundo branco.
 - **Quem escolhe o estado:** "machucado" vem da ficha (menos da metade dos PV, como no livro); "armado" é um botão no painel do personagem.
-- **Andando:** ainda não há folha de andar. Quando o formato entrar em `docs/ARTE.md`, cada personagem ganha folhas de andar (armado e desarmado) feitas para o CROMA.
+- **Andando:** ainda não há folha de andar. Quando o formato entrar em `docs/ARTE.md`, cada personagem ganha folhas de andar (armado e desarmado) feitas para o CRONA.
 
 ## Próximos passos de vida no mapa (código)
 

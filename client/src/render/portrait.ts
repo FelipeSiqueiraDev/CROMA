@@ -1,4 +1,4 @@
-import { portraitState, PORTRAIT_STATES, type AvatarLook, type CharacterDef, type PortraitArt, type VitalConditions } from '@croma/shared';
+import { portraitState, PORTRAIT_STATES, type AvatarLook, type CharacterDef, type PortraitArt, type VitalConditions } from '@crona/shared';
 import { reduced } from '../ui/motion';
 import { drawPixelHead } from './avatarPixel';
 import { framesFor, removeBackground, sprites, type SpriteFrame } from './sprites';

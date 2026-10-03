@@ -9,17 +9,17 @@ import { abrirBanco } from './banco';
 import { fecharBanco, UPLOAD_DIR } from './db';
 import { Hotel } from './hotel';
 
-// server/.env (fora do git): CROMA_DB_URL e afins. Ver server/.env.example.
+// server/.env (fora do git): CRONA_DB_URL e afins. Ver server/.env.example.
 try {
   process.loadEnvFile(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../.env'));
 } catch {
   /* sem .env: usa server/data/db.json */
 }
 
-// Em desenvolvimento o Vite usa PORT; o servidor fica na 3001 (ou CROMA_PORT).
+// Em desenvolvimento o Vite usa PORT; o servidor fica na 3001 (ou CRONA_PORT).
 // Com --prod (npm start) respeita PORT, como a maioria das hospedagens espera.
 const PROD = process.argv.includes('--prod');
-const PORT = Number(process.env.CROMA_PORT ?? (PROD ? process.env.PORT : undefined) ?? 3001);
+const PORT = Number(process.env.CRONA_PORT ?? process.env.CROMA_PORT ?? (PROD ? process.env.PORT : undefined) ?? 3001);
 const CLIENT_DIST = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../client/dist');
 const ARTE_FONTE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../client/public/arte');
 const MAX_UPLOAD = 12 * 1024 * 1024;
@@ -160,7 +160,7 @@ function route(req: http.IncomingMessage, res: http.ServerResponse) {
   // Cliente compilado (npm run build). Em desenvolvimento o Vite serve o cliente.
   if (!fs.existsSync(CLIENT_DIST)) {
     res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
-    res.end('Servidor CROMA rodando. Em desenvolvimento, abra o cliente do Vite (npm run dev).');
+    res.end('Servidor CRONA rodando. Em desenvolvimento, abra o cliente do Vite (npm run dev).');
     return;
   }
   let decoded: string;
@@ -206,13 +206,13 @@ const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 256 * 1024 })
 wss.on('connection', (ws, req) => hotel.connect(ws, isLocal(req)));
 
 server.listen(PORT, () => {
-  console.log(`[croma] servidor em http://localhost:${PORT}`);
+  console.log(`[crona] servidor em http://localhost:${PORT}`);
   // em desenvolvimento a página vem do Vite (5173); em produção, deste servidor
   const port = PROD ? PORT : 5173;
   const lan = lanAddress();
-  console.log(`[croma] mestre (este computador): http://localhost:${port}`);
-  console.log(`[croma] mesa (tablet):            http://${lan}:${port}/?mesa`);
-  console.log(`[croma] mestre em outro aparelho: http://${lan}:${port}/?mestre=${hotel.gmKey}`);
+  console.log(`[crona] mestre (este computador): http://localhost:${port}`);
+  console.log(`[crona] mesa (tablet):            http://${lan}:${port}/?mesa`);
+  console.log(`[crona] mestre em outro aparelho: http://${lan}:${port}/?mestre=${hotel.gmKey}`);
 });
 
 let desligando = false;

@@ -1,4 +1,4 @@
-import type { AvatarLook, CharacterDef, combate, Door, FichaSalva, FloorItem, FloorStyle, InvItem, LightMode, LogEntry, NotaPlanta, Objective, ParticleKind, Vitals, WallItem } from '@croma/shared';
+import type { AvatarLook, CharacterDef, combate, Door, FichaSalva, FloorItem, FloorStyle, InvItem, LightMode, LogEntry, NotaPlanta, Objective, ParticleKind, Vitals, WallItem } from '@crona/shared';
 import type { Banco } from './banco';
 import { BancoJson } from './banco/json';
 
@@ -111,11 +111,11 @@ export interface Database {
   nextFichaId?: number;
 }
 
-export type { FichaSalva } from '@croma/shared';
+export type { FichaSalva } from '@crona/shared';
 
 // ---------- onde o banco fica guardado ----------
 // JSON (server/data/db.json) por padrão; Postgres quando o servidor abre com
-// CROMA_DB_URL (ver src/banco). O Hotel continua chamando loadDb/saveDbNow.
+// CRONA_DB_URL (ver src/banco). O Hotel continua chamando loadDb/saveDbNow.
 
 let banco: Banco = new BancoJson();
 let carregado: { db: Database | null } | null = null;

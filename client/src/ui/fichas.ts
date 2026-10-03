@@ -8,7 +8,7 @@
  * salvos sozinhos) e editar (um rascunho da ficha inteira; Salvar grava,
  * Cancelar descarta). NEX e pontos de prestígio só o mestre muda.
  */
-import { regras, vitalConditions, type AvatarLook, type CampaignState, type CharacterDef, type FichaSalva, type Vitals } from '@croma/shared';
+import { regras, vitalConditions, type AvatarLook, type CampaignState, type CharacterDef, type FichaSalva, type Vitals } from '@crona/shared';
 import { portraitCanvas } from '../render/portrait';
 import type { App } from './app';
 import { CorpoView } from './corpo';

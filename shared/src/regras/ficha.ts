@@ -1,5 +1,5 @@
 /**
- * A ficha de um personagem no CROMA: só as ESCOLHAS (classe, origem,
+ * A ficha de um personagem no CRONA: só as ESCOLHAS (classe, origem,
  * atributos, perícias, o que foi escolhido em cada NEX, a mochila). Tudo que é
  * número (PV, Defesa, carga...) sai de `calcular()`; o que falta escolher sai
  * de `pendencias()`; o que pode ser escolhido sai de `opcoes()`.

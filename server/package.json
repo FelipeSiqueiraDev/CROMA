@@ -1,5 +1,5 @@
 {
-  "name": "@croma/server",
+  "name": "@crona/server",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -9,7 +9,7 @@
     "test": "tsx --test test/*.test.ts"
   },
   "dependencies": {
-    "@croma/shared": "*",
+    "@crona/shared": "*",
     "postgres": "^3.4.9",
     "ws": "^8.22.0"
   },

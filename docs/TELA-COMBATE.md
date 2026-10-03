@@ -69,7 +69,7 @@ Posições em pixels da referência (x e y do canto de cima à esquerda até o d
   - Movimento: Ação, Caminho no tabuleiro, Confirmar.
 - **Cartões do ataque:**
   1. **Arma:** os ataques que o motor calcula para a ficha (teste, dano, crítico, alcance, notas e penalidades), com o ataque desarmado sempre na lista.
-  2. **Situação:** as situações da Tab. 4.4 e as outras da seção 7.1 do COMBATE.md, cada uma com a chave liga/desliga e o ícone de "visto no tabuleiro". O CROMA liga sozinho o que detecta (cobertura, alcance, flanqueando, alvo em corpo a corpo, alvo desprevenido por conjurar ritual longo, camuflagem pela iluminação), e o mestre corrige.
+  2. **Situação:** as situações da Tab. 4.4 e as outras da seção 7.1 do COMBATE.md, cada uma com a chave liga/desliga e o ícone de "visto no tabuleiro". O CRONA liga sozinho o que detecta (cobertura, alcance, flanqueando, alvo em corpo a corpo, alvo desprevenido por conjurar ritual longo, camuflagem pela iluminação), e o mestre corrige.
   3. **Rolagem:** "Role Nd20, fique com o maior, +B", o campo "d20 que ficou", "Total contra Defesa" e o carimbo do resultado: ERROU, ACERTO ou ACERTO CRÍTICO ×N (20 natural sempre acerta). A chance de falha (camuflagem) aparece quando existe.
 - **Dano:** "Role XdY (crítico ×N) e some +Z", o campo "soma dos dados", a conta (metade pela resistência, vulnerável, RD), "PV a → b" e o que vem junto: concentração de quem conjura, dano massivo, machucado, morrendo.
 - **Botões:** Desfazer (volta um passo) e Confirmar ação (aplica e escreve no registro).

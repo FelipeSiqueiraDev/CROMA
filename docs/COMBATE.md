@@ -1,4 +1,4 @@
-# Combate no CROMA (mecânica)
+# Combate no CRONA (mecânica)
 
 Tudo o que a aba COMBATE precisa saber para uma luta andar sem travar: começo da cena de ação, surpresa, iniciativa, rodadas e turnos, cada ação do livro, ataque e dano, reações, manobras, rituais, condições, morrendo e enlouquecendo, as DTs que sobem, ameaças, aliados, itens, perigos e as regras opcionais. **Aqui é só mecânica.** O visual da tela vem depois, com a referência.
 
@@ -6,13 +6,13 @@ Tudo o que a aba COMBATE precisa saber para uma luta andar sem travar: começo d
 - **Onde fica o resumo:** `docs/REGRAS.md` (seções 4 a 7) é o resumo geral. Este documento é o detalhe para construir o combate. O que for decidido aqui volta para lá.
 - **Direitos autorais:** só resumos com nossas palavras, números e tabelas de regra. Poderes, rituais, itens amaldiçoados e criaturas aparecem só pelo nome e pela página.
 - **Marcas usadas no texto:**
-  - **No CROMA:** o que o servidor e a tela fazem com a regra.
+  - **No CRONA:** o que o servidor e a tela fazem com a regra.
   - **Opção `chave`:** regra opcional do LR, do SaH ou da casa, ligada por campanha. Tudo desligado = livro puro.
   - **DC-n:** decisão aberta para o mestre, com a proposta (seção 23).
 
 ## Sumário
 
-1. [Como o combate funciona no CROMA](#1-como-o-combate-funciona-no-croma)
+1. [Como o combate funciona no CRONA](#1-como-o-combate-funciona-no-crona)
 2. [Dados e testes](#2-dados-e-testes)
 3. [Começo do combate](#3-começo-do-combate)
 4. [Rodada, turno e duração](#4-rodada-turno-e-duração)
@@ -35,18 +35,18 @@ Tudo o que a aba COMBATE precisa saber para uma luta andar sem travar: começo d
 21. [Regras opcionais](#21-regras-opcionais)
 22. [Conflitos do livro](#22-conflitos-do-livro)
 23. [Decisões para o mestre](#23-decisões-para-o-mestre)
-24. [O que o CROMA guarda](#24-o-que-o-croma-guarda)
+24. [O que o CRONA guarda](#24-o-que-o-crona-guarda)
 25. [Ordem de construção](#25-ordem-de-construção)
 26. [Exemplo de duas rodadas](#26-exemplo-de-duas-rodadas)
 
 ---
 
-## 1. Como o combate funciona no CROMA
+## 1. Como o combate funciona no CRONA
 
 - **Quem faz o quê:** o servidor guarda o combate e aplica as regras. A tela do mestre mostra e pede. O celular do jogador (`?ficha=`) mostra a ficha dele.
 - **Só o mestre mexe no combate** (decidido em 30/09): escolhe as ações, move as peças e digita as rolagens. Os jogadores rolam os dados físicos, dizem o resultado e assistem ao tabuleiro acontecendo na mesa (tablet). A tela está em `docs/TELA-COMBATE.md`.
 - **Cinco regras de fluidez:**
-  1. **O CROMA monta cada teste sozinho:** quantos d20, qual bônus, contra qual DT ou Defesa, e de onde vem cada modificador (ficha, condição, tabuleiro, arma). O mestre só confirma ou corrige.
+  1. **O CRONA monta cada teste sozinho:** quantos d20, qual bônus, contra qual DT ou Defesa, e de onde vem cada modificador (ficha, condição, tabuleiro, arma). O mestre só confirma ou corrige.
   2. **Uma entrada por rolagem:** o d20 que ficou, ou a soma dos dados de dano. Ninguém faz conta de cabeça.
   3. **O que acontece sozinho vira pendência:** começo e fim de turno, fim de efeito, contadores. Cada turno começa com uma lista curta do que vai acontecer.
   4. **Tudo se desfaz:** cada passo do combate é um evento no registro, e o mestre volta o último.
@@ -66,7 +66,7 @@ Tudo o que a aba COMBATE precisa saber para uma luta andar sem travar: começo d
 - **Dois tipos de modificador:**
   - em dados (+1d20, −1d20): mudam quantos d20 se rolam;
   - em número (+2, −5): somam no total.
-- **Menos de 1 dado** (p. 11): se uma penalidade deixaria menos de 1 dado, rola os dados que rolaria se ela fosse bônus e fica o pior. O CROMA guarda os dados ganhos e os perdidos separados (`shared/src/regras/rolagem.ts`):
+- **Menos de 1 dado** (p. 11): se uma penalidade deixaria menos de 1 dado, rola os dados que rolaria se ela fosse bônus e fica o pior. O CRONA guarda os dados ganhos e os perdidos separados (`shared/src/regras/rolagem.ts`):
   - n = atributo + dados ganhos − dados perdidos;
   - com n ≥ 1, rola n e fica o maior;
   - com n < 1, rola atributo + dados ganhos + dados perdidos e fica o menor (Agi 2 com −3d20: 5d20, o pior);
@@ -91,7 +91,7 @@ Tudo o que a aba COMBATE precisa saber para uma luta andar sem travar: começo d
 
 ### 2.2 Como se rola (DC-3, decidido em 30/09)
 
-**Sempre com dados físicos, na mesa, por enquanto.** Os jogadores e o mestre rolam os próprios dados, inclusive os das ameaças e os sorteios pequenos (d10 da camuflagem, d6 do confuso). O mestre digita o resultado na tela; o CROMA não sorteia nada.
+**Sempre com dados físicos, na mesa, por enquanto.** Os jogadores e o mestre rolam os próprios dados, inclusive os das ameaças e os sorteios pequenos (d10 da camuflagem, d6 do confuso). O mestre digita o resultado na tela; o CRONA não sorteia nada.
 
 | O que se rola | O que se digita |
 |---|---|
@@ -99,10 +99,10 @@ Tudo o que a aba COMBATE precisa saber para uma luta andar sem travar: começo d
 | dano | a soma dos dados |
 | Iniciativa | o total (cada agente o seu; o mestre, o do grupo dele) |
 
-Os outros modos ficam guardados para depois, se um dia fizerem falta: **CROMA** (o servidor sorteia tudo) e **misto** (os jogadores com dado físico, o CROMA rola as ameaças).
+Os outros modos ficam guardados para depois, se um dia fizerem falta: **CRONA** (o servidor sorteia tudo) e **misto** (os jogadores com dado físico, o CRONA rola as ameaças).
 
-- **Por que o d20 que ficou, e não o total:** o CROMA precisa dele para o 20 natural, para a margem de ameaça e para o empate. Quem preferir digita o total e marca "20 natural" ou "crítico".
-- **Dano:** a tela já diz o que rolar, com o crítico incluído (ex.: "crítico ×2: role 2d8 e some 3"). Digita-se a soma dos dados. O CROMA soma o fixo e aplica resistência, vulnerabilidade e RD.
+- **Por que o d20 que ficou, e não o total:** o CRONA precisa dele para o 20 natural, para a margem de ameaça e para o empate. Quem preferir digita o total e marca "20 natural" ou "crítico".
+- **Dano:** a tela já diz o que rolar, com o crítico incluído (ex.: "crítico ×2: role 2d8 e some 3"). Digita-se a soma dos dados. O CRONA soma o fixo e aplica resistência, vulnerabilidade e RD.
 - **Rolagem do mestre:** fica só na tela do mestre. O jogador vê o que o mestre anunciar (DC-4 decide o que aparece para os jogadores).
 
 ## 3. Começo do combate
@@ -124,7 +124,7 @@ Os outros modos ficam guardados para depois, se um dia fizerem falta: **CROMA** 
 4. **Um turno só para o mestre** (p. 169). Todos os seres do mestre agem num único turno, na Iniciativa do grupo. Dentro desse turno, o mestre escolhe a ordem, e cada ser tem as próprias ações.
 5. **Rodada 1.** Começa no maior resultado. Os surpreendidos ficam de fora até o fim da rodada 1; da rodada 2 em diante, todos agem (p. 84).
 
-**No CROMA:**
+**No CRONA:**
 - Abrir o combate traz as peças da cena (o mestre tira ou põe), sugere o lado pelo tipo e pergunta quem está ciente.
 - Pede a Iniciativa de cada agente e a do grupo do mestre (ou rola, conforme o modo), já mostrando o menor bônus do grupo. No empate, aponta os empatados e pede o desempate.
 - Guarda a ordem com o total e o desempate, e mostra de quem é a vez.
@@ -136,7 +136,7 @@ Os outros modos ficam guardados para depois, se um dia fizerem falta: **CROMA** 
 ### 3.2 Quem chega depois (LR p. 83)
 
 - Rola Iniciativa ao entrar e age na sua vez **na rodada seguinte**.
-- **No CROMA:** entra na ordem já marcado "age a partir da rodada N+1".
+- **No CRONA:** entra na ordem já marcado "age a partir da rodada N+1".
 - Um ser do mestre que chega depois passa a agir no turno do mestre da rodada seguinte (DC-5).
 
 ### 3.3 Mudar a ordem durante o combate
@@ -152,7 +152,7 @@ Os outros modos ficam guardados para depois, se um dia fizerem falta: **CROMA** 
   - Se ele ainda não agiu e fica à sua frente, age logo depois de você.
   - Nas rodadas seguintes, vale a nova ordem.
 
-**No CROMA:** botões "atrasar" (com valor, ou "vou agir agora" depois) e "preparar" (com o gatilho escrito). A ordem se reorganiza sozinha e o registro anota.
+**No CRONA:** botões "atrasar" (com valor, ou "vou agir agora" depois) e "preparar" (com o gatilho escrito). A ordem se reorganiza sozinha e o registro anota.
 - Atrasar é agir mais tarde: só antes de usar a ação padrão, a de movimento ou a completa (pagar o sustentado e outras ações livres não impedem). Quando a vez volta, o turno não começa de novo: os contadores de morrendo e enlouquecendo, o sustentado e as condições do começo do turno não contam duas vezes, e o PE já gasto continua contando no limite do turno.
 
 ## 4. Rodada, turno e duração
@@ -162,7 +162,7 @@ Os outros modos ficam guardados para depois, se um dia fizerem falta: **CROMA** 
 - A rodada tem uns 6 segundos. Começa no turno de maior Iniciativa e acaba depois do de menor.
 - A rodada também mede o tempo entre uma contagem de Iniciativa e a mesma contagem na rodada seguinte. Um efeito de N rodadas acaba logo antes da contagem em que começou, N rodadas depois.
 
-### 4.2 Durações que o CROMA precisa entender
+### 4.2 Durações que o CRONA precisa entender
 
 | Duração no texto | Quando acaba |
 |---|---|
@@ -176,7 +176,7 @@ Os outros modos ficam guardados para depois, se um dia fizerem falta: **CROMA** 
 | até sair (morrendo, efeitos de medo do SaH) | quando a condição de saída acontece |
 | permanente | não acaba sozinha |
 
-**No CROMA:** cada efeito guarda quem o criou, a rodada e a contagem em que começou, e a regra de fim. O servidor tira o efeito na hora certa e escreve no registro.
+**No CRONA:** cada efeito guarda quem o criou, a rodada e a contagem em que começou, e a regra de fim. O servidor tira o efeito na hora certa e escreve no registro.
 
 ### 4.3 Começo do turno
 
@@ -197,7 +197,7 @@ O livro não diz em que ordem as coisas do começo do turno acontecem. Proposta 
 7. **Quem não pode agir** (inconsciente, morrendo, atordoado, pasmo): o turno começa, para contar tudo acima, e passa sozinho. O paralisado só faz ações puramente mentais.
    - O surpreendido não tem turno na rodada 1 (p. 84): nada do começo do turno acontece para ele nessa rodada.
 
-**No CROMA:** a lista aparece no começo do turno com o que vai acontecer. O mestre confirma e digita os dados que rolaram na mesa.
+**No CRONA:** a lista aparece no começo do turno com o que vai acontecer. O mestre confirma e digita os dados que rolaram na mesa.
 
 ### 4.4 Fim do turno
 
@@ -245,7 +245,7 @@ O livro não diz em que ordem as coisas do começo do turno acontecem. Proposta 
 
 - **Movimento em partes:** uma ação de movimento é um deslocamento contínuo. Na tela, a peça pode parar e seguir enquanto nenhuma outra ação acontecer no meio (proposta).
 
-**No CROMA:** a tela mostra o que ainda cabe no turno e desconta ao escolher a ação. Se só sobra movimento, só oferece movimento. "Passar o turno" encerra.
+**No CRONA:** a tela mostra o que ainda cabe no turno e desconta ao escolher a ação. Se só sobra movimento, só oferece movimento. "Passar o turno" encerra.
 
 ### 5.2 Ações padrão
 
@@ -276,7 +276,7 @@ O livro não diz em que ordem as coisas do começo do turno acontecem. Proposta 
 | **Levantar-se** | sai do caído. Com Acrobacia treinada, pode testar DT 20 para levantar como ação livre (precisa ter a ação de movimento disponível; se falhar, gasta a ação e continua caído) | p. 41, 87 |
 | **Manipular item** | pegar da mochila, abrir ou fechar porta, jogar uma corda, jogar um item para alguém pegar | p. 87 |
 | **Mirar** | só com Pontaria treinada: tira o −5 de atirar em quem está em corpo a corpo, contra aquele alvo. Com fuzil de precisão e Pontaria veterana, +5 na margem de ameaça | p. 58, 87 |
-| **Sacar ou guardar** | um item. Sacar arma de arremesso também gasta esta ação. A bandoleira (uma vez por rodada) e a modificação tática deixam livre. No CROMA, o "Sacar" da arma da mochila gasta a ação e põe a arma na mão | p. 54, 60, 65, 87 |
+| **Sacar ou guardar** | um item. Sacar arma de arremesso também gasta esta ação. A bandoleira (uma vez por rodada) e a modificação tática deixam livre. No CRONA, o "Sacar" da arma da mochila gasta a ação e põe a arma na mão | p. 54, 60, 65, 87 |
 | **Recarregar** | besta, balestra e bazuca, a cada disparo. Na contagem de munição, qualquer arma quando esvazia | p. 58, 174 |
 | **Reempunhar arma de duas mãos** | apoiar no chão para soltar uma mão é livre | p. 54 |
 | **Apoiar a metralhadora** | no tripé; sem isso e sem Força 4, −5 no ataque | p. 59 |
@@ -338,7 +338,7 @@ O livro não diz em que ordem as coisas do começo do turno acontecem. Proposta 
 - O bônus da perícia é o número dela (grau + bônus fixos), como no REGRAS.md.
 - Desvantagem de idade gota: esquivar causa 1d6 de dano no próprio personagem (p. 173).
 
-**No CROMA:**
+**No CRONA:**
 - Quando um ataque é declarado contra um agente, a tela oferece bloqueio ou esquiva **antes** da rolagem, se ele tem a perícia treinada e ainda não usou a defesa da rodada.
 - Se o golpe corpo a corpo errar, oferece o contra-ataque.
 - O uso fica marcado até o começo do próximo turno dele (DC-7).
@@ -347,12 +347,12 @@ O livro não diz em que ordem as coisas do começo do turno acontecem. Proposta 
 
 (LR p. 54–60, 82, 85, 89–90)
 
-1. **Quem ataca, com o quê, em quem.** Com a arma empunhada (da mochila), um ataque desarmado, uma arma improvisada ou o ataque da ficha da ameaça. O CROMA confere o alvo:
+1. **Quem ataca, com o quê, em quem.** Com a arma empunhada (da mochila), um ataque desarmado, uma arma improvisada ou o ataque da ficha da ameaça. O CRONA confere o alvo:
    - corpo a corpo: alvo adjacente, ou dentro do alcance natural dos seres grandes;
    - à distância: alvo visível, até o alcance da arma sem penalidade, ou até o dobro com −5; além disso, não dá;
    - arma sem alcance pode ser arremessada em alcance curto, com −5 (p. 55);
    - cobertura total: não pode ser alvo.
-2. **Teste de ataque** (p. 82): Luta no corpo a corpo (dados de Força) e Pontaria à distância, arremesso incluído (dados de Agilidade). Armas ágeis podem usar Agilidade no ataque e no dano (p. 59). O CROMA soma:
+2. **Teste de ataque** (p. 82): Luta no corpo a corpo (dados de Força) e Pontaria à distância, arremesso incluído (dados de Agilidade). Armas ágeis podem usar Agilidade no ataque e no dano (p. 59). O CRONA soma:
    - o bônus da perícia e o da arma (certeira ou alongada, +2; p. 60–61);
    - habilidades declaradas antes de rolar (ex.: Ataque Especial, pagando PE);
    - situações e condições (seção 7);
@@ -377,7 +377,7 @@ O livro não diz em que ordem as coisas do começo do turno acontecem. Proposta 
 
 ### 7.1 Tabela 4.4 e o que o tabuleiro vê (LR p. 89–90, 310–311)
 
-| Situação | Efeito | O CROMA descobre sozinho? |
+| Situação | Efeito | O CRONA descobre sozinho? |
 |---|---|---|
 | atacante caído | −2d20 no ataque corpo a corpo (seção 22) | sim, pela condição |
 | atacante cego | 50% de chance de falha | sim, pela condição ou pela escuridão total |
@@ -401,7 +401,7 @@ O livro não diz em que ordem as coisas do começo do turno acontecem. Proposta 
 ### 7.2 Medidas do tabuleiro (DC-8 a DC-12)
 
 **Escala:**
-- 1 quadrado do livro (1,5 m) = 2 casas do CROMA (REGRAS.md, decisão 6).
+- 1 quadrado do livro (1,5 m) = 2 casas do CRONA (REGRAS.md, decisão 6).
 - 1 casa vale 0,75 m, nas regras e no desenho (desde 03/10 a arte segue essa escala: os móveis no tamanho de verdade e a pessoa com 1,80 m).
 
 | Metros | 1,5 | 3 | 4,5 | 6 | 9 (curto, deslocamento) | 18 (médio) | 36 (longo) | 90 (extremo) |
@@ -409,7 +409,7 @@ O livro não diz em que ordem as coisas do começo do turno acontecem. Proposta 
 | Casas | 2 | 4 | 6 | 8 | 12 | 24 | 48 | 120 |
 
 **Espaço de cada ser:**
-- Médios e menores ocupam 1 quadrado. No CROMA, a peça fica numa casa, e em combate nenhuma outra peça para a menos de 2 casas dela (sobra uma casa livre entre duas peças).
+- Médios e menores ocupam 1 quadrado. No CRONA, a peça fica numa casa, e em combate nenhuma outra peça para a menos de 2 casas dela (sobra uma casa livre entre duas peças).
 - Assim cabem no máximo 8 seres Médios em volta de outro, como no livro.
 - Grande ocupa 4×4 casas; Enorme, 6×6; Colossal, 12×12 (p. 179).
 - Alternativa: uma grade de combate com quadrados de 2×2 casas (DC-8).
@@ -425,7 +425,7 @@ O livro não diz em que ordem as coisas do começo do turno acontecem. Proposta 
 - voando ou nadando, subir custa o dobro (o triplo na diagonal) e descer custa metade (o normal na diagonal);
 - sobrecarregado: −3 m (4 casas).
 
-**Alcance e área:** o livro só manda dobrar a diagonal no movimento. Para alcance e áreas (esfera, cone), o CROMA mede em linha reta entre os centros, como um raio de verdade (DC-10).
+**Alcance e área:** o livro só manda dobrar a diagonal no movimento. Para alcance e áreas (esfera, cone), o CRONA mede em linha reta entre os centros, como um raio de verdade (DC-10).
 
 **Flanquear** (p. 90):
 - você e um aliado estão adjacentes ao alvo, em lados opostos: a reta entre os centros de vocês dois passa pelo espaço dele;
@@ -474,7 +474,7 @@ O livro não diz em que ordem as coisas do começo do turno acontecem. Proposta 
   - óculos de visão térmica tiram a penalidade da camuflagem (p. 60, 66);
   - faro, visão na penumbra, visão no escuro e percepção às cegas das ameaças (seção 17).
 
-**No CROMA:** rola (ou pede) o d10 junto do ataque e só depois mostra acerto ou erro. Os 75% (o teto da soma) não cabem no d10: pede o d4, e falha de 1 a 3.
+**No CRONA:** rola (ou pede) o d10 junto do ataque e só depois mostra acerto ou erro. Os 75% (o teto da soma) não cabem no d10: pede o d4, e falha de 1 a 3.
 
 ## 8. Dano e cura
 
@@ -526,7 +526,7 @@ O livro não diz em que ordem as coisas do começo do turno acontecem. Proposta 
 - Soma com o letal para desmaiar, mas não para morrendo.
 - A cura tira primeiro o não letal.
 
-**No CROMA:**
+**No CRONA:**
 - o combate guarda o dano não letal de cada ser à parte (`naoLetal`); os PV da peça só caem com o letal;
 - PV atual − não letal ≤ 0: inconsciente e caído, sem morrendo;
 - PV 0 por dano letal: morrendo;
@@ -540,7 +540,7 @@ O livro não diz em que ordem as coisas do começo do turno acontecem. Proposta 
 - Falhou: vai a 0 PV (inconsciente e morrendo).
 - Opção `ferimentosDebilitantes` (SaH p. 105): em vez de ir a 0 PV, sofre um ferimento debilitante (21.2).
 
-**No CROMA:** o teste aparece sozinho logo depois do dano.
+**No CRONA:** o teste aparece sozinho logo depois do dano.
 
 ### 8.6 Cura e pontos temporários
 
@@ -602,7 +602,7 @@ O livro não diz em que ordem as coisas do começo do turno acontecem. Proposta 
   - de metal: RD 10; PV 5, 10, 20.
 - Objeto a 0 PV quebra, e só volta a funcionar depois de consertado no interlúdio.
 
-**No CROMA:**
+**No CRONA:**
 - empurrão e derrubada mexem na peça sozinhos, em linha reta, até a primeira casa bloqueada ou ocupada; o mestre ajusta o resto;
 - caído deita a peça;
 - o item desarmado vai para o registro (onde caiu); o mestre tira da mão na ficha. Item no chão da cena fica para depois;
@@ -623,7 +623,7 @@ O livro não diz em que ordem as coisas do começo do turno acontecem. Proposta 
 - **Saídas:**
   - o inconsciente sai com qualquer cura de 1 PV ou mais;
   - o morrendo sai com Medicina DT 20 ou com um efeito específico (p. 88); pelo apêndice, sai ao voltar a 1 PV (p. 311);
-  - o CROMA usa "ao voltar a 1 PV"; a chave `morrendoEstrito` exige a Medicina.
+  - o CRONA usa "ao voltar a 1 PV"; a chave `morrendoEstrito` exige a Medicina.
 - **Primeiros socorros** (p. 46):
   - Medicina DT 20, ação padrão, num alvo adjacente;
   - +5 na DT a cada vez que ele já foi estabilizado nesta cena;
@@ -633,10 +633,10 @@ O livro não diz em que ordem as coisas do começo do turno acontecem. Proposta 
 - **Opção `lesoes`** (p. 174): no 2º começo de turno morrendo na cena, Vigor DT 10. Se falhar, perde 1 ponto de atributo para sempre (1d6: Agi, For, Int, Pre, Vig; no 6, nada).
 - **Opção `inspiracaoResoluta`** (p. 174–175): o jogador do agente morto rola 1d10 no começo de cada rodada, até o fim da cena, e dá o efeito a outro agente.
 
-**No CROMA:**
+**No CRONA:**
 - contador de morrendo por personagem e por cena, à vista na ordem e na carta ("morrendo 1/3");
 - o turno de quem está morrendo começa (conta e aplica o começo do turno) e passa sozinho;
-- no 3º turno, o CROMA marca "morto" e o mestre confirma (dá para desfazer);
+- no 3º turno, o CRONA marca "morto" e o mestre confirma (dá para desfazer);
 - guarda quantas vezes cada personagem foi estabilizado na cena, para a DT subir;
 - NPCs e criaturas a 0 PV: seção 17.4.
 
@@ -657,7 +657,7 @@ O livro não diz em que ordem as coisas do começo do turno acontecem. Proposta 
 - **Opção `loucuraNaoLetal`** (p. 175): o insano fica com o jogador e rola 1d6 na tabela de efeitos de insanidade.
 - **Opção `medoEmJogo`** (SaH): troca estas regras (21.1).
 
-**No CROMA:** igual ao morrendo. Contador "enlouquecendo 1/3", acalmadas da cena contadas por personagem, e o insano passa a ficha para o mestre, com confirmação.
+**No CRONA:** igual ao morrendo. Contador "enlouquecendo 1/3", acalmadas da cena contadas por personagem, e o insano passa a ficha para o mestre, com confirmação.
 
 ## 12. Condições no combate
 
@@ -757,7 +757,7 @@ Cada contador tem dono, escopo (turno, cena, combate, dia, sessão) e zera sozin
 - **PE:** é gasto mesmo se a habilidade falhar.
 - **Limite de PE por turno:** o da Tab. 1.2 (p. 23): 1 em NEX 5%, mais 1 a cada NEX, até 20 em 99%. É a soma de tudo o que se gasta no turno.
   - Exceção: sempre dá para usar uma habilidade no custo mínimo por turno, mesmo acima do limite (ex.: Ataque Especial a 2 PE em NEX 5%).
-  - O C.R.I.S deixa o primeiro gasto passar inteiro; o CROMA segue o livro, só no custo mínimo (seção 22).
+  - O C.R.I.S deixa o primeiro gasto passar inteiro; o CRONA segue o livro, só no custo mínimo (seção 22).
   - Reações fora do turno: o livro não diz em qual turno o gasto conta. Proposta: o limite vale do começo do seu turno até o começo do próximo (DC-14).
 - **Reduções de custo:** não somam; o custo mínimo é 1 PE (p. 78). Alquebrado: +1 PE (p. 310).
 - **DT de resistência:** 10 + limite de PE + atributo (p. 78).
@@ -822,7 +822,7 @@ Poderes que mexem direto no combate (só nome e página): Ataque Especial (p. 24
 - **Aliado acólito:** +1d20 em Ocultismo; 1 PE para +2 na DT do ritual (p. 171).
 - **Membrana do local:** muda o que o ritual pode fazer (p. 97; REGRAS.md, seção 6).
 
-**No CROMA:**
+**No CRONA:**
 - a tela do ritual mostra o custo com a forma e confere o limite, a mão livre e os componentes;
 - desenha a área no tabuleiro, em casas, e lista quem está dentro;
 - pede os testes de resistência (um por alvo; o mestre digita o d20 de cada um, também o das ameaças);
@@ -917,7 +917,7 @@ Poderes que mexem direto no combate (só nome e página): Ataque Especial (p. 24
   - balas longas, cartuchos e combustível: 1 cena;
   - flechas: a missão toda;
   - foguete: 1 disparo.
-  - **No CROMA:** no fim do combate, cada arma de fogo usada gasta uma cena do seu pacote.
+  - **No CRONA:** no fim do combate, cada arma de fogo usada gasta uma cena do seu pacote.
 - **Opção `contagemMunicao`** (p. 174):
   - cada pacote tem 20 ataques;
   - capacidade da arma: pistola 12, revólver 6, fuzil de caça 4, submetralhadora 20, espingarda 6, fuzil de assalto 30, fuzil de precisão 1, metralhadora 50;
@@ -945,7 +945,7 @@ Poderes que mexem direto no combate (só nome e página): Ataque Especial (p. 24
 
 As estatísticas já trazem os modificadores de tamanho e equipamento.
 
-**No CROMA:**
+**No CRONA:**
 - catálogo de fichas de ameaça (nome, números e página, sem o texto: as 74 do livro de regras, em `shared/src/combate/ameacasLivro.ts`) e ficha avulsa, criada pelo mestre;
 - "imune a dano" na ficha do livro vale para todo dano; nas criaturas de Medo, cai quando o enigma é resolvido (o mestre desmarca "todo dano" nas imunidades da ficha);
 - teste impresso como "–2O" no lugar dos dados: atributo 0, rola 2d20 e fica o pior (p. 75); na ficha rápida, d20 = 0;
@@ -957,7 +957,7 @@ As estatísticas já trazem os modificadores de tamanho e equipamento.
 - **Defesas especiais:** as ameaças não usam bloqueio, esquiva nem contra-ataque (p. 179).
 - **"×2" na ação:** dois ataques por ação.
 - **Origem paranormal** (criaturas, p. 180): sem SAN; imunes a dano mental, a condições mentais e de medo, e a rituais de Medo.
-  - **No CROMA:** a ameaça com elemento é criatura. A conta do dano soma o mental às imunidades dela, o combate recusa as condições de medo e mentais nela, e o ritual de Medo não a afeta (o registro diz que é imune).
+  - **No CRONA:** a ameaça com elemento é criatura. A conta do dano soma o mental às imunidades dela, o combate recusa as condições de medo e mentais nela, e o ritual de Medo não a afeta (o registro diz que é imune).
 - **Presença perturbadora** (p. 180):
   - quando o personagem vê a criatura, faz Vontade contra a DT dela; se falhar, sofre o dano mental cheio; se passar, metade;
   - com o NEX indicado ou mais, é imune;
@@ -981,7 +981,7 @@ As estatísticas já trazem os modificadores de tamanho e equipamento.
     - +2d20 nos ataques contra quem não está cego; o alvo cego, em vez disso, sofre −5 na Defesa;
   - **recarga:** depois de usar a habilidade, a ameaça precisa gastar a ação indicada, ou cumprir a condição, antes de usar de novo.
 - **Enigma de medo:** o mestre marca "resolvido", e a ficha perde o que o enigma diz.
-- **Reações com gatilho no tabuleiro** (ex.: "quando alguém anda perto dela"): o CROMA avisa o mestre quando o gatilho acontece.
+- **Reações com gatilho no tabuleiro** (ex.: "quando alguém anda perto dela"): o CRONA avisa o mestre quando o gatilho acontece.
 
 ### 17.3 Equilíbrio do combate (p. 177)
 
@@ -990,7 +990,7 @@ As estatísticas já trazem os modificadores de tamanho e equipamento.
   - igual: equilibrado;
   - uma vez e meia: difícil.
 - Com jogadores veteranos, o difícil é o dobro.
-- O CROMA pode mostrar esse medidor ao montar o combate.
+- O CRONA pode mostrar esse medidor ao montar o combate.
 
 ### 17.4 Ameaça a 0 PV
 
@@ -1017,7 +1017,7 @@ As estatísticas já trazem os modificadores de tamanho e equipamento.
 | Guerrilheiro | +1d20 nos ataques | +1d8 de dano, se acertar |
 | Socorrista | treinado em Medicina | cura 1d8+1 PV (você ou um aliado adjacente) |
 
-**No CROMA:** o aliado fica ligado a um agente, com peça opcional no tabuleiro. O bônus entra sozinho nos testes, e a habilidade é um botão por rodada.
+**No CRONA:** o aliado fica ligado a um agente, com peça opcional no tabuleiro. O bônus entra sozinho nos testes, e a habilidade é um botão por rodada.
 
 ## 19. Perigos da cena
 
@@ -1056,9 +1056,9 @@ As estatísticas já trazem os modificadores de tamanho e equipamento.
 - **Venenos** (tabela da p. 293) e **doenças** (p. 291–292).
 - **Falta de ar:** ver a seção 22.
 
-**No CROMA:**
+**No CRONA:**
 - os perigos viram marcas nas casas da cena (fogo, fumaça, água, gelo, arame, fosso) ou entram no clima da cena;
-- o CROMA lembra no começo do turno de quem está dentro, e quando alguém entra;
+- o CRONA lembra no começo do turno de quem está dentro, e quando alguém entra;
 - as partículas de fumaça e brasas de hoje são só visual; a regra entra quando o mestre liga o perigo.
 
 ## 20. Fim do combate
@@ -1070,7 +1070,7 @@ As estatísticas já trazem os modificadores de tamanho e equipamento.
   - os contadores da cena: estabilizações, acalmadas, usos "por cena";
   - os rituais de duração cena.
 - **Continua:** PV, PE, SAN e o que for permanente. Machucado e perturbado vêm da ficha.
-- **Morrendo ou enlouquecendo em aberto:** o CROMA não fecha o combate sem o mestre resolver: continuar contando em rodadas, estabilizar ou decidir.
+- **Morrendo ou enlouquecendo em aberto:** o CRONA não fecha o combate sem o mestre resolver: continuar contando em rodadas, estabilizar ou decidir.
 - **Munição:** gasta uma cena do pacote de cada arma de fogo usada.
 - **Ritual sustentado:** acaba com o combate, salvo se o mestre mantiver (DC-17).
 - O registro guarda o resumo. Depois vem o interlúdio (REGRAS.md, seção 8).
@@ -1131,7 +1131,7 @@ Troca as regras de insanidade e loucura do LR (p. 88, 111–113).
   - rola um segundo efeito, com +5 sobre o modificador da rolagem que acabou de fazer: 2d10+5 na primeira vez que chega a SAN 0 na cena, 2d10+6 na segunda, e assim por diante;
   - na rodada seguinte, recupera 1d4 SAN "por nível" (DC-18) e sai de paralisado ou inconsciente.
 
-**No CROMA:** a SAN 0 dispara a rolagem da tabela (ou pede o 2d10). O efeito entra como condição, com a saída "recuperar 1 SAN".
+**No CRONA:** a SAN 0 dispara a rolagem da tabela (ou pede o 2d10). O efeito entra como condição, com a saída "recuperar 1 SAN".
 
 ### 21.2 Ferimentos debilitantes: `ferimentosDebilitantes` (SaH p. 105)
 
@@ -1187,7 +1187,7 @@ Troca as regras de insanidade e loucura do LR (p. 88, 111–113).
       - 19: porta trancada (Crime DT 25);
       - 20: caminho escondido na vegetação (Sobrevivência DT 20).
 
-**No CROMA:** um modo "perseguição" com a contagem de sucessos e falhas de cada um, as ações acima e o sorteio de eventos. O tabuleiro fica opcional.
+**No CRONA:** um modo "perseguição" com a contagem de sucessos e falhas de cada um, as ações acima e o sorteio de eventos. O tabuleiro fica opcional.
 
 ### 21.5 Furtividade por visibilidade (SaH p. 92–93)
 
@@ -1210,7 +1210,7 @@ Troca as regras de insanidade e loucura do LR (p. 88, 111–113).
   - 18–19: nada;
   - 20: um −1.
 
-**No CROMA:** marcadores de visibilidade nas peças (o SaH sugere marcadores físicos; aqui, eles ficam no tabuleiro) e o sorteio de eventos no começo da rodada.
+**No CRONA:** marcadores de visibilidade nas peças (o SaH sugere marcadores físicos; aqui, eles ficam no tabuleiro) e o sorteio de eventos no começo da rodada.
 
 ### 21.6 Modo rápido do combate narrativo (SaH p. 119–123)
 
@@ -1247,7 +1247,7 @@ Troca as regras de insanidade e loucura do LR (p. 88, 111–113).
 
 ## 22. Conflitos do livro
 
-Os seis primeiros já estão no REGRAS.md (seção 13). Os outros são do combate. O livro não resolve nenhum deles; a proposta é a escolha do CROMA até o mestre decidir.
+Os seis primeiros já estão no REGRAS.md (seção 13). Os outros são do combate. O livro não resolve nenhum deles; a proposta é a escolha do CRONA até o mestre decidir.
 
 | Ponto | O livro diz | Proposta |
 |---|---|---|
@@ -1297,7 +1297,7 @@ Os seis primeiros já estão no REGRAS.md (seção 13). Os outros são do combat
 | DC-22 | Jogador age pelo celular? | decidido (30/09): não. Só o mestre mexe na tela; os jogadores assistem ao tabuleiro na mesa |
 | DC-23 | Regras da casa e opções ligadas | tudo desligado (livro puro) até o mestre escolher |
 
-## 24. O que o CROMA guarda
+## 24. O que o CRONA guarda
 
 Esboço do que o servidor precisa guardar. O contrato de verdade entra no `docs/CONTRATO.md` quando o código chegar.
 
@@ -1325,7 +1325,7 @@ Esboço do que o servidor precisa guardar. O contrato de verdade entra no `docs/
   - quem rola e o quê (perícia, ataque, dano, resistência);
   - a fórmula (quantos d20, fica o maior ou o menor, bônus) e a lista de modificadores, com a fonte;
   - o dado digitado ou sorteado, o total, o alvo (DT ou Defesa) e o resultado;
-  - o modo (mesa ou CROMA).
+  - o modo (mesa ou CRONA).
 - **Evento do combate:** alimenta o registro e o desfazer. Tem tipo, autor, dados, e o antes e o depois de cada mudança.
 - **Ações novas para a interface pedir** (nomes provisórios):
   - `combat.start`, `combat.join`, `combat.initiative`, `combat.nextTurn`, `combat.delay`, `combat.ready`;

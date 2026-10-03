@@ -1,4 +1,4 @@
-import { Z_PER_M, type FurniDef } from "@croma/shared";
+import { Z_PER_M, type FurniDef } from "@crona/shared";
 import { hash, mix, rgba, rng, shade } from "./color";
 import { B, drawers, lightIf, N, V, WARM, type Builder } from "./furniKit";
 import {

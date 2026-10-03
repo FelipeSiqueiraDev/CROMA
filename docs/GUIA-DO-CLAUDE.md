@@ -1,6 +1,6 @@
-# Guia do Claude: como tocar o CROMA com o Felipe
+# Guia do Claude: como tocar o CRONA com o Felipe
 
-Este guia é para o Claude que pega o CROMA do zero, numa conversa nova ou noutra conta. O [`AGENTS.md`](../AGENTS.md) diz o que o projeto é e como rodar. Este diz **como trabalhar aqui**: os combinados com o Felipe, o caminho da arte com o Códex e como conferir o que se faz. O que está pela metade e o que falta fica no [`EM-ABERTO.md`](EM-ABERTO.md).
+Este guia é para o Claude que pega o CRONA do zero, numa conversa nova ou noutra conta. O [`AGENTS.md`](../AGENTS.md) diz o que o projeto é e como rodar. Este diz **como trabalhar aqui**: os combinados com o Felipe, o caminho da arte com o Códex e como conferir o que se faz. O que está pela metade e o que falta fica no [`EM-ABERTO.md`](EM-ABERTO.md).
 
 ## Comece aqui
 
@@ -25,7 +25,7 @@ Este guia é para o Claude que pega o CROMA do zero, numa conversa nova ou noutr
 ## Quem é quem
 
 - **Felipe:**
-  - é o mestre de Ordem Paranormal e usa o CROMA para jogar com o grupo dele;
+  - é o mestre de Ordem Paranormal e usa o CRONA para jogar com o grupo dele;
   - decide o que entra e como fica;
   - escreve curto e em português, às vezes por voz (as palavras podem vir trocadas).
 - **Claude, o construtor:** faz todo o código e encaixa a arte no jogo.
@@ -79,7 +79,7 @@ Este guia é para o Claude que pega o CROMA do zero, numa conversa nova ou noutr
   - tudo de `server/data/`.
 
 **O computador do Felipe**
-- **Não roube o foco da tela.** Para ver o jogo, use o painel de navegador do app ("croma-visual", abaixo), não Chrome headless.
+- **Não roube o foco da tela.** Para ver o jogo, use o painel de navegador do app ("crona-visual", abaixo), não Chrome headless.
 - "Desligar o PC" no fim da sessão é **hibernar**, depois do relatório final:
 
   ```powershell
@@ -91,8 +91,8 @@ Este guia é para o Claude que pega o CROMA do zero, numa conversa nova ou noutr
 O básico está no `AGENTS.md`. Além dele:
 
 - **Testes visuais numa cópia do banco.**
-  1. Com o servidor de verdade parado, rode `node scripts/dev/visual.mjs criar` (faz a `croma_visual`).
-  2. Abra o preview "croma-visual" do `.claude/launch.json`.
+  1. Com o servidor de verdade parado, rode `node scripts/dev/visual.mjs criar` (faz a `crona_visual`).
+  2. Abra o preview "crona-visual" do `.claude/launch.json`.
   3. Ao terminar, pare o preview e rode `node scripts/dev/visual.mjs apagar`.
 
   O Felipe pode estar mexendo na cópia ao mesmo tempo.
@@ -102,12 +102,12 @@ O básico está no `AGENTS.md`. Além dele:
   3. Na página (`javascript_tool`):
 
   ```js
-  const v = window.__croma.view; v.frame();
+  const v = window.__crona.view; v.frame();
   fetch('http://127.0.0.1:5999/?nome=sala.png', { method: 'POST', body: v.canvas.toDataURL('image/png') });
   ```
 
   Comandos úteis na página:
-  - **Trocar de cena:** `__croma.net.send({ t: 'join', roomId })` (os ids estão em `__croma.state.rooms`).
+  - **Trocar de cena:** `__crona.net.send({ t: 'join', roomId })` (os ids estão em `__crona.state.rooms`).
   - **Andar com uma peça:** `view.myId = id; view.events.walk(x, y)`.
   - **Antes de capturar:** `v.autoFit = true; v.needFit = true`, ou trave a câmera com `autoFit = false; needFit = false; camAnim = null`.
 - **Mudou a montagem da Sede ou da Fazenda?** Suba `SEDE_REV` / `FAZENDA_REV` **a cada edição**: a versão que o banco já aplicou não refaz nada. Confira em memória antes com `npx tsx`, montando `seedDb()` e `upgradeDb()`; o `console.warn` diz o que não coube.

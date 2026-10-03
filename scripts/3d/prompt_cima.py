@@ -5,7 +5,7 @@ de cima, por cômodo, com as medidas em pixels. Os móveis de cada cômodo vêm 
 
     python scripts/3d/prompt_cima.py [--saida arquivo.txt]
 
-Sem --saida, grava na pasta da arte do GPT (CROMA_ARTE_GPT, ou a de sempre), por cima do pedido de lá.
+Sem --saida, grava na pasta da arte do GPT (CRONA_ARTE_GPT, ou a de sempre), por cima do pedido de lá.
 """
 import json
 import os
@@ -14,7 +14,7 @@ import sys
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 JOGO = os.path.dirname(os.path.dirname(AQUI))
-PASTA_GPT = os.environ.get('CROMA_ARTE_GPT') or os.path.join(
+PASTA_GPT = os.environ.get('CRONA_ARTE_GPT') or os.path.join(
     os.path.expanduser('~'), 'OneDrive', 'Área de Trabalho', 'TEXTURAS MAPA', 'BASE - Ordo Realitas')
 SAIDA = sys.argv[sys.argv.index('--saida') + 1] if '--saida' in sys.argv else os.path.join(PASTA_GPT, 'PROMPT-VISTA-DE-CIMA.txt')
 CASA_M = 0.75

@@ -6,7 +6,7 @@ import {
   getWallFurni,
   WALL_FURNI_LIST,
   type FurniCategory,
-} from '@croma/shared';
+} from '@crona/shared';
 import { thumbCopy } from '../render/thumbs';
 import type { App } from './app';
 import { clear, h, toast, Win } from './dom';

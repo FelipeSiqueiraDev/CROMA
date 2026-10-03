@@ -1,4 +1,4 @@
-import { RoomMap, type AvatarLook, type Door, type FloorItem, type FloorStyle, type LightMode, type ParticleKind } from '@croma/shared';
+import { RoomMap, type AvatarLook, type Door, type FloorItem, type FloorStyle, type LightMode, type ParticleKind } from '@crona/shared';
 import type { Database, RoomData, TokenData } from './db';
 import { buildRoom, plan, type FloorSeed, type WallSeed } from './seed';
 

@@ -1,4 +1,4 @@
-import type { LogIcon, LootKind } from '@croma/shared';
+import type { LogIcon, LootKind } from '@crona/shared';
 
 let uid = 0;
 

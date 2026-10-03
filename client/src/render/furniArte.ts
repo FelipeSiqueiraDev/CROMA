@@ -1,4 +1,4 @@
-import { M_POR_CASA, Z_PER_M, type FurniDef } from '@croma/shared';
+import { M_POR_CASA, Z_PER_M, type FurniDef } from '@crona/shared';
 import { rgba } from './color';
 import { N, V, type FVisual } from './furniKit';
 import { iso } from './iso';

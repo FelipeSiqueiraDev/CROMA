@@ -59,7 +59,7 @@ import {
   type VitalKey,
   type Vitals,
   type WallItem,
-} from '@croma/shared';
+} from '@crona/shared';
 import type { RoomData, TokenData } from './db';
 import { SYSTEM_OWNER } from './seed';
 

@@ -2,7 +2,7 @@
 
 É o combinado entre a interface e o servidor. A interface **lê** a sessão e **pede** ações; o servidor confere a permissão, aplica e manda a sessão atualizada para todo mundo. A interface nunca decide sozinha se algo é permitido.
 
-- Tipos: `shared/src/session.ts` (importe de `@croma/shared`).
+- Tipos: `shared/src/session.ts` (importe de `@crona/shared`).
 - No cliente: `app.session`, um `SessionStore` (`client/src/session/store.ts`).
 - Testes das regras: `server/test/session.test.ts` (`npm test`).
 
@@ -62,7 +62,7 @@ Com ficha, `load` e `capacity` são os da mochila, em espaços (5 por ponto de F
 
 - Toda posição (`pos`, `to`, `top`, `exits[].pos`) é relativa ao **quadro da cena**: `x` e `y` entre 0 e 1, com (0,0) no canto superior esquerdo. O quadro tem a proporção `scene.aspect` (largura ÷ altura). Desenhe a cena num retângulo com essa proporção e multiplique: `left = pos.x * largura`, `top = pos.y * altura`.
 - Hoje o quadro é o retângulo que contém o chão e as paredes do cômodo desenhado por código. Quando as cenas virarem imagens, o quadro passa a ser a própria imagem e as posições continuam valendo.
-- O servidor continua com a **casa** (`tile`) para a colisão e o caminho. A conversão entre casa e ponto usa `scene.grid`, com estas funções de `@croma/shared`:
+- O servidor continua com a **casa** (`tile`) para a colisão e o caminho. A conversão entre casa e ponto usa `scene.grid`, com estas funções de `@crona/shared`:
   - `tileCenter(grid, tile, altura)` dá o ponto do centro da casa;
   - `pointToTile(grid, heightmap, ponto)` dá a casa sob o ponto;
   - `tilesByDistance(...)` dá as casas mais perto de um ponto.

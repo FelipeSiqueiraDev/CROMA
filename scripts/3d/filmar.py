@@ -1,5 +1,5 @@
 """
-Filma um personagem animado no ângulo do tabuleiro do CROMA (Blender, sem janela).
+Filma um personagem animado no ângulo do tabuleiro do CRONA (Blender, sem janela).
 
 Uso:
   blender -b --factory-startup -P filmar.py -- <config.json>
@@ -79,7 +79,7 @@ def materiais_de_passe(objs):
             m = slot.material
             if not m or m.name in originais:
                 continue
-            if m.get('croma_vistas'):
+            if (m.get('crona_vistas') or m.get('croma_vistas')):
                 # personagem tirado da arte (montar_arte.py): a cor já vem pronta, uma por direção
                 mc = m.copy()
                 mc.name = m.name + '__cor'
@@ -444,7 +444,7 @@ def main():
             for d in direcoes:
                 virar(d)
                 for m, mc, mn in mats.values():
-                    if m.get('croma_vistas'):
+                    if (m.get('crona_vistas') or m.get('croma_vistas')):
                         mc.node_tree.nodes['vista'].attribute_name = f'cor_{d}'
                 pasta = os.path.join(SAIDA, anim['nome'], d)
                 os.makedirs(pasta, exist_ok=True)

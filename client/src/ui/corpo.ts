@@ -14,7 +14,7 @@
  * sprite e só respira: o quadro de olhos fechados da folha é outra pose (o
  * corpo balança entre os quadros), e trocar por ele faria o boneco tremer.
  */
-import type { CharacterDef } from '@croma/shared';
+import type { CharacterDef } from '@crona/shared';
 import { breathKeyframes, breathMode, type BreathMode } from '../render/portrait';
 import { framesFor, sprites } from '../render/sprites';
 import { existeArte } from './icons';

@@ -2,7 +2,7 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "croma",
+      "name": "crona",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
         "run",
@@ -11,7 +11,7 @@
       "port": 5173
     },
     {
-      "name": "croma-visual",
+      "name": "crona-visual",
       "runtimeExecutable": "node",
       "runtimeArgs": [
         "scripts/dev/visual.mjs",

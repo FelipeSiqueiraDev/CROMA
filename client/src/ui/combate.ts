@@ -3,11 +3,11 @@
  *
  * Só o mestre mexe: monta o combate, digita a Iniciativa, passa os turnos,
  * resolve os ataques e declara as outras ações. Os dados são físicos: o mestre
- * digita o que saiu na mesa. As regras ficam em @croma/shared (combate) e o
+ * digita o que saiu na mesa. As regras ficam em @crona/shared (combate) e o
  * servidor aplica; esta tela mostra, faz as contas e pede. O tabuleiro é o
  * mesmo da tela MAPA, com as marcações do combate por cima.
  */
-import { combate as cb, regras, vitalConditions, type Character, type FichaSalva, type Session, type Vitals } from '@croma/shared';
+import { combate as cb, regras, vitalConditions, type Character, type FichaSalva, type Session, type Vitals } from '@crona/shared';
 import { COR_LADO, marcasVazias } from '../render/combateMarcas';
 import { portraitCanvas } from '../render/portrait';
 import { cobertura as coberturaEntre, elevado, flanqueia, FORMAS, naArea, type Casa, type FormaArea } from '../room/combateGeo';

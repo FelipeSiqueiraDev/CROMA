@@ -5,7 +5,7 @@
  * feita) vira um `Escolher`: as opções do motor, travadas com o motivo, o que
  * está escolhido e como gravar. A tela só mostra e chama `aplicar`.
  */
-import { lootKindLabel, regras, type LootKind } from '@croma/shared';
+import { lootKindLabel, regras, type LootKind } from '@crona/shared';
 
 type Ficha = regras.Ficha;
 type Nex = regras.Nex;
