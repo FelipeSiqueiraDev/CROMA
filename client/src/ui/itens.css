@@ -493,3 +493,63 @@
     animation: none;
   }
 }
+
+/* a coluna estreita do MAPA (24,2 de largura, desde 03/10): na escolha do agente, só o retrato (o nome
+   fica no aviso do mouse); nos tipos, só o ícone e o número */
+.col-rpg .rpg-body .it-cab {
+  margin: 0.2rem 0 0.8rem;
+  font-size: 1.5rem;
+}
+.col-rpg .it-ags {
+  gap: 0.4rem;
+}
+.col-rpg .rpg-body .it-ag {
+  justify-content: center;
+  height: 4.6rem;
+  padding: 0.2rem;
+}
+.col-rpg .rpg-body .it-ag canvas {
+  width: 3.6rem !important;
+  height: 4rem !important;
+}
+.col-rpg .rpg-body .it-ag span {
+  display: none;
+}
+.col-rpg .it-card {
+  grid-template-columns: 6.4rem minmax(0, 1fr);
+  gap: 0.9rem;
+  padding: 0.7rem;
+}
+.col-rpg .it-foto {
+  width: 6.4rem;
+  height: 6.8rem;
+}
+.col-rpg .it-nome-ag {
+  font-size: 1.55rem;
+}
+.col-rpg .it-carga,
+.col-rpg .it-maos {
+  gap: 0.4rem;
+  font-size: 1.15rem;
+}
+.col-rpg .it-tipos {
+  gap: 0.4rem;
+}
+.col-rpg .it-tipo {
+  justify-content: center;
+  gap: 0.4rem;
+  height: 3.2rem;
+}
+.col-rpg .it-tipo span:nth-child(2) {
+  display: none;
+}
+.col-rpg .rpg-body .it-sec {
+  font-size: 1.4rem;
+}
+.col-rpg .it-grade {
+  gap: 0.5rem 0.4rem;
+  padding: 0.5rem;
+}
+.col-rpg .it-nome {
+  font-size: 1.02rem;
+}

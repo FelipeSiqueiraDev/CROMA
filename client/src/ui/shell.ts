@@ -501,7 +501,7 @@ export class Shell {
     // ================= baixo =================
     this.partyEl = h('div', { class: 'party' });
     this.quickEl = h('div', { class: 'quick-slots' });
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 8; i++) {
       const el = h('button', { class: 'qslot empty', disabled: true, style: `--i:${i}`, onclick: () => this.pickSlot(i) });
       this.slots.push({ el, key: '' });
       this.quickEl.append(el);
@@ -511,7 +511,7 @@ export class Shell {
       { class: 'sheet p-quick' },
       h('span', { class: 'tape tape-q1', 'aria-hidden': 'true' }),
       h('span', { class: 'tape tape-q2', 'aria-hidden': 'true' }),
-      h('h3', { class: 'p-title' }, h('i', { class: 'losango', 'aria-hidden': 'true' }), 'INVENTÁRIO RÁPIDO (CENÁRIO)'),
+      h('h3', { class: 'p-title' }, h('i', { class: 'losango', 'aria-hidden': 'true' }), 'INVENTÁRIO RÁPIDO', h('small', null, '(CENÁRIO)')),
       this.quickEl,
     );
     paperize(quick, { seed: 16, tone: '#c9b49b', burn: 1, backs: [{ dx: 4, dy: 5, rot: 0.7, dw: -8 }] });
@@ -519,7 +519,8 @@ export class Shell {
     const log = h('section', { class: 'sheet p-log' }, h('span', { class: 'tape tape-log', 'aria-hidden': 'true' }), h('h3', { class: 'p-title' }, 'ÚLTIMAS AÇÕES'), this.logEl);
     paperize(log, { seed: 17, tone: '#cab59c', burn: 1, tab: { w: 163, h: 11 }, backs: [{ dx: -5, dy: 6, rot: -0.8, dw: 4 }] });
     this.acoesEl = h('div', { class: 'acoes' });
-    const acoes = h('section', { class: 'p-acoes' }, h('h3', { class: 'p-title' }, 'AÇÕES'), this.acoesEl);
+    const acoes = h('section', { class: 'sheet p-acoes' }, h('h3', { class: 'p-title' }, h('i', { class: 'losango', 'aria-hidden': 'true' }), 'AÇÕES'), this.acoesEl);
+    paperize(acoes, { seed: 22, tone: '#cdb99c', burn: 1, backs: [{ dx: -4, dy: 5, rot: -0.8, dw: -6 }] });
     const pilha = h('div', { class: 'pilha-mapa', 'aria-hidden': 'true' }, h('span', { class: 'pm-a' }), h('span', { class: 'pm-b' }), h('span', { class: 'pm-c' }));
     for (const [i, x] of [...pilha.children].entries()) paperize(x as HTMLElement, { seed: 150 + i, tone: i === 1 ? '#cdbb99' : '#c4b08e', burn: 1.2, torn: 2, stains: 1.4, pad: 12 });
     void log;
@@ -1008,6 +1009,8 @@ export class Shell {
       return;
     }
     const cur = this.app.state.room?.id;
+    // mais de 4 agentes: o cartão encolhe para todos caberem sem rolar
+    body.classList.toggle('muitos', party.filter((p) => p.id).length > 4);
     for (const p of party) {
       if (!p.id) continue;
       const id = p.id;
@@ -1539,7 +1542,9 @@ export class Shell {
     this.inspKey = key;
     const body = this.inspBody;
     clear(body);
-    this.inspCab.textContent = sel?.kind === 'user' ? 'PERSONAGEM' : sel ? 'OBJETO SELECIONADO' : 'NESTA CENA';
+    this.inspCab.textContent = sel?.kind === 'user' ? 'PERSONAGEM' : sel ? 'OBJETO' : 'NESTA CENA';
+    // com algo aberto, o cartão da sala encolhe (só o nome e o andar) e o do objeto ganha a altura
+    this.inspEl.parentElement?.classList.toggle('com-selecao', !!sel);
     this.closeTag.classList.toggle('hidden', !sel);
     if (fresh && sel) this.closeTag.animate([{ transform: 'rotate(-14deg)' }, { transform: 'rotate(8deg)', offset: 0.45 }, { transform: 'rotate(-3deg)', offset: 0.75 }, { transform: 'rotate(0)' }], { duration: 700, easing: 'ease-out' });
 
@@ -2496,7 +2501,9 @@ export class Shell {
     list.sort((a, b) => order.indexOf(a.l.kind) - order.indexOf(b.l.kind));
     this.slots.forEach((slot, i) => {
       const s = list[i];
-      const more = i === 5 && list.length > 6 ? list.length - 5 : 0;
+      // a última casa mostra quantos sobram (+N) quando não cabe tudo
+      const ultima = this.slots.length - 1;
+      const more = i === ultima && list.length > this.slots.length ? list.length - ultima : 0;
       const key = s ? `${s.kind}${s.id}:${s.l.id}:${s.l.name}:${more}` : '';
       if (key === slot.key) return;
       const had = slot.key !== '';

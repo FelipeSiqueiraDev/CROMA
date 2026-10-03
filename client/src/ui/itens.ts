@@ -170,7 +170,7 @@ export class AbaItens {
         { class: 'it-tipos' },
         ...TIPOS.map((t) => {
           const n = inv.filter(t.conta).reduce((s, it) => s + (it.qtd ?? 1), 0);
-          return h('div', { class: `it-tipo${n ? '' : ' zero'}` }, h('span', { class: 'it-tipo-ic' }, t.icone()), h('span', null, t.nome), h('b', null, String(n)));
+          return h('div', { class: `it-tipo${n ? '' : ' zero'}`, title: `${t.nome}: ${n}` }, h('span', { class: 'it-tipo-ic' }, t.icone()), h('span', null, t.nome), h('b', null, String(n)));
         }),
       ),
       h('h4', { class: 'insp-cab it-sec' }, 'EQUIPADO'),
