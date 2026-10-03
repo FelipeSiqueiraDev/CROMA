@@ -751,6 +751,7 @@ export class Hotel implements HotelApi {
       door: r.data.door,
       portals: r.portals(),
       users: r.userPositions(),
+      ...(r.data.aberto ? { aberto: true, terreno: r.data.terreno, marcos: r.marcos() } : {}),
     }));
     this.ensureLayout(camp, scenes);
     // grupo = as peças de todas as cenas da campanha

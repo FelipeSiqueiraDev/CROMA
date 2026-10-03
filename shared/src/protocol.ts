@@ -316,6 +316,11 @@ export interface SceneInfo {
   door: Door;
   portals: { x: number; y: number; link: number }[];
   users: { id: number; name: string; x: number; y: number }[];
+  /** ao ar livre: a planta desenha o terreno (grama, estrada, água) no lugar da pedra */
+  aberto?: boolean;
+  terreno?: string;
+  /** os prédios do lugar (casas que ocupam e o nome), para a planta de quem está ao ar livre */
+  marcos?: { x: number; y: number; w: number; h: number; nome: string }[];
 }
 
 export interface InvItem {

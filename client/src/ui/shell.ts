@@ -30,6 +30,7 @@ import {
   type Objective,
   type PartyMember,
   type RoomInfo,
+  type SceneInfo,
   type WallItem,
 } from '@croma/shared';
 import { breathMode, livePortrait, portraitCanvas } from '../render/portrait';
@@ -289,20 +290,17 @@ export class Shell {
   private peeked = new Set<number>();
   private planCanvas: HTMLCanvasElement;
   /** anotações do mestre por cima da planta (Caveat, inclinadas) */
-  private planNotas!: HTMLElement;
-  private planNotasSig = '';
   /** andar que a planta está mostrando agora */
   private planShown = '';
   /** a arte do alfinete (interface/alfinete.png), quando existe */
   private alfineteImg: HTMLImageElement | null = null;
   private planRects: { id: number; x: number; y: number; w: number; h: number; name: string }[] = [];
-  private planDrag: { id: number; sx: number; sy: number; ox: number; oy: number; moved: boolean } | null = null;
+  private planDrag: { id: number; sx: number; sy: number; ox: number; oy: number; moved: boolean; mover: boolean } | null = null;
   private planScale = 6;
   private planOrigin = { x: 0, y: 0 };
   private planHatch = { room: -1, t: 1 };
   private planFade = { room: -1, t: 1 };
   private planHover = -1;
-  private planTip: HTMLElement;
   /** andar que a planta mostra (null = o da cena atual) */
   private planFloor: string | null = null;
   private planTitle!: HTMLElement;
@@ -424,17 +422,15 @@ export class Shell {
     const scenes = h('section', { class: 'sheet p-scenes' }, h('h3', { class: 'p-title' }, 'CENÁRIO ATUAL'), this.scenesEl);
     paperize(scenes, { seed: 11, tone: '#ceb69b', burn: 1, curl: 'br', curlSize: 32, backs: [{ dx: -6, dy: -3, rot: -1.1, dw: 2, dh: 4 }, { dx: 5, dy: 5, rot: 0.9 }] });
     this.planCanvas = h('canvas', { class: 'plan-canvas' });
-    this.planTip = h('span', { class: 'plan-tip hidden' });
-    this.planTitle = h('span', null, '1º ANDAR');
+    this.planTitle = h('span', null, 'PLANTA');
     this.planTabs = h('div', { class: 'plan-tabs hidden', role: 'tablist', 'aria-label': 'Andares' });
     // rosa dos ventos a nanquim (desenho padrão até chegar rosa-dos-ventos.png)
     const rosa = svg(`<svg class="rosa" viewBox="0 0 64 64" aria-hidden="true" fill="none" stroke="#2a241f" stroke-linejoin="round">
       <circle cx="32" cy="34" r="17" stroke-width="1.2"/><circle cx="32" cy="34" r="12.5" stroke-width="0.7" stroke-dasharray="1.6 1.6"/>
       <path d="M32 11 36 30 32 34 28 30Z" fill="#2a241f"/><path d="M32 57 36 38 32 34 28 38Z" fill="#fff8" /><path d="M9 34 28 30 32 34 28 38Z" fill="#fff8"/><path d="M55 34 36 30 32 34 36 38Z" fill="#2a241f"/>
       <path d="M32 11 32 57M9 34 55 34" stroke-width="0.6"/><text x="32" y="8" text-anchor="middle" font-size="8" font-family="Courier Prime, monospace" font-weight="700" fill="#2a241f" stroke="none">N</text></svg>`);
-    this.planNotas = h('div', { class: 'plan-notas' });
-    const anotar = h('button', { class: 'plan-anotar', type: 'button', title: 'Anotar na planta (à mão, neste andar)', 'aria-label': 'Anotar na planta', onclick: () => (sfx.click(), void this.novaNota()) }, ic('lapis'));
-    const plan = h('section', { class: 'sheet p-plan wide' }, h('h3', { class: 'p-title' }, this.planTitle), this.planTabs, this.planCanvas, this.planNotas, rosa, this.planTip, anotar);
+    void rosa;
+    const plan = h('section', { class: 'sheet p-plan wide' }, h('h3', { class: 'p-title' }, this.planTitle), this.planTabs, this.planCanvas, h('span', { class: 'tachinha', 'aria-hidden': 'true' }));
     void existeArte('/arte/interface/alfinete.png').then((ok) => {
       if (!ok) return;
       const im = new Image();
@@ -889,7 +885,8 @@ export class Shell {
       const r = hitRect(p);
       if (!r || !this.campaign) return;
       const lay = this.campaign.layout[r.id] ?? { x: 0, y: 0 };
-      this.planDrag = { id: r.id, sx: p.x, sy: p.y, ox: lay.x, oy: lay.y, moved: false };
+      // clicar leva ao cômodo; mudar o cômodo de lugar na planta só segurando Alt (sem mexer no mapa por engano)
+      this.planDrag = { id: r.id, sx: p.x, sy: p.y, ox: lay.x, oy: lay.y, moved: false, mover: e.altKey };
       c.setPointerCapture(e.pointerId);
     });
     c.addEventListener('pointermove', (e) => {
@@ -902,16 +899,10 @@ export class Shell {
         this.planHover = hid;
         this.drawPlan(true);
       }
-      if (hit && !d) {
-        this.planTip.textContent = hit.name;
-        this.planTip.classList.remove('hidden');
-        const pr = this.planTip.parentElement!.getBoundingClientRect();
-        const cr = c.getBoundingClientRect();
-        const k = cr.width / c.clientWidth;
-        this.planTip.style.left = `${cr.left - pr.left + (hit.x + hit.w / 2) * k}px`;
-        this.planTip.style.top = `${cr.top - pr.top + hit.y * k}px`;
-      } else this.planTip.classList.add('hidden');
-      if (!d || !this.campaign || !this.owner) return;
+      // o nome do cômodo só no aviso do navegador (aparece se o mouse parar em cima)
+      const titulo = hit ? hit.name : '';
+      if (c.title !== titulo) c.title = titulo;
+      if (!d || !d.mover || !this.campaign || !this.owner) return;
       const dx = Math.round((p.x - d.sx) / this.planScale);
       const dy = Math.round((p.y - d.sy) / this.planScale);
       if (dx || dy) d.moved = true;
@@ -922,7 +913,6 @@ export class Shell {
     });
     c.addEventListener('pointerleave', () => {
       this.planHover = -1;
-      this.planTip.classList.add('hidden');
       this.drawPlan(true);
     });
     c.addEventListener('pointerup', () => {
@@ -1055,7 +1045,6 @@ export class Shell {
   /** Abas dos andares acima da planta (só com mais de um andar). */
   private renderPlanTabs(floors: string[], shown: string) {
     const label = (f: string) => (f ? f.toUpperCase() : '1º ANDAR');
-    if (this.planTitle.textContent !== label(shown)) this.planTitle.textContent = label(shown);
     const sig = JSON.stringify([floors, shown]);
     if (this.planTabs.dataset.sig === sig) return;
     this.planTabs.dataset.sig = sig;
@@ -1082,7 +1071,13 @@ export class Shell {
       );
   }
 
-  /** Planta: cômodos de pedra cinza com contorno grosso; o atual pintado de vermelho. */
+  /**
+   * Planta (como a referência): uma planta de arquitetura no papel quadriculado. Todos os
+   * andares da campanha na mesma escala (o bar fica pequeno perto do subsolo, como é); os
+   * cômodos de pedra cinza com o contorno grosso e a linha clara por dentro, as portas
+   * marcadas na parede, o atual em vermelho com o alfinete e o nome numa plaquinha. Ao ar
+   * livre, o terreno (grama, estrada, água) e os prédios com o nome.
+   */
   private drawPlan(keepScale = false) {
     const c = this.planCanvas;
     const cssW = c.clientWidth || 220;
@@ -1105,163 +1100,278 @@ export class Shell {
     const shown = this.planFloor !== null && floors.includes(this.planFloor) ? this.planFloor : floorOf(cur);
     this.planShown = shown;
     this.renderPlanTabs(floors, shown);
-    const parsed = camp.scenes
-      .filter((s) => (s.floor ?? '') === shown)
-      .map((s) => {
-        const p = camp.layout[s.id] ?? { x: 0, y: 0 };
-        const raw = parseHeightmap(s.heightmap);
-        return { s, raw, hm: rotateHm(raw, p.r ?? 0), p, rot: (x: number, y: number) => rotatePt(raw, p.r ?? 0, x, y) };
-      });
-    if (!keepScale || !this.planDrag) {
+    const todos = camp.scenes.map((s) => {
+      const p = camp.layout[s.id] ?? { x: 0, y: 0 };
+      const raw = parseHeightmap(s.heightmap);
+      const rot = (x: number, y: number) => rotatePt(raw, p.r ?? 0, x, y);
+      // o vão da porta (a casa de fora da parede) não entra no desenho
+      const porta = s.aberto ? null : rot(s.door.x, s.door.y);
+      return { s, raw, hm: rotateHm(raw, p.r ?? 0), p, rot, porta };
+    });
+    const caixa = (lista: typeof todos) => {
       let x0 = Infinity;
       let y0 = Infinity;
       let x1 = -Infinity;
       let y1 = -Infinity;
-      for (const { hm, p } of parsed) {
+      for (const { hm, p } of lista) {
         x0 = Math.min(x0, p.x);
         y0 = Math.min(y0, p.y);
         x1 = Math.max(x1, p.x + hm.width);
         y1 = Math.max(y1, p.y + hm.height);
       }
+      return { x0, y0, w: Math.max(1, x1 - x0), h: Math.max(1, y1 - y0) };
+    };
+    const parsed = todos.filter((q) => (q.s.floor ?? '') === shown);
+    void todos;
+    if (!keepScale || !this.planDrag) {
       const pad = 8;
-      this.planScale = Math.max(2, Math.min(12, Math.min((cssW - pad * 2) / (x1 - x0), (cssH - pad * 2) / (y1 - y0))));
+      // o andar enche o papel (como o prédio da referência); um cômodo sozinho (o bar) fica em no máximo metade dele
+      const b = caixa(parsed);
+      const sozinho = parsed.length === 1 && !parsed[0].s.aberto;
+      const teto = sozinho ? Math.min((cssW * 0.5) / b.w, (cssH * 0.7) / b.h) : Infinity;
+      this.planScale = Math.max(1.5, Math.min(teto, (cssW - pad * 2) / b.w, (cssH - pad * 2) / b.h));
       this.planOrigin = {
-        x: pad + (cssW - pad * 2 - (x1 - x0) * this.planScale) / 2 - x0 * this.planScale,
-        y: pad + (cssH - pad * 2 - (y1 - y0) * this.planScale) / 2 - y0 * this.planScale,
+        x: pad + (cssW - pad * 2 - b.w * this.planScale) / 2 - b.x0 * this.planScale,
+        y: pad + (cssH - pad * 2 - b.h * this.planScale) / 2 - b.y0 * this.planScale,
       };
     }
     const S = this.planScale;
     const O = this.planOrigin;
-    const rnd = (x: number, y: number, k: number) => {
-      const v = Math.sin(x * 127.1 + y * 311.7 + k * 74.7) * 43758.5453;
-      return v - Math.floor(v);
-    };
-    for (const { s, hm, p, rot } of parsed) {
-      const ox = O.x + p.x * S;
-      const oy = O.y + p.y * S;
-      const tile = (x: number, y: number) => hm.tiles[y]?.[x] !== null && hm.tiles[y]?.[x] !== undefined;
-      const tilesPath = new Path2D();
-      for (let y = 0; y < hm.height; y++) for (let x = 0; x < hm.width; x++) if (tile(x, y)) tilesPath.rect(ox + x * S, oy + y * S, S + 0.4, S + 0.4);
-      // piso de pedra
+    const granito = this.padraoGranito(ctx);
+    const TINTA = '#1d1a17';
+    // de quem é cada casa do andar (na planta): parede entre dois cômodos é fina; a de fora, grossa
+    const dono = new Map<string, number>();
+    const formas = new Map<number, Path2D>();
+    for (const { s, hm, p, porta } of parsed) {
+      if (s.aberto) continue;
+      const forma = new Path2D();
       for (let y = 0; y < hm.height; y++)
         for (let x = 0; x < hm.width; x++) {
-          if (!tile(x, y)) continue;
-          const n = rnd(x + p.x, y + p.y, 1);
-          const g = Math.round(128 + (n - 0.5) * 22);
-          ctx.fillStyle = `rgb(${g},${g - 3},${g - 7})`;
-          ctx.fillRect(ox + x * S, oy + y * S, S + 0.4, S + 0.4);
-          if (rnd(x, y, 2) < 0.35) {
-            ctx.strokeStyle = 'rgba(40,36,32,0.55)';
-            ctx.lineWidth = 0.6;
-            ctx.beginPath();
-            const sx = ox + x * S + rnd(x, y, 3) * S;
-            const sy = oy + y * S + rnd(x, y, 4) * S;
-            ctx.moveTo(sx, sy);
-            ctx.lineTo(sx + (rnd(x, y, 5) - 0.5) * S, sy + (rnd(x, y, 6) - 0.5) * S);
-            ctx.stroke();
-          }
-          if (rnd(x, y, 7) < 0.12) {
-            ctx.fillStyle = 'rgba(235,230,220,0.7)';
-            ctx.fillRect(ox + (x + 0.35) * S, oy + (y + 0.35) * S, S * 0.3, S * 0.3);
-          }
+          if (hm.tiles[y]?.[x] === null || hm.tiles[y]?.[x] === undefined || (porta && x === porta[0] && y === porta[1])) continue;
+          dono.set(`${p.x + x},${p.y + y}`, s.id);
+          forma.rect(O.x + (p.x + x) * S, O.y + (p.y + y) * S, S + 0.35, S + 0.35);
         }
-      ctx.strokeStyle = 'rgba(40,36,32,0.22)';
-      ctx.lineWidth = 0.5;
-      for (let y = 0; y < hm.height; y += 2) for (let x = 0; x < hm.width; x += 2) if (tile(x, y)) ctx.strokeRect(ox + x * S, oy + y * S, S * 2, S * 2);
+      formas.set(s.id, forma);
+    }
+    // a sombra do prédio no papel e a pedra (o andar inteiro é um prédio só, como na referência)
+    ctx.save();
+    ctx.translate(1.4, 1.8);
+    ctx.fillStyle = 'rgba(46,34,24,0.26)';
+    for (const f of formas.values()) ctx.fill(f);
+    ctx.restore();
+    ctx.fillStyle = granito;
+    for (const f of formas.values()) ctx.fill(f);
+    for (const { s, hm, raw, p, rot, porta } of parsed) {
+      const ox = O.x + p.x * S;
+      const oy = O.y + p.y * S;
+      const atual = s.id === cur;
       const rect = { id: s.id, x: ox, y: oy, w: hm.width * S, h: hm.height * S, name: s.name.split('·').pop()!.trim() };
-      // cômodo atual: lápis de cor vermelho (hachura) e depois o preenchimento
-      if (s.id === cur && this.planHatch.room === s.id) {
-        const t = this.planHatch.t;
+      if (s.aberto) {
+        this.terrenoNaPlanta(ctx, s, raw, rot, ox, oy, S, granito);
+        this.planRects.push(rect);
+        continue;
+      }
+      const forma = formas.get(s.id)!;
+      const tile = (x: number, y: number) => dono.get(`${p.x + x},${p.y + y}`) === s.id;
+      // marcas escuras de móvel e de entulho, aqui e ali (a referência tem os quadradinhos)
+      ctx.fillStyle = 'rgba(42,38,34,0.55)';
+      for (let y = 0; y < hm.height; y++)
+        for (let x = 0; x < hm.width; x++) {
+          if (!tile(x, y) || !tile(x - 1, y) || !tile(x + 1, y) || !tile(x, y - 1) || !tile(x, y + 1)) continue;
+          const v = Math.sin((p.x + x) * 127.1 + (p.y + y) * 311.7) * 43758.5453;
+          if (v - Math.floor(v) < 0.045) ctx.fillRect(ox + (x + 0.2) * S, oy + (y + 0.3) * S, S * 0.6, S * 0.4);
+        }
+      // o cômodo atual: um véu vermelho (e, entrando, o lápis risca antes)
+      if (atual) {
+        const anima = this.planHatch.room === s.id ? this.planHatch.t : 1;
         ctx.save();
-        ctx.clip(tilesPath);
-        ctx.fillStyle = `rgba(214,68,56,${(0.5 * Math.max(0, t - 0.55)) / 0.45})`;
-        ctx.fill(tilesPath);
-        const lines = this.hatchLines(rect);
-        const drawn = t * lines.length;
-        ctx.strokeStyle = 'rgba(176,34,26,0.7)';
-        ctx.lineWidth = 1.2;
-        ctx.lineCap = 'round';
-        ctx.beginPath();
-        lines.forEach(([x0, y0, x1, y1], i) => {
-          if (i >= drawn) return;
-          const f = Math.min(1, drawn - i);
-          const [ax, ay, bx, by] = i % 2 ? [x1, y1, x0, y0] : [x0, y0, x1, y1];
-          ctx.moveTo(ax, ay);
-          ctx.lineTo(ax + (bx - ax) * f, ay + (by - ay) * f);
-        });
-        ctx.stroke();
+        ctx.clip(forma);
+        ctx.fillStyle = `rgba(196,40,28,${(0.4 * Math.min(1, anima / 0.7)).toFixed(3)})`;
+        ctx.fill(forma);
+        if (anima < 1) {
+          const lines = this.hatchLines(rect);
+          const drawn = anima * lines.length;
+          ctx.strokeStyle = `rgba(150,28,20,${(0.8 * (1 - anima)).toFixed(3)})`;
+          ctx.lineWidth = 1.2;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          lines.forEach(([x0, y0, x1, y1], i) => {
+            if (i >= drawn) return;
+            const f = Math.min(1, drawn - i);
+            ctx.moveTo(x0, y0);
+            ctx.lineTo(x0 + (x1 - x0) * f, y0 + (y1 - y0) * f);
+          });
+          ctx.stroke();
+        }
         ctx.restore();
       } else if (s.id === this.planFade.room && this.planFade.t < 1) {
-        ctx.save();
-        ctx.fillStyle = `rgba(214,68,56,${0.55 * (1 - this.planFade.t)})`;
-        ctx.fill(tilesPath);
-        ctx.restore();
+        ctx.fillStyle = `rgba(190,36,26,${0.45 * (1 - this.planFade.t)})`;
+        ctx.fill(forma);
       }
       if (s.id === this.planHover) {
-        ctx.fillStyle = 'rgba(255,245,225,0.16)';
-        ctx.fill(tilesPath);
+        ctx.fillStyle = 'rgba(255,246,228,0.22)';
+        ctx.fill(forma);
       }
-      // paredes
-      ctx.strokeStyle = s.id === this.planHover ? '#5a1510' : '#1c1916';
-      ctx.lineWidth = Math.max(1.8, S * 0.34);
-      ctx.lineCap = 'round';
-      ctx.beginPath();
+      // as paredes: fina entre dois cômodos, grossa por fora
+      const fina: [number, number, number, number][] = [];
+      const grossa: [number, number, number, number][] = [];
+      const vizinho = (x: number, y: number) => dono.get(`${p.x + x},${p.y + y}`);
       for (let y = 0; y < hm.height; y++)
         for (let x = 0; x < hm.width; x++) {
           if (!tile(x, y)) continue;
           const X = ox + x * S;
           const Y = oy + y * S;
-          if (!tile(x, y - 1)) (ctx.moveTo(X, Y), ctx.lineTo(X + S, Y));
-          if (!tile(x, y + 1)) (ctx.moveTo(X, Y + S), ctx.lineTo(X + S, Y + S));
-          if (!tile(x - 1, y)) (ctx.moveTo(X, Y), ctx.lineTo(X, Y + S));
-          if (!tile(x + 1, y)) (ctx.moveTo(X + S, Y), ctx.lineTo(X + S, Y + S));
+          for (const [nx, ny, seg] of [
+            [x, y - 1, [X, Y, X + S, Y]],
+            [x, y + 1, [X, Y + S, X + S, Y + S]],
+            [x - 1, y, [X, Y, X, Y + S]],
+            [x + 1, y, [X + S, Y, X + S, Y + S]],
+          ] as [number, number, [number, number, number, number]][]) {
+            const v = vizinho(nx, ny);
+            if (v === s.id) continue;
+            (v === undefined ? grossa : fina).push(seg);
+          }
         }
-      ctx.stroke();
+      // traço de nanquim: cada ponta desvia um pouco, sempre igual (as paredes que se encontram continuam emendadas)
+      const tremor = (x: number, y: number) => {
+        const v = Math.sin(Math.round(x * 10) * 12.9898 + Math.round(y * 10) * 78.233) * 43758.5453;
+        return (v - Math.floor(v) - 0.5) * 0.9;
+      };
+      const traco = (segs: [number, number, number, number][], cor: string, lw: number) => {
+        if (!segs.length) return;
+        ctx.strokeStyle = cor;
+        ctx.lineWidth = lw;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        for (const [a, b2, c2, d2] of segs) (ctx.moveTo(a + tremor(a, b2), b2 + tremor(b2, a)), ctx.lineTo(c2 + tremor(c2, d2), d2 + tremor(d2, c2)));
+        ctx.stroke();
+      };
+      traco(fina, 'rgba(30,26,22,0.7)', 1);
+      traco(grossa, '#1d1a17', Math.max(1.6, Math.min(2.4, S * 0.42)));
+      if (atual) traco([...fina, ...grossa], 'rgba(122,18,12,0.85)', 1.2);
+      // as portas: um tracinho escuro atravessando a parede
+      ctx.fillStyle = '#26201b';
       for (const pt of s.portals) {
         const [px, py] = rot(pt.x, pt.y);
-        ctx.fillStyle = s.id === cur ? '#d66a5e' : '#8e8a84';
-        ctx.fillRect(ox + px * S + S * 0.15, oy + py * S + S * 0.2, S * 0.7, S * 0.6);
+        if (!tile(px, py)) continue;
+        const X = ox + px * S;
+        const Y = oy + py * S;
+        const e = Math.max(1.6, S * 0.32);
+        if (!tile(px, py - 1)) ctx.fillRect(X + S * 0.2, Y - e / 2, S * 0.6, e);
+        else if (!tile(px, py + 1)) ctx.fillRect(X + S * 0.2, Y + S - e / 2, S * 0.6, e);
+        else if (!tile(px - 1, py)) ctx.fillRect(X - e / 2, Y + S * 0.2, e, S * 0.6);
+        else if (!tile(px + 1, py)) ctx.fillRect(X + S - e / 2, Y + S * 0.2, e, S * 0.6);
       }
-      // o cômodo atual ganha o alfinete; o nome vai numa plaquinha, quando cabe (a referência)
-      const atual = s.id === cur;
-      const alto = rect.h >= 34;
-      if (atual) this.alfinete(ctx, rect.x + rect.w / 2, rect.y + rect.h / 2 - (alto ? rect.h * 0.16 : 0), Math.max(4, Math.min(8, Math.min(rect.w, rect.h) * 0.2)));
-      const fs = Math.min(10, rect.h * 0.26, (rect.w / Math.max(4, rect.name.length)) * 1.55);
-      if (fs >= 5.5 && (!atual || alto)) {
-        ctx.save();
-        ctx.font = `600 ${fs.toFixed(1)}px "Ubuntu Mono", monospace`;
-        const tw = ctx.measureText(rect.name).width;
-        const pw = tw + fs * 1.1;
-        const ph = fs * 1.75;
-        const tx = rect.x + rect.w / 2;
-        const ty = rect.y + rect.h / 2 + (atual ? rect.h * 0.2 : 0);
-        ctx.fillStyle = 'rgba(238,231,216,0.95)';
-        ctx.strokeStyle = atual ? '#7a1b14' : '#2a211b';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.roundRect(tx - pw / 2, ty - ph / 2, pw, ph, 1.6);
-        ctx.fill();
-        ctx.stroke();
-        ctx.fillStyle = atual ? '#7a1b14' : '#2a211b';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(rect.name, tx, ty + 0.5);
-        ctx.restore();
-      }
+      this.planRects.push(rect);
+    }
+    // onde estão as peças: bolinhas na cor de cada um
+    for (const { s, p, rot } of parsed)
       for (const u of s.users) {
         const pm = camp.party.find((q) => q.id === u.id);
         const [ux, uy] = rot(u.x, u.y);
         ctx.beginPath();
-        ctx.arc(ox + (ux + 0.5) * S, oy + (uy + 0.5) * S, Math.max(2.2, S * 0.42), 0, Math.PI * 2);
+        ctx.arc(O.x + (p.x + ux + 0.5) * S, O.y + (p.y + uy + 0.5) * S, Math.max(2, Math.min(3.2, S * 0.36)), 0, Math.PI * 2);
         ctx.fillStyle = pm?.color ?? '#fff';
         ctx.fill();
         ctx.lineWidth = 1;
-        ctx.strokeStyle = '#140f0c';
+        ctx.strokeStyle = '#f6efe2';
         ctx.stroke();
       }
-      this.planRects.push(rect);
+  }
+
+  /** O granito dos cômodos da planta: pedra cinza salpicada, com uns veios (como a referência). */
+  private granito: CanvasPattern | null = null;
+  private padraoGranito(ctx: CanvasRenderingContext2D): CanvasPattern | string {
+    if (this.granito) return this.granito;
+    const T = 72;
+    const p = document.createElement('canvas');
+    p.width = T;
+    p.height = T;
+    const g = p.getContext('2d');
+    if (!g) return '#9d9993';
+    let semente = 9;
+    const r = () => (semente = (semente * 16807) % 2147483647) / 2147483647;
+    g.fillStyle = '#928e87';
+    g.fillRect(0, 0, T, T);
+    // manchas grandes e claras/escuras (a pedra da referência), repetidas nas bordas para não ter emenda
+    const mancha = (x: number, y: number, rx: number, ry: number, cor: string) => {
+      for (const dx of [-T, 0, T])
+        for (const dy of [-T, 0, T]) {
+          g.beginPath();
+          g.ellipse(x + dx, y + dy, rx, ry, r() * 3, 0, Math.PI * 2);
+          g.fillStyle = cor;
+          g.fill();
+        }
+    };
+    for (let i = 0; i < 26; i++) mancha(r() * T, r() * T, 3 + r() * 7, 2 + r() * 5, r() < 0.55 ? 'rgba(70,66,60,0.16)' : 'rgba(225,221,212,0.18)');
+    for (let i = 0; i < 160; i++) {
+      g.fillStyle = r() < 0.6 ? 'rgba(52,48,44,0.38)' : 'rgba(232,228,220,0.35)';
+      g.fillRect(Math.floor(r() * T), Math.floor(r() * T), r() < 0.3 ? 2 : 1, r() < 0.3 ? 2 : 1);
     }
-    this.renderNotas();
+    g.strokeStyle = 'rgba(46,42,38,0.38)';
+    g.lineWidth = 0.7;
+    for (let i = 0; i < 4; i++) {
+      let x = r() * T;
+      let y = r() * T;
+      g.beginPath();
+      g.moveTo(x, y);
+      for (let k = 0; k < 3; k++) {
+        x += (r() - 0.5) * 18;
+        y += (r() - 0.5) * 18;
+        g.lineTo(x, y);
+      }
+      g.stroke();
+    }
+    this.granito = ctx.createPattern(p, 'repeat');
+    return this.granito ?? '#9d9993';
+  }
+
+  /** O lugar ao ar livre na planta: o terreno com cores de mapa e os prédios de pedra, com o nome. */
+  private terrenoNaPlanta(ctx: CanvasRenderingContext2D, s: SceneInfo, raw: Heightmap, rot: (x: number, y: number) => [number, number], ox: number, oy: number, S: number, granito: CanvasPattern | string) {
+    const linhas = (s.terreno ?? '').replace(/\r/g, '').split('\n');
+    const COR: Record<string, string> = { '.': '#a9ad7d', g: '#a9ad7d', t: '#d9c69c', l: '#b38c62', p: '#cfc8b8', d: '#b99b70', m: '#a67d55', a: '#8fb2bd' };
+    for (let y = 0; y < raw.height; y++)
+      for (let x = 0; x < raw.width; x++) {
+        const ch = linhas[y]?.[x] ?? '.';
+        const chao = raw.tiles[y]?.[x] !== null && raw.tiles[y]?.[x] !== undefined;
+        if (!chao && ch !== 'a') continue;
+        const [rx, ry] = rot(x, y);
+        ctx.fillStyle = COR[ch] ?? COR['.'];
+        ctx.fillRect(ox + rx * S, oy + ry * S, S + 0.35, S + 0.35);
+      }
+    // a borda do lugar
+    const largura = (rot(raw.width - 1, raw.height - 1)[0] === raw.width - 1 ? raw.width : raw.height) * S;
+    const altura = (rot(raw.width - 1, raw.height - 1)[0] === raw.width - 1 ? raw.height : raw.width) * S;
+    ctx.strokeStyle = s.id === this.app.state.room?.id ? '#b22a20' : '#1d1a17';
+    ctx.lineWidth = s.id === this.app.state.room?.id ? 2.2 : 1.4;
+    ctx.strokeRect(ox, oy, largura, altura);
+    // os prédios
+    for (const m of s.marcos ?? []) {
+      const [ax, ay] = rot(m.x, m.y);
+      const [bx, by] = rot(m.x + m.w - 1, m.y + m.h - 1);
+      const x0 = ox + Math.min(ax, bx) * S;
+      const y0 = oy + Math.min(ay, by) * S;
+      const w = (Math.abs(bx - ax) + 1) * S;
+      const h = (Math.abs(by - ay) + 1) * S;
+      ctx.fillStyle = 'rgba(52,40,28,0.25)';
+      ctx.fillRect(x0 + 1.2, y0 + 1.4, w, h);
+      ctx.fillStyle = granito;
+      ctx.fillRect(x0, y0, w, h);
+      ctx.strokeStyle = '#1d1a17';
+      ctx.lineWidth = 1.6;
+      ctx.strokeRect(x0, y0, w, h);
+      const f = Math.min(8.5, h * 0.42, (w / Math.max(4, m.nome.length)) * 1.8);
+      if (f >= 5) {
+        ctx.save();
+        ctx.font = `600 ${f.toFixed(1)}px "Ubuntu Mono", monospace`;
+        ctx.fillStyle = '#efe6d1';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(m.nome, x0 + w / 2, y0 + h / 2);
+        ctx.restore();
+      }
+    }
   }
 
   /** O alfinete da sala atual: a arte (alfinete.png) ou o marcador de mapa desenhado. */
@@ -1289,78 +1399,6 @@ export class Shell {
     ctx.fillStyle = '#b3261e';
     ctx.fill();
     ctx.restore();
-  }
-
-  /** Anotações do mestre no andar mostrado, por cima da planta (em células, andam com a planta). */
-  private renderNotas() {
-    const notas = (this.campaign?.notas ?? []).filter((n) => n.andar === this.planShown);
-    const c = this.planCanvas;
-    const S = this.planScale;
-    const O = this.planOrigin;
-    const ox = c.offsetLeft;
-    const oy = c.offsetTop;
-    const sig = JSON.stringify([notas, S, O, ox, oy, this.owner]);
-    if (sig === this.planNotasSig) return;
-    this.planNotasSig = sig;
-    clear(this.planNotas);
-    const fs = Math.max(12, Math.min(18, S * 1.6));
-    for (const n of notas) {
-      const el = h(
-        'span',
-        {
-          class: `plan-nota${this.owner ? ' mexe' : ''}`,
-          style: `left:${(ox + O.x + n.x * S).toFixed(1)}px;top:${(oy + O.y + n.y * S).toFixed(1)}px;font-size:${fs.toFixed(1)}px;--rot:${(n.id * 37) % 11 - 5}deg`,
-          title: this.owner ? 'Arraste para mover · dois cliques para mudar ou apagar' : '',
-        },
-        n.texto,
-      );
-      if (this.owner) this.notaInterativa(el, n.id, n.texto);
-      this.planNotas.append(el);
-    }
-  }
-
-  /** Arrastar move a anotação; dois cliques mudam o texto (vazio apaga). */
-  private notaInterativa(el: HTMLElement, id: number, texto: string) {
-    let ini: { x: number; y: number; l: number; t: number; mexeu: boolean } | null = null;
-    el.addEventListener('pointerdown', (e) => {
-      e.stopPropagation();
-      el.setPointerCapture(e.pointerId);
-      ini = { x: e.clientX, y: e.clientY, l: el.offsetLeft, t: el.offsetTop, mexeu: false };
-    });
-    el.addEventListener('pointermove', (e) => {
-      if (!ini) return;
-      const dx = e.clientX - ini.x;
-      const dy = e.clientY - ini.y;
-      if (Math.abs(dx) + Math.abs(dy) > 3) ini.mexeu = true;
-      el.style.left = `${ini.l + dx}px`;
-      el.style.top = `${ini.t + dy}px`;
-    });
-    el.addEventListener('pointerup', () => {
-      const d = ini;
-      ini = null;
-      if (!d?.mexeu) return;
-      const c = this.planCanvas;
-      const x = (el.offsetLeft - c.offsetLeft - this.planOrigin.x) / this.planScale;
-      const y = (el.offsetTop - c.offsetTop - this.planOrigin.y) / this.planScale;
-      this.app.net.send({ t: 'planNota', id, x, y });
-    });
-    el.addEventListener('dblclick', async (e) => {
-      e.stopPropagation();
-      const r = await promptNote('ANOTAÇÃO NA PLANTA', [{ label: 'Texto (vazio apaga)', value: texto, max: 40 }]);
-      if (r) this.app.net.send({ t: 'planNota', id, texto: r[0].trim() });
-    });
-  }
-
-  /** Nova anotação no meio da planta do andar mostrado. */
-  private async novaNota() {
-    if (!this.owner) return;
-    const r = await promptNote('ANOTAR NA PLANTA', [{ label: 'Texto (ex.: Acesso Restrito)', value: '', max: 40 }]);
-    const texto = r?.[0].trim();
-    if (!texto) return;
-    const c = this.planCanvas;
-    const x = ((c.clientWidth || 220) / 2 - this.planOrigin.x) / this.planScale;
-    const y = ((c.clientHeight || 170) / 2 - this.planOrigin.y) / this.planScale;
-    this.app.net.send({ t: 'planNota', andar: this.planShown, texto, x, y });
   }
 
   // ================= objetivos =================

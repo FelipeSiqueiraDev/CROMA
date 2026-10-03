@@ -368,6 +368,18 @@ export class RoomInstance {
     this.hotel.touch();
   }
 
+  /** Os prédios da cena ao ar livre (mobis grandes que não se pisa), para a planta. */
+  marcos() {
+    const out: { x: number; y: number; w: number; h: number; nome: string }[] = [];
+    for (const it of this.map.allItems()) {
+      const def = getFurni(it.defId);
+      if (!def || def.walkable || def.width * def.depth < 20) continue;
+      const fp = footprint(def, it.rot);
+      out.push({ x: it.x, y: it.y, w: fp.sx, h: fp.sy, nome: def.name });
+    }
+    return out;
+  }
+
   portals() {
     const out: { x: number; y: number; link: number }[] = [];
     for (const it of this.map.allItems()) if (it.link && getFurni(it.defId)?.portal) out.push({ x: it.x, y: it.y, link: it.link });
