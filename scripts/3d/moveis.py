@@ -91,6 +91,12 @@ própria folha ("folha" no móvel); senão vale a da ficha.
 - "caixas": [[x0, y0, x1, y1], ...]: as caixas das vistas na folha, à mão, quando o desenho
   vem em pedaços soltos (as marcas de contagem). "caixa": [u0, u1, v0, v1, z0, z1] (z em
   metros): a caixa da ordem de quem fica na frente, no lugar da do jogo.
+- "so_giros": só os giros da ficha têm arte; nos outros, o jogo desenha por código (a porta:
+  nas paredes do fundo a arte, nas da frente, que não aparecem, a soleira). Um móvel com
+  "def": "<id>@<material>" (portal@metal) é a arte daquele móvel nos cômodos desse material,
+  e "<id>~<letra>" (gun_table~b) é outro modelo do mesmo móvel, que o jogo sorteia por peça.
+- "espelhar_estado": {"1": {"6": "2"}}: a vista de um estado que veio torta é a de outro giro
+  espelhada (o baú aberto visto de costas).
 - "estados": {"1": folha, ...} (móvel desenhado como está): o mesmo móvel em outro estado
   (o armário aberto, o candelabro apagado), numa folha com as vistas no mesmo lugar e no
   mesmo tamanho. Cada vista sai na escala e na âncora do estado 0, para o móvel não pular
@@ -757,6 +763,9 @@ def main():
             continue
         if 'giros' in m:
             ent, imgs = quatro_giros(m, folha, caixas, destino, escala)
+            if m.get('so_giros'):
+                # só estes giros têm arte (a porta nas paredes do fundo): nos outros, o desenho por código
+                ent['soGiros'] = True
             lista[m['def']] = ent
             for img in imgs:
                 conferir.append((m['def'], img, None))
@@ -1029,6 +1038,16 @@ def outros_estados(m, ent, origens, caixas, pasta, imgs):
             if m.get('chamas') == 'auto' and estado == '1':
                 # aceso no 0 e apagado no 1: as chamas são o que muda de um para o outro
                 ent.setdefault('chamas', {})[giro] = chamas_pela_diferenca(base, vista['ax'], vista['ay'], img, dest['giros'][giro]['ax'], dest['giros'][giro]['ay'])
+        # "espelhar_estado": {"1": {"6": "2", "0": "4"}}: a vista deste estado que veio torta (o baú
+        # aberto visto de costas) é a de outro giro espelhada; a silhueta é a mesma
+        for giro, outro in (m.get('espelhar_estado') or {}).get(estado, {}).items():
+            v = dest['giros'][outro]
+            img = ler(os.path.join(pasta, os.path.basename(v['arquivo'])))[:, ::-1].copy()
+            nome = f'giro-{giro}-{estado}.png'
+            gravar(img, os.path.join(pasta, nome))
+            dest['giros'][giro] = {**v, 'arquivo': f"{m['def']}/{nome}", 'ax': round(img.shape[1] - v['ax'], 1)}
+            imgs.append(img)
+            print(f"{m['def']} giro {giro}, estado {estado}: o giro {outro} espelhado", flush=True)
 
 
 def pendurar(rec, pendurado, escala):

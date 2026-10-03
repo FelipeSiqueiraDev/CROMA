@@ -11,6 +11,11 @@ import { drawFlame, type LBox, type Painter } from './painter';
  * da frente, a frente e as costas, que o espelho vira nos outros dois giros. Cada
  * imagem diz o ponto que cai no chão (a âncora). O tapete é uma imagem vista de cima,
  * deitada no chão. Enquanto a imagem não chega, fica o desenho por código.
+ *
+ * Outros modelos do mesmo móvel ("gun_table~b", "gun_table~c": outra arma em cima, outros
+ * papéis na mesa) entram sozinhos: cada peça sorteia o seu pelo número dela, sempre o mesmo.
+ * A arte de um material ("portal@metal") vale nos cômodos daquele piso (a porta de metal do
+ * arsenal e da prisão).
  */
 
 export interface VistaArte {
@@ -53,6 +58,8 @@ export interface MovelArte {
   pendulo?: { graus: number; ms: number };
   /** os outros estados do móvel (o armário aberto, o candelabro apagado): as vistas de cada um, no lugar das do estado 0 */
   estados?: Record<string, { giros: Partial<Record<'0' | '2' | '4' | '6', VistaArte>>; chamas?: Record<string, [number, number, number][]> }>;
+  /** só os giros que têm vista usam a arte; nos outros fica o desenho por código (a porta nas paredes da frente) */
+  soGiros?: boolean;
 }
 
 /** A tela de TV ligada (item de parede): treme de leve entre as cores, bem mais fraca que o fliperama. */
@@ -68,13 +75,38 @@ interface Imagens {
 }
 
 let lista: Record<string, MovelArte> | null = null;
+/** os outros modelos de cada móvel: "gun_table" -> ["gun_table~b", "gun_table~c"] */
+const modelos = new Map<string, string[]>();
 const imagens = new Map<string, Imagens | 'carregando' | 'erro'>();
 
 // o tabuleiro se pinta de novo a cada quadro: a arte aparece assim que chega
 void fetch('/arte/mobiliario/moveis.json')
   .then((r) => (r.ok ? (r.json() as Promise<Record<string, MovelArte>>) : {}))
-  .then((j) => (lista = j))
+  .then((j) => {
+    lista = j;
+    for (const chave of Object.keys(j).sort()) {
+      const i = chave.indexOf('~');
+      if (i > 0) modelos.set(chave.slice(0, i), [...(modelos.get(chave.slice(0, i)) ?? []), chave]);
+    }
+  })
   .catch(() => (lista = {}));
+
+/** O material de cada piso, para a arte de material (a porta de metal no arsenal e na prisão). */
+const MATERIAL: Record<string, string> = { metal: 'metal', cela: 'metal' };
+
+/**
+ * Qual arte vale para esta peça: a do material do cômodo, se houver; senão um dos modelos do
+ * móvel, sorteado pelo número da peça (o mesmo sempre, e vizinhos costumam sair diferentes).
+ */
+export function chaveDaArte(defId: string, seed: number, piso?: string): string {
+  if (!lista) return defId;
+  const mat = piso ? MATERIAL[piso] : undefined;
+  if (mat && lista[`${defId}@${mat}`]) return `${defId}@${mat}`;
+  const outros = modelos.get(defId);
+  if (!outros?.length) return defId;
+  const i = (Math.imul(seed | 0, 2654435761) >>> 0) % (outros.length + 1);
+  return i === 0 ? defId : outros[i - 1];
+}
 
 function pronta(arquivo: string): Imagens | null {
   const url = `/arte/mobiliario/${arquivo}`;
@@ -109,9 +141,11 @@ function pronta(arquivo: string): Imagens | null {
  * ordem de quem fica na frente), ou null se ele não tem arte (ou ela ainda não chegou).
  * As luzes continuam as do desenho por código. state: o estado do móvel (0 = aceso).
  */
-export function visualComArte(def: FurniDef, base: FVisual, state = 0, seed = 0): FVisual | null {
-  const salvo = lista?.[def.id];
+export function visualComArte(def: FurniDef, base: FVisual, state = 0, seed = 0, rot?: number, piso?: string): FVisual | null {
+  const salvo = lista?.[chaveDaArte(def.id, seed, piso)];
   if (!salvo) return null;
+  // a porta: arte só nas paredes do fundo; nas da frente (que não aparecem), a soleira do desenho por código
+  if (salvo.soGiros && rot !== undefined && !salvo.giros?.[String(rot) as '4']) return null;
   let a: MovelArte = salvo;
   const alto = Math.max(0.1, def.height / Z_PER_M);
   const caixa: LBox = a.caixa ?? [0, def.depth, 0, def.width, 0, alto];
@@ -162,7 +196,7 @@ export function visualComArte(def: FurniDef, base: FVisual, state = 0, seed = 0)
  * encosta na parede em (x, y). false se ele não tem arte (ou ela ainda não chegou).
  */
 export function desenharParedeComArte(ctx: CanvasRenderingContext2D, defId: string, parede: 'l' | 'r', state: number, x: number, y: number, seed = 0): boolean {
-  const a = lista?.[defId];
+  const a = lista?.[chaveDaArte(defId, seed)];
   if (!a?.parede) return false;
   const vista = (state ? a.parede[`${parede}-${state}`] : undefined) ?? a.parede[parede];
   if (!vista) return false;

@@ -1081,7 +1081,7 @@ export class RoomView {
       const def = getFurni(it.defId);
       if (!def) return;
       const base = furniVisual(def, it.state, it.id);
-      const vis = visualComArte(def, base, it.state, it.id) ?? base;
+      const vis = visualComArte(def, base, it.state, it.id, it.rot, this.info?.floorStyle) ?? base;
       m.set(it.rot, def.width, def.depth, it.x, it.y, it.z);
       const floorH = map.floorHeight(it.x, it.y) ?? 0;
       const flat = !!def.flat && it.z <= floorH + 0.05 && !ghost;

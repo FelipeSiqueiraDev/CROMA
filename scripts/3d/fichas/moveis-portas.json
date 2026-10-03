@@ -1,0 +1,9 @@
+{
+  "destino": "client/public/arte/mobiliario",
+  "escala": 0.5,
+  "limpar": 56,
+  "moveis": [
+    {"def": "portal", "folha": "client/public/arte/mobiliario/folhas/porta-madeira-aberta.png", "real": [1.04, 0.16, 2.17], "como_esta": true, "altura": "todas", "topo": [1.04, 0.16], "encosta": true, "caixa": [0, 0.24, -0.26, 1.26, 0, 2.17], "giros": {"4": 0, "2": 1}, "so_giros": true, "estados": {"1": "client/public/arte/mobiliario/folhas/porta-madeira-fechada.png", "2": "client/public/arte/mobiliario/folhas/porta-madeira-trancada.png"}},
+    {"def": "portal@metal", "folha": "client/public/arte/mobiliario/folhas/porta-metal-aberta.png", "real": [1.04, 0.16, 2.17], "como_esta": true, "altura": "todas", "topo": [1.04, 0.16], "encosta": true, "caixa": [0, 0.24, -0.26, 1.26, 0, 2.17], "giros": {"4": 0, "2": 1}, "so_giros": true, "estados": {"1": "client/public/arte/mobiliario/folhas/porta-metal-fechada.png", "2": "client/public/arte/mobiliario/folhas/porta-metal-trancada.png"}}
+  ]
+}

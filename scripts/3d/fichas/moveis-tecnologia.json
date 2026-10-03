@@ -3,9 +3,9 @@
   "escala": 0.5,
   "limpar": 56,
   "moveis": [
-    {"def": "console", "folha": "client/public/arte/mobiliario/folhas/bancada-ligada.png", "W": 2, "D": 1, "real": [1.36, 0.68, 1.2], "como_esta": true, "largura": true, "giros": {"4": 0, "6": 1, "0": 2, "2": 3}, "estados": {"1": "client/public/arte/mobiliario/folhas/bancada-desligada.png"}, "tela": {"modo": "tv", "cores": ["#4fe39a", "#5ab8f0", "#6ad0c0"], "ms": 800, "forca": 0.24, "giros": {"4": [0.51, 0.26, 0.24], "2": [0.59, 0.22, 0.24]}}},
-    {"def": "server_rack", "folha": "client/public/arte/mobiliario/folhas/rack-servidores.png", "real": [0.6, 0.66, 1.3], "como_esta": true, "encosta": true, "giros": {"4": 0, "6": 1, "0": 2, "2": 3}, "largura": true},
-    {"def": "printer_dot", "folha": "client/public/arte/mobiliario/folhas/impressora-matricial.png", "real": [0.6, 0.5, 0.65], "como_esta": true, "giros": {"4": 0, "6": 1, "0": 2, "2": 3}, "largura": true},
+    {"def": "console", "folha": "client/public/arte/mobiliario/folhas/bancada-computadores-ligada.png", "W": 2, "D": 1, "real": [1.36, 0.7, 1.2], "como_esta": true, "largura": true, "giros": {"4": 0, "6": 1, "0": 2, "2": 3}, "estados": {"1": "client/public/arte/mobiliario/folhas/bancada-computadores-desligada.png"}},
+    {"def": "server_rack", "folha": "client/public/arte/mobiliario/folhas/rack-servidores.png", "real": [0.6, 0.66, 2.0], "como_esta": true, "encosta": true, "giros": {"4": 0, "6": 1, "0": 2, "2": 3}, "largura": true},
+    {"def": "printer_dot", "folha": "client/public/arte/mobiliario/folhas/impressora-matricial.png", "real": [0.6, 0.5, 1.0], "como_esta": true, "giros": {"4": 0, "6": 1, "0": 2, "2": 3}, "largura": true},
     {"def": "whiteboard", "folha": "client/public/arte/mobiliario/folhas/quadro-branco.png", "W": 3, "D": 1, "real": [1.6, 0.6, 1.8], "como_esta": true, "altura": "todas", "giros": {"4": 0, "6": 1, "0": 2, "2": 3}},
     {"def": "media_shelf", "folha": "client/public/arte/mobiliario/folhas/estante-midias.png", "W": 2, "D": 1, "real": [0.9, 0.4, 1.1], "como_esta": true, "altura": "todas", "encosta": true, "giros": {"4": 0, "6": 1, "0": 2, "2": 3}},
     {"def": "water_cooler", "folha": "client/public/arte/mobiliario/folhas/bebedouro.png", "real": [0.35, 0.35, 1.2], "como_esta": true, "altura": "todas", "giros": {"4": 0, "6": 1, "0": 2, "2": 3}},

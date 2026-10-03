@@ -335,6 +335,14 @@ O jeito certo de cada móvel: **uma folha por móvel, com ele girando**, para vi
 - **O tamanho é o de verdade** (revisto em 02/10): o pedido diz as medidas do móvel em metros, perto de uma pessoa de 1,80 m (no tabuleiro, 104 px). O construtor dá a cada móvel as medidas de verdade (`"real"` na ficha `scripts/3d/fichas/moveis-bar.json`), com a mesma escala nas 4 vistas, e o põe no meio da casa ou encostado na parede. Móvel que é uma caixa e veio baixo ou comprido demais (o balcão) é redesenhado na caixa de verdade; a prateleira repete as fileiras de garrafas até a altura certa, em vez de esticar.
 - Faltou um lado na folha? O construtor espelha outra vista (a frente para a esquerda vira a frente para a direita).
 
+### Outros modelos do mesmo móvel (decidido em 03/10)
+
+Móvel que se repete muito no mesmo cômodo (as bancadas de armas, as mesas de trabalho, os leitos) ganha **mais dois modelos**, B e C: o mesmo corpo, as mesmas medidas e as vistas no mesmo lugar da folha de hoje, mudando só o que está em cima, dentro ou pendurado. As folhas vêm com `-b` e `-c` no nome (`bancada-armas-b.png`; com estado, `bancada-computadores-ligada-b.png`). Na ficha, o modelo é outro móvel com o mesmo id e a letra: `"def": "gun_table~b"`. O jogo sorteia o modelo de cada peça pelo número dela (o mesmo sempre); enquanto o B e o C não chegam, todas usam o de hoje. O pedido da vez está na pasta da arte do GPT (`PROMPT-VARIACOES-E-ARSENAL.txt`).
+
+### Portas dos cômodos (decidido em 03/10)
+
+As portas das passagens têm arte de madeira (`porta-madeira-aberta.png`, `-fechada`, `-trancada`) e de metal (`porta-metal-*`), cada folha com 2 vistas: a porta na parede da direita e na da esquerda (ficha `scripts/3d/fichas/moveis-portas.json`). A de metal vale nos cômodos de piso de metal e de cela (o arsenal e a prisão): na ficha, `"def": "portal@metal"`. Nas paredes da frente, que não aparecem, a porta continua desenhada por código (a soleira e o contorno do vão): `"so_giros": true`.
+
 ### Itens de parede, tapetes, chão e parede (decidido em 02/10)
 
 - **Item de parede** (relógio, arandela, TV, ventilador): isométrico, já preso numa parede do fundo, em 2 vistas do mesmo tamanho: 1) na parede da direita, frente virada para baixo à esquerda; 2) na parede da esquerda, frente virada para baixo à direita. Com estados (a arandela acesa e apagada), as 2 vistas de cada estado. A parede em si não aparece. O construtor acha o ponto onde ele encosta e grava `mobiliario/<id>/parede-<r|l>.png` (`parede-r-1.png` o outro estado).

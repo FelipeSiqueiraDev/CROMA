@@ -3,11 +3,11 @@
   "escala": 0.5,
   "limpar": 56,
   "moveis": [
-    {"def": "table_work", "folha": "client/public/arte/mobiliario/folhas/mesa-trabalho.png", "W": 3, "D": 2, "real": [2.0, 1.3, 0.78], "giros": {"4": 3, "0": 3, "2": {"pedaco": 3, "espelho": true}, "6": {"pedaco": 3, "espelho": true}}, "como_esta": true, "retificar": true, "largura": true},
+    {"def": "table_work", "folha": "client/public/arte/mobiliario/folhas/mesa-trabalho.png", "W": 3, "D": 2, "real": [2.04, 0.95, 0.78], "giros": {"4": 0, "6": 1, "0": 2, "2": 3}, "como_esta": true, "retificar": true, "largura": true},
     {"def": "stairs_up", "folha": "client/public/arte/mobiliario/folhas/escada-madeira.png", "W": 1, "D": 2, "real": [0.62, 1.36, 1.75], "como_esta": true, "giros": {"4": 0, "0": 1, "6": 2, "2": 3}, "pisa": true},
     {"def": "table_round", "folha": "client/public/arte/mobiliario/folhas/mesa-redonda.png", "W": 2, "D": 2, "real": [1.65, 1.65, 0.76], "como_esta": true, "giros": {"0": 0}, "forma": "redonda", "pisa": 0.5, "altura": "todas", "topo": [0.76, 0.76]},
     {"def": "chair_red", "folha": "client/public/arte/mobiliario/folhas/cadeira-veludo.png", "real": [0.5, 0.5, 0.95], "como_esta": true, "giros": {"4": 0, "6": 1, "0": 2, "2": 3}, "pisa": true, "altura": true},
-    {"def": "table_meeting", "folha": "client/public/arte/mobiliario/folhas/mesa-reuniao-oval.png", "W": 3, "D": 2, "real": [2.0, 1.2, 0.8], "giros": {"4": 0, "0": 3, "2": {"pedaco": 0, "espelho": true}, "6": {"pedaco": 3, "espelho": true}}, "como_esta": true, "retificar": true, "largura": true, "forma": "oval"},
+    {"def": "table_meeting", "folha": "client/public/arte/mobiliario/folhas/mesa-oval.png", "W": 3, "D": 2, "real": [2.0, 1.05, 0.78], "giros": {"4": 0, "6": 1, "0": 2, "2": 3}, "como_esta": true, "retificar": true, "largura": true, "forma": "oval"},
     {"def": "table_chess", "folha": "client/public/arte/mobiliario/folhas/mesa-xadrez.png", "real": [0.6, 0.6, 0.72], "como_esta": true, "giros": {"4": 0, "6": 1, "0": 2, "2": 3}, "pisa": true, "altura": "todas"},
     {"def": "armchair", "folha": "client/public/arte/mobiliario/folhas/poltrona-couro.png", "real": [0.66, 0.66, 0.78], "como_esta": true, "giros": {"4": 0, "6": 1, "0": 2, "2": 3}, "pisa": true, "altura": true},
     {"def": "armchair_leather", "folha": "client/public/arte/mobiliario/folhas/poltrona-couro.png", "real": [0.66, 0.66, 0.78], "como_esta": true, "giros": {"4": 0, "6": 1, "0": 2, "2": 3}, "pisa": true, "altura": true},

@@ -4,45 +4,23 @@
   "giros": {
    "4": {
     "arquivo": "console/giro-4.png",
-    "ax": 128.5,
-    "ay": 161.0
+    "ax": 129.0,
+    "ay": 164.5
    },
    "6": {
     "arquivo": "console/giro-6.png",
-    "ax": 64.0,
-    "ay": 153.0
+    "ax": 65.0,
+    "ay": 164.5
    },
    "0": {
     "arquivo": "console/giro-0.png",
-    "ax": 128.0,
-    "ay": 156.0
+    "ax": 129.0,
+    "ay": 154.5
    },
    "2": {
     "arquivo": "console/giro-2.png",
-    "ax": 64.0,
-    "ay": 161.0
-   }
-  },
-  "tela": {
-   "cores": [
-    "#4fe39a",
-    "#5ab8f0",
-    "#6ad0c0"
-   ],
-   "ms": 800,
-   "modo": "tv",
-   "forca": 0.24,
-   "giros": {
-    "4": {
-     "x": 98.4,
-     "y": 41.9,
-     "r": 46.3
-    },
-    "2": {
-     "x": 113.3,
-     "y": 35.4,
-     "r": 46.1
-    }
+    "ax": 65.0,
+    "ay": 165.5
    }
   },
   "estados": {
@@ -50,23 +28,23 @@
     "giros": {
      "4": {
       "arquivo": "console/giro-4-1.png",
-      "ax": 128.2,
-      "ay": 161.7
+      "ax": 129.0,
+      "ay": 164.5
      },
      "6": {
       "arquivo": "console/giro-6-1.png",
-      "ax": 64.3,
-      "ay": 153.7
+      "ax": 65.0,
+      "ay": 164.5
      },
      "0": {
       "arquivo": "console/giro-0-1.png",
-      "ax": 128.0,
-      "ay": 156.3
+      "ax": 129.0,
+      "ay": 154.5
      },
      "2": {
       "arquivo": "console/giro-2-1.png",
-      "ax": 64.7,
-      "ay": 161.7
+      "ax": 65.0,
+      "ay": 165.5
      }
     }
    }
@@ -395,22 +373,22 @@
    "4": {
     "arquivo": "bar_shelf/giro-4.png",
     "ax": 103.0,
-    "ay": 333.0
-   },
-   "2": {
-    "arquivo": "bar_shelf/giro-2.png",
-    "ax": 65.0,
-    "ay": 345.0
-   },
-   "0": {
-    "arquivo": "bar_shelf/giro-0.png",
-    "ax": 129.0,
     "ay": 328.0
    },
    "6": {
     "arquivo": "bar_shelf/giro-6.png",
     "ax": 39.0,
-    "ay": 337.0
+    "ay": 315.0
+   },
+   "0": {
+    "arquivo": "bar_shelf/giro-0.png",
+    "ax": 129.0,
+    "ay": 315.0
+   },
+   "2": {
+    "arquivo": "bar_shelf/giro-2.png",
+    "ax": 65.0,
+    "ay": 328.0
    }
   }
  },
@@ -421,6 +399,16 @@
     "arquivo": "beer_fridge/giro-4.png",
     "ax": 59.0,
     "ay": 296.0
+   },
+   "6": {
+    "arquivo": "beer_fridge/giro-6.png",
+    "ax": 59.0,
+    "ay": 293.0
+   },
+   "0": {
+    "arquivo": "beer_fridge/giro-0.png",
+    "ax": 65.0,
+    "ay": 293.0
    },
    "2": {
     "arquivo": "beer_fridge/giro-2.png",
@@ -486,6 +474,16 @@
     "ax": 57.0,
     "ay": 295.0
    },
+   "6": {
+    "arquivo": "fridge_drinks/giro-6.png",
+    "ax": 57.0,
+    "ay": 292.0
+   },
+   "0": {
+    "arquivo": "fridge_drinks/giro-0.png",
+    "ax": 63.0,
+    "ay": 292.0
+   },
    "2": {
     "arquivo": "fridge_drinks/giro-2.png",
     "ax": 63.0,
@@ -500,6 +498,16 @@
     "arquivo": "minibar/giro-4.png",
     "ax": 46.0,
     "ay": 163.0
+   },
+   "6": {
+    "arquivo": "minibar/giro-6.png",
+    "ax": 46.0,
+    "ay": 157.0
+   },
+   "0": {
+    "arquivo": "minibar/giro-0.png",
+    "ax": 58.0,
+    "ay": 157.0
    },
    "2": {
     "arquivo": "minibar/giro-2.png",
@@ -971,34 +979,34 @@
  "sink": {
   "escala": 0.5,
   "giros": {
-   "2": {
-    "arquivo": "sink/giro-2.png",
-    "ax": 65.1,
-    "ay": 131.2
-   },
-   "0": {
-    "arquivo": "sink/giro-0.png",
-    "ax": 50.4,
-    "ay": 113.2
+   "4": {
+    "arquivo": "sink/giro-4.png",
+    "ax": 47.7,
+    "ay": 124.6
    },
    "6": {
     "arquivo": "sink/giro-6.png",
-    "ax": 48.0,
-    "ay": 121.5
+    "ax": 34.9,
+    "ay": 117.8
    },
-   "4": {
-    "arquivo": "sink/giro-4.png",
-    "ax": 31.9,
-    "ay": 134.2
+   "0": {
+    "arquivo": "sink/giro-0.png",
+    "ax": 53.6,
+    "ay": 119.1
+   },
+   "2": {
+    "arquivo": "sink/giro-2.png",
+    "ax": 58.9,
+    "ay": 122.8
    }
   }
  },
  "lab_bench": {
   "escala": 0.5,
   "giros": {
-   "2": {
-    "arquivo": "lab_bench/giro-2.png",
-    "ax": 62.0,
+   "4": {
+    "arquivo": "lab_bench/giro-4.png",
+    "ax": 126.0,
     "ay": 202.0
    },
    "6": {
@@ -1006,14 +1014,14 @@
     "ax": 62.0,
     "ay": 202.0
    },
-   "4": {
-    "arquivo": "lab_bench/giro-4.png",
-    "ax": 126.0,
-    "ay": 202.0
-   },
    "0": {
     "arquivo": "lab_bench/giro-0.png",
     "ax": 126.0,
+    "ay": 202.0
+   },
+   "2": {
+    "arquivo": "lab_bench/giro-2.png",
+    "ax": 62.0,
     "ay": 202.0
    }
   }
@@ -1353,23 +1361,23 @@
   "giros": {
    "4": {
     "arquivo": "table_work/giro-4.png",
-    "ax": 187.5,
-    "ay": 281.4
-   },
-   "0": {
-    "arquivo": "table_work/giro-0.png",
-    "ax": 187.5,
-    "ay": 281.4
-   },
-   "2": {
-    "arquivo": "table_work/giro-2.png",
-    "ax": 123.0,
-    "ay": 282.4
+    "ax": 173.0,
+    "ay": 227.6
    },
    "6": {
     "arquivo": "table_work/giro-6.png",
-    "ax": 123.0,
-    "ay": 282.4
+    "ax": 108.5,
+    "ay": 232.6
+   },
+   "0": {
+    "arquivo": "table_work/giro-0.png",
+    "ax": 173.0,
+    "ay": 232.6
+   },
+   "2": {
+    "arquivo": "table_work/giro-2.png",
+    "ax": 109.0,
+    "ay": 223.6
    }
   }
  },
@@ -1438,23 +1446,23 @@
   "giros": {
    "4": {
     "arquivo": "table_meeting/giro-4.png",
-    "ax": 142.0,
-    "ay": 224.7
-   },
-   "0": {
-    "arquivo": "table_meeting/giro-0.png",
-    "ax": 142.0,
-    "ay": 227.7
-   },
-   "2": {
-    "arquivo": "table_meeting/giro-2.png",
-    "ax": 78.0,
-    "ay": 252.7
+    "ax": 138.5,
+    "ay": 218.2
    },
    "6": {
     "arquivo": "table_meeting/giro-6.png",
-    "ax": 78.0,
-    "ay": 267.7
+    "ax": 74.5,
+    "ay": 237.2
+   },
+   "0": {
+    "arquivo": "table_meeting/giro-0.png",
+    "ax": 138.5,
+    "ay": 208.2
+   },
+   "2": {
+    "arquivo": "table_meeting/giro-2.png",
+    "ax": 74.5,
+    "ay": 230.2
    }
   }
  },
@@ -2536,22 +2544,22 @@
    "4": {
     "arquivo": "server_rack/giro-4.png",
     "ax": 58.6,
-    "ay": 190.8
+    "ay": 246.8
    },
    "6": {
     "arquivo": "server_rack/giro-6.png",
     "ax": 58.6,
-    "ay": 191.9
+    "ay": 248.9
    },
    "0": {
     "arquivo": "server_rack/giro-0.png",
     "ax": 60.4,
-    "ay": 190.9
+    "ay": 249.9
    },
    "2": {
     "arquivo": "server_rack/giro-2.png",
     "ax": 60.4,
-    "ay": 192.8
+    "ay": 254.8
    }
   }
  },
@@ -2561,22 +2569,22 @@
    "4": {
     "arquivo": "printer_dot/giro-4.png",
     "ax": 52.0,
-    "ay": 110.1
+    "ay": 161.1
    },
    "6": {
     "arquivo": "printer_dot/giro-6.png",
     "ax": 52.0,
-    "ay": 115.1
+    "ay": 148.1
    },
    "0": {
     "arquivo": "printer_dot/giro-0.png",
     "ax": 52.0,
-    "ay": 112.1
+    "ay": 168.1
    },
    "2": {
     "arquivo": "printer_dot/giro-2.png",
     "ax": 52.0,
-    "ay": 112.1
+    "ay": 172.1
    }
   }
  },
@@ -2866,23 +2874,23 @@
   "giros": {
    "4": {
     "arquivo": "chest_army/giro-4.png",
-    "ax": 65.0,
-    "ay": 103.5
+    "ax": 55.5,
+    "ay": 108.2
    },
    "6": {
     "arquivo": "chest_army/giro-6.png",
-    "ax": 64.5,
-    "ay": 103.9
+    "ax": 56.0,
+    "ay": 107.9
    },
    "0": {
     "arquivo": "chest_army/giro-0.png",
-    "ax": 64.0,
-    "ay": 104.1
+    "ax": 55.0,
+    "ay": 108.4
    },
    "2": {
     "arquivo": "chest_army/giro-2.png",
-    "ax": 65.0,
-    "ay": 103.4
+    "ax": 55.0,
+    "ay": 108.5
    }
   },
   "estados": {
@@ -2890,23 +2898,23 @@
     "giros": {
      "4": {
       "arquivo": "chest_army/giro-4-1.png",
-      "ax": 52.4,
-      "ay": 106.3
+      "ax": 60.7,
+      "ay": 157.8
      },
      "6": {
       "arquivo": "chest_army/giro-6-1.png",
-      "ax": 72.3,
-      "ay": 109.7
+      "ax": 57.0,
+      "ay": 158.1
      },
      "0": {
       "arquivo": "chest_army/giro-0-1.png",
-      "ax": 55.5,
-      "ay": 107.8
+      "ax": 61.3,
+      "ay": 157.8
      },
      "2": {
       "arquivo": "chest_army/giro-2-1.png",
-      "ax": 65.9,
-      "ay": 104.3
+      "ax": 65.0,
+      "ay": 158.1
      }
     }
    }
@@ -3429,22 +3437,22 @@
    "4": {
     "arquivo": "altar/giro-4.png",
     "ax": 99.0,
-    "ay": 134.0
+    "ay": 152.0
    },
    "6": {
     "arquivo": "altar/giro-6.png",
     "ax": 35.0,
-    "ay": 134.0
+    "ay": 152.0
    },
    "0": {
     "arquivo": "altar/giro-0.png",
     "ax": 99.0,
-    "ay": 134.0
+    "ay": 152.0
    },
    "2": {
     "arquivo": "altar/giro-2.png",
     "ax": 35.0,
-    "ay": 134.0
+    "ay": 152.0
    }
   }
  },
@@ -3519,12 +3527,12 @@
    "r": {
     "arquivo": "crack_glow/parede-r.png",
     "ax": 38.5,
-    "ay": 92.5
+    "ay": 67.0
    },
    "l": {
     "arquivo": "crack_glow/parede-l.png",
     "ax": 38.5,
-    "ay": 92.5
+    "ay": 67.0
    }
   }
  },
@@ -3554,5 +3562,138 @@
   "chao": {
    "arquivo": "wax_pool/chao.png"
   }
+ },
+ "stairs_down": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "stairs_down/giro-4.png",
+    "ax": 64.0,
+    "ay": 68.0
+   },
+   "6": {
+    "arquivo": "stairs_down/giro-6.png",
+    "ax": 64.0,
+    "ay": 67.0
+   },
+   "0": {
+    "arquivo": "stairs_down/giro-0.png",
+    "ax": 64.0,
+    "ay": 66.0
+   },
+   "2": {
+    "arquivo": "stairs_down/giro-2.png",
+    "ax": 64.0,
+    "ay": 66.0
+   }
+  }
+ },
+ "portal": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "portal/giro-4.png",
+    "ax": 26.4,
+    "ay": 324.8
+   },
+   "2": {
+    "arquivo": "portal/giro-2.png",
+    "ax": 77.1,
+    "ay": 324.6
+   }
+  },
+  "estados": {
+   "1": {
+    "giros": {
+     "4": {
+      "arquivo": "portal/giro-4-1.png",
+      "ax": 26.4,
+      "ay": 324.8
+     },
+     "2": {
+      "arquivo": "portal/giro-2-1.png",
+      "ax": 77.1,
+      "ay": 324.6
+     }
+    }
+   },
+   "2": {
+    "giros": {
+     "4": {
+      "arquivo": "portal/giro-4-2.png",
+      "ax": 26.4,
+      "ay": 324.8
+     },
+     "2": {
+      "arquivo": "portal/giro-2-2.png",
+      "ax": 77.1,
+      "ay": 324.6
+     }
+    }
+   }
+  },
+  "caixa": [
+   0,
+   0.24,
+   -0.26,
+   1.26,
+   0,
+   2.17
+  ],
+  "soGiros": true
+ },
+ "portal@metal": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "portal@metal/giro-4.png",
+    "ax": 30.9,
+    "ay": 322.7
+   },
+   "2": {
+    "arquivo": "portal@metal/giro-2.png",
+    "ax": 80.1,
+    "ay": 322.7
+   }
+  },
+  "estados": {
+   "1": {
+    "giros": {
+     "4": {
+      "arquivo": "portal@metal/giro-4-1.png",
+      "ax": 30.9,
+      "ay": 322.7
+     },
+     "2": {
+      "arquivo": "portal@metal/giro-2-1.png",
+      "ax": 80.1,
+      "ay": 322.7
+     }
+    }
+   },
+   "2": {
+    "giros": {
+     "4": {
+      "arquivo": "portal@metal/giro-4-2.png",
+      "ax": 30.9,
+      "ay": 322.7
+     },
+     "2": {
+      "arquivo": "portal@metal/giro-2-2.png",
+      "ax": 80.1,
+      "ay": 322.7
+     }
+    }
+   }
+  },
+  "caixa": [
+   0,
+   0.24,
+   -0.26,
+   1.26,
+   0,
+   2.17
+  ],
+  "soGiros": true
  }
 }
