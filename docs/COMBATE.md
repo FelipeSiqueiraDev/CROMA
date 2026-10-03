@@ -402,7 +402,7 @@ O livro não diz em que ordem as coisas do começo do turno acontecem. Proposta 
 
 **Escala:**
 - 1 quadrado do livro (1,5 m) = 2 casas do CROMA (REGRAS.md, decisão 6).
-- Para as regras, 1 casa vale 0,75 m. O desenho usa ~0,68 m, e isso não muda nada.
+- 1 casa vale 0,75 m, nas regras e no desenho (desde 03/10 a arte segue essa escala: os móveis no tamanho de verdade e a pessoa com 1,80 m).
 
 | Metros | 1,5 | 3 | 4,5 | 6 | 9 (curto, deslocamento) | 18 (médio) | 36 (longo) | 90 (extremo) |
 |---|---|---|---|---|---|---|---|---|

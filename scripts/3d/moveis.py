@@ -116,11 +116,12 @@ import numpy as np
 
 sys.stdout.reconfigure(encoding='utf-8')
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-CASA = 0.68
-# o tabuleiro: casa de 64 x 32 pixels no zoom 1 = câmera a 45° e 30°, 66,55 px por metro no plano da imagem
+# a casa do tabuleiro: meio quadrado do livro (1,5 m), como M_POR_CASA em shared/src/constants.ts
+CASA = 0.75
+# o tabuleiro: casa de 64 x 32 pixels no zoom 1 = câmera a 45° e 30°, 60,3 px por metro no plano da imagem
 PX_M_TABULEIRO = 32 / (CASA * np.cos(np.radians(45)))
-# na vertical: 57,6 px por metro (Z_PER_M = 1,8 unidades de 32 px)
-PX_M_VERTICAL = 57.6
+# na vertical: 52,3 px por metro (Z_PER_M = 1,63 unidade de 32 px)
+PX_M_VERTICAL = PX_M_TABULEIRO * np.cos(np.radians(30))
 
 
 def ler(p):

@@ -20,6 +20,7 @@ import {
   type WallFurniDef,
   type WallItem,
   type WallSeg,
+  ESCALA_ARTE_PESSOA,
 } from '@croma/shared';
 import { drawPixelAvatar, PIXEL_AVATAR_HEIGHT, type Pose } from '../render/avatarPixel';
 import { Bubbles, UI_FONT } from '../render/bubbles';
@@ -256,6 +257,8 @@ const SLIDE_MS = 1500;
 /** abaixo deste zoom o cômodo não é encolhido: a câmera acompanha as peças */
 const FIT_MIN = 0.72;
 const BG = '#07060a';
+/** a pessoa (~1,78 m) em unidades de altura: a caixa dela na ordem de desenho e no raio-x */
+const ALTURA_PESSOA = 1.78 * Z_PER_M;
 const AMBER = 'rgba(255,196,90,0.95)';
 
 export class RoomView {
@@ -625,9 +628,10 @@ export class RoomView {
     return { x, y, z: u.z, moving: false };
   }
 
+  /** A altura da pessoa na tela (zoom 1): a arte dela vem na escala antiga e o tabuleiro reduz (ESCALA_ARTE_PESSOA). */
   private avatarHeight(u: ClientUser) {
     const sp = u.look.charId ? sprites.get(u.look.charId) : null;
-    return sp ? sp.def.height : PIXEL_AVATAR_HEIGHT;
+    return (sp ? sp.def.height : PIXEL_AVATAR_HEIGHT) * ESCALA_ARTE_PESSOA;
   }
 
   chat(id: number, name: string, text: string, kind: ChatKind, roll?: RollResult) {
@@ -1278,7 +1282,7 @@ export class RoomView {
       if (escuroEm(celas, p.x + 0.5, p.y + 0.5) > 0.5) continue;
       const [mx, my] = iso(p.x + 0.5, p.y + 0.5, p.z);
       const H = this.avatarHeight(u);
-      raioX.push({ box: { x0: p.x + 0.2, x1: p.x + 0.8, y0: p.y + 0.2, y1: p.y + 0.8, z0: p.z, z1: p.z + 3.2 }, rect: [mx - 22, my - H - 6, mx + 22, my + 8] });
+      raioX.push({ box: { x0: p.x + 0.2, x1: p.x + 0.8, y0: p.y + 0.2, y1: p.y + 0.8, z0: p.z, z1: p.z + ALTURA_PESSOA }, rect: [mx - 22, my - H - 6, mx + 22, my + 8] });
     }
     // o que cai fora da tela não é desenhado (a fazenda tem centenas de mobis); a luz deles continua valendo
     const vista = { x0: -this.cam.x / z - 120, y0: -this.cam.y / z - 200, x1: (this.vw - this.cam.x) / z + 120, y1: (this.vh - this.cam.y) / z + 120 };
@@ -1442,7 +1446,8 @@ export class RoomView {
         if (p.moving && bdir.andar) {
           nome = 'andar';
           const c = bdir.andar.clipe;
-          const ciclo = casas / (c.casasPorCiclo ?? 1.91) + (c.fase ?? 0);
+          // a pessoa menor dá passos menores: mais ciclos por casa
+          const ciclo = casas / ((c.casasPorCiclo ?? 1.91) * ESCALA_ARTE_PESSOA) + (c.fase ?? 0);
           i = Math.floor((((ciclo % 1) + 1) % 1) * c.quadros) % c.quadros;
         } else {
           nome = sentadoReal ? 'sentado' : u.dance && bdir.dancar ? 'dancar' : 'parado';
@@ -1477,12 +1482,14 @@ export class RoomView {
       const baseZ = standBy ? (map.floorHeight(u.x, u.y) ?? p.z) : p.z;
       const half = seated ? 0.25 : 0.3;
       const [sx, sy] = iso(cx, cy, baseZ);
+      // H: a altura na arte; HE: na tela (a arte vem na escala antiga e o tabuleiro reduz)
       const H = bq ? bq.ay : sp ? sp.def.height : pf ? pf.h : PIXEL_AVATAR_HEIGHT;
+      const HE = H * ESCALA_ARTE_PESSOA;
       const isSel = sel?.kind === 'user' && sel.id === u.id;
       const pose: Pose = p.moving ? 'walk' : seated || u.sit === 2 ? 'sit' : 'stand';
       const wave = u.waveUntil > now;
       // ~1,75 m de altura para a ordem de desenho
-      const box: WBox = { x0: cx - half, x1: cx + half, y0: cy - half, y1: cy + half, z0: baseZ, z1: baseZ + 3.2 };
+      const box: WBox = { x0: cx - half, x1: cx + half, y0: cy - half, y1: cy + half, z0: baseZ, z1: baseZ + ALTURA_PESSOA };
       const deitada = !!marcas?.deitadas.has(u.id);
       // a peça pisa no meio da casa: o centro da pegada das botas fica no centro dela, e não a ponta
       // da bota (sem isso, a sombra e o anel aparecem na frente dos pés e ela parece flutuar)
@@ -1501,7 +1508,7 @@ export class RoomView {
         : sp
           ? (quadroDaFolha(sp.def, sp.lc, u.dir, now, u.phase, sPose)?.q ?? null)
           : null;
-      const { luz, sombras } = luzesDaPeca(luzesCena, sx, sy - H * 0.5, cx, cy);
+      const { luz, sombras } = luzesDaPeca(luzesCena, sx, sy - HE * 0.5, cx, cy);
       if (!seated)
         chaoPecas.push(() => {
           if (clip) {
@@ -1509,6 +1516,11 @@ export class RoomView {
             ctx.clip(door!.path, 'evenodd');
           }
           {
+            // a sombra e o anel na escala da pessoa, a partir dos pés
+            ctx.save();
+            ctx.translate(sx, sy);
+            ctx.scale(ESCALA_ARTE_PESSOA, ESCALA_ARTE_PESSOA);
+            ctx.translate(-sx, -sy);
             // a sombra cobre os dois pés: com o boneco, da largura entre eles
             const abre = bpes ? Math.max(...bpes.map((pe) => Math.abs(pe[0]))) + 8 : 0;
             const pes = bpes ? Math.max(15, Math.min(26, abre)) : pf?.pes ? Math.max(15, Math.min(26, pf.pes + 4)) : 19;
@@ -1558,6 +1570,7 @@ export class RoomView {
               ctx.ellipse(sx, sy, (rx + 6) * pulse, (ry + 3.5) * pulse, 0, 0, Math.PI * 2);
               ctx.stroke();
             }
+            ctx.restore();
           }
           if (clip) ctx.restore();
         });
@@ -1565,7 +1578,7 @@ export class RoomView {
         box,
         sx0: sx - 40,
         sx1: sx + 40,
-        sy0: sy - H - 30,
+        sy0: sy - HE - 30,
         sy1: sy + 16,
         draw: () => {
           if (clip) {
@@ -1575,6 +1588,11 @@ export class RoomView {
           // numa cela fechada, a peça fica no escuro com ela
           const eCela = escuroEm(celas, cx, cy);
           if (eCela > 0.01) ctx.filter = `brightness(${(1 - 0.78 * eCela).toFixed(3)})`;
+          // a pessoa na escala do tabuleiro, a partir dos pés
+          ctx.save();
+          ctx.translate(sx, sy);
+          ctx.scale(ESCALA_ARTE_PESSOA, ESCALA_ARTE_PESSOA);
+          ctx.translate(-sx, -sy);
           const dance = u.dance ? -Math.abs(Math.sin((now * Math.PI) / 320 + u.phase)) * 4 : 0;
           // giro: afina de lado e volta, com um pulinho, a partir dos pés
           const tt = u.turnAt ? (now - u.turnAt) / TURN_MS : 1;
@@ -1611,6 +1629,7 @@ export class RoomView {
           const arma = !deitada && !seated ? this.armaDe?.(u.id) : null;
           if (arma && !(lp && temPoseArmada(lp))) drawWeaponMark(ctx, sx, fy + afunda + dance, H, arma, u.dir);
           if (wave && sp) this.drawEmote(sx, fy - H - 14, now);
+          ctx.restore();
           if (eCela > 0.01) ctx.filter = 'none';
           if (clip) ctx.restore();
         },
@@ -1619,10 +1638,10 @@ export class RoomView {
       hitOf.set(d, {
         kind: 'user',
         id: u.id,
-        test: (x, y) => x >= sx - 16 && x <= sx + 16 && y >= sy - H && y <= sy + 10,
+        test: (x, y) => x >= sx - 16 && x <= sx + 16 && y >= sy - HE && y <= sy + 10,
       });
       // a luz da peça desce até as pernas: ilumina o chão em volta junto com o corpo (sem parecer colado por cima)
-      lights.push({ x: sx, y: sy - H * 0.22, radius: 88, color: '#ffe2b8', intensity: u.id === this.myId ? 0.42 : 0.3, kind: 'personal' });
+      lights.push({ x: sx, y: sy - HE * 0.22, radius: 88, color: '#ffe2b8', intensity: u.id === this.myId ? 0.42 : 0.3, kind: 'personal' });
     }
 
     // cursor do piso

@@ -3,7 +3,7 @@
   "escala": 0.5,
   "limpar": 56,
   "moveis": [
-    {"def": "locker_row", "folha": "client/public/arte/mobiliario/folhas/armarios-vestiario.png", "W": 2, "D": 1, "real": [1.36, 0.45, 1.9], "angulos": true, "encosta": true, "giros": {"4": 0, "6": 1, "0": 2, "2": 3}},
+    {"def": "locker_row", "folha": "client/public/arte/mobiliario/folhas/armarios-vestiario.png", "W": 2, "D": 1, "real": [1.5, 0.45, 1.9], "angulos": true, "encosta": true, "giros": {"4": 0, "6": 1, "0": 2, "2": 3}},
     {"def": "janitor_cart", "folha": "client/public/arte/mobiliario/folhas/carrinho-limpeza.png", "real": [0.45, 0.7, 1.1], "como_esta": true, "altura": "todas", "giros": {"4": 0, "6": 1, "0": 2, "2": 3}},
     {"def": "wet_sign", "folha": "client/public/arte/mobiliario/folhas/placa-piso-molhado.png", "real": [0.3, 0.3, 0.6], "como_esta": true, "altura": "todas", "giros": {"4": 0, "6": 1, "0": 2, "2": 3}},
     {"def": "trash_can", "folha": "client/public/arte/mobiliario/folhas/lixeira-metal.png", "real": [0.35, 0.35, 0.6], "como_esta": true, "altura": "todas", "giros": {"4": 0, "6": 1, "0": 2, "2": 3}},

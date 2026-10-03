@@ -60,7 +60,7 @@ Um item por vez, cada um com testes e com sua aprovação antes do próximo. O m
 3. **Regras da casa.** Proposta: começar pelas que o C.R.I.S prevê (seção 12), por campanha, todas desligadas (= livro puro) até o mestre ligar. Falta saber quais a mesa usa.
 4. **Conflitos do livro.** Proposta: seguir o que o C.R.I.S já decidiu (seção 13), com a chave da casa quando existir.
 5. **Catálogos (itens, rituais, poderes, origens).** Proposta: nome, números e página no repositório; a descrição fica fora dele (ou o repositório passa a ser privado).
-6. **Escala do combate.** Proposta: 1 quadrado do livro (1,5 m) = 2 casas do CROMA. Cada casa tem ~0,68 m (a pessoa tem 1,75 m). Deslocamento de 9 m = 12 casas.
+6. **Escala do combate.** Proposta: 1 quadrado do livro (1,5 m) = 2 casas do CROMA. Cada casa tem 0,75 m, também no desenho (03/10; antes ~0,68 m). Deslocamento de 9 m = 12 casas.
 
 ---
 

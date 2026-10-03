@@ -4,12 +4,13 @@
  * de falha, o crítico, o dano e o que vem depois. Funções puras: a tela usa
  * para mostrar a conta, e o servidor para escrever o registro.
  */
+import { M_POR_CASA } from '../constants';
 import { rolagem } from '../regras/rolagem';
 import type { TipoDano } from '../regras/tipos';
 import type { ResultadoAtaque } from './tipos';
 
 /** 1 casa do tabuleiro = 0,75 m: 2 casas fazem 1 quadrado de 1,5 m (REGRAS.md, decisão 6; COMBATE.md 7.2). */
-export const METROS_POR_CASA = 0.75;
+export const METROS_POR_CASA = M_POR_CASA;
 
 export type Faixa = 'curto' | 'medio' | 'longo' | 'extremo';
 export const METROS_FAIXA: Record<Faixa, number> = { curto: 9, medio: 18, longo: 36, extremo: 90 };

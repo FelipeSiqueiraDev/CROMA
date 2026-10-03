@@ -1,4 +1,4 @@
-import { Z_PER_M, type FurniDef } from '@croma/shared';
+import { M_POR_CASA, Z_PER_M, type FurniDef } from '@croma/shared';
 import { rgba } from './color';
 import { N, V, type FVisual } from './furniKit';
 import { iso } from './iso';
@@ -64,10 +64,20 @@ export interface MovelArte {
   real?: [number, number, number];
   /** encostado no fundo da casa (a prateleira na parede), em vez de no meio */
   encosta?: boolean;
-  /** o móvel visto de cima (mapa tático), com a frente para baixo; a imagem tem a pegada inteira, 128 px por casa (scripts/3d/cima.py) */
-  cima?: { arquivo: string };
+  /**
+   * o móvel visto de cima (mapa tático), com a frente para baixo; a imagem tem a pegada inteira e
+   * a caixa diz onde o móvel está nela, em pixels (scripts/3d/cima.py): o jogo põe a caixa no
+   * tamanho de verdade dele
+   */
+  cima?: VistaDeCima;
   /** os estados que mudam o que se vê de cima (o baú aberto) */
-  cimaEstados?: Record<string, { arquivo: string }>;
+  cimaEstados?: Record<string, VistaDeCima>;
+}
+
+export interface VistaDeCima {
+  arquivo: string;
+  /** onde o móvel está na imagem: [x0, y0, x1, y1] em pixels */
+  caixa?: [number, number, number, number];
 }
 
 /** A tela de TV ligada (item de parede): treme de leve entre as cores, bem mais fraca que o fliperama. */
@@ -186,7 +196,7 @@ export function visualComArte(def: FurniDef, base: FVisual, state = 0, seed = 0,
     if (a.pendulo) {
       const braco = Math.max(0.2, (a.caixa?.[5] ?? 2.75) - 1.95);
       // para o lado na tela (u e v juntos, no giro 0 da lâmpada): o fundo dela vai para o lado contrário do giro
-      const s = (-Math.sin(ang) * braco) / (0.68 * Math.SQRT2);
+      const s = (-Math.sin(ang) * braco) / (M_POR_CASA * Math.SQRT2);
       const respira = 1 + 0.03 * Math.sin(performance.now() / 1700 + seed);
       luzes = luzes.map((L) => ({ ...L, u: L.u + s, v: L.v + s, intensity: L.intensity * respira }));
     }
@@ -205,11 +215,12 @@ export function imagemDoChao(defId: string): HTMLCanvasElement | null {
   return a?.chao ? (pronta(a.chao.arquivo)?.normal ?? null) : null;
 }
 
-/** O móvel visto de cima (mapa tático), no estado dele; null sem arte ou enquanto ela carrega. */
-export function imagemDeCima(defId: string, estado = 0): HTMLCanvasElement | null {
+/** O móvel visto de cima (mapa tático), no estado dele, e onde ele está na imagem; null sem arte ou enquanto ela carrega. */
+export function imagemDeCima(defId: string, estado = 0): { img: HTMLCanvasElement; caixa: [number, number, number, number] | null } | null {
   const a = lista?.[defId];
-  const arquivo = a?.cimaEstados?.[String(estado)]?.arquivo ?? a?.cima?.arquivo;
-  return arquivo ? (pronta(arquivo)?.normal ?? null) : null;
+  const vista = a?.cimaEstados?.[String(estado)] ?? a?.cima;
+  const img = vista ? pronta(vista.arquivo)?.normal : null;
+  return img ? { img, caixa: vista?.caixa ?? null } : null;
 }
 
 /** O tamanho de verdade do móvel (metros) e se ele encosta no fundo da casa, pela arte dele; null sem arte. */

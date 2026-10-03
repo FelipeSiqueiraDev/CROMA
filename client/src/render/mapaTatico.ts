@@ -1,4 +1,4 @@
-import { combate as cb, footprint, getFurni, Z_PER_M, type FloorItem, type FloorStyle, type FurniDef, type RoomMap } from '@croma/shared';
+import { combate as cb, footprint, getFurni, M_POR_CASA, Z_PER_M, type FloorItem, type FloorStyle, type FurniDef, type RoomMap } from '@croma/shared';
 import { contornoArea, type Casa } from '../room/combateGeo';
 import type { MarcasCombate } from './combateMarcas';
 import { imagemDeCima, imagemDoChao, tamanhoReal } from './furniArte';
@@ -77,8 +77,6 @@ export interface CameraVoo {
 
 const COBRE = 0.8 * Z_PER_M;
 const TAPA = 1.8 * Z_PER_M;
-/** a casa da arte, em metros (o tamanho de verdade dos móveis vem nessa medida) */
-const CASA_M = 0.68;
 /** grossura da parede, em casas */
 const PAREDE = 0.34;
 /** altura das paredes do fundo na maquete */
@@ -246,6 +244,8 @@ export interface OpcoesMesa {
   fundo?: boolean;
   /** o escuro de cada casa das celas fechadas ("x,y" -> 0 a 1): o que tem dentro some no escuro */
   celas?: Map<string, number> | null;
+  /** o raio da ficha das peças, em casas (o padrão, 1, é o quadrado do livro que a peça Média ocupa: 2 casas) */
+  ficha?: number;
 }
 
 /** O mapa tático parado, no enquadre e. */
@@ -308,7 +308,9 @@ export function desenharMesa(ctx: CanvasRenderingContext2D, map: RoomMap, piso: 
     blocos.push({ prof: prof(it.x + fp.sx / 2, it.y + fp.sy / 2), z: it.z ?? 0, desenhar: () => desenharMovel(ctx, v, it, def) });
   }
   for (const p of paredes(map)) blocos.push({ prof: prof((p.x0 + p.x1) / 2, (p.y0 + p.y1) / 2) - (p.fundo ? 100 : 0), z: 0, desenhar: () => desenharParede(ctx, v, p, piso) });
-  for (const p of pecas) blocos.push({ prof: prof(p.x + 0.5, p.y + 0.5) + 0.02, z: 0.2, desenhar: () => desenharPeca(ctx, v, p) });
+  // a peça Média ocupa 1 quadrado do livro (1,5 m = 2 casas): a ficha tem esse tamanho
+  const raio = opcoes.ficha ?? 1;
+  for (const p of pecas) blocos.push({ prof: prof(p.x + 0.5, p.y + 0.5) + 0.02, z: 0.2, desenhar: () => desenharPeca(ctx, v, p, raio) });
   blocos.sort((a, b) => a.prof - b.prof || a.z - b.z);
   for (const b of blocos) b.desenhar();
   // as portas, no vão das paredes
@@ -332,7 +334,7 @@ export function desenharMesa(ctx: CanvasRenderingContext2D, map: RoomMap, piso: 
   const aNome = passo(0.82, 1, v.t);
   if (aNome > 0.01) {
     ctx.globalAlpha = aNome;
-    for (const p of pecas) plaquinha(ctx, v, p);
+    for (const p of pecas) plaquinha(ctx, v, p, raio);
     ctx.globalAlpha = 1;
   }
   opcoes.porCima?.(ctx, v);
@@ -377,8 +379,8 @@ function formaDoMovel(it: FloorItem, def: FurniDef) {
   let r: { x: number; y: number; w: number; h: number };
   if (tr) {
     const deLado = it.rot === 2 || it.rot === 6;
-    const w = Math.min(fp.sx, Math.max(0.1, (deLado ? tr.real[1] : tr.real[0]) / CASA_M));
-    const h = Math.min(fp.sy, Math.max(0.1, (deLado ? tr.real[0] : tr.real[1]) / CASA_M));
+    const w = Math.min(fp.sx, Math.max(0.1, (deLado ? tr.real[1] : tr.real[0]) / M_POR_CASA));
+    const h = Math.min(fp.sy, Math.max(0.1, (deLado ? tr.real[0] : tr.real[1]) / M_POR_CASA));
     r = { x: it.x + (fp.sx - w) / 2, y: it.y + (fp.sy - h) / 2, w, h };
     if (tr.encosta) {
       // encostado no fundo, o lado oposto à frente (giro 4: a frente para +y, o fundo no y da casa)
@@ -439,7 +441,7 @@ function desenharMovel(ctx: CanvasRenderingContext2D, v: CameraVoo, it: FloorIte
     ctx.setTransform(matrizNaAltura(v, 0).translate(s * 0.6, s));
     if (arte) {
       ctx.globalAlpha = 0.5;
-      desenharDeCima(ctx, silhueta(arte), it, def);
+      desenharDeCima(ctx, { img: silhueta(arte.img), caixa: arte.caixa }, it, def);
       ctx.globalAlpha = 1;
     } else {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.42)';
@@ -501,15 +503,26 @@ function desenharMovel(ctx: CanvasRenderingContext2D, v: CameraVoo, it: FloorIte
   ctx.stroke(path);
 }
 
-/** A arte vista de cima deitada na pegada do móvel (a frente da imagem para baixo é o giro 4), girada pelo giro dele. */
-function desenharDeCima(ctx: CanvasRenderingContext2D, img: CanvasImageSource, it: FloorItem, def: FurniDef) {
+/**
+ * A arte vista de cima deitada na pegada do móvel (a frente da imagem para baixo é o giro 4),
+ * girada pelo giro dele. O recorte do móvel na imagem vai para o tamanho de verdade dele (no
+ * meio da pegada, ou encostado no fundo); sem a medida, a imagem cobre a pegada inteira.
+ */
+function desenharDeCima(ctx: CanvasRenderingContext2D, arte: { img: CanvasImageSource; caixa: [number, number, number, number] | null }, it: FloorItem, def: FurniDef) {
   const fp = footprint(def, it.rot);
+  const tr = tamanhoReal(def.id);
   ctx.save();
   ctx.translate(it.x + fp.sx / 2, it.y + fp.sy / 2);
   ctx.rotate(it.rot === 0 ? Math.PI : it.rot === 2 ? -Math.PI / 2 : it.rot === 6 ? Math.PI / 2 : 0);
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(img, -def.width / 2, -def.depth / 2, def.width, def.depth);
+  if (tr && arte.caixa) {
+    // na imagem: a largura (ao longo da frente) em x, o fundo em y, e o fundo do móvel em cima
+    const tw = Math.min(def.width, tr.real[0] / M_POR_CASA);
+    const th = Math.min(def.depth, tr.real[1] / M_POR_CASA);
+    const [x0, y0, x1, y1] = arte.caixa;
+    ctx.drawImage(arte.img, x0, y0, x1 - x0, y1 - y0, -tw / 2, tr.encosta ? -def.depth / 2 : -th / 2, tw, th);
+  } else ctx.drawImage(arte.img, -def.width / 2, -def.depth / 2, def.width, def.depth);
   ctx.restore();
 }
 
@@ -754,8 +767,7 @@ function desenharPortaNaParede(ctx: CanvasRenderingContext2D, v: CameraVoo, map:
 }
 
 /** A ficha redonda deitada no chão (um pouco acima): sombra, o retrato, o anel do lado, o PV em arco e o brilho da vez. */
-function desenharPeca(ctx: CanvasRenderingContext2D, v: CameraVoo, p: PecaTatica) {
-  const r = 0.84;
+function desenharPeca(ctx: CanvasRenderingContext2D, v: CameraVoo, p: PecaTatica, r: number) {
   const cx = p.x + 0.5;
   const cy = p.y + 0.5;
   const cor = p.lado === 'ameaca' ? '#d23a2e' : p.cor;
@@ -867,14 +879,14 @@ function desenharPeca(ctx: CanvasRenderingContext2D, v: CameraVoo, p: PecaTatica
 }
 
 /** O nome da peça numa plaquinha embaixo dela, de pé na tela. */
-function plaquinha(ctx: CanvasRenderingContext2D, v: CameraVoo, p: PecaTatica) {
+function plaquinha(ctx: CanvasRenderingContext2D, v: CameraVoo, p: PecaTatica, r: number) {
   const nome = p.nome.split(' ')[0];
   if (!nome) return;
   const [cx, cy] = projetar(v, p.x + 0.5, p.y + 0.5, 0);
   const fs = Math.max(9, Math.round(v.escala * 0.36));
   ctx.font = `400 ${fs}px "Special Elite", "Courier Prime", monospace`;
   const tw = ctx.measureText(nome).width + fs * 0.9;
-  const ty = cy + v.escala * 0.84 * 1.22 * v.achata;
+  const ty = cy + v.escala * r * 1.22 * v.achata;
   ctx.fillStyle = 'rgba(14, 12, 10, 0.82)';
   ctx.beginPath();
   ctx.roundRect(cx - tw / 2, ty, tw, fs * 1.45, fs * 0.3);

@@ -17,7 +17,9 @@ Quem faz a arte entrega **só arquivos de imagem**. Todo o código (encaixar, an
 
 ## Tabuleiro: o modelo e a grade (decidido em 30/09)
 
-> **Revisto em 02/10.** Os agentes passam para a **proporção real** (cerca de 7 cabeças), em pixel art detalhada, como a Alosi de jaqueta creme que o Felipe mandou em 02/10 (quatro quadros parados, piscando). O tabuleiro anda com um boneco 3D que tira a pele da **folha das 8 direções** de cada agente nesse estilo (seção 1, "Folha das 8 direções"): o boneco faz o andar e as outras animações. Os **móveis** seguem a folha de objetos do Códex (`mobiliario/props-ordo-realitas.png`), em arte em dobro e desenhada suave (seção 5). A grade e as medidas abaixo continuam: casa de 64×32 e 1 m ≈ 58 pixels no zoom normal.
+> **Revisto em 02/10.** Os agentes passam para a **proporção real** (cerca de 7 cabeças), em pixel art detalhada, como a Alosi de jaqueta creme que o Felipe mandou em 02/10 (quatro quadros parados, piscando). O tabuleiro anda com um boneco 3D que tira a pele da **folha das 8 direções** de cada agente nesse estilo (seção 1, "Folha das 8 direções"): o boneco faz o andar e as outras animações. Os **móveis** seguem a folha de objetos do Códex (`mobiliario/props-ordo-realitas.png`), em arte em dobro e desenhada suave (seção 5). A grade continua: casa de 64×32 no zoom normal.
+
+> **Revisto em 03/10: a escala das regras.** A casa tem **0,75 m** (meio quadrado de 1,5 m do livro), nas regras e no desenho; antes o desenho usava 0,68 m e tudo ficava 10% grande demais perto da grade. Na tela, 1 m de altura tem 52 px. Os móveis foram refeitos nessa escala (`scripts/3d/moveis.py`). A arte das pessoas continua saindo na escala antiga (1 m = 57,6 px, a pessoa com 104) e o tabuleiro desenha com 91%: o formato dos pedidos de personagem não muda.
 
 Vale para tudo o que fica no tabuleiro: os bonecos e o mapa (piso, paredes e móveis), que recebem a arte no mesmo estilo.
 
@@ -27,15 +29,15 @@ Vale para tudo o que fica no tabuleiro: os bonecos e o mapa (piso, paredes e mó
 
 | Peça | Na arte (pixels) | Na tela, no zoom normal |
 |---|---|---|
-| Casa do chão | losango de 64×32 | 64×32 |
-| 1 m de altura | ~58 | 57,6 |
-| Pessoa (1,75 m) | ~104 de altura | 104 |
-| Porta (2,15 m) | ~124 | 124 |
-| Mesa (0,8 m) | ~46 | 46 |
+| Casa do chão (0,75 m) | losango de 64×32 | 64×32 |
+| 1 m de altura | móveis: o construtor escala; pessoas: ~58 | 52,3 |
+| Pessoa (1,80 m) | ~104 de altura | 94 |
+| Porta (2,15 m) | o construtor escala | 112 |
+| Mesa (0,8 m) | o construtor escala | 42 |
 
 - **Pixel duro:** cores chapadas, sem anti-aliasing, sem desfoque e sem brilho em volta. Os bonecos têm contorno escuro; o cenário pode ter contorno mais suave, para os bonecos se destacarem.
 - **Luz neutra em tudo:** a luz vem do jogo (escuridão, lamparinas, névoa e o brilho das telas e lâmpadas).
-- **Proporção dos móveis:** no tamanho de verdade, em metros, perto da pessoa de 1,80 m (104 pixels): a cadeira com o assento a 0,46 m, a mesa a 0,78 m e a porta com 2,1 m. O construtor escala cada peça pela altura de verdade (`scripts/3d/moveis.py`).
+- **Proporção dos móveis:** no tamanho de verdade, em metros, perto da pessoa de 1,80 m (94 pixels no tabuleiro): a cadeira com o assento a 0,46 m, a mesa a 0,78 m e a porta com 2,1 m. O construtor escala cada peça pela altura de verdade (`scripts/3d/moveis.py`).
 - **O que o jogo faz:** desenha a arte sem suavizar e com zoom em múltiplos do pixel (0,5×, 1×, 1,5×, 2×...), para cada pixel da arte ficar inteiro na tela.
 
 ## 1. Personagens
@@ -317,7 +319,7 @@ Os móveis vêm em **folhas de objetos** como a primeira do Códex (`mobiliario/
 
 - Até **12 objetos por folha**, em 3 linhas de 4, **separados** (nenhum encosta no outro), fundo transparente de verdade.
 - Cada objeto **visto de cima e de lado** (3/4), com a **frente virada para baixo à esquerda**, como o arquivo verde e a estante da primeira folha. O ângulo não precisa ser exato: o construtor acha o ângulo de cada desenho e redesenha na grade do tabuleiro.
-- **Proporção certa** pelo tamanho do móvel no jogo (casas de 0,68 m: largura × fundo, e a altura em metros), da lista do [`CHECKLIST-ARTE.md`](CHECKLIST-ARTE.md). Detalhe à vontade: cada objeto com uns 300 a 400 pixels de largura.
+- **Proporção certa** pelo tamanho do móvel no jogo (casas de 0,75 m: largura × fundo, e a altura em metros), da lista do [`CHECKLIST-ARTE.md`](CHECKLIST-ARTE.md). Detalhe à vontade: cada objeto com uns 300 a 400 pixels de largura.
 - Luz neutra, sem sombra no chão, sem texto, sem número e sem símbolo oficial (sigilos e marcas sempre próprios).
 - **Costas:** quem senta (cadeiras, poltronas, sofás) precisa também das costas, o mesmo objeto girado de meia-volta, numa folha à parte na mesma ordem. O resto o construtor faz: as costas saem da própria frente.
 - Nome: `client/public/arte/mobiliario/folha-<n>.png` (as costas: `folha-<n>-costas.png`).
@@ -332,7 +334,7 @@ O jeito certo de cada móvel: **uma folha por móvel, com ele girando**, para vi
 - **Linha de baixo, vista de cima** (de cima e de frente, a uns 55°, para o combate), **também no sentido horário**: 5) virada para baixo; 6) para a esquerda; 7) para cima; 8) para a direita.
 - O mesmo objeto em todas: mesmo tamanho, pés na mesma altura, separadas, fundo transparente, sem chão, sem sombra, sem texto. Estilo da folha de objetos do Códex (pixel art detalhada, contorno escuro fino, cores quentes).
 - Nome: `client/public/arte/mobiliario/folhas/<nome-do-movel>.png`. O construtor recorta, acerta tamanho e âncora e grava `mobiliario/<id>/giro-<0|2|4|6>.png`.
-- **O tamanho é o de verdade** (revisto em 02/10): o pedido diz as medidas do móvel em metros, perto de uma pessoa de 1,80 m (no tabuleiro, 104 px). O construtor dá a cada móvel as medidas de verdade (`"real"` na ficha `scripts/3d/fichas/moveis-bar.json`), com a mesma escala nas 4 vistas, e o põe no meio da casa ou encostado na parede. Móvel que é uma caixa e veio baixo ou comprido demais (o balcão) é redesenhado na caixa de verdade; a prateleira repete as fileiras de garrafas até a altura certa, em vez de esticar.
+- **O tamanho é o de verdade** (revisto em 02/10): o pedido diz as medidas do móvel em metros, perto de uma pessoa de 1,80 m (no tabuleiro, 94 px). O construtor dá a cada móvel as medidas de verdade (`"real"` na ficha `scripts/3d/fichas/moveis-bar.json`), com a mesma escala nas 4 vistas, e o põe no meio da casa ou encostado na parede. Móvel que é uma caixa e veio baixo ou comprido demais (o balcão) é redesenhado na caixa de verdade; a prateleira repete as fileiras de garrafas até a altura certa, em vez de esticar.
 - Faltou um lado na folha? O construtor espelha outra vista (a frente para a esquerda vira a frente para a direita).
 
 ### Outros modelos do mesmo móvel (decidido em 03/10)
@@ -353,7 +355,7 @@ As portas das passagens têm arte de madeira (`porta-madeira-aberta.png`, `-fech
 
 Na vista tática a câmera sobe e mostra a sala de cima, como um mapa de batalha. Cada móvel ganha uma imagem vista **exatamente de cima** (ortográfica, sem nenhuma lateral), no mesmo estilo das folhas isométricas:
 
-- **Móvel:** `<folha isométrica>-cima.png` (ex.: `mesa-sinuca-cima.png`), **128 px por casa** na pegada inteira do móvel (largura × fundo em casas: a mesa de sinuca, 2×4, tem 256×512). A **frente para baixo** (o lado de sentar, as portas, a frente do balcão); o jogo gira para os outros giros. O objeto no tamanho de verdade, no meio, e o resto transparente. Sem sombra (o jogo faz pela altura), sem chão, sem texto. O estado que muda o que se vê de cima vem como `<folha>-cima-<estado>.png` (o baú aberto).
+- **Móvel:** `<folha isométrica>-cima.png` (ex.: `mesa-sinuca-cima.png`), **128 px por casa** na pegada inteira do móvel (largura × fundo em casas: a mesa de sinuca, 2×4, tem 256×512; a casa tem 0,75 m, então 1 m = 171 px). O jogo mede onde o móvel está na imagem e o põe no tamanho de verdade dele, então uma imagem desenhada em outra escala também serve. A **frente para baixo** (o lado de sentar, as portas, a frente do balcão); o jogo gira para os outros giros. O objeto no tamanho de verdade, no meio, e o resto transparente. Sem sombra (o jogo faz pela altura), sem chão, sem texto. O estado que muda o que se vê de cima vem como `<folha>-cima-<estado>.png` (o baú aberto).
 - **Parede:** `parede-cima-<piso>.png`, 512×80, o topo da parede visto de cima, emendando dos dois lados; a beira de baixo (o lambri, o rodapé) fica para dentro da sala. Uma por estilo de piso (`madeira`, `concreto`, `cela`...).
 - **Fichas das peças:** `ficha-agente.png` e `ficha-ameaca.png`, 256×256, o aro visto de cima com o **meio transparente** (o retrato entra no furo; o furo do agente vai até 0,78 do raio do aro). O jogo pinta o aro do agente na cor dele; o da ameaça fica como veio.
 

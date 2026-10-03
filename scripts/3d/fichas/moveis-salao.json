@@ -3,8 +3,8 @@
   "escala": 0.5,
   "limpar": 56,
   "moveis": [
-    {"def": "table_work", "folha": "client/public/arte/mobiliario/folhas/mesa-trabalho.png", "W": 3, "D": 2, "real": [2.04, 0.95, 0.78], "giros": {"4": 0, "6": 1, "0": 2, "2": 3}, "como_esta": true, "retificar": true, "largura": true},
-    {"def": "stairs_up", "folha": "client/public/arte/mobiliario/folhas/escada-madeira.png", "W": 1, "D": 2, "real": [0.62, 1.36, 1.75], "como_esta": true, "giros": {"4": 0, "0": 1, "6": 2, "2": 3}, "pisa": true},
+    {"def": "table_work", "folha": "client/public/arte/mobiliario/folhas/mesa-trabalho.png", "W": 3, "D": 2, "real": [2.25, 0.95, 0.78], "giros": {"4": 0, "6": 1, "0": 2, "2": 3}, "como_esta": true, "retificar": true, "largura": true},
+    {"def": "stairs_up", "folha": "client/public/arte/mobiliario/folhas/escada-madeira.png", "W": 1, "D": 2, "real": [0.62, 1.5, 1.75], "como_esta": true, "giros": {"4": 0, "0": 1, "6": 2, "2": 3}, "pisa": true},
     {"def": "table_round", "folha": "client/public/arte/mobiliario/folhas/mesa-redonda.png", "W": 2, "D": 2, "real": [1.65, 1.65, 0.76], "como_esta": true, "giros": {"0": 0}, "forma": "redonda", "pisa": 0.5, "altura": "todas", "topo": [0.76, 0.76]},
     {"def": "chair_red", "folha": "client/public/arte/mobiliario/folhas/cadeira-veludo.png", "real": [0.5, 0.5, 0.95], "como_esta": true, "giros": {"4": 0, "6": 1, "0": 2, "2": 3}, "pisa": true, "altura": true},
     {"def": "table_meeting", "folha": "client/public/arte/mobiliario/folhas/mesa-oval.png", "W": 3, "D": 2, "real": [2.0, 1.05, 0.78], "giros": {"4": 0, "6": 1, "0": 2, "2": 3}, "como_esta": true, "retificar": true, "largura": true, "forma": "oval"},

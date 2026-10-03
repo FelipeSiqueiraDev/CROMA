@@ -1,4 +1,4 @@
-import { Z_PER_M, type FurniDef } from '@croma/shared';
+import { M_POR_CASA, Z_PER_M, type FurniDef } from '@croma/shared';
 import { hash, rgba, rng, shade } from './color';
 import { OUTLINE, type LBox, type LFace, type Painter } from './painter';
 import { B, crateFace, drawers, faceRange, lightIf, N, PAPER, V, vents, wallBlock, WARM, type Builder, type FNode, type FVisual, type LightDef } from './furniKit';
@@ -1223,9 +1223,9 @@ const builders: Record<string, Builder> = {
 
   portal(def, state) {
     const [wood] = def.colors;
-    // vão de porta de verdade: 0,9 m de largura (1,32 casa, centrado na casa) por 2,1 m, batente de 7 cm
-    const A0 = -0.16;
-    const A1 = 1.16;
+    // vão de porta de verdade: 0,9 m de largura (1,2 casa, centrado na casa) por 2,1 m, batente de 7 cm
+    const A0 = -(0.9 / M_POR_CASA - 1) / 2;
+    const A1 = 1 - A0;
     const H = 2.1;
     const jl: LBox = [0, 0.16, A0 - 0.1, A0, 0, H];
     const jr: LBox = [0, 0.16, A1, A1 + 0.1, 0, H];

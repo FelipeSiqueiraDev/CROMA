@@ -8,6 +8,10 @@ cima vem como <folha>-cima-<estado>.png (o baú aberto, a porta da cela aberta) 
 em "cimaEstados", pelo número do estado da ficha. A parede (parede-cima-<piso>.png) e as
 fichas das peças (ficha-agente.png, ficha-ameaca.png) vão para client/public/arte/tatico/.
 
+Junto vai o recorte do móvel na imagem ("caixa": onde o alfa começa e acaba, em pixels): o
+jogo põe esse recorte no tamanho de verdade do móvel ("real"), na casa de agora, seja qual
+for a escala em que a imagem foi desenhada.
+
 O formato está no docs/ARTE.md ("Vista de cima"). Uso:
 
     python scripts/3d/cima.py <pasta com as PNGs>
@@ -19,10 +23,25 @@ import re
 import shutil
 import sys
 
+import fitz
+import numpy as np
+
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 MOBILIARIO = os.path.join(REPO, 'client', 'public', 'arte', 'mobiliario')
 TATICO = os.path.join(REPO, 'client', 'public', 'arte', 'tatico')
 FICHAS = ('ficha-agente.png', 'ficha-ameaca.png')
+
+
+def recorte(caminho):
+    """Onde o desenho está na imagem: [x0, y0, x1, y1] em pixels (o alfa acima de quase nada)."""
+    pix = fitz.Pixmap(caminho)
+    if not pix.alpha:
+        return [0, 0, pix.width, pix.height]
+    a = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, pix.n)[..., 3]
+    ys, xs = np.nonzero(a > 8)
+    if not len(xs):
+        return [0, 0, pix.width, pix.height]
+    return [int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1]
 
 
 def folhas():
@@ -75,10 +94,10 @@ def main():
                     sobras.append(f'{nome} (a ficha de {d} não tem o estado "{estado}")')
                     continue
                 arquivo = f'{d}/cima-{num}.png'
-                ent.setdefault('cimaEstados', {})[num] = {'arquivo': arquivo}
+                ent.setdefault('cimaEstados', {})[num] = {'arquivo': arquivo, 'caixa': recorte(caminho)}
             else:
                 arquivo = f'{d}/cima.png'
-                ent['cima'] = {'arquivo': arquivo}
+                ent['cima'] = {'arquivo': arquivo, 'caixa': recorte(caminho)}
             os.makedirs(os.path.join(MOBILIARIO, d), exist_ok=True)
             shutil.copyfile(caminho, os.path.join(MOBILIARIO, arquivo))
             feitos.append(f'{nome} -> mobiliario/{arquivo}')

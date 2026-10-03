@@ -39,10 +39,14 @@ testado e vêm para o repositório quando estiverem prontos.
 ## Escala e ângulo
 
 - A tela do tabuleiro: casa = losango de 64×32 px no zoom 1; altura: 57,6 px por
-  metro (`Z_PER_M` = 1,8 × 32).
+  metro (`Z_PER_M` = 1,8 × 32) na escala em que a arte das pessoas é feita.
 - A câmera ortográfica a 30° com essa altura dá, no chão, 52,6 px por metro ao
   longo do eixo da casa: **uma casa = 0,68 m**. Com isso o personagem fica na
   proporção real e pisa no chão do mapa sem esticar.
+- **Revisto em 03/10:** o tabuleiro passou para a escala das regras, **uma casa =
+  0,75 m** (52,3 px por metro na vertical). A arte das pessoas continua sendo feita
+  na escala acima e o tabuleiro desenha com 91% (`ESCALA_ARTE_PESSOA`); o passo
+  também (1,91 casa por ciclo na arte vira 1,73 no tabuleiro).
 - Arte em dobro: o personagem tem ~200 px de altura na imagem e aparece com
   ~100 px no zoom 1 (suavizado) e nítido no zoom 2.
 - Andar: o *Walk_Loop* anda 1,3 m por ciclo = **1,91 casa por ciclo**. O quadro

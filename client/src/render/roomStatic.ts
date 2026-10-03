@@ -1,4 +1,4 @@
-import { DIRS, terrenoEm, Z_PER_M, type FloorStyle, type RoomMap, type WallSeg } from '@croma/shared';
+import { DIRS, M_POR_CASA, terrenoEm, Z_PER_M, type FloorStyle, type RoomMap, type WallSeg } from '@croma/shared';
 import { hash, shade } from './color';
 import { iso } from './iso';
 import { texturaParede, texturaPiso } from './texturas';
@@ -58,13 +58,11 @@ const T = 0.3;
 const FLOOR_THICK = 0.35;
 /** altura do vão da porta: 2,1 m (Z_PER_M) */
 const DOOR_H = 2.1 * Z_PER_M;
-/** o vão passa da casa da porta para os lados: 0,9 m de largura (1,32 casa), centrado */
-const VAO_SOBRA = 0.16;
+/** o vão passa da casa da porta para os lados: 0,9 m de largura (1,2 casa), centrado */
+const VAO_SOBRA = (0.9 / M_POR_CASA - 1) / 2;
 /** o degrau de cima da escada que sobe para a porta (o vão começa nele) */
 const ESCADA_TOPO = 1.0 * Z_PER_M;
 const MAX_PIXELS = 14_000_000;
-/** a casa do tabuleiro, em metros */
-const CASA_M = 0.68;
 
 type Pt = [number, number];
 
@@ -640,7 +638,7 @@ function pintorParede(ctx: CanvasRenderingContext2D, map: RoomMap, img: HTMLImag
   const top = map.walls.top;
   return (s) => {
     const alto = top - s.base;
-    const volta = ((W / H) * (alto / Z_PER_M)) / CASA_M;
+    const volta = ((W / H) * (alto / Z_PER_M)) / M_POR_CASA;
     const em = (a: number, z: number): Pt => (s.wall === 'l' ? iso(s.plane, a, z) : iso(a, s.plane, z));
     const p = padrao(ctx, img, em(0, top), em(volta / W, top), em(0, top - alto / H));
     if (!p) return;

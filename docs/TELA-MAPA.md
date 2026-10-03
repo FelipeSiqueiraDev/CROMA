@@ -80,7 +80,7 @@ Resumo:
 | Personagem | folha de sprite (já existe) | — |
 | Luz das telas, das lâmpadas e da fita roxa | código (já existe) | — |
 
-Formato dos móveis: `docs/SEDE-DA-ORDEM.md` (casa de 64×32 px, 1 m de altura = 57,6 px, imagem de frente e de costas).
+Formato dos móveis: `docs/SEDE-DA-ORDEM.md` (casa de 64×32 px = 0,75 m, 1 m de altura = 52,3 px, imagem de frente e de costas).
 
 ## 4. Coluna da direita (PLAYERS)
 

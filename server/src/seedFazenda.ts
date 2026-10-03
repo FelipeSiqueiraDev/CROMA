@@ -27,7 +27,7 @@ import { partyTokens, planTop } from "./seedSede";
 
 export const FAZENDA = "Fazenda · ";
 /** Versão da montagem da fazenda: subiu, ela é refeita no lugar (mesmas cenas, peças e registro). */
-export const FAZENDA_REV = 3;
+export const FAZENDA_REV = 4;
 
 const hint = (title: string, text: string): Hint => ({
   icon: "inspect",
@@ -610,10 +610,10 @@ const CENAS: CenaSpec[] = [
       ...lamps([4, 5], [4, 9]),
     ],
     wall: [
-      ["painting", "r", 1, 7.6, 2.8],
-      ["clock", "l", 0, 5.0, 3.8],
-      ["sconce", "l", 0, 3.6, 3.2],
-      ["sconce", "l", 0, 6.6, 3.2],
+      ["painting", "r", 1, 7.6, 2.54],
+      ["clock", "l", 0, 5.0, 3.45],
+      ["sconce", "l", 0, 3.6, 2.9],
+      ["sconce", "l", 0, 6.6, 2.9],
     ],
     links: [
       [4, 1, "corredor"],
@@ -658,8 +658,8 @@ const CENAS: CenaSpec[] = [
       ...lamps([6, 3], [10, 5]),
     ],
     wall: [
-      ["shelf_wall", "r", 1, 10.5, 3.3],
-      ["clock", "l", 0, 6.5, 3.8],
+      ["shelf_wall", "r", 1, 10.5, 2.99],
+      ["clock", "l", 0, 6.5, 3.45],
     ],
     links: [
       [2, 1, "hall"],
@@ -693,10 +693,10 @@ const CENAS: CenaSpec[] = [
       ...lamps([6, 4], [6, 9]),
     ],
     wall: [
-      ["painting", "l", 1, 7.0, 2.8],
-      ["sconce", "l", 1, 4.5, 3.2],
-      ["sconce", "l", 1, 9.5, 3.2],
-      ["clock", "r", 0, 2.0, 3.8],
+      ["painting", "l", 1, 7.0, 2.54],
+      ["sconce", "l", 1, 4.5, 2.9],
+      ["sconce", "l", 1, 9.5, 2.9],
+      ["clock", "r", 0, 2.0, 3.45],
     ],
     links: [
       [1, 1, "hall"],
@@ -719,7 +719,7 @@ const CENAS: CenaSpec[] = [
       ["plant", 9, 3, 0],
       ...lamps([5, 2]),
     ],
-    wall: [["mirror", "r", 0, 7.5, 3.0]],
+    wall: [["mirror", "r", 0, 7.5, 2.72]],
     links: [[1, 2, "hall"]],
     plan: { x: 0, y: 7, r: 2 },
   },
@@ -745,7 +745,7 @@ const CENAS: CenaSpec[] = [
       ["crate_wood", 9, 7, 0],
       ...lamps([5, 4]),
     ],
-    wall: [["painting", "r", 0, 2.2, 2.9]],
+    wall: [["painting", "r", 0, 2.2, 2.63]],
     links: [[1, 4, "hall"]],
     plan: { x: 0, y: 11, r: 2 },
   },
@@ -775,9 +775,9 @@ const CENAS: CenaSpec[] = [
       ...lamps([5, 6]),
     ],
     wall: [
-      ["painting", "r", 0, 7.5, 2.8],
-      ["clock", "l", 1, 3.0, 3.8],
-      ["sconce", "l", 1, 9.5, 3.2],
+      ["painting", "r", 0, 7.5, 2.54],
+      ["clock", "l", 1, 3.0, 3.45],
+      ["sconce", "l", 1, 9.5, 2.9],
     ],
     links: [[1, 6, "hall"]],
     plan: { x: 18, y: 7 },
@@ -807,8 +807,8 @@ const CENAS: CenaSpec[] = [
       ...lamps([2, 4]),
     ],
     wall: [
-      ["painting", "l", 0, 4.8, 2.8],
-      ["clock", "r", 1, 0.8, 3.8],
+      ["painting", "l", 0, 4.8, 2.54],
+      ["clock", "r", 1, 0.8, 3.45],
     ],
     links: [
       [2, 1, "banheiro2"],
@@ -844,8 +844,8 @@ const CENAS: CenaSpec[] = [
       ...lamps([6, 4]),
     ],
     wall: [
-      ["painting", "r", 0, 2.5, 2.9],
-      ["mirror", "l", 1, 4.0, 2.4],
+      ["painting", "r", 0, 2.5, 2.63],
+      ["mirror", "l", 1, 4.0, 2.18],
     ],
     links: [[1, 1, "corredor"]],
     plan: { x: 0, y: 0, r: 2 },
@@ -867,7 +867,7 @@ const CENAS: CenaSpec[] = [
       ["plant", 4, 5, 0],
       ...lamps([2, 3]),
     ],
-    wall: [["mirror", "r", 1, 3.5, 3.0]],
+    wall: [["mirror", "r", 1, 3.5, 2.72]],
     links: [[2, 1, "corredor"]],
     plan: { x: 11, y: 0, r: 2 },
   },
@@ -890,7 +890,7 @@ const CENAS: CenaSpec[] = [
       ["chair_wood", 10, 6, 2],
       ...lamps([6, 4]),
     ],
-    wall: [["painting", "r", 0, 4.5, 2.9]],
+    wall: [["painting", "r", 0, 4.5, 2.63]],
     links: [[1, 6, "corredor"]],
     plan: { x: 16, y: 0 },
   },
@@ -913,7 +913,7 @@ const CENAS: CenaSpec[] = [
       ["comoda", 1, 6, 2],
       ...lamps([6, 4]),
     ],
-    wall: [["painting", "r", 0, 2.5, 2.9]],
+    wall: [["painting", "r", 0, 2.5, 2.63]],
     links: [[1, 4, "corredor"]],
     plan: { x: 0, y: 8, r: 2 },
   },
@@ -992,8 +992,8 @@ const CENAS: CenaSpec[] = [
       ...lamps([5, 4], [17, 4], [10, 10], [16, 12], [4, 12]),
     ],
     wall: [
-      ["tool_board", "r", 1, 17.0, 1.8],
-      ["blade_rack", "r", 1, 19.6, 2.3],
+      ["tool_board", "r", 1, 17.0, 1.63],
+      ["blade_rack", "r", 1, 19.6, 2.09],
     ],
     links: [[10, 1, "fazenda"]],
     plan: { x: 0, y: 0, r: 2 },
@@ -1045,7 +1045,7 @@ const CENAS: CenaSpec[] = [
       ["barrel", 8, 1, 0],
       ...lamps([12, 4], [12, 9], [4, 3], [20, 7]),
     ],
-    wall: [["tool_board", "r", 1, 6.0, 1.8]],
+    wall: [["tool_board", "r", 1, 6.0, 1.63]],
     links: [[12, 1, "fazenda"]],
     plan: { x: 26, y: 0, r: 2 },
   },
