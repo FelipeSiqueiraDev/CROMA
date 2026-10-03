@@ -203,7 +203,9 @@ const FURNI_METERS: FurniDef[] = [
   { id: 'table_chess', name: 'Mesa de Xadrez', category: 'mobilia', kind: 'table_chess', width: 1, depth: 1, height: 0.72, stackable: true, rotations: ALL, colors: ['#2a2622', '#d8d0c0'] },
   { id: 'armchair', name: 'Poltrona', category: 'mobilia', kind: 'armchair', width: 1, depth: 1, height: 0.45, sit: true, rotations: ALL, colors: ['#2a2826'] },
   { id: 'chair_red', name: 'Cadeira Estofada', category: 'mobilia', kind: 'chair', width: 1, depth: 1, height: 0.46, sit: true, rotations: ALL, colors: ['#8a1c1a', '#2a1d14'] },
-  { id: 'altar', name: 'Altar de Pedra', category: 'ocultismo', kind: 'altar', width: 2, depth: 1, height: 1.0, stackable: true, rotations: ALL, colors: ['#4a4540', '#7a0d0d'] },
+  { id: 'altar', name: 'Altar de Pedra', category: 'ocultismo', kind: 'altar', width: 2, depth: 1, height: 0.45, stackable: true, rotations: ALL, colors: ['#4a4540', '#7a0d0d'], desc: 'Altar baixo de pedra antiga, com cera escorrida e restos de oferendas.' },
+  { id: 'pedestal', name: 'Pedestal com Tigela', category: 'ocultismo', kind: 'pedestal', width: 1, depth: 1, height: 1.0, rotations: ALL, colors: ['#3a3532', '#a8843a'], desc: 'Pedestal estreito de pedra com uma tigela de bronze cheia de cinzas.' },
+  { id: 'wax_pool', name: 'Poça de Cera', category: 'ocultismo', kind: 'dirt', width: 1, depth: 1, height: 0.01, walkable: true, stackable: true, flat: true, rotations: ALL, colors: ['#d8c8a0', '#8a6a3a'], desc: 'Cera derretida no chão, com tocos de vela caídos.' },
   { id: 'sigil_gold', name: 'Selo Dourado', category: 'ocultismo', kind: 'sigil', width: 3, depth: 3, height: 0.01, walkable: true, stackable: true, flat: true, rotations: [0], colors: ['#b8903a'] },
   // banheiro e enfermaria
   { id: 'toilet', name: 'Vaso Sanitário', category: 'saude', kind: 'toilet', width: 1, depth: 1, height: 0.45, sit: true, rotations: ALL, colors: ['#e8e4dc'] },
@@ -222,7 +224,7 @@ const FURNI_METERS: FurniDef[] = [
   { id: 'stool_metal', name: 'Banqueta Giratória', category: 'arsenal', kind: 'stool', width: 1, depth: 1, height: 0.6, sit: true, rotations: ALL, colors: ['#8a5a3a', '#5a6a3a'] },
   { id: 'oil_stain', name: 'Mancha de Óleo', category: 'decoracao', kind: 'dirt', width: 1, depth: 1, height: 0.01, walkable: true, stackable: true, flat: true, rotations: [0], colors: ['#1a1a14', '#3a3a2a'] },
   // depósito
-  { id: 'rubble', name: 'Entulho', category: 'armazenamento', kind: 'rubble', width: 2, depth: 2, height: 0.5, rotations: [0], colors: ['#5a5550', '#4a3222'] },
+  { id: 'rubble', name: 'Entulho', category: 'armazenamento', kind: 'rubble', width: 2, depth: 2, height: 0.5, rotations: ALL, colors: ['#5a5550', '#4a3222'] },
   { id: 'console', name: 'Bancada de Computadores', category: 'escritorio', kind: 'console', width: 2, depth: 1, height: 0.78, stackable: true, states: 2, rotations: ALL, colors: ['#2e2a36', '#8a78c0', '#7fd0ff'], desc: 'Dois monitores e teclado. Clique duplo liga/desliga.' },
   { id: 'server_rack', name: 'Rack de Servidores', category: 'escritorio', kind: 'locker', width: 1, depth: 1, height: 1.3, rotations: ALL, colors: ['#1d1d20', '#4fe39a'], desc: 'Armário de metal com os servidores piscando.' },
   { id: 'printer_dot', name: 'Impressora Matricial', category: 'escritorio', kind: 'crate', width: 1, depth: 1, height: 0.65, rotations: ALL, colors: ['#d8ccb0', '#6a6e74'], desc: 'Papel contínuo caindo na frente.' },
@@ -307,6 +309,10 @@ export const WALL_FURNI_LIST: WallFurniDef[] = [
   { id: 'target_paper', name: 'Alvo de Papel', category: 'parede', kind: 'poster_sigil', w: 29, h: 46, colors: ['#e8d8b0', '#2a2a2a'], desc: 'A silhueta furada de bala.' },
   { id: 'towel_dispenser', name: 'Papeleira', category: 'parede', kind: 'dispenser', w: 18, h: 22, colors: ['#e8e4dc'] },
   { id: 'extinguisher', name: 'Extintor', category: 'parede', kind: 'extinguisher', w: 12, h: 30, colors: ['#b3261e', '#1a1a1a'] },
+  // Câmara do Selo
+  { id: 'chains_wall', name: 'Correntes com Algemas', category: 'parede', kind: 'board', w: 28, h: 52, colors: ['#5a3a24', '#2a1d14'], desc: 'Correntes enferrujadas presas por argolas, com as algemas abertas.' },
+  { id: 'crack_glow', name: 'Rachadura Dourada', category: 'parede', kind: 'crack', w: 38, h: 92, colors: ['#ffc45a', '#1a1410'], desc: 'Uma rachadura funda; lá dentro, uma luz dourada fraca.' },
+  { id: 'sigil_scratch', name: 'Sigilo Riscado', category: 'parede', kind: 'board', w: 28, h: 35, colors: ['#2a2622', '#8a8078'], desc: 'Riscos fundos na pedra, em espiral, como feitos à unha.' },
 ];
 
 /** Metros → unidades de altura (duas casas). */

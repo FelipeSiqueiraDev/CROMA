@@ -3422,5 +3422,137 @@
   "chao": {
    "arquivo": "drain/chao.png"
   }
+ },
+ "altar": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "altar/giro-4.png",
+    "ax": 99.0,
+    "ay": 134.0
+   },
+   "6": {
+    "arquivo": "altar/giro-6.png",
+    "ax": 35.0,
+    "ay": 134.0
+   },
+   "0": {
+    "arquivo": "altar/giro-0.png",
+    "ax": 99.0,
+    "ay": 134.0
+   },
+   "2": {
+    "arquivo": "altar/giro-2.png",
+    "ax": 35.0,
+    "ay": 134.0
+   }
+  }
+ },
+ "rubble": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "rubble/giro-4.png",
+    "ax": 114.0,
+    "ay": 159.4
+   },
+   "6": {
+    "arquivo": "rubble/giro-6.png",
+    "ax": 109.5,
+    "ay": 158.5
+   },
+   "0": {
+    "arquivo": "rubble/giro-0.png",
+    "ax": 114.0,
+    "ay": 159.9
+   },
+   "2": {
+    "arquivo": "rubble/giro-2.png",
+    "ax": 110.0,
+    "ay": 161.2
+   }
+  }
+ },
+ "pedestal": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "pedestal/giro-4.png",
+    "ax": 35.0,
+    "ay": 162.6
+   },
+   "6": {
+    "arquivo": "pedestal/giro-6.png",
+    "ax": 34.5,
+    "ay": 162.7
+   },
+   "0": {
+    "arquivo": "pedestal/giro-0.png",
+    "ax": 35.5,
+    "ay": 162.3
+   },
+   "2": {
+    "arquivo": "pedestal/giro-2.png",
+    "ax": 35.5,
+    "ay": 162.3
+   }
+  }
+ },
+ "chains_wall": {
+  "escala": 0.5,
+  "parede": {
+   "r": {
+    "arquivo": "chains_wall/parede-r.png",
+    "ax": 33.0,
+    "ay": 61.0
+   },
+   "l": {
+    "arquivo": "chains_wall/parede-l.png",
+    "ax": 33.0,
+    "ay": 65.0
+   }
+  }
+ },
+ "crack_glow": {
+  "escala": 0.5,
+  "parede": {
+   "r": {
+    "arquivo": "crack_glow/parede-r.png",
+    "ax": 38.5,
+    "ay": 92.5
+   },
+   "l": {
+    "arquivo": "crack_glow/parede-l.png",
+    "ax": 38.5,
+    "ay": 92.5
+   }
+  }
+ },
+ "sigil_scratch": {
+  "escala": 0.5,
+  "parede": {
+   "r": {
+    "arquivo": "sigil_scratch/parede-r.png",
+    "ax": 28.5,
+    "ay": 36.5
+   },
+   "l": {
+    "arquivo": "sigil_scratch/parede-l.png",
+    "ax": 28.5,
+    "ay": 36.5
+   }
+  }
+ },
+ "sigil_gold": {
+  "escala": 1,
+  "chao": {
+   "arquivo": "sigil_gold/chao.png"
+  }
+ },
+ "wax_pool": {
+  "escala": 1,
+  "chao": {
+   "arquivo": "wax_pool/chao.png"
+  }
  }
 }

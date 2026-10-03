@@ -16,7 +16,7 @@ import { buildRoom, plan, type FloorSeed, type WallSeed } from './seed';
 export const SEDE = 'Sede · ';
 export const SEDE_CODE = '0413';
 /** Versão da montagem da Sede: subiu, a Sede é refeita no lugar (mesmos cômodos, peças e registro). */
-export const SEDE_REV = 25;
+export const SEDE_REV = 27;
 
 /** Planta retangular com a porta na parede de cima (y = 0), na coluna doorX. */
 export function planTop(w: number, h: number, doorX: number): { heightmap: string; door: Door } {
@@ -404,26 +404,40 @@ const ROOMS: RoomSpec[] = [
     ambient: '#c89a3a',
     particles: ['dust', 'smoke', 'embers'],
     name: SEDE + 'Câmara do Selo',
-    description: 'Um cômodo escuro e abafado. No chão, um selo dourado que ninguém lembra de ter pintado.',
+    description: 'Um cômodo de pedra antiga, escuro e abafado, mais velho que o resto da Sede. No chão, um selo dourado que ninguém lembra de ter pintado; no fundo, o altar e uma rachadura que vaza luz.',
     layout: plan(7, 7, 3),
     floorName: 'Subsolo',
-    style: 'pedra',
+    style: 'selo',
     darkness: 0.82,
     fog: 0.5,
     light: 'flicker',
     plan: { x: -4, y: 3, r: 2 },
     floor: [
       ['portal', 1, 3, 2],
+      // o selo no meio, com o crânio em cima, e a cera das velas que queimaram em volta dele
       ['sigil_gold', 3, 2, 0],
       ['skull', 4, 3, 4],
-      ['candles', 3, 1, 0],
-      ['candles', 5, 1, 0],
-      ['candles', 6, 3, 0],
+      ['wax_pool', 2, 1, 0],
+      ['wax_pool', 6, 1, 2],
+      ['wax_pool', 6, 5, 0],
+      ['candles', 2, 1, 0],
+      ['candles', 6, 1, 0],
+      ['candles', 6, 5, 0],
       ['candles', 3, 5, 0],
-      ['candles', 5, 5, 0],
-      ['candelabra', 7, 0, 0],
+      // no fundo, o altar entre os dois pedestais com as cinzas
+      ['altar', 4, 0, 4],
+      ['pedestal', 3, 0, 4],
+      ['pedestal', 6, 0, 4],
       ['candelabra', 7, 6, 0],
+      // o entulho no canto, perto da passagem
       ['rubble', 1, 5, 0],
+    ],
+    wall: [
+      // a rachadura que vaza luz em cima do altar, as correntes e o sigilo riscado à unha
+      ['crack_glow', 'r', 0, 5.0, 1.2],
+      ['chains_wall', 'r', 0, 1.9, 1.8],
+      ['sigil_scratch', 'l', 1, 1.3, 2.0],
+      ['chains_wall', 'l', 1, 5.4, 1.8],
     ],
     links: [[1, 3, 'prisao']],
   },

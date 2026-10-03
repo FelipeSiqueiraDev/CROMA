@@ -541,6 +541,9 @@ export function wallLights(def: WallFurniDef, state: number): WallLight[] {
       return def.states && !on ? [] : [{ x: def.w / 2, y: def.h * 0.35, radius: 85, color: '#a8e8b8', intensity: 0.26, flicker: 0.12, kind: 'electric' }];
     case 'cage_lamp':
       return on ? [{ x: def.w / 2, y: def.h * 0.55, radius: 150, color: def.colors[1] ?? '#ffd9a0', intensity: 0.7, flicker: 0.02, kind: 'electric' }] : [];
+    case 'crack':
+      // a luz dourada que vaza de dentro da rachadura (não é da Sede: o apagão não a apaga)
+      return [{ x: def.w / 2, y: def.h * 0.45, radius: 150, color: def.colors[0], intensity: 0.95, flicker: 0.1, kind: 'fire' }];
     default:
       return [];
   }

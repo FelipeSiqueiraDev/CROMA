@@ -43,6 +43,7 @@ export const FLOOR_STYLES = [
   { id: 'estrada', name: 'Estrada de terra' },
   { id: 'lavoura', name: 'Terra arada' },
   { id: 'cascalho', name: 'Pedra clara' },
+  { id: 'selo', name: 'Pedra antiga' },
 ] as const;
 export type FloorStyle = (typeof FLOOR_STYLES)[number]['id'];
 export const isFloorStyle = (s: unknown): s is FloorStyle => FLOOR_STYLES.some((f) => f.id === s);

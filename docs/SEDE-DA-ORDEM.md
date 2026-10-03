@@ -14,7 +14,7 @@ O mapa da Sede (Ordo Realitas) já funciona no jogo: os agentes andam, passam de
 | Subsolo | Salão Principal | concreto | aço `#6a7a8c` | poeira |
 | Subsolo | Corredor | concreto | azul-acinzentado `#5a6a82` | poeira |
 | Subsolo | Prisão | concreto | azul frio `#4a6a90` | poeira |
-| Subsolo | Câmara do Selo | pedra | dourado `#c89a3a` | poeira, fumaça, brasas |
+| Subsolo | Câmara do Selo | pedra antiga (`selo`) | dourado `#c89a3a` | poeira, fumaça, brasas |
 | Subsolo | Laboratório | azulejo azul | verde-água `#3ab0b8` | poeira |
 | Subsolo | Sala de Tecnologia | carpete roxo | violeta `#8a5ad0` | poeira |
 | Subsolo | Gabinete | madeira clara | laranja `#c0622a` | poeira, fumaça |
@@ -130,11 +130,21 @@ A porta aberta veio da folha com outra cor (ferrugem laranja); ela foi levada pa
 
 ### Câmara do Selo
 
-| Item | Id | Qtd | Casas | O que desenhar |
-|---|---|---|---|---|
-| ✱ Selo dourado | `sigil_gold` | 1 | 3×3 | Símbolo dourado ornamentado pintado no chão (é o destaque da sala). |
-| Velas, candelabros | `candles`, `candelabra` | 5, 2 | 1×1 | — |
-| Crânio, entulho | `skull`, `rubble` | 1, 1 | 1×1, 2×2 | Pedaços de concreto e tábuas num canto. |
+Com arte desde 03/10. Pedra antiga, mais velha que o resto da Sede, com piso de lajes rachadas e parede de pedra bruta próprios (estilo `selo`). No meio, o selo dourado com o crânio em cima e as velas em poças de cera. No fundo, o altar baixo entre os dois pedestais com as cinzas e, em cima dele, a rachadura que vaza luz dourada; essa luz não depende da energia da Sede, então o apagão não a apaga. As correntes com algemas ficam nas duas paredes, o sigilo riscado à unha perto do canto e o entulho no canto da passagem.
+
+| Item | Id | Qtd | Casas | Altura | Estados |
+|---|---|---|---|---|---|
+| ✱ Selo dourado | `sigil_gold` | 1 | 3×3 | chão | — |
+| Altar de pedra | `altar` | 1 | 2×1 | 0,45 m | — |
+| Pedestal com tigela de cinzas | `pedestal` | 2 | 1×1 | 1,0 m | — |
+| Poça de cera | `wax_pool` | 3 | 1×1 | chão | — |
+| Velas, candelabro, crânio | `candles`, `candelabra`, `skull` | 4, 1, 1 | 1×1 | — | as velas: acesas / apagadas |
+| Entulho | `rubble` | 1 | 2×2 | 0,5 m | — |
+| Rachadura dourada | `crack_glow` (parede) | 1 | 0,8 × 1,6 m | — | acesa sempre |
+| Correntes com algemas | `chains_wall` (parede) | 2 | 0,6 × 0,9 m | — | — |
+| Sigilo riscado | `sigil_scratch` (parede) | 1 | 0,6 × 0,6 m | — | — |
+
+O sigilo veio com os riscos escuros, que sumiam na pedra escura; a folha foi clareada (a pedra raspada fica clara). O altar veio torto e baixo, e a rachadura, fina: os dois estão no lote de refazer (`PROMPT-REFAZER-SEDE.txt`, na pasta da arte).
 
 ### Laboratório
 

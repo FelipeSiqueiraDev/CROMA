@@ -97,5 +97,14 @@
   "parede": {
    "arquivo": "parede-cela.png"
   }
+ },
+ "selo": {
+  "piso": {
+   "arquivo": "piso-selo.png",
+   "casas": 4.0
+  },
+  "parede": {
+   "arquivo": "parede-selo.png"
+  }
  }
 }
