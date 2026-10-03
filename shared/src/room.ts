@@ -39,9 +39,34 @@ export const FLOOR_STYLES = [
   { id: 'musgo', name: 'Pedra verde' },
   { id: 'metal', name: 'Chapa de metal' },
   { id: 'terra', name: 'Terra' },
+  { id: 'grama', name: 'Grama' },
+  { id: 'estrada', name: 'Estrada de terra' },
+  { id: 'lavoura', name: 'Terra arada' },
+  { id: 'cascalho', name: 'Pedra clara' },
 ] as const;
 export type FloorStyle = (typeof FLOOR_STYLES)[number]['id'];
 export const isFloorStyle = (s: unknown): s is FloorStyle => FLOOR_STYLES.some((f) => f.id === s);
+
+/**
+ * Chão ao ar livre, casa por casa (`terreno` do cômodo): uma letra por casa, nas
+ * mesmas linhas e colunas da planta. Letra fora da lista (ou '.') = o piso do cômodo.
+ * A água fica numa casa vazia da planta ('x'): ninguém pisa, e o tabuleiro desenha a
+ * água ali, mais baixa que a margem.
+ */
+export const TERRENOS: Record<string, FloorStyle | 'agua'> = {
+  g: 'grama',
+  t: 'estrada',
+  l: 'lavoura',
+  p: 'cascalho',
+  d: 'terra',
+  m: 'taco',
+  a: 'agua',
+};
+
+/** O chão da casa (x, y) pelo terreno, ou null (vale o piso do cômodo). */
+export function terrenoEm(terreno: string[] | undefined, x: number, y: number): FloorStyle | 'agua' | null {
+  return TERRENOS[terreno?.[y]?.[x] ?? ''] ?? null;
+}
 
 /** Partículas do cômodo (enfeite): poeira que brilha na luz, fumaça e brasas do fogo. */
 export const PARTICLE_KINDS = [

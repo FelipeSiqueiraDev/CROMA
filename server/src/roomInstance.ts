@@ -226,8 +226,9 @@ export class RoomInstance {
     let sx = back ? back.x : valid ? t.x : d.x;
     let sy = back ? back.y : valid ? t.y : d.y;
     let sdir = back ? (back.rot + 4) % 8 : valid ? t.dir : d.dir;
-    // descendo pela escada: a peça chega no pé dela, virada para a sala (em cima dos degraus, no chão, ela sumia atrás da escada)
-    const pe = back?.defId === 'stairs_up' ? this.stairFoot(back) : null;
+    // descendo pela escada: a peça chega no pé dela, virada para a sala (em cima dos degraus, no chão, ela sumia atrás da escada);
+    // subindo, chega na frente do vão da escada do andar de cima
+    const pe = back?.defId === 'stairs_up' || back?.defId === 'escada_desce' ? this.stairFoot(back) : null;
     if (pe) {
       [sx, sy] = [pe.x, pe.y];
       sdir = back!.rot;
@@ -397,6 +398,8 @@ export class RoomInstance {
       floor: this.data.floor,
       area: this.data.area,
       floorStyle: this.data.floorStyle,
+      aberto: this.data.aberto,
+      terreno: this.data.terreno,
       ambient: this.data.ambient,
       particles: this.data.particles,
       particleLevel: this.data.particleLevel,

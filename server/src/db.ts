@@ -25,6 +25,10 @@ export interface RoomData {
   area?: string;
   /** piso do cômodo */
   floorStyle?: FloorStyle;
+  /** ao ar livre: sem paredes, sem teto */
+  aberto?: boolean;
+  /** chão casa por casa, ao ar livre (letras de TERRENOS) */
+  terreno?: string;
   /** cor do ambiente (#rrggbb) */
   ambient?: string;
   /** partículas (poeira, fumaça, brasas) */
@@ -98,6 +102,8 @@ export interface Database {
   liveScene?: number;
   /** versão da montagem da Sede da Ordem (ver SEDE_REV) */
   sedeRev?: number;
+  /** versão da montagem da Fazenda Olhos de Águia (seedFazenda) */
+  fazendaRev?: number;
   /** fichas de personagem (motor de regras) */
   fichas?: FichaSalva[];
   nextFichaId?: number;

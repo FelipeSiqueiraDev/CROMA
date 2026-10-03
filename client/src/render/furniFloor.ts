@@ -3,11 +3,13 @@ import { hash, rgba, rng, shade } from './color';
 import { OUTLINE, type LBox, type LFace, type Painter } from './painter';
 import { B, crateFace, drawers, faceRange, lightIf, N, PAPER, V, vents, wallBlock, WARM, type Builder, type FNode, type FVisual, type LightDef } from './furniKit';
 import { SEDE_BUILDERS } from './furniSede';
+import { FAZENDA_BUILDERS } from './furniFazenda';
 
 export type { FNode, FVisual, LightDef, LightKind } from './furniKit';
 
 const builders: Record<string, Builder> = {
   ...SEDE_BUILDERS,
+  ...FAZENDA_BUILDERS,
   desk(def) {
     const [c0, c1, c2] = def.colors;
     const W = def.width;

@@ -756,8 +756,8 @@ const ROOMS: RoomSpec[] = [
   },
 ];
 
-/** Os quatro agentes começam no bar, perto da porta da rua. */
-function partyTokens(db: Database, charIdOf: (name: string) => number | null): TokenData[] {
+/** Os quatro agentes começam no bar, perto da porta da rua (ou onde a montagem pedir: [x, y, direção] de cada um). */
+export function partyTokens(db: Database, charIdOf: (name: string) => number | null, onde?: [number, number, number][]): TokenData[] {
   const base = { shoes: '#3d3a40', pants: '#1c1b1f' };
   const tk = (name: string, x: number, y: number, dir: number, color: string, capacity: number, look: Partial<AvatarLook>): TokenData => ({
     id: db.nextItemId++,
@@ -769,11 +769,12 @@ function partyTokens(db: Database, charIdOf: (name: string) => number | null): T
     capacity,
     look: { skin: '#e8b98f', hair: '#1a1412', hairStyle: 0, top: '#2b2a30', outfit: 0, extra: 0, ...base, charId: charIdOf(name), ...look } as AvatarLook,
   });
+  const at = (i: number, x: number, y: number, dir: number): [number, number, number] => onde?.[i] ?? [x, y, dir];
   return [
-    tk('D.Tepes', 2, 10, 2, '#e3a94c', 10, { hair: '#3b2618', hairStyle: 1, extra: 2, top: '#5c4632', outfit: 1 }),
-    tk('Catarina Albuquerque', 3, 11, 2, '#d83a2e', 10, { skin: '#f3d2b3', hair: '#a8321e', hairStyle: 3, top: '#2b2a30', outfit: 1 }),
-    tk('Alosi Walker', 2, 12, 2, '#3f6fd8', 12, { hair: '#1a1412', extra: 1, top: '#d8d0c0', outfit: 2 }),
-    tk('Cora Falcão', 3, 9, 2, '#f2efe6', 10, { hair: '#c9c4bc', hairStyle: 2, top: '#1c1b1f' }),
+    tk('D.Tepes', ...at(0, 2, 10, 2), '#e3a94c', 10, { hair: '#3b2618', hairStyle: 1, extra: 2, top: '#5c4632', outfit: 1 }),
+    tk('Catarina Albuquerque', ...at(1, 3, 11, 2), '#d83a2e', 10, { skin: '#f3d2b3', hair: '#a8321e', hairStyle: 3, top: '#2b2a30', outfit: 1 }),
+    tk('Alosi Walker', ...at(2, 2, 12, 2), '#3f6fd8', 12, { hair: '#1a1412', extra: 1, top: '#d8d0c0', outfit: 2 }),
+    tk('Cora Falcão', ...at(3, 3, 9, 2), '#f2efe6', 10, { hair: '#c9c4bc', hairStyle: 2, top: '#1c1b1f' }),
   ];
 }
 

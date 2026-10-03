@@ -12,6 +12,8 @@ export type FurniCategory =
   | 'bar'
   | 'saude'
   | 'arsenal'
+  | 'fazenda'
+  | 'casa'
   | 'parede';
 
 export const CATEGORY_NAMES: Record<FurniCategory, string> = {
@@ -26,6 +28,8 @@ export const CATEGORY_NAMES: Record<FurniCategory, string> = {
   bar: 'Bar',
   saude: 'Enfermaria e Banheiro',
   arsenal: 'Arsenal',
+  fazenda: 'Fazenda',
+  casa: 'Casa',
   parede: 'Parede',
 };
 
@@ -236,6 +240,39 @@ const FURNI_METERS: FurniDef[] = [
   { id: 'cell_bars', name: 'Grade de Cela', category: 'estrutura', kind: 'bars', width: 1, depth: 1, height: 2.2, rotations: ALL, colors: ['#3a3d42', '#1c1d20'] },
   { id: 'cell_wall', name: 'Divisória de Cela', category: 'estrutura', kind: 'iwall', width: 1, depth: 1, height: 1.3, xray: true, rotations: ALL, colors: ['#6a6e66', '#3a3d38'], desc: 'Meia parede de concreto entre as celas.' },
   { id: 'cell_door', name: 'Porta de Cela', category: 'estrutura', kind: 'cell_door', width: 1, depth: 1, height: 0, states: 2, openState: 1, rotations: ALL, colors: ['#3a3d42', '#1c1d20', '#8a7a4a'], desc: 'Clique duplo abre/fecha. Fechada, ninguém passa.' },
+
+  // ---------- Fazenda (ao ar livre) ----------
+  // os prédios vistos de fora: a porta deles é uma Entrada na frente (que leva para dentro)
+  { id: 'casarao', name: 'Casarão', category: 'fazenda', kind: 'casarao', width: 14, depth: 9, height: 6.5, xray: true, rotations: ALL, colors: ['#d9cbb0', '#8c3b26', '#4a3020', '#26323a'], desc: 'A casa grande, de dois andares, com a varanda na frente.' },
+  { id: 'celeiro', name: 'Celeiro', category: 'fazenda', kind: 'celeiro', width: 12, depth: 8, height: 6.5, xray: true, rotations: ALL, colors: ['#7c2f22', '#3e2e26', '#e2d8c4', '#4a2418'], desc: 'Baias, feno e a carroça.' },
+  { id: 'galpao', name: 'Casa de Mantimentos', category: 'fazenda', kind: 'galpao', width: 8, depth: 6, height: 4.6, xray: true, rotations: ALL, colors: ['#8a6a46', '#5e3424', '#3a281a', '#2b2622'], desc: 'Depósito de mantimentos e ferramentas, com o escritório do capataz.' },
+  { id: 'entrada', name: 'Entrada', category: 'fazenda', kind: 'entrada', width: 1, depth: 1, height: 0.02, walkable: true, portal: true, flat: true, rotations: ALL, colors: ['#7a6448'], desc: 'Pare em cima para entrar no lugar ligado (o mestre escolhe o destino).' },
+  { id: 'porteira', name: 'Porteira', category: 'fazenda', kind: 'porteira', width: 3, depth: 1, height: 0, portal: true, states: 2, openState: 1, rotations: ALL, colors: ['#7a5a3a', '#3a2a1c'], desc: 'Aberta, quem para em cima sai para o lugar ligado. Clique duplo abre e fecha.' },
+  { id: 'cerca', name: 'Cerca de Madeira', category: 'fazenda', kind: 'cerca', width: 1, depth: 1, height: 1.1, rotations: ALL, colors: ['#7a5a3a', '#4a3424'] },
+  { id: 'arvore', name: 'Árvore', category: 'fazenda', kind: 'arvore', width: 1, depth: 1, height: 5.5, xray: true, rotations: ALL, colors: ['#35602c', '#4a3222'] },
+  { id: 'arbusto', name: 'Arbusto', category: 'fazenda', kind: 'arbusto', width: 1, depth: 1, height: 0.9, rotations: ALL, colors: ['#3d6a30', '#2a4a22'] },
+  { id: 'fonte', name: 'Fonte', category: 'fazenda', kind: 'fonte', width: 3, depth: 3, height: 1.6, rotations: ALL, colors: ['#b8b0a0', '#4a7a8a'] },
+  { id: 'milharal', name: 'Milharal', category: 'fazenda', kind: 'plantacao', width: 1, depth: 1, height: 1.9, xray: true, rotations: ALL, colors: ['#6a8a3a', '#c8b04a'], desc: 'Milho mais alto que gente.' },
+  { id: 'horta', name: 'Canteiro', category: 'fazenda', kind: 'plantacao', width: 1, depth: 1, height: 0.45, rotations: ALL, colors: ['#4a7a34', '#8a5a3a'] },
+  { id: 'feno', name: 'Fardo de Feno', category: 'fazenda', kind: 'feno', width: 1, depth: 1, height: 0.5, stackable: true, rotations: ALL, colors: ['#c8a85a', '#8a7038'] },
+  { id: 'sacas', name: 'Sacas de Grão', category: 'fazenda', kind: 'sacas', width: 1, depth: 1, height: 0.7, rotations: ALL, colors: ['#d8ccaa', '#8a7a5a'] },
+  { id: 'carroca', name: 'Carroça', category: 'fazenda', kind: 'carroca', width: 2, depth: 3, height: 1.2, rotations: ALL, colors: ['#7a5a3a', '#3a2a1c'] },
+  { id: 'placa', name: 'Placa', category: 'fazenda', kind: 'placa', width: 1, depth: 1, height: 1.8, rotations: ALL, colors: ['#8a6a44', '#3a2a1c'], desc: 'Placa de madeira com o caminho escrito à mão.' },
+  { id: 'baia', name: 'Cerca da Baia', category: 'fazenda', kind: 'cerca', width: 1, depth: 1, height: 1.4, xray: true, rotations: ALL, colors: ['#6a4a2e', '#3a2a1c'] },
+
+  // ---------- Casa ----------
+  { id: 'cama_casal', name: 'Cama de Casal', category: 'casa', kind: 'bed', width: 2, depth: 3, height: 0.55, rotations: ALL, colors: ['#7a2e2a', '#4a3020', '#e2dccc'] },
+  { id: 'cama_solteiro', name: 'Cama de Solteiro', category: 'casa', kind: 'bed', width: 1, depth: 3, height: 0.55, rotations: ALL, colors: ['#3e5a7a', '#5a3a24', '#e2dccc'] },
+  { id: 'guarda_roupa', name: 'Guarda-roupa', category: 'casa', kind: 'armario', width: 2, depth: 1, height: 2.0, rotations: ALL, colors: ['#5a3a24', '#c9a86a'] },
+  { id: 'comoda', name: 'Cômoda', category: 'casa', kind: 'armario', width: 2, depth: 1, height: 0.9, stackable: true, rotations: ALL, colors: ['#6a4428', '#c9a86a'] },
+  { id: 'armario_cozinha', name: 'Armário de Cozinha', category: 'casa', kind: 'armario', width: 2, depth: 1, height: 1.9, rotations: ALL, colors: ['#e2d6bc', '#5a4a3a'] },
+  { id: 'fogao_lenha', name: 'Fogão a Lenha', category: 'casa', kind: 'fogao', width: 2, depth: 1, height: 0.85, states: 2, rotations: ALL, colors: ['#c8bca4', '#2a2420'], desc: 'Clique duplo acende/apaga.' },
+  { id: 'pia_cozinha', name: 'Pia de Cozinha', category: 'casa', kind: 'pia_cozinha', width: 2, depth: 1, height: 0.9, stackable: true, rotations: ALL, colors: ['#e2d6bc', '#9aa4a8'] },
+  { id: 'mesa_jantar', name: 'Mesa de Jantar', category: 'casa', kind: 'mesa', width: 4, depth: 2, height: 0.78, stackable: true, rotations: ALL, colors: ['#6a4428', '#4a2e1a'] },
+  { id: 'mesa_cozinha', name: 'Mesa da Cozinha', category: 'casa', kind: 'mesa', width: 3, depth: 2, height: 0.78, stackable: true, rotations: ALL, colors: ['#9a7448', '#6a4a2e'] },
+  { id: 'banheira', name: 'Banheira', category: 'casa', kind: 'banheira', width: 1, depth: 2, height: 0.6, rotations: ALL, colors: ['#ece6da', '#b8a070'] },
+  { id: 'prateleira', name: 'Prateleira de Madeira', category: 'casa', kind: 'shelf', width: 2, depth: 1, height: 2.2, rotations: ALL, colors: ['#7a5a3a', '#4a3424'] },
+  { id: 'escada_desce', name: 'Escada que Desce', category: 'casa', kind: 'escada_desce', width: 1, depth: 2, height: 0, walkable: true, portal: true, rotations: ALL, colors: ['#6a4a2e', '#1a1410'], desc: 'O vão da escada, com o corrimão: pare em cima para descer (o mestre escolhe o destino).' },
 ];
 
 export const WALL_FURNI_LIST: WallFurniDef[] = [

@@ -385,35 +385,37 @@ export const SEDE_BUILDERS: Record<string, Builder> = {
   bed(def) {
     const [blanket, frame, sheet] = def.colors;
     const D = def.depth;
+    // de solteiro (1 casa) ou de casal (2 casas, dois travesseiros)
+    const W = def.width;
     const legs: LBox[] = [
       [0.04, 0.12, 0.05, 0.13, 0, 0.2],
       [D - 0.12, D - 0.04, 0.05, 0.13, 0, 0.2],
-      [0.04, 0.12, 0.87, 0.95, 0, 0.2],
-      [D - 0.12, D - 0.04, 0.87, 0.95, 0, 0.2],
+      [0.04, 0.12, W - 0.13, W - 0.05, 0, 0.2],
+      [D - 0.12, D - 0.04, W - 0.13, W - 0.05, 0, 0.2],
     ];
-    const base: LBox = [0.04, D - 0.04, 0.04, 0.96, 0.2, 0.32];
-    const mattress: LBox = [0.1, D - 0.07, 0.07, 0.93, 0.32, 0.48];
-    const pillow: LBox = [0.16, 0.62, 0.14, 0.86, 0.48, 0.58];
-    const cover: LBox = [0.8, D - 0.05, 0.05, 0.95, 0.32, 0.53];
-    const head: LBox = [0.01, 0.08, 0.02, 0.98, 0, 0.95];
+    const base: LBox = [0.04, D - 0.04, 0.04, W - 0.04, 0.2, 0.32];
+    const mattress: LBox = [0.1, D - 0.07, 0.07, W - 0.07, 0.32, 0.48];
+    const pillows: LBox[] = W > 1 ? [[0.16, 0.62, 0.14, W / 2 - 0.06, 0.48, 0.58], [0.16, 0.62, W / 2 + 0.06, W - 0.14, 0.48, 0.58]] : [[0.16, 0.62, 0.14, 0.86, 0.48, 0.58]];
+    const cover: LBox = [0.8, D - 0.05, 0.05, W - 0.05, 0.32, 0.53];
+    const head: LBox = [0.01, 0.08, 0.02, W - 0.02, 0, 0.95];
     return V([
       B(head, frame, { edge: 0.25 }),
       ...legs.map((l) => B(l, frame)),
       B(base, frame, { edge: 0.15 }),
       B(mattress, sheet, { edge: 0.2 }),
-      B(pillow, shade(sheet, 0.1), { edge: 0.3 }),
+      ...pillows.map((b) => B(b, shade(sheet, 0.1), { edge: 0.3 })),
       N(cover, (p) => {
         p.box(cover, blanket, { edge: 0.2 });
         p.withTop(0.531, (ctx) => {
           // dobra na ponta do cobertor
           ctx.fillStyle = shade(blanket, 0.18);
-          ctx.fillRect(0.8, 0.05, 0.16, 0.9);
+          ctx.fillRect(0.8, 0.05, 0.16, W - 0.1);
           ctx.strokeStyle = 'rgba(0,0,0,0.25)';
           ctx.lineWidth = 0.02;
           for (let u = 1.2; u < D - 0.2; u += 0.45) {
             ctx.beginPath();
             ctx.moveTo(u, 0.1);
-            ctx.lineTo(u + 0.08, 0.9);
+            ctx.lineTo(u + 0.08, W - 0.1);
             ctx.stroke();
           }
         });

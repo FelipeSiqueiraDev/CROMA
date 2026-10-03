@@ -17,6 +17,7 @@ import {
   type WallItem,
 } from '@croma/shared';
 import type { Database, RoomData, TokenData } from './db';
+import { montarFazenda } from './seedFazenda';
 import { rebuildSede, seedSede } from './seedSede';
 
 export const SYSTEM_OWNER = 'CROMA';
@@ -642,8 +643,12 @@ function liftWallItems(r: RoomData) {
 /** Aplica conteúdo novo em bancos antigos sem apagar nada. */
 export function upgradeDb(db: Database): boolean {
   const v = db.seedVersion ?? 1;
-  // a Sede muda de montagem sem esperar versão nova do banco
-  if (v >= SEED_VERSION) return rebuildSede(db);
+  // a Sede e a fazenda mudam de montagem sem esperar versão nova do banco
+  if (v >= SEED_VERSION) {
+    const sede = rebuildSede(db);
+    const fazenda = montarFazenda(db);
+    return sede || fazenda;
+  }
   for (const r of db.rooms) {
     r.lightMode ??= 'normal';
     r.fog ??= r.id === 1 ? 0.2 : 0;
@@ -711,6 +716,8 @@ export function upgradeDb(db: Database): boolean {
           delete velho.weight;
         }
   rebuildSede(db);
+  // Fazenda Olhos de Águia: a fazenda de fora, os arredores e o interior das casas
+  montarFazenda(db);
   db.seedVersion = SEED_VERSION;
   return true;
 }

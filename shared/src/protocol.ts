@@ -290,6 +290,10 @@ export interface RoomInfo {
   area?: string;
   /** piso do cômodo */
   floorStyle?: FloorStyle;
+  /** ao ar livre: sem paredes, sem teto (fazenda, estrada, praça) */
+  aberto?: boolean;
+  /** chão casa por casa, ao ar livre (letras de TERRENOS, linhas como a planta) */
+  terreno?: string;
   /** cor do ambiente (#rrggbb): tinge a escuridão e o ar do cômodo */
   ambient?: string;
   /** partículas do cômodo */

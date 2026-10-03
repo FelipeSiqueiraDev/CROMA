@@ -355,7 +355,8 @@ export class RoomView {
   enter(info: RoomInfo, items: FloorItem[], wallItems: WallItem[], users: UserInfo[], myId: number) {
     this.info = info;
     this.map = new RoomMap(info.heightmap, info.door, items, wallItems);
-    this.door = doorClipPath(this.map);
+    // ao ar livre não tem parede: ninguém fica atrás da porta
+    this.door = info.aberto ? null : doorClipPath(this.map);
     this.fog.setMap(this.map);
     this.particles.setRoom(this.map, info.particles);
     // mantém a peça ativa se ela estiver nesta cena
@@ -378,7 +379,7 @@ export class RoomView {
   /** Escolhe o maior zoom em que o quarto inteiro cabe na tela e centraliza. */
   fit() {
     if (!this.map) return;
-    const b = roomBounds(this.map);
+    const b = roomBounds(this.map, !!this.info?.aberto);
     const f = this.frame_();
     const bw = b.maxX - b.minX + 16;
     const bh = b.maxY - b.minY + 16;
@@ -415,7 +416,7 @@ export class RoomView {
       sy += y - 40;
     }
     const n = this.users.size;
-    const b = roomBounds(this.map);
+    const b = roomBounds(this.map, !!this.info?.aberto);
     const f = this.frame_();
     const hw = f.w / 2 / this.zoom;
     const hh = f.h / 2 / this.zoom;
@@ -710,7 +711,7 @@ export class RoomView {
 
   center() {
     if (!this.map) return;
-    const b = roomBounds(this.map);
+    const b = roomBounds(this.map, !!this.info?.aberto);
     const f = this.frame_();
     this.cam.x = Math.round(f.x + f.w / 2 - ((b.minX + b.maxX) / 2) * this.zoom);
     this.cam.y = Math.round(f.y + f.h / 2 - ((b.minY + b.maxY) / 2) * this.zoom);
@@ -1006,9 +1007,9 @@ export class RoomView {
     const scale = z * dpr;
     const canBuild = this.info.canBuild;
 
-    const key = `${this.info.id}|${this.info.heightmap}|${map.door.x},${map.door.y}|${scale}|${this.info.floorStyle ?? ''}|${versaoTexturas()}`;
+    const key = `${this.info.id}|${this.info.heightmap}|${map.door.x},${map.door.y}|${scale}|${this.info.floorStyle ?? ''}|${versaoTexturas()}|${this.info.aberto ? 'a' : ''}|${this.info.terreno ?? ''}`;
     if (key !== this.staticKey) {
-      this.staticLayer = buildStatic(map, scale, this.info.floorStyle);
+      this.staticLayer = buildStatic(map, scale, this.info.floorStyle, this.info.terreno, !!this.info.aberto);
       this.staticKey = key;
     }
     ctx.setTransform(scale, 0, 0, scale, this.cam.x * dpr, this.cam.y * dpr);
@@ -1066,18 +1067,17 @@ export class RoomView {
     const hitOf = new Map<Drawable, Hit>();
     const m = this.mapper;
     const painter = this.painter;
-    // raio-x: paredes internas na frente do seu avatar ficam transparentes
-    const meU = this.users.get(this.myId);
-    let meBox: WBox | null = null;
-    let meRect: [number, number, number, number] | null = null;
-    if (meU) {
-      const p = this.userPos(meU, now);
+    // raio-x: parede interna, árvore ou prédio na frente de uma peça fica transparente (para ninguém sumir atrás)
+    const raioX: { box: WBox; rect: [number, number, number, number] }[] = [];
+    for (const u of this.users.values()) {
+      const p = this.userPos(u, now);
       const [mx, my] = iso(p.x + 0.5, p.y + 0.5, p.z);
-      const H = this.avatarHeight(meU);
-      meBox = { x0: p.x + 0.2, x1: p.x + 0.8, y0: p.y + 0.2, y1: p.y + 0.8, z0: p.z, z1: p.z + 3.2 };
-      meRect = [mx - 22, my - H - 6, mx + 22, my + 8];
+      const H = this.avatarHeight(u);
+      raioX.push({ box: { x0: p.x + 0.2, x1: p.x + 0.8, y0: p.y + 0.2, y1: p.y + 0.8, z0: p.z, z1: p.z + 3.2 }, rect: [mx - 22, my - H - 6, mx + 22, my + 8] });
     }
-    const addFurni =(it: { id: number; defId: string; x: number; y: number; z: number; rot: number; state: number }, alpha: number, selected: boolean, ghost: boolean) => {
+    // o que cai fora da tela não é desenhado (a fazenda tem centenas de mobis); a luz deles continua valendo
+    const vista = { x0: -this.cam.x / z - 120, y0: -this.cam.y / z - 200, x1: (this.vw - this.cam.x) / z + 120, y1: (this.vh - this.cam.y) / z + 120 };
+    const addFurni = (it: { id: number; defId: string; x: number; y: number; z: number; rot: number; state: number }, alpha: number, selected: boolean, ghost: boolean) => {
       const def = getFurni(it.defId);
       if (!def) return;
       const base = furniVisual(def, it.state, it.id);
@@ -1100,9 +1100,11 @@ export class RoomView {
           if (py < sy0) sy0 = py;
           if (py > sy1) sy1 = py;
         }
+        const pad = node.pad ?? 0;
+        if (sx1 + pad < vista.x0 || sx0 - pad > vista.x1 || sy1 + pad < vista.y0 || sy0 - pad > vista.y1) continue;
         const rot = it.rot;
         const xray =
-          !!def.xray && !!meBox && !!meRect && sx0 < meRect[2] && sx1 > meRect[0] && sy0 < meRect[3] && sy1 > meRect[1] && cmp(meBox, box) < 0;
+          !!def.xray && raioX.some((pc) => sx0 - pad < pc.rect[2] && sx1 + pad > pc.rect[0] && sy0 - pad < pc.rect[3] && sy1 > pc.rect[1] && cmp(pc.box, box) < 0);
         const nodeAlpha = xray ? alpha * 0.28 : alpha;
         const d: Drawable = {
           box,
@@ -1697,7 +1699,7 @@ export class RoomView {
     c.height = h;
     const ctx = c.getContext('2d')!;
     // recorta só a área do quarto (em pixels do canvas) e clareia
-    const b = roomBounds(this.map);
+    const b = roomBounds(this.map, !!this.info?.aberto);
     const k = this.dpr;
     let x0 = Math.max(0, (b.minX * this.zoom + this.cam.x) * k);
     let y0 = Math.max(0, (b.minY * this.zoom + this.cam.y) * k);

@@ -44,7 +44,7 @@ export function serializeHeightmap(hm: Heightmap): string {
 
 /** Retorna mensagem de erro, ou null se válido. */
 export function validateHeightmap(src: string): string | null {
-  if (typeof src !== 'string' || src.length > 4000) return 'Planta inválida.';
+  if (typeof src !== 'string' || src.length > 7000) return 'Planta inválida.';
   if (!/^[0-9a-wxX\r\n ]+$/.test(src)) return 'Planta com caracteres inválidos.';
   const hm = parseHeightmap(src);
   if (hm.width < 2 || hm.height < 2) return 'Planta pequena demais.';

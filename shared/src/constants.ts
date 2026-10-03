@@ -22,4 +22,4 @@ export const Z_PX = 32;
  * metros e convertidos com isto (mesa 0,8 m, estante 2,2 m, porta 2,15 m).
  */
 export const Z_PER_M = 1.8;
-export const MAX_ROOM_SIZE = 40;
+export const MAX_ROOM_SIZE = 80;

@@ -1060,6 +1060,8 @@ export class Shell {
     if (this.planTabs.dataset.sig === sig) return;
     this.planTabs.dataset.sig = sig;
     clear(this.planTabs).classList.toggle('hidden', floors.length < 2);
+    // muitos andares (a fazenda tem cinco): as abas encolhem para caber
+    this.planTabs.classList.toggle('muitas', floors.length > 3);
     for (const f of floors)
       this.planTabs.append(
         h(

@@ -20,6 +20,8 @@ export interface LightDef {
 export interface FNode {
   b: LBox;
   draw(p: Painter): void;
+  /** quanto o desenho passa da caixa, em px de tela (a copa da árvore): vale no raio-x e no corte da tela */
+  pad?: number;
 }
 export interface FVisual {
   nodes: FNode[];
