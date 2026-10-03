@@ -284,36 +284,6 @@
     inset 0 0.2rem 0.4rem rgba(0, 0, 0, 0.45);
 }
 
-/* ---------- a senha anotada (só o mestre vê esta tela) ---------- */
-.tsg-nota {
-  position: absolute;
-  left: calc(100% + 1.4rem);
-  top: 3.4rem;
-  padding: 0.9rem 1.3rem 1.1rem;
-  background: linear-gradient(#f6e98c, #ecd76a);
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.45);
-  transform: rotate(7deg);
-  font-family: var(--f-mao, 'Caveat', cursive);
-  font-size: 2.2rem;
-  font-weight: 600;
-  color: #3a2a12;
-  white-space: nowrap;
-}
-.tsg-nota::before {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: -0.9rem;
-  width: 5rem;
-  height: 1.7rem;
-  transform: translateX(-50%) rotate(-5deg);
-  background: rgba(235, 228, 205, 0.7);
-  box-shadow: 0 0.1rem 0.2rem rgba(0, 0, 0, 0.2);
-}
-.tsg-nota.hidden {
-  display: none;
-}
-
 /* ---------- a arte, quando chega ---------- */
 .tsg.arte-painel .tsg-painel {
   background: var(--tsg-painel) center / 100% 100% no-repeat;

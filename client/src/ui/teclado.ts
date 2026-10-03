@@ -14,7 +14,8 @@ import { sfx } from './sfx';
  *
  * A arte (pasta /arte/interface/teclado-geladeira/) entra sozinha quando chegar: a chapa
  * amarela, as teclas em branco (o jogo escreve os números), as teclas de cancelar e de
- * confirmar e as duas luzes. Sem ela, o desenho é por CSS.
+ * confirmar e as duas luzes. Sem ela, o desenho é por CSS. A senha não aparece em lugar
+ * nenhum: quem não sabe, não entra.
  */
 const PASTA = '/arte/interface/teclado-geladeira/';
 const ARTE = {
@@ -38,7 +39,6 @@ export class TecladoSenha {
   private aviso: HTMLElement;
   private ledVerde: HTMLElement;
   private ledVermelho: HTMLElement;
-  private nota: HTMLElement;
   private teclas = new Map<string, HTMLButtonElement>();
   private item: FloorItem | null = null;
   private digitado = '';
@@ -67,7 +67,6 @@ export class TecladoSenha {
     );
     const largas = h('div', { class: 'tsg-largas' }, tecla('CANCELAR', 'cancelar', ' larga cancelar'), tecla('CONFIRMAR', 'confirmar', ' larga confirmar'));
     const parafusos = ['a', 'b', 'c', 'd'].map((p) => h('i', { class: `tsg-parafuso ${p}`, 'aria-hidden': 'true' }));
-    this.nota = h('div', { class: 'tsg-nota', 'aria-hidden': 'true' });
     this.painel = h(
       'div',
       { class: 'tsg-painel', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Senha da passagem' },
@@ -76,7 +75,6 @@ export class TecladoSenha {
       h('div', { class: 'tsg-visor' }, this.casas, this.aviso),
       grade,
       largas,
-      this.nota,
     );
     this.el = h('div', { class: 'tsg hidden', onclick: (e: MouseEvent) => e.target === this.el && this.fechar() }, this.painel);
     document.addEventListener('keydown', (e) => this.tecladoDoPc(e));
@@ -96,8 +94,6 @@ export class TecladoSenha {
     if (novo) this.digitado = '';
     this.estado = 'digitando';
     this.enviando = false;
-    this.nota.textContent = it.lock.code ? `senha: ${it.lock.code}` : '';
-    this.nota.classList.toggle('hidden', !it.lock.code);
     this.mostrar();
     if (!this.el.classList.contains('hidden')) return;
     this.el.classList.remove('hidden');

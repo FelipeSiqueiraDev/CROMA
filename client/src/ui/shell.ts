@@ -290,7 +290,6 @@ export class Shell {
   private activeScene: number | null = null;
   private peeked = new Set<number>();
   private planCanvas: HTMLCanvasElement;
-  /** anotações do mestre por cima da planta (Caveat, inclinadas) */
   /** andar que a planta está mostrando agora */
   private planShown = '';
   /** a arte do alfinete (interface/alfinete.png), quando existe */
@@ -1679,13 +1678,13 @@ export class Shell {
       return h(
         'div',
         { class: 'keypad open' },
-        h('div', { class: 'kp-head' }, h('b', null, 'PASSAGEM ABERTA'), lock.code ? h('small', null, `senha ${lock.code}`) : null),
+        h('div', { class: 'kp-head' }, h('b', null, 'PASSAGEM ABERTA')),
         h('button', { class: 'dbtn', onclick: () => (sfx.click(), net.send({ t: 'relock', id: it.id })) }, 'Fechar a passagem'),
       );
     return h(
       'div',
       { class: 'keypad' },
-      h('div', { class: 'kp-head' }, h('b', null, 'COM SENHA'), lock.code ? h('small', null, `mestre: ${lock.code}`) : null),
+      h('div', { class: 'kp-head' }, h('b', null, 'COM SENHA')),
       h('button', { class: 'dbtn', onclick: () => this.abrirTeclado(it) }, 'Digitar a senha'),
     );
   }
