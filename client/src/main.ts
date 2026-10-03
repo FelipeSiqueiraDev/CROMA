@@ -7,6 +7,7 @@ import './ui/mapa.css';
 import './ui/fichas.css';
 import './ui/combate.css';
 import './ui/itens.css';
+import './ui/teclado.css';
 import { anyFurniName, getFurni, getWallFurni, portraitState, vitalConditions, type ServerMsg } from '@croma/shared';
 import { Net } from './net';
 import { clearIconCache } from './render/bubbles';
@@ -105,7 +106,12 @@ const view = new RoomView(canvas, {
       else endPlacement();
     } else if (!keep) endPlacement();
   },
-  use: (id) => net.send({ t: 'use', id }),
+  // clique duplo num mobi com senha (a geladeira do bar): o teclado grande no meio do tabuleiro
+  use: (id) => {
+    const it = view.map?.getItem(id);
+    if (it?.lock && !it.lock.open && shell?.abrirTeclado(it)) return;
+    net.send({ t: 'use', id });
+  },
   select: () => app.emit('selection'),
   openHint: (kind, id) => hintViewer.open(kind, id),
 });

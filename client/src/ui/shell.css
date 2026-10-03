@@ -1509,7 +1509,7 @@ html {
   background: #25221f;
   color: #efe6d6;
 }
-/* painel de senha (mobi com fechadura) */
+/* fechadura do mobi no painel do objeto (o teclado grande fica em teclado.css) */
 .keypad {
   margin: 0 0 1rem;
   padding: 1rem 1.2rem 1.2rem;
@@ -1531,58 +1531,7 @@ html {
   font-size: 1.15rem;
   letter-spacing: 0;
 }
-.kp-display {
-  position: relative;
-  display: block;
-  margin-bottom: 0.8rem;
-}
-.kp-slots {
-  display: flex;
-  justify-content: center;
-  gap: 0.6rem;
-}
-.kp-slot {
-  width: 3.4rem;
-  height: 4rem;
-  display: grid;
-  place-items: center;
-  border-radius: 0.3rem;
-  background: #0d0b0a;
-  box-shadow: inset 0 0 0 0.12rem #3a322b;
-  color: #ff5a4a;
-  font-size: 2.4rem;
-  text-shadow: 0 0 0.6rem rgba(255, 60, 40, 0.7);
-}
-.kp-slot.on {
-  box-shadow: inset 0 0 0 0.12rem #7b2019;
-}
-.kp-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
-}
-.kp-key {
-  height: 3.6rem;
-  border: 0;
-  border-radius: 0.3rem;
-  background: linear-gradient(#3a332d, #2a2420);
-  box-shadow: 0 0.2rem 0 #120f0d, inset 0 0.1rem 0 rgba(255, 255, 255, 0.08);
-  color: #efe6d6;
-  font-size: 1.8rem;
-}
-.kp-key:hover {
-  background: linear-gradient(#4a4038, #332b26);
-}
-.kp-key:active {
-  transform: translateY(0.15rem);
-  box-shadow: 0 0.05rem 0 #120f0d;
-}
-.kp-key.ok {
-  background: linear-gradient(#7b2019, #5a1510);
-}
-.kp-key.fn {
-  color: #b8a894;
-}
+.keypad,
 .keypad.open {
   display: flex;
   flex-direction: column;

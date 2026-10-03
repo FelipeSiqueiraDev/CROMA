@@ -51,6 +51,7 @@ import { FichasScreen } from './fichas';
 import { AbaItens } from './itens';
 import { infoItem, romano, textoRef } from './fichaRegras';
 import { doCatalogoPeloNome, listaDoCatalogo } from './catalogoItens';
+import { TecladoSenha } from './teclado';
 import { TopBar } from './topbar';
 import { existeArte, ic } from './icons';
 
@@ -305,10 +306,8 @@ export class Shell {
   private planFloor: string | null = null;
   private planTitle!: HTMLElement;
   private planTabs!: HTMLElement;
-  /** senha sendo digitada no painel de um mobi com fechadura */
-  private kpTyped = { id: 0, value: '' };
-  /** redesenha os quadradinhos do painel de senha aberto */
-  private kpShow: (() => void) | null = null;
+  /** o teclado de senha grande, no meio do tabuleiro (a geladeira do bar) */
+  private teclado: TecladoSenha;
   /** painel da direita: controle do RPG */
   private rpgTab: RpgTab = 'PLAYERS';
   /** aba ITENS: a mochila de cada agente, pela ficha */
@@ -471,7 +470,8 @@ export class Shell {
       { class: 'board-centro', title: 'Enquadrar a sala', 'aria-label': 'Enquadrar a sala', onclick: () => (sfx.click(), app.view.fit()) },
       svg('<svg viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 3 37 20 20 37 3 20Z"/><circle cx="20" cy="20" r="6.5"/><path d="M20 10v4M20 26v4M10 20h4M26 20h4"/></svg>'),
     );
-    this.board = h('main', { class: 'board' }, moldura, this.placeBar, zoom, centro, this.tabOverlay);
+    this.teclado = new TecladoSenha(app);
+    this.board = h('main', { class: 'board' }, moldura, this.placeBar, zoom, centro, this.tabOverlay, this.teclado.el);
 
     // ================= direita =================
     const backboard = h('div', { class: 'backboard', 'aria-hidden': 'true' });
@@ -1669,10 +1669,8 @@ export class Shell {
   }
 
   /**
-   * Painel de senha de um mobi com fechadura: os jogadores dizem a senha, o
-   * mestre clica nas teclas do painel (sem campo de texto: no tablet, o teclado
-   * da tela abria e fechava a cada redesenho e o tabuleiro piscava). Certa = o
-   * mobi desliza.
+   * A fechadura de um mobi no painel do objeto: trancada, o botão que abre o teclado grande no
+   * meio do tabuleiro (os jogadores dizem a senha, o mestre digita); aberta, fechar de novo.
    */
   private keypad(it: FloorItem) {
     const lock = it.lock!;
@@ -1684,62 +1682,33 @@ export class Shell {
         h('div', { class: 'kp-head' }, h('b', null, 'PASSAGEM ABERTA'), lock.code ? h('small', null, `senha ${lock.code}`) : null),
         h('button', { class: 'dbtn', onclick: () => (sfx.click(), net.send({ t: 'relock', id: it.id })) }, 'Fechar a passagem'),
       );
-    const len = Math.max(1, Math.min(8, lock.code?.length || 4));
-    if (this.kpTyped.id !== it.id) this.kpTyped = { id: it.id, value: '' };
-    const slots = h('div', { class: 'kp-slots', 'aria-live': 'polite', 'aria-label': 'Senha' });
-    const show = () => {
-      const v = this.kpTyped.value;
-      clear(slots).append(...Array.from({ length: len }, (_, i) => h('span', { class: `kp-slot${v[i] ? ' on' : ''}` }, v[i] ?? '')));
-    };
-    this.kpShow = show;
-    const press = (d: string) => {
-      if (this.kpTyped.value.length >= len) return;
-      this.kpTyped.value += d;
-      sfx.beep(Number(d));
-      show();
-    };
-    const back = () => {
-      this.kpTyped.value = this.kpTyped.value.slice(0, -1);
-      sfx.click();
-      show();
-    };
-    const send = () => {
-      if (!this.kpTyped.value) return;
-      net.send({ t: 'unlock', id: it.id, code: this.kpTyped.value });
-    };
-    const key = (label: string, fn: () => void, cls = '') => h('button', { class: `kp-key${cls}`, type: 'button', onclick: fn }, label);
-    const grid = h(
-      'div',
-      { class: 'kp-grid' },
-      ...['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => key(d, () => press(d))),
-      key('←', back, ' fn'),
-      key('0', () => press('0')),
-      key('OK', send, ' ok'),
-    );
-    show();
     return h(
       'div',
       { class: 'keypad' },
-      h('div', { class: 'kp-head' }, h('b', null, 'SENHA'), lock.code ? h('small', null, `mestre: ${lock.code}`) : null),
-      h('div', { class: 'kp-display' }, slots),
-      grid,
+      h('div', { class: 'kp-head' }, h('b', null, 'COM SENHA'), lock.code ? h('small', null, `mestre: ${lock.code}`) : null),
+      h('button', { class: 'dbtn', onclick: () => this.abrirTeclado(it) }, 'Digitar a senha'),
     );
   }
 
-  /** Resposta do servidor à senha: carimbo e som; errada = o painel treme e limpa. */
+  /** Abre o teclado grande da fechadura (só o mestre, com ela trancada). false se não abriu. */
+  abrirTeclado(it: FloorItem): boolean {
+    if (!this.gm || !it.lock || it.lock.open) return false;
+    this.teclado.abrir(it);
+    return true;
+  }
+
+  /** Resposta do servidor à senha: no teclado grande (aberto) ou, sem ele, um carimbo no painel do objeto. */
   onLockResult(m: { id: number; ok: boolean; reason?: string }) {
-    const box = this.inspBody.querySelector<HTMLElement>('.keypad');
-    this.kpTyped = { id: m.id, value: '' };
-    const at = box ?? this.inspBody;
+    if (m.reason && !m.ok) toast(m.reason, 'error');
+    if (this.teclado.resultado(m)) return;
+    const at = this.inspBody.querySelector<HTMLElement>('.keypad') ?? this.inspBody;
     if (m.ok) {
       sfx.granted();
       this.stampCard(at, 'ACESSO LIBERADO', true);
     } else {
       sfx.denied();
-      if (box) shake(box, 0.6);
+      shake(at, 0.6);
       this.stampCard(at, m.reason ? 'NÃO DÁ' : 'SENHA ERRADA', false);
-      if (m.reason) toast(m.reason, 'error');
-      this.kpShow?.();
     }
   }
 
@@ -2322,6 +2291,7 @@ export class Shell {
         fazer: () => {
           if (!s) return;
           if (porta && !lock) this.app.net.send({ t: 'use', id: it!.id });
+          else if (lock && this.abrirTeclado(it as FloorItem)) return;
           else ((this.inspTab = lock ? 'desc' : 'items'), this.renderInspector(true));
         },
       },

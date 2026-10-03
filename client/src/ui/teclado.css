@@ -1,0 +1,360 @@
+/* Teclado de senha (a geladeira amarela), grande no meio do tabuleiro: o tabuleiro desfocado
+   atrás, a chapa amarela esmaltada com o friso cromado, o visor verde e as teclas de borracha.
+   A arte de /arte/interface/teclado-geladeira/ entra por cima (classes arte-*). */
+
+.tsg {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(ellipse at 50% 46%, rgba(12, 9, 6, 0.28), rgba(6, 5, 4, 0.72));
+  -webkit-backdrop-filter: blur(0.8rem) saturate(0.7) brightness(0.72);
+  backdrop-filter: blur(0.8rem) saturate(0.7) brightness(0.72);
+  -webkit-text-stroke: 0;
+}
+.tsg.hidden {
+  display: none;
+}
+
+/* ---------- a chapa ---------- */
+.tsg-painel {
+  position: relative;
+  width: 36rem;
+  padding: 2.8rem 2.8rem 2.8rem;
+  border-radius: 2.4rem;
+  background-color: #e0a923;
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.35  0 0 0 0 0.2  0 0 0 0 0.02  0 0 0 0.35 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),
+    radial-gradient(ellipse at 18% 10%, rgba(255, 244, 200, 0.55), transparent 42%),
+    radial-gradient(ellipse at 90% 100%, rgba(110, 58, 0, 0.35), transparent 55%),
+    linear-gradient(170deg, #f1c447, #d79d16 55%, #b98410);
+  box-shadow:
+    inset 0 0 0 0.42rem #cdd2d6,
+    inset 0 0 0 0.6rem #6b7075,
+    inset 0 0.25rem 0.5rem 0.4rem rgba(255, 255, 255, 0.28),
+    inset 0 -0.6rem 1.4rem rgba(90, 44, 0, 0.35),
+    0 0 0 0.12rem #241f18,
+    0 2.6rem 5rem rgba(0, 0, 0, 0.75),
+    0 0.6rem 1.2rem rgba(0, 0, 0, 0.5);
+}
+/* ferrugem nas bordas e arranhões finos */
+.tsg-painel::before {
+  content: '';
+  position: absolute;
+  inset: 0.6rem;
+  border-radius: 1.9rem;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 2% 60%, rgba(120, 52, 10, 0.35), transparent 14%),
+    radial-gradient(ellipse at 98% 22%, rgba(120, 52, 10, 0.3), transparent 12%),
+    radial-gradient(ellipse at 60% 99%, rgba(120, 52, 10, 0.3), transparent 18%),
+    repeating-linear-gradient(118deg, transparent 0 2.6rem, rgba(255, 245, 210, 0.08) 2.6rem 2.66rem, transparent 2.66rem 5.4rem);
+}
+.tsg-parafuso {
+  position: absolute;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #f4f4f2, #a3a8ad 45%, #4a4f55 85%);
+  box-shadow: 0 0.12rem 0.2rem rgba(0, 0, 0, 0.55);
+}
+.tsg-parafuso::after {
+  content: '';
+  position: absolute;
+  left: 0.2rem;
+  right: 0.2rem;
+  top: 50%;
+  height: 0.18rem;
+  margin-top: -0.09rem;
+  background: #3a3e42;
+  transform: rotate(35deg);
+}
+.tsg-parafuso.a {
+  left: 1.3rem;
+  top: 1.3rem;
+}
+.tsg-parafuso.b {
+  right: 1.3rem;
+  top: 1.3rem;
+}
+.tsg-parafuso.c {
+  left: 1.3rem;
+  bottom: 1.3rem;
+}
+.tsg-parafuso.d {
+  right: 1.3rem;
+  bottom: 1.3rem;
+}
+
+/* ---------- luzes ---------- */
+.tsg-luzes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin: -0.6rem 1.2rem 0.9rem 0;
+}
+.tsg-led {
+  width: 1.3rem;
+  height: 1.3rem;
+  border-radius: 50%;
+  box-shadow: inset 0 0.1rem 0.3rem rgba(0, 0, 0, 0.7), 0 0.08rem 0 rgba(255, 255, 255, 0.4);
+}
+.tsg-led.vermelho {
+  background: radial-gradient(circle at 40% 35%, #8a3a33, #3a1210);
+}
+.tsg-led.verde {
+  background: radial-gradient(circle at 40% 35%, #3f7a4a, #10291a);
+}
+.tsg-led.vermelho.aceso {
+  background: radial-gradient(circle at 40% 35%, #ffb4a8, #f2412e 45%, #a8180e);
+  box-shadow: 0 0 0.9rem 0.25rem rgba(255, 60, 40, 0.65), inset 0 0.1rem 0.2rem rgba(255, 255, 255, 0.5);
+}
+.tsg-led.verde.aceso {
+  background: radial-gradient(circle at 40% 35%, #d8ffd0, #4dff7c 45%, #14a33a);
+  box-shadow: 0 0 1.1rem 0.35rem rgba(80, 255, 130, 0.7), inset 0 0.1rem 0.2rem rgba(255, 255, 255, 0.6);
+}
+.tsg-led.pisca {
+  animation: tsg-pisca 0.22s steps(2) 4;
+}
+@keyframes tsg-pisca {
+  50% {
+    filter: brightness(0.35);
+  }
+}
+
+/* ---------- visor ---------- */
+.tsg-visor {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 10rem;
+  border-radius: 1rem;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 28%, #1a3d2d, #08160f 72%);
+  box-shadow:
+    inset 0 0.45rem 1.3rem rgba(0, 0, 0, 0.9),
+    inset 0 0 0 0.32rem #1b1d1e,
+    0 0.16rem 0 rgba(255, 245, 210, 0.45),
+    0 -0.1rem 0 rgba(80, 40, 0, 0.4);
+}
+/* linhas de tela velha e o reflexo do vidro */
+.tsg-visor::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.09), transparent 38%),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.28) 0 0.1rem, transparent 0.1rem 0.32rem);
+}
+.tsg-casas {
+  display: flex;
+  gap: 1.1rem;
+}
+.tsg-casa {
+  display: grid;
+  place-items: center;
+  width: 4.6rem;
+  height: 5.6rem;
+  border-bottom: 0.32rem solid rgba(120, 255, 175, 0.22);
+  font-family: 'Silkscreen', 'Courier Prime', monospace;
+  font-size: 4.4rem;
+  line-height: 1;
+  color: #93ffbd;
+  text-shadow: 0 0 0.9rem rgba(80, 255, 150, 0.7);
+}
+.tsg-casa.cheia {
+  border-bottom-color: rgba(120, 255, 175, 0.55);
+}
+.tsg-aviso {
+  margin-top: 1rem;
+  font-family: 'Silkscreen', 'Courier Prime', monospace;
+  font-size: 1.25rem;
+  letter-spacing: 0.14em;
+  color: rgba(147, 255, 189, 0.72);
+  text-shadow: 0 0 0.6rem rgba(80, 255, 150, 0.45);
+}
+.tsg[data-estado='errada'] .tsg-casa,
+.tsg[data-estado='errada'] .tsg-aviso {
+  color: #ff7a66;
+  border-bottom-color: rgba(255, 110, 90, 0.5);
+  text-shadow: 0 0 0.9rem rgba(255, 70, 50, 0.75);
+}
+.tsg[data-estado='certa'] .tsg-casa,
+.tsg[data-estado='certa'] .tsg-aviso {
+  color: #d6ffe4;
+  text-shadow: 0 0 1.2rem rgba(80, 255, 150, 0.95);
+}
+.tsg[data-estado='certa'] .tsg-visor {
+  background: radial-gradient(ellipse at 50% 30%, #2d6a4b, #0b2417 72%);
+}
+
+/* ---------- teclas ---------- */
+.tsg-grade {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.1rem;
+  margin-top: 1.7rem;
+  padding: 1.4rem;
+  border-radius: 1.3rem;
+  background: linear-gradient(#2e3133, #1b1d1f);
+  box-shadow: inset 0 0.3rem 0.9rem rgba(0, 0, 0, 0.75), 0 0.14rem 0 rgba(255, 245, 210, 0.4);
+}
+.tsg-tecla {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 5.6rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0.9rem;
+  background: linear-gradient(#4b4f53, #2d3033 62%, #232628);
+  box-shadow:
+    0 0.5rem 0 #0d0e0f,
+    0 0.75rem 0.8rem rgba(0, 0, 0, 0.5),
+    inset 0 0.15rem 0 rgba(255, 255, 255, 0.18);
+  color: #ede7d8;
+  font-family: 'Chakra Petch', 'Courier Prime', sans-serif;
+  font-size: 2.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 70ms,
+    box-shadow 70ms,
+    filter 120ms;
+  -webkit-text-stroke: 0;
+}
+.tsg-tecla span {
+  text-shadow: 0 0.12rem 0 rgba(0, 0, 0, 0.6);
+}
+.tsg-tecla:hover {
+  filter: brightness(1.14);
+}
+.tsg-tecla:active,
+.tsg-tecla.apertada {
+  transform: translateY(0.42rem);
+  box-shadow:
+    0 0.08rem 0 #0d0e0f,
+    0 0.2rem 0.3rem rgba(0, 0, 0, 0.5),
+    inset 0 0.2rem 0.4rem rgba(0, 0, 0, 0.5);
+}
+.tsg-tecla.fn {
+  color: #e2bd5c;
+  font-size: 2.3rem;
+}
+.tsg-tecla:focus-visible {
+  outline: 0.25rem solid #fff1b8;
+  outline-offset: 0.2rem;
+}
+.tsg-largas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.2rem;
+  margin-top: 1.5rem;
+}
+.tsg-tecla.larga {
+  height: 5rem;
+  font-size: 1.45rem;
+  letter-spacing: 0.14em;
+}
+.tsg-tecla.cancelar {
+  background: linear-gradient(#cf4434, #9a2419 62%, #85180f);
+  box-shadow:
+    0 0.5rem 0 #430a06,
+    0 0.75rem 0.8rem rgba(0, 0, 0, 0.5),
+    inset 0 0.15rem 0 rgba(255, 210, 200, 0.35);
+}
+.tsg-tecla.confirmar {
+  background: linear-gradient(#4aa95a, #2a7637 62%, #215f2b);
+  box-shadow:
+    0 0.5rem 0 #0d3315,
+    0 0.75rem 0.8rem rgba(0, 0, 0, 0.5),
+    inset 0 0.15rem 0 rgba(210, 255, 215, 0.35);
+}
+.tsg-tecla.cancelar:active,
+.tsg-tecla.cancelar.apertada,
+.tsg-tecla.confirmar:active,
+.tsg-tecla.confirmar.apertada {
+  box-shadow:
+    0 0.08rem 0 rgba(0, 0, 0, 0.6),
+    0 0.2rem 0.3rem rgba(0, 0, 0, 0.5),
+    inset 0 0.2rem 0.4rem rgba(0, 0, 0, 0.45);
+}
+
+/* ---------- a senha anotada (só o mestre vê esta tela) ---------- */
+.tsg-nota {
+  position: absolute;
+  left: calc(100% + 1.4rem);
+  top: 3.4rem;
+  padding: 0.9rem 1.3rem 1.1rem;
+  background: linear-gradient(#f6e98c, #ecd76a);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.45);
+  transform: rotate(7deg);
+  font-family: var(--f-mao, 'Caveat', cursive);
+  font-size: 2.2rem;
+  font-weight: 600;
+  color: #3a2a12;
+  white-space: nowrap;
+}
+.tsg-nota::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -0.9rem;
+  width: 5rem;
+  height: 1.7rem;
+  transform: translateX(-50%) rotate(-5deg);
+  background: rgba(235, 228, 205, 0.7);
+  box-shadow: 0 0.1rem 0.2rem rgba(0, 0, 0, 0.2);
+}
+.tsg-nota.hidden {
+  display: none;
+}
+
+/* ---------- a arte, quando chega ---------- */
+.tsg.arte-painel .tsg-painel {
+  background: var(--tsg-painel) center / 100% 100% no-repeat;
+  box-shadow: 0 2.6rem 5rem rgba(0, 0, 0, 0.75);
+}
+.tsg.arte-painel .tsg-painel::before,
+.tsg.arte-painel .tsg-parafuso {
+  display: none;
+}
+.tsg.arte-tecla .tsg-tecla:not(.larga) {
+  background: var(--tsg-tecla) center / 100% 100% no-repeat;
+  box-shadow: none;
+}
+.tsg.arte-tecla-ap .tsg-tecla:not(.larga):active,
+.tsg.arte-tecla-ap .tsg-tecla:not(.larga).apertada {
+  background-image: var(--tsg-tecla-ap);
+  transform: none;
+}
+.tsg.arte-cancelar .tsg-tecla.cancelar {
+  background: var(--tsg-cancelar) center / 100% 100% no-repeat;
+  box-shadow: none;
+}
+.tsg.arte-cancelar-ap .tsg-tecla.cancelar:active,
+.tsg.arte-cancelar-ap .tsg-tecla.cancelar.apertada {
+  background-image: var(--tsg-cancelar-ap);
+  transform: none;
+}
+.tsg.arte-confirmar .tsg-tecla.confirmar {
+  background: var(--tsg-confirmar) center / 100% 100% no-repeat;
+  box-shadow: none;
+}
+.tsg.arte-confirmar-ap .tsg-tecla.confirmar:active,
+.tsg.arte-confirmar-ap .tsg-tecla.confirmar.apertada {
+  background-image: var(--tsg-confirmar-ap);
+  transform: none;
+}
+.tsg.arte-led-verde .tsg-led.verde.aceso {
+  background: var(--tsg-led-verde) center / contain no-repeat;
+  box-shadow: none;
+}
+.tsg.arte-led-vermelho .tsg-led.vermelho.aceso {
+  background: var(--tsg-led-vermelho) center / contain no-repeat;
+  box-shadow: none;
+}
