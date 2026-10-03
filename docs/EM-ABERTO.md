@@ -7,6 +7,12 @@ O que está pela metade, o que falta e o que o Códex ainda vai entregar. Leia j
 - **Branch:** `claude/personagens-3d`, enviada para o GitHub em 03/10. Tudo de 30/09 a 03/10 está nela e **ainda não entrou na `main`**: o PR depende do OK do Felipe.
   - Antes de começar coisa nova, pergunte se o PR já entrou.
   - Se não entrou, continue nesta branch ou abra a próxima a partir dela. Nunca parta da `main` velha.
+- **As branches antigas já estão dentro desta.** A `main` está toda nela (o PR entra sem conflito). As branches enviadas desde 29/09 também:
+  - `claude/combate-completo`, `mapa-sem-arte`, `mochila-itens`, `tepes-32bits`, `verissimo-erros`;
+  - `codex/arte-telas-checklist`, `arte-tepes-32bits`;
+  - `claude/celular-fichas`, trazida em 03/10.
+
+  O PR aberto `FelipeSiqueiraDev/CROMA#2` (`codex/arte-tepes-32bits`) fica sobrando quando esta entrar: dá para fechar.
 - **Fora do git, de propósito.** Não faça commit sem perguntar:
 
 | Arquivo | O que é |
