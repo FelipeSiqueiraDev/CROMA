@@ -3,7 +3,7 @@
   "escala": 0.5,
   "limpar": 56,
   "moveis": [
-    {"def": "toilet", "folha": "client/public/arte/mobiliario/folhas/vaso-sanitario.png", "real": [0.4, 0.7, 0.8], "como_esta": true, "encosta": true, "giros": {"4": 0, "0": 1, "6": 2, "2": 3}},
+    {"def": "toilet", "folha": "client/public/arte/mobiliario/folhas/vaso-sanitario.png", "real": [0.4, 0.7, 0.8], "como_esta": true, "encosta": true, "giros": {"4": 0, "6": 1, "0": 2, "2": 3}},
     {"def": "stall_panel", "folha": "client/public/arte/mobiliario/folhas/divisoria-cabine.png", "real": [0.7, 0.06, 1.6], "angulos": true, "giros": {"4": 0, "6": 1, "0": 2, "2": 3}},
     {"def": "trash_bin", "folha": "client/public/arte/mobiliario/folhas/lixeira-banheiro.png", "real": [0.3, 0.3, 0.4], "como_esta": true, "giros": {"4": 0, "6": 1, "0": 2, "2": 3}},
     {"def": "mirror", "folha": "client/public/arte/mobiliario/folhas/espelho-banheiro.png", "real": [0.5, 0.03, 0.7], "parede": {"r": [0, 0.5, 0.5], "l": [1, 0.5, 0.5]}},

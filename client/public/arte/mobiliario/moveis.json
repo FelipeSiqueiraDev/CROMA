@@ -1248,23 +1248,23 @@
   "giros": {
    "4": {
     "arquivo": "toilet/giro-4.png",
-    "ax": 51.7,
-    "ay": 148.3
-   },
-   "0": {
-    "arquivo": "toilet/giro-0.png",
-    "ax": 55.4,
-    "ay": 138.0
+    "ax": 51.6,
+    "ay": 148.2
    },
    "6": {
     "arquivo": "toilet/giro-6.png",
-    "ax": 53.5,
-    "ay": 146.9
+    "ax": 48.1,
+    "ay": 129.3
+   },
+   "0": {
+    "arquivo": "toilet/giro-0.png",
+    "ax": 54.8,
+    "ay": 139.2
    },
    "2": {
     "arquivo": "toilet/giro-2.png",
     "ax": 56.4,
-    "ay": 150.7
+    "ay": 150.6
    }
   }
  },
@@ -1964,6 +1964,16 @@
     "arquivo": "books_stack/giro-4.png",
     "ax": 32.0,
     "ay": 87.1
+   },
+   "6": {
+    "arquivo": "books_stack/giro-6.png",
+    "ax": 32.5,
+    "ay": 86.8
+   },
+   "0": {
+    "arquivo": "books_stack/giro-0.png",
+    "ax": 34.0,
+    "ay": 86.1
    },
    "2": {
     "arquivo": "books_stack/giro-2.png",
@@ -3033,8 +3043,8 @@
   "giros": {
    "4": {
     "arquivo": "janitor_cart/giro-4.png",
-    "ax": 70.0,
-    "ay": 178.2
+    "ax": 64.5,
+    "ay": 180.7
    },
    "6": {
     "arquivo": "janitor_cart/giro-6.png",
@@ -3043,8 +3053,8 @@
    },
    "0": {
     "arquivo": "janitor_cart/giro-0.png",
-    "ax": 67.5,
-    "ay": 179.2
+    "ax": 62.5,
+    "ay": 181.6
    },
    "2": {
     "arquivo": "janitor_cart/giro-2.png",

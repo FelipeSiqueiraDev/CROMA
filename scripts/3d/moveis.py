@@ -129,8 +129,8 @@ def gravar(a, p):
     fitz.Pixmap(fitz.csRGB, w, h, np.ascontiguousarray(a).tobytes(), True).save(p)
 
 
-def pedacos(alfa, red=4):
-    """Os objetos da folha: caixas dos pedaços ligados (numa grade reduzida), em ordem de leitura."""
+def rotular(alfa, red=4):
+    """Os pedaços ligados numa grade reduzida (red x red pixels por célula): o rótulo de cada célula (-1 = vazia)."""
     h, w = alfa.shape[0] // red, alfa.shape[1] // red
     m = alfa[:h * red, :w * red].reshape(h, red, w, red).max(axis=(1, 3))
     rot = np.where(m, np.arange(h * w).reshape(h, w), -1)
@@ -143,6 +143,46 @@ def pedacos(alfa, red=4):
         if (novo == rot).all():
             break
         rot = novo
+    return rot
+
+
+_ROTULOS = {}
+
+
+def rotulos_da_folha(folha, red=4):
+    """Os rótulos dos pedaços da folha e a caixa de cada um (guardados: a folha é a mesma em toda a ficha)."""
+    chave = (id(folha), folha.shape)
+    if chave not in _ROTULOS:
+        rot = rotular(folha[:, :, 3] > 16, red)
+        caixa_de = {}
+        for r in np.unique(rot[rot >= 0]):
+            ys, xs = np.nonzero(rot == r)
+            caixa_de[(int(xs.min() * red), int(ys.min() * red), int((xs.max() + 1) * red), int((ys.max() + 1) * red))] = int(r)
+        _ROTULOS[chave] = (rot, red, caixa_de)
+    return _ROTULOS[chave]
+
+
+def apagar_vizinhos(folha, caixas, i, rec, x0, y0):
+    """
+    Apaga do recorte só os pixels que são dos outros pedaços (e não tudo o que cai na caixa
+    deles: a caixa do vizinho pode passar por cima de um pedaço deste, a ponta do esfregão).
+    False quando as caixas não são as dos pedaços (caixas à mão): aí vale o jeito antigo.
+    """
+    rot, red, caixa_de = rotulos_da_folha(folha)
+    chave = lambda c: tuple(int(v) for v in c)
+    if chave(caixas[i]) not in caixa_de or any(chave(c) not in caixa_de for c in caixas):
+        return False
+    outros = [caixa_de[chave(c)] for j, c in enumerate(caixas) if j != i]
+    h, w = rec.shape[:2]
+    yy = (np.arange(y0, y0 + h) // red).clip(0, rot.shape[0] - 1)
+    xx = (np.arange(x0, x0 + w) // red).clip(0, rot.shape[1] - 1)
+    rec[np.isin(rot[np.ix_(yy, xx)], outros), 3] = 0
+    return True
+
+
+def pedacos(alfa, red=4):
+    """Os objetos da folha: caixas dos pedaços ligados (numa grade reduzida), em ordem de leitura."""
+    rot = rotular(alfa, red)
     caixas = []
     for r in np.unique(rot[rot >= 0]):
         ys, xs = np.nonzero(rot == r)
@@ -162,28 +202,20 @@ def pedacos(alfa, red=4):
 
 
 def recortar(folha, caixas, i):
-    x0, y0, x1, y1 = caixas[i]
-    rec = folha[y0:y1, x0:x1].copy()
-    for j, (a0, b0, a1, b1) in enumerate(caixas):
-        if j == i:
-            continue
-        ix0, iy0, ix1, iy1 = max(a0, x0), max(b0, y0), min(a1, x1), min(b1, y1)
-        if ix0 < ix1 and iy0 < iy1:
-            rec[iy0 - y0:iy1 - y0, ix0 - x0:ix1 - x0, 3] = 0
-    ys, xs = np.nonzero(rec[:, :, 3] > 16)
-    return rec[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
+    return recortar_origem(folha, caixas, i)[0]
 
 
 def recortar_origem(folha, caixas, i):
-    """Como recortar, e onde o recorte começa na folha (x, y)."""
+    """O pedaço i da folha, sem os pixels dos outros pedaços, e onde o recorte começa na folha (x, y)."""
     x0, y0, x1, y1 = caixas[i]
     rec = folha[y0:y1, x0:x1].copy()
-    for j, (a0, b0, a1, b1) in enumerate(caixas):
-        if j == i:
-            continue
-        ix0, iy0, ix1, iy1 = max(a0, x0), max(b0, y0), min(a1, x1), min(b1, y1)
-        if ix0 < ix1 and iy0 < iy1:
-            rec[iy0 - y0:iy1 - y0, ix0 - x0:ix1 - x0, 3] = 0
+    if not apagar_vizinhos(folha, caixas, i, rec, x0, y0):
+        for j, (a0, b0, a1, b1) in enumerate(caixas):
+            if j == i:
+                continue
+            ix0, iy0, ix1, iy1 = max(a0, x0), max(b0, y0), min(a1, x1), min(b1, y1)
+            if ix0 < ix1 and iy0 < iy1:
+                rec[iy0 - y0:iy1 - y0, ix0 - x0:ix1 - x0, 3] = 0
     ys, xs = np.nonzero(rec[:, :, 3] > 16)
     return rec[ys.min():ys.max() + 1, xs.min():xs.max() + 1], (x0 + xs.min(), y0 + ys.min())
 
