@@ -1637,7 +1637,7 @@ export class Shell {
       const free = (item.loot ?? []).filter((l) => !l.holder).length;
       const lock = (item as FloorItem).lock;
       const parts = [
-        lock ? (lock.open ? 'Passagem aberta' : 'Com senha') : null,
+        lock ? (lock.open ? 'Passagem aberta' : lock.semSenha ? 'Esconde uma passagem' : 'Com senha') : null,
         item.hint ? 'Pista' : null,
         free ? `${free} ${free > 1 ? 'itens' : 'item'}` : null,
         item.actions?.length ? `${item.actions.length} ${item.actions.length > 1 ? 'interações' : 'interação'}` : null,
@@ -1711,6 +1711,14 @@ export class Shell {
         h('div', { class: 'kp-head' }, h('b', null, 'PASSAGEM ABERTA')),
         h('button', { class: 'dbtn', onclick: () => (sfx.click(), net.send({ t: 'relock', id: it.id })) }, 'Fechar a passagem'),
       );
+    // sem senha (o feno em cima do alçapão): empurrar já revela
+    if (lock.semSenha)
+      return h(
+        'div',
+        { class: 'keypad' },
+        h('div', { class: 'kp-head' }, h('b', null, 'ESCONDE UMA PASSAGEM')),
+        h('button', { class: 'dbtn', onclick: () => (sfx.click(), net.send({ t: 'use', id: it.id })) }, 'Empurrar e revelar'),
+      );
     return h(
       'div',
       { class: 'keypad' },
@@ -1721,7 +1729,7 @@ export class Shell {
 
   /** Abre o teclado grande da fechadura (só o mestre, com ela trancada). false se não abriu. */
   abrirTeclado(it: FloorItem): boolean {
-    if (!this.gm || !it.lock || it.lock.open) return false;
+    if (!this.gm || !it.lock || it.lock.open || it.lock.semSenha) return false;
     this.teclado.abrir(it);
     return true;
   }
@@ -2316,10 +2324,21 @@ export class Shell {
         rotulo: 'Abrir',
         icone: 'caixa',
         ok: abrir,
-        dica: porta ? (fdef?.portal ? ['Fechar a porta', 'Trancar a porta', 'Destrancar e abrir'][(it as FloorItem).state] ?? 'Abrir ou fechar' : 'Abrir ou fechar') : lock ? 'Senha da passagem' : 'Ver o que tem dentro',
+        dica: porta
+          ? fdef?.portal
+            ? (['Fechar a porta', 'Trancar a porta', 'Destrancar e abrir'][(it as FloorItem).state] ?? 'Abrir ou fechar')
+            : 'Abrir ou fechar'
+          : lock?.semSenha
+            ? lock.open
+              ? 'Cobrir a passagem de novo'
+              : 'Empurrar e ver o que esconde'
+            : lock
+              ? 'Senha da passagem'
+              : 'Ver o que tem dentro',
         fazer: () => {
           if (!s) return;
-          if (porta && !lock) this.app.net.send({ t: 'use', id: it!.id });
+          if (lock?.semSenha) this.app.net.send({ t: 'use', id: it!.id });
+          else if (porta && !lock) this.app.net.send({ t: 'use', id: it!.id });
           else if (lock && this.abrirTeclado(it as FloorItem)) return;
           else ((this.inspTab = lock ? 'desc' : 'items'), this.renderInspector(true));
         },

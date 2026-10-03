@@ -27,13 +27,18 @@ import { partyTokens, planTop } from "./seedSede";
 
 export const FAZENDA = "Fazenda · ";
 /** Versão da montagem da fazenda: subiu, ela é refeita no lugar (mesmas cenas, peças e registro). */
-export const FAZENDA_REV = 4;
+export const FAZENDA_REV = 9;
 
 const hint = (title: string, text: string): Hint => ({
   icon: "inspect",
   title,
   text,
   visible: true,
+});
+/** Pista que só o mestre vê até mostrar (o calabouço é para ser descoberto). */
+const oculta = (title: string, text: string): Hint => ({
+  ...hint(title, text),
+  visible: false,
 });
 
 // ------------------------------------------------------------------ terreno
@@ -527,6 +532,28 @@ const aoArLivre = (t: Terreno, porta: Door) => ({
 const CASA = "Casarão";
 const CASA2 = "Casarão 2º";
 const GALPOES = "Galpões";
+const CALABOUCO = "Calabouço";
+
+/**
+ * O calabouço embaixo do celeiro: 16×14 de pedra. Desce-se pela escada de mão, reta, do
+ * alçapão no teto até o chão (no fundo à esquerda); a "porta" é o vão do corredor escuro, no
+ * meio da parede do fundo. No meio, o estrado redondo do altar, um degrau acima do chão
+ * (altura 1, uns 60 cm).
+ */
+function calaboucoPlan(): { heightmap: string; door: Door } {
+  const W = 16;
+  const H = 14;
+  const rows = [
+    Array.from({ length: W }, (_, x) => (x === 9 ? "0" : "x")).join(""),
+  ];
+  for (let y = 1; y <= H; y++) {
+    let r = "";
+    for (let x = 0; x < W; x++)
+      r += Math.hypot(x + 0.5 - 9.5, y + 0.5 - 8.5) <= 2.6 ? "1" : "0";
+    rows.push(r);
+  }
+  return { heightmap: rows.join("\n"), door: { x: 9, y: 0, dir: 4 } };
+}
 
 const CENAS: CenaSpec[] = [
   // ------------------------------------------------------------ fora
@@ -1021,6 +1048,10 @@ const CENAS: CenaSpec[] = [
       ...cercaY(9, 5, 13, [7, 11], "baia"),
       ...cercaX(9, 0, 8, [4], "baia"),
       ...cercaX(5, 0, 8, [6], "baia"),
+      // o alçapão do calabouço, escondido embaixo do fardo da quina da pilha, virada para quem olha
+      // (vem antes: o feno fica em cima). Empurrado para trás, o fardo deixa a boca à vista e a
+      // chegada pelo lado (5, 13) livre
+      ["alcapao", 4, 13, 4],
       ...de(
         "feno",
         [0, 12],
@@ -1046,8 +1077,231 @@ const CENAS: CenaSpec[] = [
       ...lamps([12, 4], [12, 9], [4, 3], [20, 7]),
     ],
     wall: [["tool_board", "r", 1, 6.0, 1.63]],
-    links: [[12, 1, "fazenda"]],
+    links: [
+      [12, 1, "fazenda"],
+      [4, 13, "calabouco"],
+    ],
     plan: { x: 26, y: 0, r: 2 },
+  },
+  // ------------------------------------------------------------ o calabouço (embaixo do feno do celeiro)
+  {
+    key: "calabouco",
+    name: FAZENDA + "Calabouço",
+    description:
+      "Embaixo do celeiro, pedra molhada e o cheiro de ferro: de um lado os computadores ligados e os tanques com gente dentro, no meio o altar no estrado redondo, com o círculo de sangue e os crânios, e no fundo um corredor escuro.",
+    layout: calaboucoPlan(),
+    andar: CALABOUCO,
+    style: "selo",
+    darkness: 0.66,
+    fog: 0.25,
+    ambient: "#3a8a90",
+    particles: ["dust", "smoke"],
+    floor: [
+      // a escada de mão que sobe reto para o alçapão do celeiro, e a porta do corredor escuro
+      ["escada_vertical", 1, 1, 4],
+      ["portal", 9, 1, 4],
+      // a parede dos computadores (à esquerda), cada estação com a sua cadeira
+      ["server_rack", 0, 3, 2],
+      [
+        "console",
+        0,
+        4,
+        2,
+        oculta(
+          "Computadores",
+          "As telas mostram um corpo por dentro, em camadas, e um contador que não para de subir. Os cabos descem pelo chão até os tanques.",
+        ),
+      ],
+      ["chair_office", 1, 4, 6],
+      ["server_rack", 0, 6, 2],
+      ["server_rack", 0, 7, 2],
+      ["console", 0, 8, 2],
+      ["chair_office", 1, 9, 6],
+      ["ups", 0, 10, 2],
+      ["parts_boxes", 0, 11, 2],
+      ["crate_metal", 0, 12, 2],
+      ["crate_metal", 0, 12, 2],
+      ["crate_metal", 0, 13, 2],
+      ["cables_floor", 1, 6, 2],
+      // os tanques com os corpos: dois no fundo e um no lado direito (na frente, tampava o estrado)
+      [
+        "tank",
+        4,
+        1,
+        4,
+        oculta(
+          "Tanque",
+          "No líquido esverdeado boia um homem, ligado por tubos. Os olhos estão abertos.",
+        ),
+      ],
+      [
+        "tank",
+        12,
+        1,
+        4,
+        oculta(
+          "Tanque",
+          "Uma mulher encolhida no líquido, com marcas riscadas na pele. O vidro está quente.",
+        ),
+      ],
+      [
+        "tank",
+        14,
+        5,
+        6,
+        oculta(
+          "Tanque",
+          "O corpo aqui dentro não é bem de gente: os braços são compridos demais.",
+        ),
+      ],
+      // a mesa de trabalho com os frascos e o monitor dos sinais vitais; o carrinho
+      ["table_work", 3, 11, 4],
+      ["flasks", 3, 11, 0],
+      ["vitals_monitor", 5, 11, 4],
+      ["papers", 4, 12, 0],
+      ["trolley", 13, 9, 6],
+      // o estrado: o círculo de sangue no meio, o altar no fundo, velas e crânios na borda
+      ["sigil_floor", 8, 7, 0],
+      [
+        "altar",
+        9,
+        6,
+        4,
+        oculta(
+          "Altar",
+          "Pedra escura, lisa de tanto uso. O círculo pintado em volta ainda está úmido: é sangue.",
+        ),
+      ],
+      ["blood_pool", 9, 8, 0],
+      ["blood_pool", 8, 10, 0],
+      ["blood_drops", 10, 10, 0],
+      ["candles", 8, 6, 0],
+      ["candles", 7, 8, 0],
+      ["candles", 11, 8, 0],
+      ["candles", 9, 10, 0],
+      ["skull", 7, 7, 2],
+      ["skull", 11, 7, 6],
+      ["skull", 7, 9, 2],
+      ["skull", 11, 9, 6],
+      ["candelabra", 6, 11, 0],
+      ["candelabra", 12, 11, 0],
+      // o rastro de sangue até o corredor, as poças e o ralo
+      ["blood_drops", 9, 2, 0],
+      ["blood_drops", 10, 4, 0],
+      ["blood_drops", 9, 5, 0],
+      ["puddle", 5, 6, 0],
+      ["puddle", 13, 4, 0],
+      ["puddle", 3, 8, 0],
+      ["puddle", 10, 13, 0],
+      ["drain", 7, 13, 0],
+    ],
+    wall: [
+      ["monitor_wall", "l", 0, 6.5, 2.63],
+      ["cctv", "l", 0, 1.7, 3.9],
+      ["sconce", "l", 0, 11.8, 2.9],
+      ["sconce", "r", 1, 7.6, 2.9],
+      ["sconce", "r", 1, 11.4, 2.9],
+      ["pipes", "r", 1, 6.4, 3.6],
+      ["poster_sigil", "r", 1, 14.4, 2.2],
+    ],
+    links: [
+      [1, 1, "celeiro"],
+      [9, 1, "corredor_escuro"],
+    ],
+    plan: { x: 0, y: 14 },
+  },
+  {
+    key: "corredor_escuro",
+    name: FAZENDA + "Corredor Escuro",
+    description:
+      "O corredor do fundo do calabouço: estreito, sem luz, a pedra suando. Um rastro de sangue vai até a porta do fim.",
+    layout: planTop(3, 14, 1),
+    andar: CALABOUCO,
+    style: "selo",
+    darkness: 0.86,
+    fog: 0.45,
+    light: "flicker",
+    ambient: "#5a1a1a",
+    particles: ["dust"],
+    floor: [
+      ["portal", 1, 1, 4],
+      ["portal", 0, 12, 2],
+      ["blood_drops", 1, 3, 0],
+      ["blood_drops", 2, 5, 0],
+      ["blood_drops", 1, 7, 0],
+      ["blood_pool", 1, 9, 0],
+      ["blood_drops", 0, 11, 0],
+      ["puddle", 0, 4, 0],
+      ["puddle", 2, 8, 0],
+      ["skull", 2, 13, 4],
+    ],
+    wall: [
+      ["sconce", "l", 0, 2.2, 2.9],
+      ["chains_wall", "l", 0, 5.5, 1.63],
+      ["tally_marks", "l", 0, 8.0, 1.81],
+      ["sigil_scratch", "l", 0, 9.8, 1.81],
+      ["emergency_light", "l", 0, 11.2, 3.6],
+    ],
+    links: [
+      [1, 1, "calabouco"],
+      [0, 12, "sala_sangue"],
+    ],
+    plan: { x: 8, y: 0, r: 2 },
+  },
+  {
+    key: "sala_sangue",
+    name: FAZENDA + "Sala de Sangue",
+    description:
+      "Uma sala pequena no fim do corredor, e tudo nela é sangue: o chão, as paredes, a mesa de metal no meio, o ralo entupido.",
+    layout: plan(6, 5, 2),
+    andar: CALABOUCO,
+    style: "selo",
+    darkness: 0.7,
+    fog: 0.3,
+    light: "flicker",
+    ambient: "#c0201a",
+    particles: ["dust"],
+    floor: [
+      ["portal", 1, 2, 2],
+      // o sangue vem antes: a mesa fica em cima dele, não o contrário
+      ...de(
+        "blood_pool",
+        [2, 0],
+        [3, 1],
+        [5, 1],
+        [2, 3],
+        [4, 3],
+        [6, 2],
+        [3, 4],
+        [5, 4],
+        [3, 2],
+        [4, 2],
+      ),
+      ...de("blood_drops", [4, 0], [6, 0], [2, 1], [1, 3], [6, 4], [2, 4]),
+      ["drain", 5, 3, 0],
+      [
+        "desk_metal",
+        3,
+        2,
+        4,
+        oculta(
+          "Mesa de metal",
+          "As correias de couro estão abertas e duras de sangue seco. O sangue escorre da mesa até o ralo entupido.",
+        ),
+      ],
+      ["barrel", 1, 4, 0],
+      ["skull", 6, 3, 6],
+      ["candles", 6, 0, 0],
+    ],
+    wall: [
+      ["chains_wall", "r", 0, 2.5, 1.63],
+      ["cage_lamp", "r", 0, 4.0, 3.9],
+      ["sigil_scratch", "r", 0, 5.4, 1.81],
+      ["chains_wall", "l", 1, 0.6, 1.63],
+      ["chains_wall", "l", 1, 4.2, 1.63],
+    ],
+    links: [[1, 2, "corredor_escuro"]],
+    plan: { x: 11, y: 0 },
   },
 ];
 
@@ -1120,6 +1374,19 @@ function ligar(built: Map<string, RoomData>) {
       it.link = target.id;
     }
   }
+  // o feno em cima do alçapão do celeiro: sem senha, o clique duplo do mestre empurra e ele aparece
+  const celeiro = built.get("celeiro");
+  const alcapao = celeiro?.items.find((i) => i.defId === "alcapao");
+  const feno = alcapao
+    ? celeiro!.items
+        .filter(
+          (i) => i.defId === "feno" && i.x === alcapao.x && i.y === alcapao.y,
+        )
+        .pop()
+    : undefined;
+  if (feno)
+    feno.lock = { open: false, slide: { dx: 0, dy: -1 }, semSenha: true };
+  else console.warn("[seed] Fazenda: o feno do alçapão não coube");
 }
 
 const montar = (db: Database, spec: CenaSpec) =>

@@ -132,6 +132,22 @@ Nada novo: usa os retratos, os ícones e as folhas da FICHAS. Os cartões de res
 - [ ] **Vista de cima das outras 11 salas da Sede**, uma parte por sala, com a parede do piso de cada uma (o pedido completo está na pasta da arte do GPT).
 - [ ] **Prisão: a porta de aço da cela** (`mobiliario/folhas/porta-cela-aco-fechada.png` e `-aberta.png`, "Móvel nos 4 giros"): 0,75 × 0,12 × 2,2 m, chapa de aço com visor gradeado e portinhola; aberta, a folha gira 90° e encosta no batente. Hoje é desenhada por código.
 
+## Fazenda Olhos de Águia e o calabouço (03/10)
+
+O pedido completo, peça por peça, com as medidas, está na pasta da arte do GPT, em `PROMPT-FAZENDA.txt`. As referências ficam em `gabaritos/fazenda-hoje/` (a fazenda no jogo hoje) e `gabaritos/referencia-calabouco-filmagem.png`. Os móveis seguem o formato "Móvel nos 4 giros" do [ARTE.md](ARTE.md), e as texturas, o formato "Chão e parede". O Claude encaixa tudo (fichas do `scripts/3d/moveis.py` e o `texturas.json`).
+
+- [ ] ✱ **Teste** (`fazenda-teste.zip`): `piso-grama.png`, `cerca-madeira.png`, `fardo-feno.png`, `arvore.png`
+- [ ] **Texturas** (`fazenda-texturas.zip`): estrada, terra arada, pedra clara, terra do celeiro, parede do celeiro, tábuas do píer, chão e parede do calabouço
+- [ ] **Prédios e pátio** (`fazenda-predios.zip`): casarão, celeiro, casa de mantimentos, porteira (fechada e aberta), chafariz, placa
+- [ ] **Natureza e lavoura** (`fazenda-natureza.zip`): mais duas árvores, dois arbustos, milharal, canteiro, sacas de grão, carroça
+- [ ] **A casa e os galpões por dentro** (`fazenda-casa.zip`):
+  - **cozinha e sala de jantar:** fogão a lenha (apagado e aceso), pia, guarda-louça, mesa da cozinha, mesa de jantar;
+  - **quartos:** camas de casal e de solteiro (três colchas), guarda-roupa, cômoda, criado-mudo;
+  - **banheiro:** banheira;
+  - **galpões:** estante do depósito, cerca da baia, meia parede de madeira;
+  - **casarão:** o vão da escada.
+- [ ] ✱ **O calabouço** (`calabouco.zip`): alçapão aberto, escada de mão, tanque com corpo (três modelos), mesa de contenção, pilha de crânios, tocha de parede, estandarte
+
 ## Para depois: o tabuleiro
 
 - [x] **Tepes — quatro poses idle de referência em estilo 32 bits, com luz neutra:** `personagens/tepes/tabuleiro-32bits/idle-desarmado.png`, `idle-armado.png`, `idle-armado-machucado.png`, `idle-desarmado-machucado.png` (PNG RGBA, 1024×1536). Imagens estáticas escolhidas por Felipe, no modelo realista; ficam no tabuleiro (a pose muda com o Armado e com os PV) até chegarem as chibi. Formato em [ARTE.md](ARTE.md).

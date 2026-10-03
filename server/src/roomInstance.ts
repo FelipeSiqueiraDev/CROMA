@@ -228,10 +228,15 @@ export class RoomInstance {
     let sdir = back ? (back.rot + 4) % 8 : valid ? t.dir : d.dir;
     // descendo pela escada: a peça chega no pé dela, virada para a sala (em cima dos degraus, no chão, ela sumia atrás da escada);
     // subindo, chega na frente do vão da escada do andar de cima
-    const pe = back?.defId === 'stairs_up' || back?.defId === 'escada_desce' ? this.stairFoot(back) : null;
+    const pe = back?.defId === 'stairs_up' || back?.defId === 'escada_desce' || back?.defId === 'escada_vertical' ? this.stairFoot(back) : null;
     if (pe) {
       [sx, sy] = [pe.x, pe.y];
       sdir = back!.rot;
+    }
+    // subindo pelo alçapão: sai do buraco e fica do lado dele
+    if (back?.defId === 'alcapao') {
+      const lado = this.freeNear(back.x, back.y, -t.id);
+      if (lado) [sx, sy] = [lado.x, lado.y];
     }
     // chegando por uma passagem ocupada: vai para a casa livre mais perto dela
     if (back && (this.occupied(sx, sy, -t.id) || this.map.walkState(sx, sy) !== 'walk')) {
@@ -429,7 +434,7 @@ export class RoomInstance {
     if (out.hint && !out.hint.visible) delete out.hint;
     // a senha só vai para o mestre
     const fl = out as FloorItem;
-    if (fl.lock) fl.lock = { open: fl.lock.open, slide: fl.lock.slide };
+    if (fl.lock) fl.lock = { open: fl.lock.open, slide: fl.lock.slide, ...(fl.lock.semSenha ? { semSenha: true } : {}) };
     if (out.loot) {
       const me = (c.name ?? '').toLowerCase();
       out.loot = out.loot.filter((l) => l.revealed || l.holder?.toLowerCase() === me);
@@ -889,6 +894,7 @@ export class RoomInstance {
 
   private use(u: RoomUser, id: number) {
     const floor = this.map.getItem(id);
+    if (floor?.lock?.semSenha) return this.empurrar(u.client, floor);
     if (floor) {
       const def = getFurni(floor.defId);
       if (!def?.states || def.states < 2) return;
@@ -969,6 +975,21 @@ export class RoomInstance {
     const why = this.slideLock(it, false);
     if (why) return this.err(c, why);
     this.hotel.log(this.data.id, 'scene', `A passagem secreta foi fechada: ${anyFurniName(it.defId)} voltou para o lugar.`);
+  }
+
+  /**
+   * Mobi sem senha em cima de uma passagem (o feno em cima do alçapão do celeiro): o clique
+   * duplo do mestre empurra o mobi e a passagem aparece; de novo, ele volta e cobre.
+   */
+  private empurrar(c: Client, it: FloorItem) {
+    if (!this.canBuild(c)) return this.err(c, 'Só o mestre mexe nisso.');
+    const abrir = !it.lock!.open;
+    // regra absoluta, como na senha: sem ninguém na sala, a passagem fica escondida
+    if (abrir && !this.users.size) return this.err(c, 'Sem ninguém aqui, a passagem fica escondida.');
+    const why = this.slideLock(it, abrir);
+    if (why) return this.err(c, why);
+    const nome = anyFurniName(it.defId);
+    this.hotel.log(this.data.id, 'scene', abrir ? `${nome} foi empurrado e revelou uma passagem.` : `${nome} voltou para o lugar e cobriu a passagem.`);
   }
 
   /** Chegando por uma passagem escondida que está fechada: abre por dentro, sem senha. */

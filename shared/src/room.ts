@@ -22,6 +22,8 @@ export interface ItemLock {
   open: boolean;
   /** quanto o mobi anda ao abrir, em casas */
   slide: { dx: number; dy: number };
+  /** sem senha (o feno em cima do alçapão do celeiro): o clique duplo do mestre empurra e revela, e de novo cobre */
+  semSenha?: boolean;
 }
 
 /** Piso do cômodo (cor e desenho do chão). */

@@ -108,10 +108,11 @@ const view = new RoomView(canvas, {
       else endPlacement();
     } else if (!keep) endPlacement();
   },
-  // clique duplo num mobi com senha (a geladeira do bar): o teclado grande no meio do tabuleiro
+  // clique duplo num mobi com senha (a geladeira do bar): o teclado grande no meio do tabuleiro;
+  // sem senha (o feno do celeiro), o servidor empurra o mobi
   use: (id) => {
     const it = view.map?.getItem(id);
-    if (it?.lock && !it.lock.open && shell?.abrirTeclado(it)) return;
+    if (it?.lock && !it.lock.open && !it.lock.semSenha && shell?.abrirTeclado(it)) return;
     net.send({ t: 'use', id });
   },
   select: () => app.emit('selection'),

@@ -865,6 +865,104 @@ export const FAZENDA_BUILDERS: Record<string, Builder> = {
     ]);
   },
 
+  /**
+   * O alçapão do celeiro, escondido embaixo do feno (estado 0 = não aparece). Revelado: a
+   * boca no chão com o batente de tábuas, a escada de mão descendo para o escuro, a tampa
+   * aberta de pé no fundo e a luz das velas do calabouço lá embaixo.
+   */
+  alcapao(def, state) {
+    if (state !== 1) return V([]);
+    const [madeira, escuro] = def.colors;
+    return V(
+      [
+        N([0, 1, 0, 1, 0, 0.78], (p) => {
+          const ctx = p.ctx;
+          const batente: P3[] = [
+            [0.06, 0.06, 0.003],
+            [0.94, 0.06, 0.003],
+            [0.94, 0.94, 0.003],
+            [0.06, 0.94, 0.003],
+          ];
+          const boca: P3[] = [
+            [0.14, 0.14, 0.005],
+            [0.86, 0.14, 0.005],
+            [0.86, 0.86, 0.005],
+            [0.14, 0.86, 0.005],
+          ];
+          p.poly(batente, shade(madeira, -0.12), OUTLINE);
+          for (const v of [0.3, 0.52, 0.74])
+            p.line([0.06, v, 0.004], [0.94, v, 0.004], "rgba(0,0,0,0.3)", 1);
+          p.poly(boca, escuro, OUTLINE);
+          ctx.save();
+          const s = boca.map(([u, v, z]) => p.m.p(u, v, z));
+          ctx.beginPath();
+          ctx.moveTo(s[0][0], s[0][1]);
+          for (const q of s.slice(1)) ctx.lineTo(q[0], q[1]);
+          ctx.closePath();
+          ctx.clip();
+          // o brilho das velas lá embaixo
+          const [cx, cy] = p.m.p(0.5, 0.5, -1.4);
+          const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, 34);
+          g.addColorStop(0, "rgba(255,120,50,0.42)");
+          g.addColorStop(1, "rgba(255,120,50,0)");
+          ctx.fillStyle = g;
+          ctx.fillRect(cx - 40, cy - 40, 80, 80);
+          // a escada de mão encostada no fundo da boca: os dois paus e os degraus
+          for (const v of [0.34, 0.66])
+            p.line([0.2, v, 0], [0.34, v, -1.8], shade(madeira, -0.15), 3);
+          for (let k = 0; k < 7; k++) {
+            const t = (k + 0.5) / 7;
+            const u = 0.2 + t * 0.14;
+            const z = -t * 1.8;
+            p.line([u, 0.34, z], [u, 0.66, z], shade(madeira, -0.2 - k * 0.1), 2);
+          }
+          ctx.restore();
+          // a tampa aberta, de pé no fundo, presa nas dobradiças
+          const tampa: LBox = [0.02, 0.08, 0.14, 0.86, 0, 0.72];
+          p.box(tampa, madeira, { edge: 0.2 });
+          p.face(tampa, "front", 0.14, 0.86, 0.34, 0.38, "rgba(0,0,0,0.3)", true);
+          p.face(tampa, "front", 0.46, 0.54, 0.1, 0.62, "rgba(0,0,0,0.22)", true);
+        }),
+      ],
+      [{ u: 0.5, v: 0.5, z: 0.05, radius: 70, color: "#ff7a3a", intensity: 0.4, flicker: 0.08, kind: "fire" }],
+    );
+  },
+
+  /**
+   * A escada de mão do calabouço: presa na parede do fundo (u = 0), sobe reto até o alto
+   * da parede, onde fica o alçapão do celeiro; a luz de lá de cima cai pelo buraco.
+   */
+  escada_vertical(def) {
+    const [madeira, luz] = def.colors;
+    const topo = 2.95;
+    const u0 = 0.08;
+    const u1 = 0.16;
+    return V(
+      [
+        N([0, 0.3, 0.15, 0.85, 0, topo], (p) => {
+          // a luz do celeiro no chão, embaixo do buraco
+          p.withTop(0.003, (ctx) => {
+            const g = ctx.createRadialGradient(0.45, 0.5, 0, 0.45, 0.5, 0.5);
+            g.addColorStop(0, rgba(luz, 0.28));
+            g.addColorStop(1, rgba(luz, 0));
+            ctx.fillStyle = g;
+            ctx.fillRect(0, 0, 1, 1);
+          });
+          // os dois paus e os degraus (de 30 em 30 cm)
+          for (const v of [0.24, 0.76])
+            p.box([u0, u1, v - 0.035, v + 0.035, 0, topo], madeira, { edge: 0.2 });
+          for (let z = 0.3; z < topo - 0.1; z += 0.3)
+            p.box([u0 + 0.01, u1 - 0.01, 0.26, 0.74, z - 0.02, z + 0.02], shade(madeira, 0.08), {
+              edge: 0.25,
+            });
+          // o pé da escada gasto de barro
+          p.box([u0 - 0.01, u1 + 0.01, 0.2, 0.8, 0, 0.04], shade(madeira, -0.3));
+        }),
+      ],
+      [{ u: 0.4, v: 0.5, z: 2.5, radius: 85, color: luz, intensity: 0.32, flicker: 0.04 }],
+    );
+  },
+
   sacas(def, _s, seed) {
     const [saco, escuro] = def.colors;
     const r = rng(seed + 17);

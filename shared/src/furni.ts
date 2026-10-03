@@ -264,6 +264,8 @@ const FURNI_METERS: FurniDef[] = [
   { id: 'milharal', name: 'Milharal', category: 'fazenda', kind: 'plantacao', width: 1, depth: 1, height: 1.9, xray: true, rotations: ALL, colors: ['#6a8a3a', '#c8b04a'], desc: 'Milho mais alto que gente.' },
   { id: 'horta', name: 'Canteiro', category: 'fazenda', kind: 'plantacao', width: 1, depth: 1, height: 0.45, rotations: ALL, colors: ['#4a7a34', '#8a5a3a'] },
   { id: 'feno', name: 'Fardo de Feno', category: 'fazenda', kind: 'feno', width: 1, depth: 1, height: 0.5, stackable: true, rotations: ALL, colors: ['#c8a85a', '#8a7038'] },
+  { id: 'alcapao', name: 'Alçapão', category: 'fazenda', kind: 'alcapao', width: 1, depth: 1, height: 0, walkable: true, stackable: true, portal: true, hidden: true, rotations: ALL, colors: ['#6a4a2c', '#070505'], desc: 'O alçapão escondido no chão: aparece quando o que está em cima dele sai do lugar. Pare em cima para descer.' },
+  { id: 'escada_vertical', name: 'Escada de Mão', category: 'fazenda', kind: 'escada_vertical', width: 1, depth: 1, height: 0, walkable: true, portal: true, rotations: ALL, colors: ['#6a4a2c', '#e8c070'], desc: 'A escada de mão presa na parede, subindo reto até o alçapão no teto. Pare nela para subir.' },
   { id: 'sacas', name: 'Sacas de Grão', category: 'fazenda', kind: 'sacas', width: 1, depth: 1, height: 0.7, rotations: ALL, colors: ['#d8ccaa', '#8a7a5a'] },
   { id: 'carroca', name: 'Carroça', category: 'fazenda', kind: 'carroca', width: 2, depth: 3, height: 1.2, rotations: ALL, colors: ['#7a5a3a', '#3a2a1c'] },
   { id: 'placa', name: 'Placa', category: 'fazenda', kind: 'placa', width: 1, depth: 1, height: 1.8, rotations: ALL, colors: ['#8a6a44', '#3a2a1c'], desc: 'Placa de madeira com o caminho escrito à mão.' },

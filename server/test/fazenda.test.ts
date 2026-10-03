@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { beforeEach, describe, test } from "node:test";
 import {
   findPath,
+  getFurni,
   parseHeightmap,
   terrenoEm,
   type ClientMsg,
@@ -78,7 +79,7 @@ beforeEach(() => {
 describe("Fazenda Olhos de Águia", () => {
   test("a fazenda, os arredores e os interiores numa campanha só, com a planta", () => {
     const cenas = fazenda();
-    assert.equal(cenas.length, 16);
+    assert.equal(cenas.length, 19);
     const camp =
       hotel.db.campaigns?.[String(Math.min(...cenas.map((r) => r.id)))];
     assert.equal(camp?.title, "Fazenda Olhos de Águia");
@@ -86,7 +87,7 @@ describe("Fazenda Olhos de Águia", () => {
       assert.ok(camp?.layout[r.id], `${r.name} está na planta`);
     assert.deepEqual(
       [...new Set(cenas.map((r) => r.floor))],
-      ["Fazenda", "Arredores", "Casarão", "Casarão 2º", "Galpões"],
+      ["Fazenda", "Arredores", "Casarão", "Casarão 2º", "Galpões", "Calabouço"],
     );
     // a Sede continua sendo a campanha que abre
     assert.ok(!cenas.some((r) => r.id === hotel.db.home));
@@ -142,6 +143,13 @@ describe("Fazenda Olhos de Águia", () => {
           `${r.name} → ${hotel.rooms.get(p.link)!.data.name} tem volta`,
         );
         if (p.x === inst.map.door.x && p.y === inst.map.door.y) continue;
+        // a passagem escondida (o alçapão embaixo do feno) só tem caminho depois de revelada
+        if (
+          inst.map
+            .itemsAt(p.x, p.y)
+            .some((i) => getFurni(i.defId)?.hidden && i.state !== 1)
+        )
+          continue;
         assert.ok(
           findPath(inst.map, inst.map.door, p, () => false),
           `${r.name}: caminho até ${p.x},${p.y}`,
@@ -222,6 +230,80 @@ describe("Fazenda Olhos de Águia", () => {
     andar(arredores, tk.id, volta.x - 1, volta.y + 1);
     andar(arredores, tk.id, volta.x, volta.y + 1);
     assert.ok(fora.hasToken(-tk.id), "voltou para a fazenda");
+  });
+
+  test("o feno do celeiro esconde o alçapão: empurrado, ele aparece e leva ao calabouço", () => {
+    const fora = cena("Olhos de Águia");
+    const celeiro = cena("Celeiro");
+    const calabouco = cena("Calabouço");
+    const alcapao = () =>
+      celeiro.map.allItems().find((i) => i.defId === "alcapao")!;
+    const feno = () => celeiro.map.allItems().find((i) => i.lock?.semSenha)!;
+    assert.equal(alcapao().state, 0, "escondido");
+    assert.deepEqual(
+      [feno().x, feno().y],
+      [alcapao().x, alcapao().y],
+      "o feno em cima",
+    );
+    gm.send({ t: "join", roomId: celeiro.data.id });
+    // sem ninguém no celeiro, a passagem fica escondida
+    gm.send({ t: "use", id: feno().id });
+    assert.equal(alcapao().state, 0);
+    const tk = fora.tokenList()[0];
+    hotel.moveToken(fora, tk.id, celeiro.data.id);
+    gm.send({ t: "use", id: feno().id });
+    assert.equal(feno().lock?.open, true, "empurrado");
+    assert.equal(alcapao().state, 1, "o alçapão aparece");
+    assert.notDeepEqual([feno().x, feno().y], [alcapao().x, alcapao().y]);
+    // desce pelo alçapão e chega no pé da escada de mão do calabouço
+    andar(celeiro, tk.id, alcapao().x, alcapao().y);
+    assert.ok(calabouco.hasToken(-tk.id), "desceu");
+    const escada = calabouco.map
+      .allItems()
+      .find((i) => i.defId === "escada_vertical")!;
+    const t = calabouco.tokensLive().find((x) => x.name === tk.name)!;
+    assert.deepEqual(
+      [t.token.tile.x, t.token.tile.y],
+      [escada.x, escada.y + 1],
+      "no pé da escada",
+    );
+    // sem ninguém no celeiro, o feno volta e cobre o alçapão
+    assert.equal(feno().lock?.open, false);
+    assert.equal(alcapao().state, 0);
+    // subindo pela escada com a passagem fechada, ela abre por dentro, e a peça sai do lado do buraco
+    andar(calabouco, tk.id, escada.x, escada.y);
+    assert.ok(celeiro.hasToken(-tk.id), "subiu");
+    assert.equal(alcapao().state, 1);
+    const s = celeiro.tokensLive().find((x) => x.name === tk.name)!;
+    assert.notDeepEqual(
+      [s.token.tile.x, s.token.tile.y],
+      [alcapao().x, alcapao().y],
+      "fora do buraco",
+    );
+  });
+
+  test("o calabouço: o altar no estrado, o corredor escuro e a sala de sangue", () => {
+    const calabouco = cena("Calabouço");
+    const altar = calabouco.map.allItems().find((i) => i.defId === "altar")!;
+    assert.equal(
+      calabouco.map.floorHeight(altar.x, altar.y),
+      1,
+      "o estrado é um degrau acima",
+    );
+    assert.equal(calabouco.map.floorHeight(2, 3), 0);
+    // as pistas do calabouço começam escondidas dos jogadores
+    assert.equal(altar.hint?.visible, false);
+    const corredor = cena("Corredor Escuro");
+    const sangue = cena("Sala de Sangue");
+    const liga = (a: typeof corredor, b: typeof corredor) =>
+      a.portals().some((p) => p.link === b.data.id);
+    assert.ok(liga(calabouco, corredor) && liga(corredor, calabouco));
+    assert.ok(liga(corredor, sangue) && liga(sangue, corredor));
+    assert.ok(
+      sangue.map.allItems().filter((i) => i.defId === "blood_pool").length >=
+        8,
+      "cheia de sangue",
+    );
   });
 
   test("a fazenda é refeita no lugar quando a montagem muda", () => {
