@@ -537,8 +537,10 @@ export function wallLights(def: WallFurniDef, state: number): WallLight[] {
     case 'screen':
       return on ? [{ x: def.w / 2, y: def.h / 2, radius: 120, color: '#f2eadc', intensity: 0.45, kind: 'electric' }] : [];
     case 'tv':
-      // só uma vida na parede: bem mais fraca que o fliperama
-      return [{ x: def.w / 2, y: def.h * 0.35, radius: 85, color: '#a8e8b8', intensity: 0.26, flicker: 0.12, kind: 'electric' }];
+      // só uma vida na parede: bem mais fraca que o fliperama (a que desliga, desligada, apaga)
+      return def.states && !on ? [] : [{ x: def.w / 2, y: def.h * 0.35, radius: 85, color: '#a8e8b8', intensity: 0.26, flicker: 0.12, kind: 'electric' }];
+    case 'cage_lamp':
+      return on ? [{ x: def.w / 2, y: def.h * 0.55, radius: 150, color: def.colors[1] ?? '#ffd9a0', intensity: 0.7, flicker: 0.02, kind: 'electric' }] : [];
     default:
       return [];
   }

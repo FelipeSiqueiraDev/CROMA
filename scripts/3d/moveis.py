@@ -88,6 +88,9 @@ própria folha ("folha" no móvel); senão vale a da ficha.
   da imagem, a base de cada chama e a altura dela: o jogo desenha uma chama que mexe por
   cima da chama parada do desenho (vela, candelabro, tocha, fogueira). "chamas": "auto"
   acha sozinho as chamas do desenho (os pontos quentes e claros) em cada giro.
+- "caixas": [[x0, y0, x1, y1], ...]: as caixas das vistas na folha, à mão, quando o desenho
+  vem em pedaços soltos (as marcas de contagem). "caixa": [u0, u1, v0, v1, z0, z1] (z em
+  metros): a caixa da ordem de quem fica na frente, no lugar da do jogo.
 - "estados": {"1": folha, ...} (móvel desenhado como está): o mesmo móvel em outro estado
   (o armário aberto, o candelabro apagado), numa folha com as vistas no mesmo lugar e no
   mesmo tamanho. Cada vista sai na escala e na âncora do estado 0, para o móvel não pular
@@ -706,6 +709,9 @@ def main():
         if so and m['def'] not in so:
             continue
         folha, caixas = folha_de(m)
+        if m.get('caixas'):
+            # a folha com pedaços soltos demais (riscos, marcas): as caixas de cada vista, à mão
+            caixas = [list(map(int, c)) for c in m['caixas']]
         if m.get('chao'):
             ent, img = tapete(m, folha, destino)
             lista[m['def']] = ent
@@ -931,6 +937,9 @@ def quatro_giros(m, folha, caixas, destino, escala):
         print(f"{m['def']} giro {giro}: encaixe {nota:.3f}; desenho a {np.degrees(cam['a']):.0f}° e {np.degrees(cam['t']):.0f}°; {tam}", flush=True)
     if m.get('estados'):
         outros_estados(m, ent, origens, caixas, pasta, imgs)
+    if m.get('caixa') and 'caixa' not in ent:
+        # a caixa para a ordem de quem fica na frente, quando a do jogo não serve (a porta de cela tem altura 0)
+        ent['caixa'] = m['caixa']
     return ent, imgs
 
 

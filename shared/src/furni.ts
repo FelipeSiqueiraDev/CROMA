@@ -188,7 +188,7 @@ const FURNI_METERS: FurniDef[] = [
   { id: 'sideboard', name: 'Aparador', category: 'bar', kind: 'table_big', width: 2, depth: 1, height: 0.9, stackable: true, rotations: ALL, colors: ['#4a3020', '#2e1d12', '#9a7a4a'], desc: 'Aparador de madeira escura, com garrafas e copos em cima.' },
   { id: 'keg', name: 'Barril de Chope', category: 'bar', kind: 'barrel', width: 1, depth: 1, height: 0.6, stackable: true, rotations: ALL, colors: ['#8a8e92', '#4a4e52'] },
   // dormitório
-  { id: 'bed', name: 'Cama', category: 'mobilia', kind: 'bed', width: 1, depth: 3, height: 0.55, rotations: ALL, colors: ['#5a5a2e', '#2a2622', '#d8d0c0'] },
+  { id: 'bed', name: 'Cama de Cela', category: 'mobilia', kind: 'bed', width: 1, depth: 3, height: 0.5, rotations: ALL, colors: ['#5a5a2e', '#2a2622', '#d8d0c0'] },
   { id: 'nightstand', name: 'Criado-Mudo', category: 'mobilia', kind: 'nightstand', width: 1, depth: 1, height: 0.6, stackable: true, rotations: ALL, colors: ['#4b3120', '#c9a86a'] },
   { id: 'bench', name: 'Banco de Madeira', category: 'mobilia', kind: 'bench', width: 2, depth: 1, height: 0.45, sit: true, rotations: ALL, colors: ['#5a3a24', '#2a1d14'] },
   // salas
@@ -203,6 +203,9 @@ const FURNI_METERS: FurniDef[] = [
   { id: 'sigil_gold', name: 'Selo Dourado', category: 'ocultismo', kind: 'sigil', width: 3, depth: 3, height: 0.01, walkable: true, stackable: true, flat: true, rotations: [0], colors: ['#b8903a'] },
   // banheiro e enfermaria
   { id: 'toilet', name: 'Vaso Sanitário', category: 'saude', kind: 'toilet', width: 1, depth: 1, height: 0.45, sit: true, rotations: ALL, colors: ['#e8e4dc'] },
+  { id: 'toilet_steel', name: 'Vaso de Aço', category: 'saude', kind: 'toilet', width: 1, depth: 1, height: 0.45, sit: true, rotations: ALL, colors: ['#9aa0a6'], desc: 'Aço inox de prisão, com a pia em cima.' },
+  { id: 'food_tray', name: 'Bandeja de Comida', category: 'decoracao', kind: 'crate', width: 1, depth: 1, height: 0.1, stackable: true, rotations: ALL, colors: ['#9aa0a6', '#8a6a3a'], desc: 'Restos de comida e uma caneca de lata.' },
+  { id: 'drain', name: 'Ralo', category: 'decoracao', kind: 'dirt', width: 1, depth: 1, height: 0.01, walkable: true, stackable: true, flat: true, rotations: [0], colors: ['#3a3226', '#5a6a6a'] },
   { id: 'sink', name: 'Pia', category: 'saude', kind: 'sink', width: 1, depth: 1, height: 0.9, stackable: true, rotations: ALL, colors: ['#e8e4dc', '#8a9098'] },
   { id: 'hospital_bed', name: 'Leito Hospitalar', category: 'saude', kind: 'hospital_bed', width: 1, depth: 3, height: 0.7, rotations: ALL, colors: ['#7fb88a', '#c9ccd0'] },
   { id: 'iv_stand', name: 'Suporte de Soro', category: 'saude', kind: 'iv_stand', width: 1, depth: 1, height: 1.9, rotations: ALL, colors: ['#9aa0a8', '#d8e8f0'] },
@@ -231,6 +234,7 @@ const FURNI_METERS: FurniDef[] = [
   { id: 'dirt', name: 'Sujeira', category: 'decoracao', kind: 'dirt', width: 1, depth: 1, height: 0.01, walkable: true, stackable: true, flat: true, rotations: ALL, colors: ['#2a1d12', '#8a7a5a'] },
   // prisão
   { id: 'cell_bars', name: 'Grade de Cela', category: 'estrutura', kind: 'bars', width: 1, depth: 1, height: 2.2, rotations: ALL, colors: ['#3a3d42', '#1c1d20'] },
+  { id: 'cell_wall', name: 'Divisória de Cela', category: 'estrutura', kind: 'iwall', width: 1, depth: 1, height: 1.3, xray: true, rotations: ALL, colors: ['#6a6e66', '#3a3d38'], desc: 'Meia parede de concreto entre as celas.' },
   { id: 'cell_door', name: 'Porta de Cela', category: 'estrutura', kind: 'cell_door', width: 1, depth: 1, height: 0, states: 2, openState: 1, rotations: ALL, colors: ['#3a3d42', '#1c1d20', '#8a7a4a'], desc: 'Clique duplo abre/fecha. Fechada, ninguém passa.' },
 ];
 
@@ -256,6 +260,8 @@ export const WALL_FURNI_LIST: WallFurniDef[] = [
   { id: 'monitor_wall', name: 'Painel de Monitoramento', category: 'parede', kind: 'tv', w: 61, h: 52, states: 2, colors: ['#3a3d42', '#d8e0e8'], desc: 'Quatro monitores com as câmeras da Sede. Clique duplo liga/desliga.' },
   { id: 'ac_wall', name: 'Ar-condicionado', category: 'parede', kind: 'fan', w: 38, h: 17, colors: ['#d8ccb0'] },
   { id: 'shelf_wall', name: 'Prateleira de Parede', category: 'parede', kind: 'shelf', w: 42, h: 20, colors: ['#8a6a4a'], desc: 'Manuais, um rádio e um telefone velho.' },
+  { id: 'cage_lamp', name: 'Luminária de Grade', category: 'parede', kind: 'cage_lamp', w: 15, h: 18, states: 2, colors: ['#5a5a50', '#ffd9a0'], desc: 'Lâmpada protegida por grade de ferro. Clique duplo acende/apaga.' },
+  { id: 'tally_marks', name: 'Marcas de Contagem', category: 'parede', kind: 'board', w: 29, h: 23, colors: ['#3a3630'], desc: 'Os dias contados, riscados na parede.' },
   { id: 'cctv', name: 'Câmera de Segurança', category: 'parede', kind: 'board', w: 20, h: 24, colors: ['#c8c0b0', '#ff2a1a'], desc: 'O ledzinho vermelho nunca apaga.' },
   { id: 'notice_board', name: 'Quadro de Avisos', category: 'parede', kind: 'board', w: 52, h: 35, colors: ['#8a5a3a', '#d8c8a0'] },
   { id: 'power_box', name: 'Caixa de Força', category: 'parede', kind: 'board', w: 23, h: 29, colors: ['#8a8a84', '#2a2a2a'] },

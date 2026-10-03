@@ -16,7 +16,7 @@ import { buildRoom, plan, type FloorSeed, type WallSeed } from './seed';
 export const SEDE = 'Sede · ';
 export const SEDE_CODE = '0413';
 /** Versão da montagem da Sede: subiu, a Sede é refeita no lugar (mesmos cômodos, peças e registro). */
-export const SEDE_REV = 22;
+export const SEDE_REV = 25;
 
 /** Planta retangular com a porta na parede de cima (y = 0), na coluna doorX. */
 export function planTop(w: number, h: number, doorX: number): { heightmap: string; door: Door } {
@@ -78,17 +78,15 @@ const table = (x: number, y: number, sides: string): FloorSeed[] => [
  */
 const cell = (bx: number, bedY: number, sideY: number, barsY: number, rot: number): FloorSeed[] => [
   ['bed', bx, bedY, 2],
-  ['toilet', bx + 3, sideY, 6],
+  ['toilet_steel', bx + 3, sideY, 6],
   ['cell_bars', bx, barsY, rot],
   ['cell_door', bx + 1, barsY, rot],
   ['cell_bars', bx + 2, barsY, rot],
   ['cell_bars', bx + 3, barsY, rot],
 ];
 
-/** Divisória baixa em pé (corre em y), de y0 a y1: separa as celas sem esconder as camas. */
-const wallY = (x: number, y0: number, y1: number): FloorSeed[] => Array.from({ length: y1 - y0 + 1 }, (_, i) => ['iwall_low', x, y0 + i, 2] as FloorSeed);
-/** Grade deitada (corre em x), de x0 a x1: entre as celas de costas. */
-const barsX = (y: number, x0: number, x1: number): FloorSeed[] => Array.from({ length: x1 - x0 + 1 }, (_, i) => ['cell_bars', x0 + i, y, 4] as FloorSeed);
+/** Divisória de concreto em pé (corre em y), de y0 a y1: separa as celas sem esconder as camas. */
+const wallY = (x: number, y0: number, y1: number): FloorSeed[] => Array.from({ length: y1 - y0 + 1 }, (_, i) => ['cell_wall', x, y0 + i, 2] as FloorSeed);
 /** Várias lâmpadas penduradas. */
 const lamps = (...at: [number, number][]): FloorSeed[] => at.map(([x, y]) => ['ceiling_lamp', x, y, 0] as FloorSeed);
 
@@ -342,10 +340,10 @@ const ROOMS: RoomSpec[] = [
     lamp: 'fluorescent',
     name: SEDE + 'Prisão',
     was: [SEDE + 'Alojamentos'],
-    description: 'Celas com cama e vaso, grade na frente. As portas abrem com clique duplo; fechadas, ninguém sai.',
+    description: 'Dez celas em duas fileiras, de frente uma para a outra, com o pátio no meio e o posto do carcereiro no canto. Cama de ferro, vaso de aço e os dias riscados na parede. As portas abrem com clique duplo; fechadas, ninguém sai.',
     layout: plan(24, 20, 10),
     floorName: 'Subsolo',
-    style: 'concreto',
+    style: 'cela',
     darkness: 0.6,
     fog: 0.12,
     plan: { x: 4, y: 0, r: 2 },
@@ -362,22 +360,6 @@ const ROOMS: RoomSpec[] = [
       ...cell(11, 0, 1, 3, 4),
       ...cell(16, 0, 1, 3, 4),
       ...cell(21, 0, 1, 3, 4),
-      // bloco do meio: celas costas com costas, separadas por grade
-      ...barsX(10, 5, 20),
-      ...wallY(5, 7, 9),
-      ...wallY(10, 7, 9),
-      ...wallY(15, 7, 9),
-      ...wallY(20, 7, 9),
-      ...wallY(5, 11, 13),
-      ...wallY(10, 11, 13),
-      ...wallY(15, 11, 13),
-      ...wallY(20, 11, 13),
-      ...cell(6, 9, 8, 7, 4),
-      ...cell(11, 9, 8, 7, 4),
-      ...cell(16, 9, 8, 7, 4),
-      ...cell(6, 11, 12, 13, 0),
-      ...cell(11, 11, 12, 13, 0),
-      ...cell(16, 11, 12, 13, 0),
       // celas da frente (grade virada para o corredor de baixo)
       ...wallY(5, 17, 19),
       ...wallY(10, 17, 19),
@@ -388,16 +370,29 @@ const ROOMS: RoomSpec[] = [
       ...cell(11, 19, 18, 17, 4),
       ...cell(16, 19, 18, 17, 4),
       ...cell(21, 19, 18, 17, 4),
-      // posto do carcereiro
-      ['desk_metal', 23, 5, 2],
+      // posto do carcereiro: a mesa de frente para a cadeira
+      ['desk_metal', 23, 5, 6],
       ['chair_office', 22, 6, 2],
       ['locker', 24, 4, 6],
-      ...lamps([3, 5], [12, 5], [21, 5], [3, 15], [12, 15], [21, 15], [2, 10], [23, 10]),
+      // a comida que ninguém comeu e os ralos do pátio
+      ['food_tray', 7, 1, 4],
+      ['food_tray', 17, 18, 0],
+      ['drain', 8, 8, 0],
+      ['drain', 16, 12, 0],
+      ...lamps([4, 6], [12, 6], [20, 6], [4, 13], [12, 13], [20, 13]),
     ],
     wall: [
+      // dentro das celas do fundo: a lâmpada de grade e os dias riscados na parede
+      ['cage_lamp', 'r', 0, 2.5, 3.6],
+      ['tally_marks', 'r', 0, 3.8, 1.9],
       ['emergency_light', 'r', 0, 7.5, 3.8],
+      ['cage_lamp', 'r', 0, 12.5, 3.6],
+      ['tally_marks', 'r', 0, 13.5, 2.2],
       ['emergency_light', 'r', 0, 17.5, 3.8],
+      ['cage_lamp', 'r', 0, 22.5, 3.6],
+      ['tally_marks', 'r', 0, 23.6, 1.7],
       ['clock', 'l', 1, 6.5, 3.9],
+      ['tally_marks', 'l', 1, 18.5, 1.9],
     ],
     links: [
       [1, 10, 'corredor'],

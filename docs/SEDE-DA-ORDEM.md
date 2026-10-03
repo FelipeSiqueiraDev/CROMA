@@ -113,16 +113,20 @@ Com arte desde 02/10. Corredor comprido de blocos de concreto com a faixa verde,
 
 ### Prisão
 
-Dezesseis celas: cama, vaso e a frente de grade com a porta.
+Com arte desde 02/10. Dez celas em duas fileiras, de frente uma para a outra, com o pátio no meio (o bloco de celas do meio saiu: ficava uma bagunça de grades). Cada cela tem a cama de ferro (a cabeceira na parede), o vaso de aço com a pia encostado na divisória e a frente de grade com a porta. A lâmpada de grade e os dias riscados ficam na parede do fundo das celas; há comida largada no chão de duas celas e ralos no pátio. O posto do carcereiro fica no canto, com a mesa de frente para a cadeira. Chão de concreto escuro com marcas de arrasto; parede de blocos cinza-esverdeados e branco encardido.
 
-| Item | Id | Qtd | Casas | Altura | O que desenhar |
+| Item | Id | Qtd | Casas | Altura | Estados |
 |---|---|---|---|---|---|
-| ✱ Grade de cela | `cell_bars` | 64 | 1×1 | 2,2 m | Barras de ferro com travessa no meio; emenda com a vizinha. |
-| ✱ Porta de cela | `cell_door` | 16 | 1×1 | 2,2 m | Aberta e fechada; fechadura grande. |
-| Cama | `bed` | 16 | 1×3 | 0,55 m | Cama de solteiro de ferro, colchão fino, cobertor verde-oliva. |
-| Vaso sanitário | `toilet` | 16 | 1×1 | 0,45 m | Aço inox de prisão. |
-| Divisória baixa | `iwall_low` | 52 | 1×1 | 1,3 m | Meia parede de concreto entre as celas. |
+| ✱ Grade de cela | `cell_bars` | 30 | 1×1 | 2,2 m | — (os módulos emendam) |
+| ✱ Porta de cela | `cell_door` | 10 | 1×1 | 2,2 m | fechada / aberta (a folha gira para dentro da cela); fechada, ninguém passa |
+| Cama de cela | `bed` | 10 | 1×3 | 0,5 m | — |
+| Vaso de aço com pia | `toilet_steel` | 10 | 1×1 | 1 m com a pia | — |
+| Divisória de cela | `cell_wall` | 28 | 1×1 | 1,3 m | — (emendam) |
+| Bandeja de comida, ralo | `food_tray`, `drain` | 2, 2 | 1×1 | — | — |
+| Lâmpada de grade, marcas de contagem | `cage_lamp`, `tally_marks` (parede) | 3, 4 | — | — | a lâmpada: acesa / apagada |
 | Posto do carcereiro | `desk_metal`, `chair_office`, `locker` | 1 cada | — | — | — |
+
+A porta aberta veio da folha com outra cor (ferrugem laranja); ela foi levada para as cores da porta fechada.
 
 ### Câmara do Selo
 

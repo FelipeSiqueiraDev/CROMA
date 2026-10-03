@@ -88,5 +88,14 @@
   "parede": {
    "arquivo": "parede-bloco.png"
   }
+ },
+ "cela": {
+  "piso": {
+   "arquivo": "piso-cela.png",
+   "casas": 3.53
+  },
+  "parede": {
+   "arquivo": "parede-cela.png"
+  }
  }
 }
