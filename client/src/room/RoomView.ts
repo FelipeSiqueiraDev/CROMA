@@ -36,6 +36,7 @@ import { Particles } from '../render/particles';
 import { boxSilhouette, Mapper, Painter, pointInPoly, type WBox } from '../render/painter';
 import { buildStatic, doorClipPath, roomBounds, type StaticLayer } from '../render/roomStatic';
 import { versaoTexturas } from '../render/texturas';
+import { Celas, escurecerChao, escurecerForma, escuroEm } from './celas';
 import { cmp, sortDrawables, type Drawable } from '../render/sort';
 import {
   bonecoDir,
@@ -286,6 +287,8 @@ export class RoomView {
   private painter = new Painter();
   private mapper = new Mapper();
   private lighting = new Lighting();
+  /** as celas da cena (porta de cela): fechadas no escuro, abertas acesas */
+  private celas = new Celas();
   private fog = new Fog();
   private particles = new Particles();
   /** cômodo grande demais para caber: a câmera acompanha as peças */
@@ -1018,6 +1021,9 @@ export class RoomView {
     ctx.drawImage(st.canvas, st.x, st.y, st.w, st.h);
     ctx.imageSmoothingEnabled = true;
     this.drawMarks(ctx, now);
+    // celas fechadas: o chão de dentro no escuro (o que fica em pé lá dentro escurece ao ser desenhado)
+    const celas = this.celas.quadro(map, now);
+    if (celas) escurecerChao(ctx, map, celas);
 
     const lights: Light[] = [];
     const marcas = this.combate;
@@ -1041,6 +1047,19 @@ export class RoomView {
       if (!def) continue;
       const moving = place?.kind === 'wall' && place.moveId === it.id;
       const { ox, oy, k } = this.drawWallItem(it, def, t, lights, moving ? 0.35 : 1, sel?.kind === 'wall' && sel.id === it.id ? AMBER : null);
+      // na parede de dentro de uma cela fechada (a lâmpada de grade, os riscos): no escuro também
+      const eParede = escuroEm(celas, it.wall === 'l' ? it.plane + 0.2 : it.pos, it.wall === 'l' ? it.pos : it.plane + 0.2);
+      if (eParede > 0.01)
+        escurecerForma(
+          ctx,
+          [
+            [ox - 2, oy - 2],
+            [ox + def.w + 2, oy + k * def.w - 2],
+            [ox + def.w + 2, oy + k * def.w + def.h + 2],
+            [ox - 2, oy + def.h + 2],
+          ],
+          eParede,
+        );
       hits.push({
         kind: 'wall',
         id: it.id,
@@ -1071,6 +1090,8 @@ export class RoomView {
     const raioX: { box: WBox; rect: [number, number, number, number] }[] = [];
     for (const u of this.users.values()) {
       const p = this.userPos(u, now);
+      // quem está numa cela fechada não deixa a parede transparente (a cela não se entrega)
+      if (escuroEm(celas, p.x + 0.5, p.y + 0.5) > 0.5) continue;
       const [mx, my] = iso(p.x + 0.5, p.y + 0.5, p.z);
       const H = this.avatarHeight(u);
       raioX.push({ box: { x0: p.x + 0.2, x1: p.x + 0.8, y0: p.y + 0.2, y1: p.y + 0.8, z0: p.z, z1: p.z + 3.2 }, rect: [mx - 22, my - H - 6, mx + 22, my + 8] });
@@ -1105,7 +1126,9 @@ export class RoomView {
         const rot = it.rot;
         const xray =
           !!def.xray && raioX.some((pc) => sx0 - pad < pc.rect[2] && sx1 + pad > pc.rect[0] && sy0 - pad < pc.rect[3] && sy1 > pc.rect[1] && cmp(pc.box, box) < 0);
-        const nodeAlpha = xray ? alpha * 0.28 : alpha;
+        // cela: a parede entre a cela aberta e a câmera fica transparente; o que dá para dentro da fechada, no escuro
+        const cela = ghost ? undefined : celas?.mobi.get(it.id);
+        const nodeAlpha = (xray ? alpha * 0.28 : alpha) * (cela ? 1 - 0.72 * cela.transp : 1);
         const d: Drawable = {
           box,
           sx0: sx0 - 12,
@@ -1119,6 +1142,7 @@ export class RoomView {
             painter.seed = it.id;
             ctx.globalAlpha = nodeAlpha;
             node.draw(painter);
+            if (cela) escurecerForma(ctx, sil, cela.escuro);
             ctx.globalAlpha = 1;
             if (selected) {
               ctx.lineWidth = 1.5;
@@ -1177,6 +1201,12 @@ export class RoomView {
     // luzes do cenário que alcançam as peças (as das peças e a do cursor, não), conforme o clima:
     // a cor delas tinge o corpo e cada uma projeta a sombra da peça no chão
     const energia = lm === 'flicker' ? flickerLevel(t) : 1;
+    // a luz de dentro de uma cela fechada não sai dela (apaga junto)
+    if (celas)
+      for (const L of lights) {
+        const e = L.mundo ? escuroEm(celas, L.mundo[0], L.mundo[1]) : 0;
+        if (e > 0) L.intensity *= 1 - e;
+      }
     const luzesCena: { L: Light; i: number }[] = [];
     for (const L of lights) {
       if (!L.mundo) continue;
@@ -1358,6 +1388,9 @@ export class RoomView {
             ctx.save();
             ctx.clip(door!.path, 'evenodd');
           }
+          // numa cela fechada, a peça fica no escuro com ela
+          const eCela = escuroEm(celas, cx, cy);
+          if (eCela > 0.01) ctx.filter = `brightness(${(1 - 0.78 * eCela).toFixed(3)})`;
           const dance = u.dance ? -Math.abs(Math.sin((now * Math.PI) / 320 + u.phase)) * 4 : 0;
           // giro: afina de lado e volta, com um pulinho, a partir dos pés
           const tt = u.turnAt ? (now - u.turnAt) / TURN_MS : 1;
@@ -1394,6 +1427,7 @@ export class RoomView {
           const arma = !deitada && !seated ? this.armaDe?.(u.id) : null;
           if (arma && !(lp && temPoseArmada(lp))) drawWeaponMark(ctx, sx, fy + afunda + dance, H, arma, u.dir);
           if (wave && sp) this.drawEmote(sx, fy - H - 14, now);
+          if (eCela > 0.01) ctx.filter = 'none';
           if (clip) ctx.restore();
         },
       };

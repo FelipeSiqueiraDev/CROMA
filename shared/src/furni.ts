@@ -64,6 +64,11 @@ export interface FurniDef {
   hidden?: boolean;
   /** porta: dá para passar só neste estado (ex.: 1 = aberta) */
   openState?: number;
+  /**
+   * porta de cela: as casas atrás dela (até as paredes) são a cela. Fechada, a cela fica no
+   * escuro; aberta, acende e a parede entre ela e a câmera fica transparente.
+   */
+  cela?: boolean;
   /** só o jogo cria (não aparece no catálogo): a pilha do que alguém largou no chão */
   interno?: boolean;
   rotations: number[];
@@ -241,7 +246,9 @@ const FURNI_METERS: FurniDef[] = [
   // prisão
   { id: 'cell_bars', name: 'Grade de Cela', category: 'estrutura', kind: 'bars', width: 1, depth: 1, height: 2.2, rotations: ALL, colors: ['#3a3d42', '#1c1d20'] },
   { id: 'cell_wall', name: 'Divisória de Cela', category: 'estrutura', kind: 'iwall', width: 1, depth: 1, height: 1.3, xray: true, rotations: ALL, colors: ['#6a6e66', '#3a3d38'], desc: 'Meia parede de concreto entre as celas.' },
-  { id: 'cell_door', name: 'Porta de Cela', category: 'estrutura', kind: 'cell_door', width: 1, depth: 1, height: 0, states: 2, openState: 1, rotations: ALL, colors: ['#3a3d42', '#1c1d20', '#8a7a4a'], desc: 'Clique duplo abre/fecha. Fechada, ninguém passa.' },
+  { id: 'cell_door', name: 'Porta de Cela', category: 'estrutura', kind: 'cell_door', width: 1, depth: 1, height: 0, states: 2, openState: 1, cela: true, rotations: ALL, colors: ['#3a3d42', '#1c1d20', '#8a7a4a'], desc: 'Clique duplo abre/fecha. Fechada, ninguém passa.' },
+  { id: 'cell_front', name: 'Parede de Cela', category: 'estrutura', kind: 'cell_front', width: 1, depth: 1, height: 2.2, xray: true, rotations: ALL, colors: ['#6a6e66', '#3a3d38'], desc: 'Parede de concreto da cela, inteira (no lugar da grade): fechada, não se vê o que tem dentro.' },
+  { id: 'cell_door_steel', name: 'Porta de Aço da Cela', category: 'estrutura', kind: 'cell_door_steel', width: 1, depth: 1, height: 0, states: 2, openState: 1, cela: true, xray: true, rotations: ALL, colors: ['#555a60', '#1c1d20', '#8a7a4a'], desc: 'Clique duplo abre/fecha. Fechada, ninguém passa e a cela fica no escuro; aberta, acende e a parede da frente fica transparente.' },
 
   // ---------- Fazenda (ao ar livre) ----------
   // os prédios vistos de fora: a porta deles é uma Entrada na frente (que leva para dentro)

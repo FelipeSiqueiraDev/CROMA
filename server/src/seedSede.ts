@@ -16,7 +16,7 @@ import { buildRoom, plan, type FloorSeed, type WallSeed } from './seed';
 export const SEDE = 'Sede · ';
 export const SEDE_CODE = '0413';
 /** Versão da montagem da Sede: subiu, a Sede é refeita no lugar (mesmos cômodos, peças e registro). */
-export const SEDE_REV = 28;
+export const SEDE_REV = 30;
 
 /** Planta retangular com a porta na parede de cima (y = 0), na coluna doorX. */
 export function planTop(w: number, h: number, doorX: number): { heightmap: string; door: Door } {
@@ -73,20 +73,22 @@ const table = (x: number, y: number, sides: string): FloorSeed[] => [
 
 /**
  * Cela da prisão (4 casas de largura): cama encostada no fundo, vaso no canto
- * e a frente de grade com a porta (fechada). bx = primeira coluna; bedY,
- * sideY e barsY = linhas; rot = para onde a grade olha.
+ * e a frente de concreto com a porta de aço (fechada). Fechada, a cela fica no
+ * escuro; aberta, acende e a parede da frente fica transparente (cela, no
+ * furni.ts). bx = primeira coluna; bedY, sideY e frontY = linhas; rot = para
+ * onde a frente olha.
  */
-const cell = (bx: number, bedY: number, sideY: number, barsY: number, rot: number): FloorSeed[] => [
+const cell = (bx: number, bedY: number, sideY: number, frontY: number, rot: number): FloorSeed[] => [
   ['bed', bx, bedY, 2],
   ['toilet_steel', bx + 3, sideY, 6],
-  ['cell_bars', bx, barsY, rot],
-  ['cell_door', bx + 1, barsY, rot],
-  ['cell_bars', bx + 2, barsY, rot],
-  ['cell_bars', bx + 3, barsY, rot],
+  ['cell_front', bx, frontY, rot],
+  ['cell_door_steel', bx + 1, frontY, rot],
+  ['cell_front', bx + 2, frontY, rot],
+  ['cell_front', bx + 3, frontY, rot],
 ];
 
-/** Divisória de concreto em pé (corre em y), de y0 a y1: separa as celas sem esconder as camas. */
-const wallY = (x: number, y0: number, y1: number): FloorSeed[] => Array.from({ length: y1 - y0 + 1 }, (_, i) => ['cell_wall', x, y0 + i, 2] as FloorSeed);
+/** Parede de concreto entre as celas (corre em y), de y0 a y1, inteira como a frente. */
+const wallY = (x: number, y0: number, y1: number): FloorSeed[] => Array.from({ length: y1 - y0 + 1 }, (_, i) => ['cell_front', x, y0 + i, 2] as FloorSeed);
 /** Várias lâmpadas penduradas. */
 const lamps = (...at: [number, number][]): FloorSeed[] => at.map(([x, y]) => ['ceiling_lamp', x, y, 0] as FloorSeed);
 
@@ -340,7 +342,7 @@ const ROOMS: RoomSpec[] = [
     lamp: 'fluorescent',
     name: SEDE + 'Prisão',
     was: [SEDE + 'Alojamentos'],
-    description: 'Dez celas em duas fileiras, de frente uma para a outra, com o pátio no meio e o posto do carcereiro no canto. Cama de ferro, vaso de aço e os dias riscados na parede. As portas abrem com clique duplo; fechadas, ninguém sai.',
+    description: 'Dez celas em duas fileiras, de frente uma para a outra, com o pátio no meio e o posto do carcereiro no canto. Paredes de concreto e portas de aço com visor; dentro, cama de ferro, vaso de aço e os dias riscados na parede. As portas abrem com clique duplo: fechada, a cela fica no escuro e ninguém sai; aberta, a luz acende.',
     layout: plan(24, 20, 10),
     floorName: 'Subsolo',
     style: 'cela',
@@ -350,21 +352,15 @@ const ROOMS: RoomSpec[] = [
     floor: [
       ['portal', 1, 10, 2],
       ['portal', 24, 13, 6],
-      // celas do fundo (grade virada para o corredor de cima)
-      ...wallY(5, 0, 3),
-      ...wallY(10, 0, 3),
-      ...wallY(15, 0, 3),
-      ...wallY(20, 0, 3),
+      // celas do fundo (a frente virada para o pátio): as paredes entre elas e, na linha da frente, o pilar que fecha o vão
+      ...[5, 10, 15, 20].flatMap((x) => [...wallY(x, 0, 2), ['cell_front', x, 3, 4] as FloorSeed]),
       ...cell(1, 0, 1, 3, 4),
       ...cell(6, 0, 1, 3, 4),
       ...cell(11, 0, 1, 3, 4),
       ...cell(16, 0, 1, 3, 4),
       ...cell(21, 0, 1, 3, 4),
-      // celas da frente (grade virada para o corredor de baixo)
-      ...wallY(5, 17, 19),
-      ...wallY(10, 17, 19),
-      ...wallY(15, 17, 19),
-      ...wallY(20, 17, 19),
+      // celas da frente (a porta virada para o pátio, de costas para a câmera)
+      ...[5, 10, 15, 20].flatMap((x) => [['cell_front', x, 17, 4] as FloorSeed, ...wallY(x, 18, 19)]),
       ...cell(1, 19, 18, 17, 4),
       ...cell(6, 19, 18, 17, 4),
       ...cell(11, 19, 18, 17, 4),

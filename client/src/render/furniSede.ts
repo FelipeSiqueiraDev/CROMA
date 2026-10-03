@@ -1,6 +1,6 @@
 import { Z_PER_M } from '@croma/shared';
 import { rgba, rng, shade } from './color';
-import { B, drawers, faceRange, lightIf, N, V, type Builder, type FNode } from './furniKit';
+import { B, drawers, faceRange, lightIf, N, V, wallBlock, type Builder, type FNode } from './furniKit';
 import { OUTLINE, type LBox, type LFace, type Painter } from './painter';
 
 /*
@@ -839,6 +839,69 @@ export const SEDE_BUILDERS: Record<string, Builder> = {
           for (let u = 0.2; u < 0.9; u += 0.14) p.cyl(u, 0.88, 0.02, 0.1, 2.08, iron, { outline: false });
           p.box([0.12, 0.9, 0.86, 0.9, 1.0, 1.06], iron, { edge: 0.3 });
           p.box([0.72, 0.88, 0.84, 0.94, 0.95, 1.18], lockC, { edge: 0.35 });
+        }),
+      );
+    return V(nodes);
+  },
+
+  /** Parede de cela (no lugar da grade): concreto inteiro até 2,2 m, na borda da casa. */
+  cell_front(def) {
+    const [c0] = def.colors;
+    const b: LBox = [0, 0.15, 0, 1, 0, 2.2];
+    return V([N(b, (p) => wallBlock(p, b, c0))]);
+  },
+
+  /** Porta de aço da cela: fechada, a chapa com o visor gradeado e a portinhola da comida; aberta, gira 90° e encosta no batente. */
+  cell_door_steel(def, state) {
+    const [steel, dark, lockC] = def.colors;
+    const open = state === 1;
+    const nodes: FNode[] = [
+      // batentes de aço
+      B([0, 0.15, 0, 0.08, 0, 2.2], dark, { edge: 0.2 }),
+      B([0, 0.15, 0.92, 1, 0, 2.2], dark, { edge: 0.2 }),
+      B([0, 0.15, 0.08, 0.92, 2.08, 2.2], dark, { edge: 0.3 }),
+    ];
+    const chapa = (p: Painter, f: LBox, face: LFace, v0: number, v1: number) => {
+      p.box(f, steel, { edge: 0.18 });
+      p.withFace(f, face, (ctx) => {
+        const w = v1 - v0;
+        const a = (k: number) => v0 + w * k;
+        // as duas chapas rebaixadas
+        ctx.fillStyle = shade(steel, -0.1);
+        ctx.fillRect(a(0.14), 0.14, w * 0.72, 0.62);
+        ctx.fillRect(a(0.14), 1.18, w * 0.72, 0.18);
+        ctx.fillRect(a(0.14), 1.76, w * 0.72, 0.22);
+        // o visor: a janelinha escura com três barras
+        ctx.fillStyle = '#08090b';
+        ctx.fillRect(a(0.32), 1.42, w * 0.36, 0.28);
+        ctx.fillStyle = shade(steel, 0.18);
+        for (const k of [0.41, 0.5, 0.59]) ctx.fillRect(a(k) - 0.012, 1.42, 0.024, 0.28);
+        // a portinhola da comida
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.fillRect(a(0.26), 0.9, w * 0.48, 0.1);
+        ctx.fillStyle = shade(steel, 0.12);
+        ctx.fillRect(a(0.26), 0.99, w * 0.48, 0.02);
+        // rebites e ferrugem na base
+        ctx.fillStyle = 'rgba(15,12,10,0.6)';
+        for (const z of [0.08, 1.06, 2.0]) for (const k of [0.08, 0.92]) ctx.fillRect(a(k) - 0.012, z, 0.024, 0.024);
+        ctx.fillStyle = 'rgba(110,62,32,0.28)';
+        ctx.fillRect(v0, 0.02, w, 0.1);
+      });
+    };
+    if (!open)
+      nodes.push(
+        N([0.03, 0.12, 0.08, 0.92, 0, 2.08], (p) => {
+          chapa(p, [0.03, 0.12, 0.08, 0.92, 0.02, 2.08], 'front', 0.08, 0.92);
+          // fechadura
+          p.box([0.0, 0.15, 0.72, 0.86, 0.95, 1.16], lockC, { edge: 0.35 });
+        }),
+      );
+    else
+      nodes.push(
+        N([0.15, 0.95, 0.84, 0.93, 0, 2.08], (p) => {
+          // aberta: gira 90° e encosta no batente
+          chapa(p, [0.15, 0.95, 0.85, 0.92, 0.02, 2.08], p.m.visible('right') ? 'right' : 'left', 0.15, 0.95);
+          p.box([0.78, 0.9, 0.83, 0.94, 0.95, 1.16], lockC, { edge: 0.35 });
         }),
       );
     return V(nodes);

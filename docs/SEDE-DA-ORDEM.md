@@ -113,20 +113,19 @@ Com arte desde 02/10. Corredor comprido de blocos de concreto com a faixa verde,
 
 ### Prisão
 
-Com arte desde 02/10. Dez celas em duas fileiras, de frente uma para a outra, com o pátio no meio (o bloco de celas do meio saiu: ficava uma bagunça de grades). Cada cela tem a cama de ferro (a cabeceira na parede), o vaso de aço com a pia encostado na divisória e a frente de grade com a porta. A lâmpada de grade e os dias riscados ficam na parede do fundo das celas; há comida largada no chão de duas celas e ralos no pátio. O posto do carcereiro fica no canto, com a mesa de frente para a cadeira. Chão de concreto escuro com marcas de arrasto; parede de blocos cinza-esverdeados e branco encardido.
+Com arte desde 02/10. Dez celas em duas fileiras, de frente uma para a outra, com o pátio no meio (o bloco de celas do meio saiu: ficava uma bagunça de grades). Desde 03/10 as celas são fechadas: a grade virou parede de concreto inteira (2,2 m) com porta de aço (visor gradeado e portinhola da comida), e as paredes entre elas também subiram até 2,2 m. Cela fechada fica no escuro (o chão, o que tem dentro, a lâmpada dela e quem estiver lá); aberta, acende aos poucos e a parede entre ela e a câmera fica transparente (`cela` no mobi da porta; o jogo acha as casas de dentro a partir dela, em `client/src/room/celas.ts`). Cada cela tem a cama de ferro (a cabeceira na parede), o vaso de aço com a pia encostado na parede e a porta. A lâmpada de grade e os dias riscados ficam na parede do fundo das celas; há comida largada no chão de duas celas e ralos no pátio. O posto do carcereiro fica no canto, com a mesa de frente para a cadeira. Chão de concreto escuro com marcas de arrasto; parede de blocos cinza-esverdeados e branco encardido.
 
 | Item | Id | Qtd | Casas | Altura | Estados |
 |---|---|---|---|---|---|
-| ✱ Grade de cela | `cell_bars` | 30 | 1×1 | 2,2 m | — (os módulos emendam) |
-| ✱ Porta de cela | `cell_door` | 10 | 1×1 | 2,2 m | fechada / aberta (a folha gira para dentro da cela); fechada, ninguém passa |
+| ✱ Parede de cela | `cell_front` | 58 | 1×1 | 2,2 m | — (os módulos emendam; a arte é a da divisória, repetida até 2,2 m) |
+| ✱ Porta de aço da cela | `cell_door_steel` | 10 | 1×1 | 2,2 m | fechada / aberta (a folha gira 90° e encosta no batente); fechada, ninguém passa e a cela fica no escuro. Ainda desenhada por código |
 | Cama de cela | `bed` | 10 | 1×3 | 0,5 m | — |
 | Vaso de aço com pia | `toilet_steel` | 10 | 1×1 | 1 m com a pia | — |
-| Divisória de cela | `cell_wall` | 28 | 1×1 | 1,3 m | — (emendam) |
 | Bandeja de comida, ralo | `food_tray`, `drain` | 2, 2 | 1×1 | — | — |
 | Lâmpada de grade, marcas de contagem | `cage_lamp`, `tally_marks` (parede) | 3, 4 | — | — | a lâmpada: acesa / apagada |
 | Posto do carcereiro | `desk_metal`, `chair_office`, `locker` | 1 cada | — | — | — |
 
-A porta aberta veio da folha com outra cor (ferrugem laranja); ela foi levada para as cores da porta fechada.
+A grade (`cell_bars`), a porta de grade (`cell_door`) e a divisória baixa (`cell_wall`) continuam no catálogo, com arte, mas a Sede não usa mais.
 
 ### Câmara do Selo
 

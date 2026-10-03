@@ -766,6 +766,7 @@ def main():
             if m.get('so_giros'):
                 # só estes giros têm arte (a porta nas paredes do fundo): nos outros, o desenho por código
                 ent['soGiros'] = True
+            marcar_real(ent, m)
             lista[m['def']] = ent
             for img in imgs:
                 conferir.append((m['def'], img, None))
@@ -799,12 +800,21 @@ def main():
             conferir.append((m['def'], vistas['frente'][0], vistas.get('costas', (None,))[0]))
             print(f"{m['def']}: encaixe {nota:.3f}; desenho a {np.degrees(cam['a']):.0f}° e {np.degrees(cam['t']):.0f}°, "
                   f"altura {H:.2f} m (ficha {m['altura']:.2f})", flush=True)
+        marcar_real(ent, m)
         lista[m['def']] = ent
     with open(arq_lista, 'w', encoding='utf-8', newline='\n') as f:
         json.dump(lista, f, ensure_ascii=False, indent=1)
         f.write('\n')
     if '--conferir' in sys.argv:
         folha_conf(conferir, sys.argv[sys.argv.index('--conferir') + 1])
+
+
+def marcar_real(ent, m):
+    """O tamanho de verdade vai junto no moveis.json: o mapa tático (visto de cima) desenha o móvel nele, e não na casa inteira."""
+    if m.get('real'):
+        ent['real'] = m['real']
+        if m.get('encosta'):
+            ent['encosta'] = True
 
 
 def quatro_giros(m, folha, caixas, destino, escala):
