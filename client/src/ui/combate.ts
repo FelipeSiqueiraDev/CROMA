@@ -211,6 +211,7 @@ export class CombateScreen {
   private tabClima: HTMLElement;
   private tabArea: HTMLElement;
   private btAlcance: HTMLButtonElement;
+  private btTatico: HTMLButtonElement;
   private btMedir: HTMLButtonElement;
   private btArea: HTMLButtonElement;
   private alvoExtra: HTMLElement;
@@ -232,7 +233,9 @@ export class CombateScreen {
     this.btAlcance = botao('Alcance', 'mira', () => ((this.mostrarAlcance = !this.mostrarAlcance), this.pintarFerramentas(), this.atualizarMarcas()), 'cb-ferr on', 'Anel de alcance da arma escolhida');
     this.btMedir = botao('Medir', 'regua', () => this.ferramentaMedir(), 'cb-ferr', 'Medir: clique em dois pontos do tabuleiro (Esc sai)');
     this.btArea = botao('Área', 'area', () => this.ferramentaArea(), 'cb-ferr', 'Área de ritual ou granada: escolha o formato e clique no tabuleiro (Esc sai)');
-    const ferr = h('div', { class: 'cb-tab-ferr' }, this.btAlcance, this.btMedir, this.btArea, botao('Centralizar', 'centralizar', () => this.centralizar(), 'cb-ferr', 'Centralizar em quem está na vez'));
+    // a vista tática: a câmera sobe e mostra a sala de cima (a mesa acompanha)
+    this.btTatico = botao('Tática', 'tatico', () => this.trocarVista(), 'cb-ferr', 'Vista tática: a sala de cima, como mapa de batalha (T); de novo volta ao isométrico');
+    const ferr = h('div', { class: 'cb-tab-ferr' }, this.btAlcance, this.btMedir, this.btArea, this.btTatico, botao('Centralizar', 'centralizar', () => this.centralizar(), 'cb-ferr', 'Centralizar em quem está na vez'));
     this.quadro = h('section', { class: 'cb-tab' }, this.tabCena, ferr, this.tabArea, this.tabClima);
     // ---------- resolução da ação ----------
     this.resCorpo = h('div', { class: 'cb-res-corpo' });
@@ -780,6 +783,17 @@ export class CombateScreen {
     );
   }
 
+  /** Troca a câmera do tabuleiro: isométrica ou tática (só o mestre; a mesa acompanha). */
+  private trocarVista() {
+    if (!this.app.state.room?.isOwner) return;
+    this.app.net.send({ t: 'roomFx', tatico: !this.app.view.tatico });
+  }
+
+  /** O botão da vista tática aceso enquanto ela está ligada. */
+  marcarVista(tatico: boolean) {
+    this.btTatico.classList.toggle('on', tatico);
+  }
+
   /** Marcações do combate no tabuleiro (bases, deitados, alcance, linha, cobertura, medida, área). */
   private atualizarMarcas() {
     const v = this.app.view;
@@ -802,6 +816,7 @@ export class CombateScreen {
       }
       const vez = this.daVez();
       const ator = vez?.ator;
+      for (const p of vez?.ativos ?? []) m.vez.add(-p.id);
       if (ator && this.aba === 'atacar') {
         const x = this.ctxAtaque(c, ator);
         const arma = this.ataque.armaEscolhida(x);

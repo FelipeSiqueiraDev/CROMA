@@ -253,6 +253,8 @@ interface Slot {
 export class Shell {
   readonly el: HTMLElement;
   readonly board: HTMLElement;
+  /** os botões da câmera do tabuleiro (isométrica ou tática) */
+  private vistaEl: HTMLElement;
   private app: App;
   private campaign: CampaignState | null = null;
   private tokenWin: TokenWin;
@@ -470,7 +472,14 @@ export class Shell {
       svg('<svg viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 3 37 20 20 37 3 20Z"/><circle cx="20" cy="20" r="6.5"/><path d="M20 10v4M20 26v4M10 20h4M26 20h4"/></svg>'),
     );
     this.teclado = new TecladoSenha(app);
-    this.board = h('main', { class: 'board' }, moldura, this.placeBar, zoom, centro, this.tabOverlay, this.teclado.el);
+    // a câmera do tabuleiro: isométrica ou tática (a sala de cima, como mapa de batalha); a mesa acompanha
+    this.vistaEl = h(
+      'div',
+      { class: 'board-vista', role: 'group', 'aria-label': 'Câmera do tabuleiro' },
+      h('button', { class: 'bv', type: 'button', 'data-tatico': 'nao', title: 'Vista isométrica (T)', onclick: () => this.trocarVista(false) }, ic('isometrico'), h('span', null, 'ISO')),
+      h('button', { class: 'bv', type: 'button', 'data-tatico': 'sim', title: 'Vista tática: a sala de cima, como mapa de batalha (T)', onclick: () => this.trocarVista(true) }, ic('tatico'), h('span', null, 'TÁTICA')),
+    );
+    this.board = h('main', { class: 'board' }, moldura, this.placeBar, zoom, centro, this.vistaEl, this.tabOverlay, this.teclado.el);
 
     // ================= direita =================
     const backboard = h('div', { class: 'backboard', 'aria-hidden': 'true' });
@@ -618,7 +627,23 @@ export class Shell {
     return (this.campaign?.party ?? []).map((p) => p.id ?? 0).filter(Boolean);
   }
 
+  /** Troca a câmera do tabuleiro (só o mestre): a mesa acompanha. */
+  trocarVista(tatico = !this.app.view.tatico) {
+    if (!this.app.state.room?.isOwner || this.app.view.tatico === tatico) return;
+    sfx.click();
+    this.app.net.send({ t: 'roomFx', tatico });
+  }
+
+  /** Os botões da câmera mostram a vista de agora. */
+  private marcarVista() {
+    const tat = this.app.view.tatico;
+    for (const b of this.vistaEl.querySelectorAll<HTMLElement>('.bv')) b.classList.toggle('on', (b.dataset.tatico === 'sim') === tat);
+    this.vistaEl.classList.toggle('hidden', !this.app.state.room?.isOwner);
+    this.combate.marcarVista(tat);
+  }
+
   private onRoom() {
+    this.marcarVista();
     const id = this.app.state.room?.id ?? null;
     if (id !== this.lastRoom) this.planFloor = null;
     if (id !== this.lastRoom && this.lastRoom !== null) this.sceneFade();

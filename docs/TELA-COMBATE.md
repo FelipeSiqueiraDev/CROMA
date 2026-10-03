@@ -53,7 +53,8 @@ Posições em pixels da referência (x e y do canto de cima à esquerda até o d
   - **mira** no alvo, e marcas de flanqueando e de alvo em corpo a corpo;
   - **área** de ritual ou granada (esfera, cone, linha, cubo), com os seres dentro destacados;
   - **estados na peça:** deitada (caído, inconsciente), caveira (morrendo), círculo de símbolos (ritual sustentado ou em conjuração).
-- **Barra do canto:** Alcance (liga o anel), Medir (dois pontos, dá metros e categoria), Área (escolhe o formato) e Centralizar (câmera em quem age).
+- **Barra do canto:** Alcance (liga o anel), Medir (dois pontos, dá metros e categoria), Área (escolhe o formato), Tática (a vista de cima) e Centralizar (câmera em quem age).
+- **Vista tática (03/10):** o botão Tática (ou a tecla T) leva a câmera do isométrico até em cima: ela gira e sobe, a sala vira maquete no caminho e chega num mapa de batalha visto de cima, com a grade de 1,5 m (2×2 casas), os móveis no tamanho de verdade e mais escuros quanto mais cobrem (0,8 m dá cobertura, 1,8 m tapa como parede), e as peças como fichas redondas: o retrato, o anel na cor do lado, o PV em arco, quem está na vez brilhando, a mira no alvo. Todas as marcações acima valem lá em cima, e o clique também (escolher a peça, andar, as ferramentas). A escolha fica na cena e a mesa acompanha. O desenho fica em `client/src/render/mapaTatico.ts`.
 - **Faixa de baixo:** o clima da cena que pesa na regra (iluminação e camuflagem, névoa, terreno difícil, clima). Clicar abre o ☀ Clima da cena.
 - **Mexer:** clicar numa peça escolhe o alvo; arrastar a peça de quem age gasta o movimento (as casas contam no turno).
 

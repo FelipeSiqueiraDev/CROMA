@@ -88,6 +88,49 @@
   top: auto;
   bottom: 3.4rem;
 }
+/* a câmera do tabuleiro: isométrica ou tática (a sala de cima, como mapa de batalha) */
+.board-vista {
+  position: absolute;
+  left: 2.8rem;
+  bottom: 2.8rem;
+  display: flex;
+  gap: 0.3rem;
+  padding: 0.3rem;
+  border: 0.1rem solid rgba(143, 176, 210, 0.35);
+  border-radius: 0.6rem;
+  background: rgba(9, 12, 18, 0.78);
+  box-shadow: 0 0 1.2rem rgba(0, 0, 0, 0.6);
+  z-index: 2;
+}
+.board-vista .bv {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 3rem;
+  padding: 0 1rem 0 0.8rem;
+  border: 0;
+  border-radius: 0.4rem;
+  background: none;
+  color: #8fb0d2;
+  opacity: 0.72;
+  font: 700 1.1rem/1 var(--f-maquina);
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, opacity 0.2s;
+}
+.board-vista .bv .ic {
+  width: 1.7rem;
+  height: 1.7rem;
+}
+.board-vista .bv:hover {
+  opacity: 1;
+}
+.board-vista .bv.on {
+  background: rgba(143, 176, 210, 0.2);
+  color: #e2eefa;
+  opacity: 1;
+  box-shadow: inset 0 0 0 0.1rem rgba(143, 176, 210, 0.55);
+}
 
 /* ---------- coluna da esquerda: planta, sala, objeto ---------- */
 .col-map {

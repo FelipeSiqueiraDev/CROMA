@@ -35,6 +35,8 @@ export interface RoomData {
   particles?: ParticleKind[];
   /** quantidade de partículas 0..1 */
   particleLevel?: number;
+  /** vista tática ligada (a câmera do tabuleiro em cima) */
+  tatico?: boolean;
 }
 
 export interface TokenData {

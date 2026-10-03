@@ -415,6 +415,7 @@ export class RoomInstance {
       ambient: this.data.ambient,
       particles: this.data.particles,
       particleLevel: this.data.particleLevel,
+      tatico: this.data.tatico,
       canBuild: this.canBuild(c),
       isOwner: this.isOwner(c),
     };
@@ -1307,7 +1308,7 @@ export class RoomInstance {
     return null;
   }
 
-  /** Clima ao vivo: luz (normal/piscando/apagão), névoa e escuridão. */
+  /** Clima ao vivo: luz (normal/piscando/apagão), névoa e escuridão; e a vista tática (a câmera em cima). */
   private fx(u: RoomUser, m: Record<string, unknown>) {
     const c = u.client;
     if (!this.isOwner(c)) return this.err(c, 'Só o mestre controla o clima.');
@@ -1315,6 +1316,10 @@ export class RoomInstance {
     if (isNum(m.fog)) this.data.fog = Math.max(0, Math.min(1, m.fog));
     if (isNum(m.darkness)) this.data.darkness = Math.max(0, Math.min(0.9, m.darkness));
     if (isNum(m.particleLevel)) this.data.particleLevel = Math.round(Math.max(0, Math.min(1, m.particleLevel)) * 100) / 100;
+    if (typeof m.tatico === 'boolean') {
+      if (m.tatico) this.data.tatico = true;
+      else delete this.data.tatico;
+    }
     this.hotel.save();
     for (const o of this.viewers.values()) o.send({ t: 'roomUpdate', room: this.info(o) });
   }

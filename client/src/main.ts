@@ -126,6 +126,11 @@ view.armaDe = (id) => {
   const ch = app.session.session?.characters.find((c) => c.id === -id);
   return ch?.armed ? (ch.arma ?? 'branca') : null;
 };
+// os PV de cada peça (de 0 a 1), para o arco da ficha no mapa tático
+view.pvDe = (id) => {
+  const v = app.session.session?.characters.find((c) => c.id === -id)?.vitals;
+  return v && v.pvMax > 0 ? Math.max(0, Math.min(1, v.pv / v.pvMax)) : null;
+};
 if (import.meta.env.DEV) (window as unknown as { __croma: App }).__croma = app;
 
 const navigator = new NavigatorWin(app);
@@ -439,6 +444,11 @@ window.addEventListener('keydown', (e) => {
   if ((e.key === 'q' || e.key === 'Q' || e.key === 'e' || e.key === 'E') && !v.placement && !e.ctrlKey && !e.metaKey && !e.altKey) {
     const target = v.selection?.kind === 'user' ? v.selection.id : v.myId;
     if (target) shell.turnToken(target, e.key.toLowerCase() === 'e');
+    return;
+  }
+  // T troca a câmera do tabuleiro: isométrica ou tática (a sala de cima)
+  if ((e.key === 't' || e.key === 'T') && !v.placement && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    shell.trocarVista();
     return;
   }
   // 1-9: comanda o personagem da barra

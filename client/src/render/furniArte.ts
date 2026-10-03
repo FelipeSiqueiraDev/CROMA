@@ -60,6 +60,10 @@ export interface MovelArte {
   estados?: Record<string, { giros: Partial<Record<'0' | '2' | '4' | '6', VistaArte>>; chamas?: Record<string, [number, number, number][]> }>;
   /** só os giros que têm vista usam a arte; nos outros fica o desenho por código (a porta nas paredes da frente) */
   soGiros?: boolean;
+  /** o tamanho de verdade, em metros: [largura ao longo da frente, fundo, altura] (o mapa tático desenha o móvel nele) */
+  real?: [number, number, number];
+  /** encostado no fundo da casa (a prateleira na parede), em vez de no meio */
+  encosta?: boolean;
 }
 
 /** A tela de TV ligada (item de parede): treme de leve entre as cores, bem mais fraca que o fliperama. */
@@ -189,6 +193,18 @@ export function visualComArte(def: FurniDef, base: FVisual, state = 0, seed = 0,
   const costas = a.costas ? pronta(a.costas.arquivo) : null;
   if (!frente || (a.costas && !costas)) return null;
   return V([N(caixa, (p) => desenhar(p, a, frente, costas))], base.lights);
+}
+
+/** O tapete (ou a rosa dos ventos) visto de cima, para o mapa tático; null sem arte ou enquanto ela carrega. */
+export function imagemDoChao(defId: string): HTMLCanvasElement | null {
+  const a = lista?.[defId];
+  return a?.chao ? (pronta(a.chao.arquivo)?.normal ?? null) : null;
+}
+
+/** O tamanho de verdade do móvel (metros) e se ele encosta no fundo da casa, pela arte dele; null sem arte. */
+export function tamanhoReal(defId: string): { real: [number, number, number]; encosta: boolean } | null {
+  const a = lista?.[defId];
+  return a?.real ? { real: a.real, encosta: !!a.encosta } : null;
 }
 
 /**

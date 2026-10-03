@@ -20,6 +20,8 @@ html {
   position: fixed;
   inset: 0;
   overflow: hidden;
+  /* nem o foco num botão rola a tela (com hidden, o navegador ainda rolava 16 px ao clicar no tabuleiro) */
+  overflow: clip;
   background: #0d0c0b;
   font-family: var(--hand);
   font-size: 1.4rem;

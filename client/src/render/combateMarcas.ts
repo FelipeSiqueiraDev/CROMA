@@ -32,10 +32,12 @@ export interface MarcasCombate {
   area: (Area & { rotulo: string }) | null;
   /** peças dentro da área (anel vermelho) */
   naArea: Set<number>;
+  /** de quem é a vez (brilha no mapa tático) */
+  vez: Set<number>;
 }
 
 export function marcasVazias(): MarcasCombate {
-  return { bases: new Map(), deitadas: new Set(), caveiras: new Set(), rituais: new Set(), alcance: null, linha: null, cobertura: null, mira: null, medida: null, area: null, naArea: new Set() };
+  return { bases: new Map(), deitadas: new Set(), caveiras: new Set(), rituais: new Set(), alcance: null, linha: null, cobertura: null, mira: null, medida: null, area: null, naArea: new Set(), vez: new Set() };
 }
 
 /** Posição da peça em casas (com o passo em andamento) e a altura do chão dela. */

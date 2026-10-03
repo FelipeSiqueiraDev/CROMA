@@ -300,6 +300,8 @@ export interface RoomInfo {
   particles?: ParticleKind[];
   /** quantidade de partículas 0..1 (clima da cena; sem valor = DEFAULT_PARTICLE_LEVEL) */
   particleLevel?: number;
+  /** vista tática: a câmera do tabuleiro em cima, como um mapa de batalha (o mestre liga; a mesa acompanha) */
+  tatico?: boolean;
   /** o cliente atual pode construir/editar */
   canBuild: boolean;
   /** o cliente atual é o dono (mestre) */
@@ -372,7 +374,7 @@ export type ClientMsg =
   | { t: 'combate'; a: AcaoCombate }
   /** ficha rápida de uma ameaça (peça), preenchida pelo mestre; null apaga */
   | { t: 'ameaca'; tokenId: number; ficha: FichaAmeaca | null }
-  | { t: 'roomFx'; lightMode?: LightMode; fog?: number; darkness?: number; particleLevel?: number }
+  | { t: 'roomFx'; lightMode?: LightMode; fog?: number; darkness?: number; particleLevel?: number; tatico?: boolean }
   | { t: 'setLink'; id: number; roomId: number | null }
   | { t: 'sendTo'; userId: number | 'all'; roomId: number }
   | { t: 'tokenAdd'; name: string; look: AvatarLook; color?: string; capacity?: number }

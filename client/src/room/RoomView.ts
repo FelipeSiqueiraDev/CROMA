@@ -23,12 +23,14 @@ import {
 } from '@croma/shared';
 import { drawPixelAvatar, PIXEL_AVATAR_HEIGHT, type Pose } from '../render/avatarPixel';
 import { Bubbles, UI_FONT } from '../render/bubbles';
-import { desenharChao, desenharCima, desenharRotulos, type MarcasCombate } from '../render/combateMarcas';
+import { COR_LADO, desenharChao, desenharCima, desenharRotulos, type MarcasCombate } from '../render/combateMarcas';
 import { desenharParedeComArte, visualComArte } from '../render/furniArte';
 import { furniVisual } from '../render/furniFloor';
 import { drawWallFurni, wallLights } from '../render/furniWall';
 import { drawHintGlyph, drawHintIcon } from '../render/hints';
 import { iso } from '../render/iso';
+import { cameraVoo, casaNoPonto, desenharMesa, enquadrar, marcasNoChao, marcasPorCima, matrizNaAltura, passo, type CameraVoo, type Enquadre, type PecaTatica } from '../render/mapaTatico';
+import { portraitCanvas } from '../render/portrait';
 import { hash, hexToRgb, rgba } from '../render/color';
 import { Fog } from '../render/fog';
 import { Lighting, type Light } from '../render/lighting';
@@ -326,6 +328,21 @@ export class RoomView {
   aoClicarPeca: ((id: number) => boolean) | null = null;
   /** clique numa casa para uma ferramenta (medir, área): devolve true quando usou o clique */
   aoClicarCasa: ((x: number, y: number) => boolean) | null = null;
+  /** PV de cada peça, de 0 a 1 (o arco em volta da ficha no mapa tático) */
+  pvDe: ((id: number) => number | null) | null = null;
+  /**
+   * Vista tática: a câmera sai do isométrico, gira e sobe até ver a sala de cima, como um mapa de
+   * batalha (o mestre liga, info.tatico; a mesa acompanha). t vai de 0 (isométrico) a 1 (em cima);
+   * a foto é o isométrico, que se desfaz no começo do caminho.
+   */
+  private tat: { t: number; alvo: number; antes: number; foto: HTMLCanvasElement | null; v: CameraVoo | null; e: Enquadre | null } = { t: 0, alvo: 0, antes: 0, foto: null, v: null, e: null };
+  /** o retrato de cada peça para a ficha do mapa tático */
+  private retratos = new Map<number, { chave: string; c: HTMLCanvasElement }>();
+
+  /** A vista tática está ligada (ou indo para lá). */
+  get tatico(): boolean {
+    return this.tat.alvo === 1;
+  }
 
   /** Casa do mouse (para as ferramentas do combate). */
   get casaDoMouse(): { x: number; y: number } | null {
@@ -357,6 +374,9 @@ export class RoomView {
   // ---------- estado ----------
   enter(info: RoomInfo, items: FloorItem[], wallItems: WallItem[], users: UserInfo[], myId: number) {
     this.info = info;
+    // a cena nova já abre na vista dela (sem a câmera voar na entrada)
+    this.tat.alvo = this.tat.t = info.tatico ? 1 : 0;
+    this.tat.foto = null;
     this.map = new RoomMap(info.heightmap, info.door, items, wallItems);
     // ao ar livre não tem parede: ninguém fica atrás da porta
     this.door = info.aberto ? null : doorClipPath(this.map);
@@ -510,6 +530,7 @@ export class RoomView {
 
   updateInfo(info: RoomInfo) {
     this.info = info;
+    this.tat.alvo = info.tatico ? 1 : 0;
   }
 
   private rebuildTiles() {
@@ -766,7 +787,7 @@ export class RoomView {
         const dx = e.offsetX - d.sx;
         const dy = e.offsetY - d.sy;
         if (!d.moved && Math.hypot(dx, dy) > 5) d.moved = true;
-        if (d.moved) {
+        if (d.moved && this.tat.t <= 0) {
           this.autoFit = false;
           this.camAnim = null;
           const ny = Math.round(d.cy + dy);
@@ -794,7 +815,7 @@ export class RoomView {
       'wheel',
       (e) => {
         e.preventDefault();
-        if (this.watchOnly) return;
+        if (this.watchOnly || this.tat.t > 0) return;
         this.zoomStep(e.deltaY < 0 ? 1 : -1, e.offsetX, e.offsetY);
       },
       { passive: false },
@@ -824,6 +845,16 @@ export class RoomView {
 
   private updateHover() {
     if (!this.map) return;
+    if (this.tat.t > 0) {
+      // vista tática: a casa e a peça (ou o móvel) do mapa de cima; no meio do caminho, nada
+      this.wallTarget = null;
+      const pronto = this.tat.t >= 1;
+      this.hoverTile = pronto ? this.casaTatica() : null;
+      const hit = pronto ? this.pickTatico() : null;
+      this.hoverKey = hit ? hit.kind + hit.id : '';
+      this.canvas.style.cursor = hit ? 'pointer' : 'default';
+      return;
+    }
     const [wx, wy] = this.toWorld(this.mouse.x, this.mouse.y);
     this.hoverTile = this.tileAt(wx, wy);
     const p = this.placement;
@@ -840,9 +871,12 @@ export class RoomView {
   private click(shift: boolean) {
     const map = this.map;
     if (!map) return;
+    // vista tática: o clique é no mapa de cima (no meio do caminho, nada; lá não se constrói)
+    const tat = this.tat.t > 0;
+    if (tat && this.tat.t < 1) return;
     const [wx, wy] = this.toWorld(this.mouse.x, this.mouse.y);
     const now = performance.now();
-    const p = this.placement;
+    const p = tat ? null : this.placement;
     if (p) {
       if (p.kind === 'floor') {
         const t = this.tileAt(wx, wy);
@@ -854,16 +888,16 @@ export class RoomView {
       }
       return;
     }
-    const hint = this.hintAt(this.mouse.x, this.mouse.y);
+    const hint = tat ? null : this.hintAt(this.mouse.x, this.mouse.y);
     if (hint) {
       this.events.openHint(hint.kind, hint.id);
       return;
     }
-    const hit = this.pickAt(wx, wy);
+    const hit = tat ? this.pickTatico() : this.pickAt(wx, wy);
     const key = hit ? `${hit.kind}${hit.id}` : '';
     const dbl = key !== '' && key === this.lastClick.key && now - this.lastClick.t < 380;
     this.lastClick = { t: dbl ? 0 : now, key };
-    let tile = this.tileAt(wx, wy);
+    let tile = tat ? this.casaTatica() : this.tileAt(wx, wy);
     // ferramenta do combate (medir, área): a casa da peça também serve
     if (this.aoClicarCasa) {
       if (!tile && hit?.kind === 'user') {
@@ -974,6 +1008,156 @@ export class RoomView {
 
   // ---------- quadro ----------
   private frame() {
+    const now = performance.now();
+    const tat = this.tat;
+    // a câmera anda até a vista pedida (1,7 s de ponta a ponta)
+    const dt = Math.min(100, now - (tat.antes || now));
+    tat.antes = now;
+    if (tat.t !== tat.alvo) tat.t = tat.alvo > tat.t ? Math.min(tat.alvo, tat.t + dt / 1700) : Math.max(tat.alvo, tat.t - dt / 1700);
+    if (tat.t <= 0) {
+      tat.foto = null;
+      this.frameIso();
+      return;
+    }
+    // a foto do isométrico, que se desfaz no começo do caminho (na ida e na volta)
+    if (tat.t >= 1) tat.foto = null;
+    else if (tat.t < 0.22 && !tat.foto && this.map) {
+      this.frameIso();
+      const f = document.createElement('canvas');
+      f.width = this.canvas.width;
+      f.height = this.canvas.height;
+      f.getContext('2d')!.drawImage(this.canvas, 0, 0);
+      tat.foto = f;
+    }
+    this.frameTatico(now);
+  }
+
+  /** A sala vista de cima (ou no caminho até lá), pela câmera tática. */
+  private frameTatico(now: number) {
+    this.resize();
+    const ctx = this.ctx;
+    (ctx as CanvasRenderingContext2D & { reset?: () => void }).reset?.();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = BG;
+    ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    if (this.fundoPontos) this.pintarFundo(ctx);
+    const map = this.map;
+    const info = this.info;
+    if (!map || !info) return;
+    const dpr = this.dpr;
+    const fr = this.frame_();
+    const quadro = { x: fr.x * dpr, y: fr.y * dpr, w: fr.w * dpr, h: fr.h * dpr };
+    const e = enquadrar(map, quadro.w, quadro.h, 34 * dpr, quadro.x, quadro.y);
+    const camIso = { zoom: this.zoom * dpr, camX: this.cam.x * dpr, camY: this.cam.y * dpr };
+    const t = this.tat.t;
+    const v = cameraVoo(map, camIso, e, t, quadro);
+    this.tat.v = v;
+    this.tat.e = e;
+    const celas = this.celas.quadro(map, now);
+    const marcas = this.combate;
+    const pos = (id: number) => {
+      const u = this.users.get(id);
+      if (!u) return null;
+      const p = this.userPos(u, now);
+      return { x: p.x, y: p.y };
+    };
+    const mouse = t >= 1 && this.mouse.inside && !this.watchOnly ? this.hoverTile : null;
+    desenharMesa(ctx, map, info.floorStyle, this.pecasTaticas(now), v, {
+      // no começo do caminho, o escuro da sala (como no isométrico); em cima, o mapa claro
+      escuro: Math.min(0.5, info.darkness * 0.7) * (1 - passo(0.15, 1, t)),
+      celas: celas?.casa,
+      noChao: (c) => marcasNoChao(c, marcas, pos, mouse, now),
+      porCima: (c, vv) => marcasPorCima(c, vv, marcas, pos, mouse),
+    });
+    const foto = this.tat.foto;
+    const a = 1 - passo(0, 0.2, t);
+    if (foto && a > 0.001) {
+      // a foto presa no chão da câmera: no começo ela cobre a maquete e se desfaz
+      const M0inv = matrizNaAltura(cameraVoo(map, camIso, e, 0, quadro), 0).inverse();
+      ctx.save();
+      ctx.globalAlpha = a;
+      ctx.setTransform(matrizNaAltura(v, 0).multiply(M0inv));
+      ctx.drawImage(foto, 0, 0);
+      ctx.restore();
+    }
+    this.vinheta(ctx);
+  }
+
+  /** As peças como fichas do mapa tático: o retrato, a cor do lado, o PV, a vez, a mira. */
+  private pecasTaticas(now: number): PecaTatica[] {
+    const m = this.combate;
+    const sel = this.selection;
+    const out: PecaTatica[] = [];
+    for (const u of this.users.values()) {
+      const p = this.userPos(u, now);
+      const base = m?.bases.get(u.id);
+      out.push({
+        id: u.id,
+        x: p.x,
+        y: p.y,
+        nome: u.name,
+        cor: base ?? u.color,
+        lado: base === COR_LADO.inimigo ? 'ameaca' : 'agente',
+        retrato: this.retratoDe(u),
+        pv: this.pvDe?.(u.id) ?? undefined,
+        vez: !!m?.vez.has(u.id),
+        escolhida: !this.watchOnly && (u.id === this.myId || (sel?.kind === 'user' && sel.id === u.id)),
+        caido: !!m?.deitadas.has(u.id),
+        mira: m?.mira === u.id,
+        naArea: !!m?.naArea.has(u.id),
+      });
+    }
+    return out;
+  }
+
+  /** O retrato da peça para a ficha do mapa tático (refeito só quando a aparência muda). */
+  private retratoDe(u: ClientUser): HTMLCanvasElement {
+    const chave = JSON.stringify(u.look);
+    const r = this.retratos.get(u.id);
+    if (r && r.chave === chave) return r.c;
+    const c = portraitCanvas(u.look, 160, { dir: 2 });
+    this.retratos.set(u.id, { chave, c });
+    return c;
+  }
+
+  /** Na vista tática: a casa embaixo do mouse. */
+  private casaTatica(): { x: number; y: number } | null {
+    const e = this.tat.e;
+    return this.map && e && this.mouse.inside ? casaNoPonto(this.map, e, this.mouse.x * this.dpr, this.mouse.y * this.dpr) : null;
+  }
+
+  /** Na vista tática: a peça (a ficha redonda) ou o móvel embaixo do mouse. */
+  private pickTatico(): Hit | null {
+    const map = this.map;
+    const e = this.tat.e;
+    if (!map || !e || !this.mouse.inside) return null;
+    const px = this.mouse.x * this.dpr;
+    const py = this.mouse.y * this.dpr;
+    const now = performance.now();
+    let perto: Hit | null = null;
+    let d0 = Infinity;
+    for (const u of this.users.values()) {
+      const p = this.userPos(u, now);
+      const d = Math.hypot(px - (e.x + (p.x + 0.5) * e.casa), py - (e.y + (p.y + 0.5) * e.casa));
+      if (d < e.casa * 0.62 && d < d0) {
+        d0 = d;
+        perto = { kind: 'user', id: u.id, test: () => true };
+      }
+    }
+    if (perto) return perto;
+    const x = (px - e.x) / e.casa;
+    const y = (py - e.y) / e.casa;
+    let topo: FloorItem | null = null;
+    for (const it of map.allItems()) {
+      const def = getFurni(it.defId);
+      if (!def || /lamp|fluorescent|luz/.test(def.kind) || (def.flat && !this.info?.canBuild && !it.hint)) continue;
+      const fp = footprint(def, it.rot);
+      if (x >= it.x && x < it.x + fp.sx && y >= it.y && y < it.y + fp.sy && (!topo || it.z >= topo.z)) topo = it;
+    }
+    return topo ? { kind: 'floor', id: topo.id, test: () => true } : null;
+  }
+
+  private frameIso() {
     this.resize();
     // cômodo grande: de tempos em tempos a câmera vai atrás das peças
     if (this.follow && (this.autoFit || this.watchOnly) && !this.camAnim) {
@@ -1538,16 +1722,7 @@ export class RoomView {
       desenharCima(ctx, marcas, posPeca, alturaCasa, this.casaDoMouse, now);
     }
 
-    // vinheta
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const fr = this.frame_();
-    const vcx = fr.x + fr.w / 2;
-    const vcy = fr.y + fr.h / 2;
-    const vg = ctx.createRadialGradient(vcx, vcy, Math.min(fr.w, fr.h) * 0.38, vcx, vcy, Math.max(fr.w, fr.h) * 0.78);
-    vg.addColorStop(0, 'rgba(0,0,0,0)');
-    vg.addColorStop(1, 'rgba(0,0,0,0.55)');
-    ctx.fillStyle = vg;
-    ctx.fillRect(0, 0, this.vw, this.vh);
+    this.vinheta(ctx);
 
     // anel de destaque do objeto recém-selecionado
     this.drawPulses(ctx, now);
@@ -1590,6 +1765,19 @@ export class RoomView {
     }
 
     this.bubbles.draw(ctx, (wx) => wx * z + this.cam.x, this.vw);
+  }
+
+  /** A vinheta: as bordas do quadro escurecem. */
+  private vinheta(ctx: CanvasRenderingContext2D) {
+    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    const fr = this.frame_();
+    const vcx = fr.x + fr.w / 2;
+    const vcy = fr.y + fr.h / 2;
+    const vg = ctx.createRadialGradient(vcx, vcy, Math.min(fr.w, fr.h) * 0.38, vcx, vcy, Math.max(fr.w, fr.h) * 0.78);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, 'rgba(0,0,0,0.55)');
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, 0, this.vw, this.vh);
   }
 
   private nameTag(name: string, x: number, y: number, me: boolean) {
