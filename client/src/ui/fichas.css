@@ -60,9 +60,9 @@
 .fx-rit { left: 144.7rem; top: 9rem; width: 21.3rem; height: 40.7rem; }
 .fx-tat { left: 100.3rem; top: 50.5rem; width: 33.7rem; height: 15.8rem; }
 .fx-comp { left: 135rem; top: 50.5rem; width: 31.2rem; height: 20rem; }
-.fx-equip { left: 18.3rem; top: 67.2rem; width: 67.7rem; height: 22.6rem; }
-.fx-inv { left: 87.2rem; top: 67.2rem; width: 41.8rem; height: 22.6rem; }
-.fx-notas { left: 130.8rem; top: 71.5rem; width: 35.2rem; height: 15.5rem; }
+.fx-equip { left: 18.3rem; top: 67.2rem; width: 67.7rem; height: 20.4rem; }
+.fx-inv { left: 87.2rem; top: 67.2rem; width: 41.8rem; height: 20.4rem; }
+.fx-notas { left: 130.8rem; top: 71.5rem; width: 35.2rem; height: 16.1rem; }
 /* sem companheiro: o painel tático ocupa o lugar */
 .fx.sem-comp .fx-comp { display: none; }
 .fx.sem-comp .fx-tat { width: 65.9rem; }
@@ -1280,7 +1280,7 @@ button.fx-tab-l:hover {
 }
 .fx-sl-grade {
   display: grid;
-  grid-template-columns: repeat(5, 7rem) 2.8rem;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   grid-auto-rows: 5.9rem;
   gap: 0.4rem;
   height: 100%;
@@ -1774,7 +1774,7 @@ button.fx-tab-l:hover {
 .fx-b-cancelar,
 .fx-b-editar {
   left: 93.5rem;
-  top: 88.9rem;
+  top: 88.6rem;
   width: 12.2rem;
   height: 4rem !important;
 }
@@ -1789,17 +1789,17 @@ button.fx-tab-l:hover {
 }
 .fx-b-item {
   left: 112rem;
-  top: 88.2rem;
+  top: 88.6rem;
   width: 16rem;
 }
 .fx-b-ritual {
   left: 129.3rem;
-  top: 88.2rem;
+  top: 88.6rem;
   width: 16.9rem;
 }
 .fx-b-salvar {
   left: 147.5rem;
-  top: 88.2rem;
+  top: 88.6rem;
   width: 17.3rem;
 }
 .fx:not(.editando) .fx-b-salvar {
@@ -1815,8 +1815,9 @@ button.fx-tab-l:hover {
   }
 }
 
-/* ---------- pilha de papéis (canto de baixo à esquerda) ---------- */
+/* ---------- pilha de papéis (canto de baixo à esquerda): saiu, ficava por cima dos agentes ---------- */
 .fx-pilha {
+  display: none;
   position: absolute;
   left: 0;
   top: 81rem;
@@ -2603,4 +2604,43 @@ select.fx-inp {
   .tf-aviso {
     font-size: 2.8rem;
   }
+}
+
+/* ---------- uso (03/10): nada cortado, nada por cima de nada ---------- */
+/* títulos dos painéis estreitos em duas linhas, em vez de cortar (PODERES / HABILIDADES) */
+.fx-pod .fx-tit h3,
+.fx-rit .fx-tit h3,
+.fx-notas .fx-tit h3 {
+  font-size: 1.55rem;
+  line-height: 1.08;
+  padding-top: 0;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+/* nome comprido no cartão do agente: letra menor, sem cortar */
+.fx-ag-nome.longo {
+  font-size: 1.32rem;
+}
+/* lista que rola por dentro: some embaixo, avisando que tem mais */
+.fx-tab-rol.tem-mais,
+.fx-sl-grade.tem-mais {
+  -webkit-mask-image: linear-gradient(#000 calc(100% - 2.6rem), transparent);
+  mask-image: linear-gradient(#000 calc(100% - 2.6rem), transparent);
+}
+/* proficiências: duas linhas em vez de cortar */
+.fx-tc.largo b {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.1;
+}
+/* em jogo, tudo grava sozinho: o botão só diz que está salvo */
+.fx:not(.editando) .fx-b-salvar {
+  opacity: 0.6;
+  box-shadow: none;
+  cursor: default;
 }

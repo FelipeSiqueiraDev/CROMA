@@ -879,7 +879,10 @@ export class CombateScreen {
     const digitado = chave && at && at.tagName === 'INPUT' && at.value !== at.defaultValue ? at.value : undefined;
     const rolagens = [...corpo.querySelectorAll('.cb-rola')].map((x) => x.scrollTop);
     corpo.replaceChildren(...filhos);
-    corpo.querySelectorAll('.cb-rola').forEach((x, i) => (x.scrollTop = rolagens[i] ?? 0));
+    corpo.querySelectorAll<HTMLElement>('.cb-rola').forEach((x, i) => {
+      x.scrollTop = rolagens[i] ?? 0;
+      avisarRolagem(x);
+    });
     if (!chave) return;
     const novo = corpo.querySelector<HTMLInputElement>(`[data-foco="${chave}"]`);
     if (!novo) return;
@@ -1951,3 +1954,12 @@ export class CombateScreen {
   }
 }
 
+/** Lista que rola por dentro: some embaixo enquanto tem mais para ver (a SITUAÇÃO, as armas, a ordem). */
+function avisarRolagem(el: HTMLElement) {
+  const ver = () => el.classList.toggle('tem-mais', el.scrollTop + el.clientHeight < el.scrollHeight - 4);
+  if (!el.dataset.avisa) {
+    el.dataset.avisa = '1';
+    el.addEventListener('scroll', ver, { passive: true });
+  }
+  requestAnimationFrame(ver);
+}

@@ -398,7 +398,7 @@ export class FichasScreen {
           'button',
           { class: `fx-ag${on ? ' on' : ''}`, type: 'button', title: fs.nome, onclick: () => fs.id && this.selecionar(fs.id) },
           h('span', { class: 'fx-ag-foto' }, foto),
-          h('span', { class: 'fx-ag-placa' }, h('span', { class: 'fx-ag-nome' }, fs.nome), h('span', { class: 'fx-ag-info' }, `NEX ${fs.ficha.nex}% · ${CLASSE_NOME(fs.ficha.classe)}`)),
+          h('span', { class: 'fx-ag-placa' }, h('span', { class: `fx-ag-nome${fs.nome.length > 14 ? ' longo' : ''}` }, fs.nome), h('span', { class: 'fx-ag-info' }, `NEX ${fs.ficha.nex}% · ${CLASSE_NOME(fs.ficha.classe)}`)),
           h('span', { class: 'fx-ag-pv' }, h('i', { style: `width:${Math.round((v.pv / Math.max(1, v.pvMax)) * 100)}%` })),
           pend ? h('span', { class: 'fx-ag-pend', title: `${pend} pendência${pend > 1 ? 's' : ''}` }, String(pend)) : null,
         ),
@@ -806,7 +806,7 @@ export class FichasScreen {
         ),
       );
     }
-    corpo.replaceChildren(cab, h('div', { class: 'fx-tab-rol' }, ...linhas));
+    corpo.replaceChildren(cab, avisarRolagem(h('div', { class: 'fx-tab-rol' }, ...linhas)));
     this.extraDe(this.pPer).replaceChildren(
       h('button', { class: `fx-mini txt${this.soTreinadas ? ' on' : ''}`, type: 'button', title: 'Mostrar só as treinadas', onclick: () => ((this.soTreinadas = !this.soTreinadas), this.render()) }, this.soTreinadas ? 'Treinadas' : 'Todas'),
     );
@@ -1220,7 +1220,7 @@ export class FichasScreen {
           h('span'),
         ),
       );
-    corpo.replaceChildren(cab, h('div', { class: 'fx-tab-rol' }, ...(linhas.length ? linhas : [h('p', { class: 'fx-nada' }, 'Mochila vazia.')])));
+    corpo.replaceChildren(cab, avisarRolagem(h('div', { class: 'fx-tab-rol' }, ...(linhas.length ? linhas : [h('p', { class: 'fx-nada' }, 'Mochila vazia.')]))));
   }
 
   private detalheItem(i: number) {
@@ -1353,7 +1353,7 @@ export class FichasScreen {
     const livres = Math.max(1, Math.floor(c.carga.espacos - c.carga.usados));
     const total = Math.max(15, Math.ceil((slots.length + livres) / 5) * 5);
     for (let i = slots.length; i < total; i++) slots.push(h('button', { class: 'fx-sl vazio', type: 'button', 'aria-label': 'Adicionar item', disabled: i > slots.length, onclick: () => this.adicionarItem() }, i === fs.ficha.inventario.length ? ic('mais') : null));
-    corpo.replaceChildren(h('div', { class: 'fx-sl-grade' }, ...slots));
+    corpo.replaceChildren(avisarRolagem(h('div', { class: 'fx-sl-grade' }, ...slots)));
     const lim = c.itens.map((l) => h('span', { class: `fx-lim${l.usados > l.limite ? ' passou' : ''}`, 'data-dica': `Categoria ${romano(l.categoria)}: ${l.usados} de ${l.limite} pela patente.` }, `${romano(l.categoria)} ${l.usados}/${l.limite}`));
     this.extraDe(this.pInv).replaceChildren(
       h('span', { class: 'fx-lims' }, ...lim),
@@ -1437,7 +1437,7 @@ export class FichasScreen {
       bt(ed ? 'Editando' : 'Editar', 'lapis', `fx-b-editar${ed ? ' on' : ''}`, () => this.entrarEdicao()),
       bt('Adicionar Item', 'caixa', 'fx-b-item', () => this.adicionarItem()),
       bt('Adicionar Ritual', 'pentagrama', 'fx-b-ritual', () => this.adicionarRitual()),
-      bt('Salvar Ficha', 'salvar', 'fx-b-salvar forte', () => (ed ? this.salvarEdicao() : toast('A ficha já está salva: em jogo, tudo grava sozinho.')), false),
+      ed ? bt('Salvar Ficha', 'salvar', 'fx-b-salvar forte', () => this.salvarEdicao(), false) : bt('Ficha salva', 'ok', 'fx-b-salvar', () => toast('Em jogo, tudo grava sozinho.'), false),
     );
     void fs;
   }
@@ -1637,4 +1637,12 @@ function feitoNoNex(f: Ficha, n: Nex, c: Calc): { texto: string; campo?: Campo; 
   }
   void c;
   return out;
+}
+
+/** Lista que rola por dentro (perícias, equipamentos, inventário): some embaixo enquanto tem mais para ver. */
+function avisarRolagem<T extends HTMLElement>(el: T): T {
+  const ver = () => el.classList.toggle('tem-mais', el.scrollTop + el.clientHeight < el.scrollHeight - 4);
+  el.addEventListener('scroll', ver, { passive: true });
+  requestAnimationFrame(ver);
+  return el;
 }

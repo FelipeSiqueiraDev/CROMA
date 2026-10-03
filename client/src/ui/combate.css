@@ -145,6 +145,11 @@
   scrollbar-width: thin;
   scrollbar-color: rgba(84, 66, 44, 0.5) transparent;
 }
+/* tem mais embaixo: a lista some na borda, avisando */
+.cb-rola.tem-mais {
+  -webkit-mask-image: linear-gradient(#000 calc(100% - 2.6rem), transparent);
+  mask-image: linear-gradient(#000 calc(100% - 2.6rem), transparent);
+}
 
 /* ---------- botões ---------- */
 .cb-bt {
@@ -379,14 +384,17 @@ button.cb-ini-linha:not(.vez):hover {
 }
 .cb-ini-botoes {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.8rem;
+  /* "Passar turno" é o mais usado e o mais comprido: um pouco mais largo */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.35fr);
+  gap: 0.6rem;
   flex: none;
   margin-top: 1.2rem;
 }
 .cb-ini-botoes .cb-bt {
-  padding: 0 0.6rem;
-  font-size: 1.45rem;
+  gap: 0.5rem;
+  padding: 0 0.5rem;
+  font-size: 1.35rem;
+  white-space: nowrap;
 }
 
 /* =====================================================================
