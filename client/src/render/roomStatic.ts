@@ -1,5 +1,6 @@
 import { DIRS, M_POR_CASA, terrenoEm, Z_PER_M, type FloorStyle, type RoomMap, type WallSeg } from '@crona/shared';
 import { hash, shade } from './color';
+import { BATENTE_PORTA_M, VAO_PORTA_M } from './furniKit';
 import { iso } from './iso';
 import { texturaParede, texturaPiso } from './texturas';
 
@@ -58,8 +59,11 @@ const T = 0.3;
 const FLOOR_THICK = 0.35;
 /** altura do vão da porta: 2,1 m (Z_PER_M) */
 const DOOR_H = 2.1 * Z_PER_M;
-/** o vão passa da casa da porta para os lados: 0,9 m de largura (1,2 casa), centrado */
-const VAO_SOBRA = (0.9 / M_POR_CASA - 1) / 2;
+/**
+ * o buraco na parede, centrado na casa da porta: o vão mais meio batente de cada lado, para a moldura
+ * da porta (que cabe na casa) cobrir a borda dele; negativo = mais estreito que a casa
+ */
+const VAO_SOBRA = ((VAO_PORTA_M + BATENTE_PORTA_M) / M_POR_CASA - 1) / 2;
 /** o degrau de cima da escada que sobe para a porta (o vão começa nele) */
 const ESCADA_TOPO = 1.0 * Z_PER_M;
 const MAX_PIXELS = 14_000_000;
@@ -703,8 +707,8 @@ export function buildStatic(map: RoomMap, wantScale: number, style?: FloorStyle,
   const segs = aberto ? [] : [...map.walls.segs].sort((a, b) => (a.wall === b.wall ? 0 : a.wall === 'r' ? -1 : 1));
   for (const s of segs) drawWallSeg(ctx, map, s, pintarParede);
   if (vao) {
-    // a moldura do vão, depois das paredes (ele passa por três trechos)
-    const fr = wallQuad(vao.seg, vao.a0 - 0.04, vao.a1 + 0.04, vao.z0, vao.z1 + (vao.escada ? 0 : 0.1));
+    // a borda do vão, depois das paredes, embaixo da moldura da porta
+    const fr = wallQuad(vao.seg, vao.a0, vao.a1, vao.z0, vao.z1 + (vao.escada ? 0 : 0.1));
     ctx.beginPath();
     if (vao.escada) {
       ctx.moveTo(fr[0][0], fr[0][1]);
