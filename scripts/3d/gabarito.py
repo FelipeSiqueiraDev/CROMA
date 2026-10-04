@@ -242,13 +242,44 @@ def peca_pessoa(p, saida):
     page.get_pixmap(dpi=72).save(saida)
 
 
+def peca_tira(p, saida):
+    """
+    A tira de uma animação: os quadros lado a lado, cada um com a caixa de 1,80 m em pé no meio da
+    casa e a LINHA DOS PÉS (a mesma em todos), com o número e o nome da pose de cada quadro.
+    """
+    quadros = p['quadros']
+    alto = p.get('altura', 1.8)
+    L, A = 250, 520
+    doc = fitz.open()
+    page = doc.new_page(width=L * len(quadros), height=A + TOPO)
+    page.draw_rect(page.rect, color=None, fill=FUNDO)
+    texto(page, 24, 32, f"{p['titulo']}: {len(quadros)} quadros lado a lado, todos do mesmo tamanho", 17, True)
+    texto(page, 24, 56, 'A linha vermelha é o chão: os pés pisam nela em todos os quadros (menos onde o quadro diz). O personagem não anda para o lado: fica no lugar.', 13)
+    s = (A - 150) / (alto * PX_Z + 32)
+    pe = TOPO + A - 60
+    sh = page.new_shape()
+    for k, nome in enumerate(quadros):
+        x0 = k * L
+        page.draw_rect(fitz.Rect(x0 + 6, TOPO + 6, x0 + L - 6, TOPO + A - 6), color=(0.7, 0.7, 0.68), width=1)
+        texto(page, x0 + 16, TOPO + 28, f'{k + 1}', 22, True)
+        texto(page, x0 + 16, TOPO + 50, nome, 11)
+        o = (x0 + L / 2, pe - CASA * PX_Y * s)
+        P = lambda x, y, z: ponto(o, s, x, y, z)
+        poli(sh, [P(0, 0, 0), P(CASA, 0, 0), P(CASA, CASA, 0), P(0, CASA, 0)], CHAO, CHAO, 0.2, 1.0)
+        c = CASA / 2
+        caixa(sh, o, s, c - 0.25, c + 0.25, c - 0.15, c + 0.15, alto, LADO, LADO)
+    linha(sh, fitz.Point(0, pe), fitz.Point(L * len(quadros), pe), FRENTE, 2.0)
+    sh.commit()
+    page.get_pixmap(dpi=72).save(saida)
+
+
 def main():
     pedido = json.load(open(sys.argv[1], encoding='utf-8'))
     pasta = sys.argv[2]
     os.makedirs(pasta, exist_ok=True)
     for p in pedido:
         saida = os.path.join(pasta, f"gabarito-{p['nome']}.png")
-        (peca_pessoa if p.get('pessoa') else peca_parede if p.get('parede') else peca_chao)(p, saida)
+        (peca_tira if p.get('quadros') else peca_pessoa if p.get('pessoa') else peca_parede if p.get('parede') else peca_chao)(p, saida)
         print(saida)
 
 

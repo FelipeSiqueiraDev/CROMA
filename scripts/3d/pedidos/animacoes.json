@@ -1,0 +1,7 @@
+[
+  {"nome": "tira-andar", "titulo": "Andar (8 quadros, o ciclo inteiro, no lugar)", "quadros": ["contato: pé D à frente", "baixo: peso no D", "passagem: E passa", "alto: D empurra", "contato: pé E à frente", "baixo: peso no E", "passagem: D passa", "alto: E empurra"]},
+  {"nome": "tira-abrir", "titulo": "Abrir (6 quadros)", "quadros": ["parado", "começa a erguer o braço", "braço estendido, mão aberta", "mão fecha (segura)", "puxa para o lado", "parado"]},
+  {"nome": "tira-pegar", "titulo": "Pegar (6 quadros)", "quadros": ["parado", "começa a abaixar", "agachado, mão no chão", "mão fecha (pegou)", "levantando, mão no peito", "parado"]},
+  {"nome": "tira-atacar", "titulo": "Atacar (6 quadros, armado)", "quadros": ["parado armado", "prepara", "começa o golpe/ergue", "golpe/tiro", "fim do golpe/recua", "parado armado"]},
+  {"nome": "tira-cair", "titulo": "Cair (5 quadros)", "quadros": ["parado", "cambaleia", "de joelhos", "tombando", "deitado (= caído)"]}
+]
