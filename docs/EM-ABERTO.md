@@ -170,6 +170,13 @@ O Felipe trocou o nome do jogo para **CRONA**, de Cronos e de crônica. A regra 
 
 ## A fazer (não depende de arte)
 
+- **Ferramentas do mestre para mostrar na mesa** (ideias vindas do Owlbear Rodeo, 04/10; o Felipe gostou). O Owlbear é mesa online; o CRONA é presencial, então só vale o que ajuda o mestre a mostrar a cena no tablet:
+  - **Ponto de atenção:** o mestre toca num lugar do mapa e a mesa pisca ali ("a porta é essa aqui").
+  - **Névoa revelada aos poucos:** a sala começa no escuro e o mestre vai mostrando o que os personagens veem ou exploram (hoje a névoa é do cômodo inteiro).
+  - **Desenho rápido por cima do mapa:** seta, círculo ou rota, que a mesa mostra e some sozinho depois de uns segundos.
+  - **Mapa improvisado:** subir uma imagem como cena, para o lugar que ainda não foi montado em cômodos (os jogadores foram para onde ninguém esperava).
+- **A parte do jogador** (ainda não começou): o celular com a ficha dele (já existe o link `?ficha=`), o inventário, os rituais e as condições; a jogada continua na mesa, com dados de verdade. Planejar antes de construir (o que ele vê, o que pode fazer e o que fica só com o mestre).
+
 - **Aba INTERLÚDIO** do MAPA.
 - **Fazenda:**
   - Santo Berço, a mata e a rodovia (hoje só placas);
