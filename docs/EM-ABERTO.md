@@ -7,6 +7,11 @@ O que está pela metade, o que falta e o que o Códex ainda vai entregar. Leia j
 - **Branch:** `claude/personagens-3d`, com tudo de 30/09 a 03/10. Em 03/10 o Felipe mandou abrir o PR e juntar na `main`.
   - Confira no GitHub se o PR entrou.
   - Se entrou, a próxima branch sai da `main` atualizada. Se não, continue nesta branch ou abra a próxima a partir dela. Nunca parta da `main` velha.
+  - Em 04/10 isso ficou parado só porque o Chrome do PC estava sem login no GitHub (o Claude não digita senha).
+- **O nome do repositório no GitHub:** ainda é `CROMA`. A troca para `CRONA` está autorizada pelo Felipe, que pediu o nome novo em todos os lugares.
+  - Com ele logado no Chrome: Settings → General → Repository name.
+  - Depois: `git remote set-url origin https://github.com/FelipeSiqueiraDev/CRONA.git`.
+  - Os links antigos continuam funcionando: o GitHub redireciona.
 - **As branches antigas já estão dentro desta.** A `main` está toda nela (o PR entra sem conflito). As branches enviadas desde 29/09 também:
   - `claude/combate-completo`, `mapa-sem-arte`, `mochila-itens`, `tepes-32bits`, `verissimo-erros`;
   - `codex/arte-telas-checklist`, `arte-tepes-32bits`;
