@@ -25,6 +25,16 @@ export interface SpriteFrame {
   pixel?: boolean;
   /** meia largura dos pés, em pixels de mundo (a sombra acompanha) */
   pes?: number;
+  /**
+   * Onde cada pé toca o chão, em relação à âncora (pixels de mundo): numa pose de três quartos,
+   * o pé de trás fica mais alto na tela e precisa da sombra dele, senão parece flutuar.
+   */
+  pesPontos?: [number, number][];
+  /**
+   * A âncora está no meio dos dois pés (e não embaixo do corpo): é esse ponto que pisa no meio da
+   * casa, com um pé de cada lado do anel.
+   */
+  noMeioDosPes?: boolean;
 }
 
 export interface LoadedChar {
@@ -290,6 +300,43 @@ async function lerPose(p: { key: string; n: number; url: string; machucado: bool
   return { key: p.key, n: p.n, machucado: p.machucado, canvas, b };
 }
 
+/**
+ * Os pés na imagem: em cada coluna, o pixel mais baixo do corpo na faixa de baixo (as botas); as
+ * colunas vizinhas formam um pé. Devolve até dois pés (os mais largos): [x do meio, y da sola].
+ */
+function pontosPes(c: HTMLCanvasElement, b: Caixa): [number, number][] {
+  const d = c.getContext('2d')!.getImageData(0, 0, c.width, c.height).data;
+  const band = Math.max(3, Math.round((b.y1 - b.y0) * 0.14));
+  const baixo: number[] = [];
+  for (let x = b.x0; x <= b.x1; x++) {
+    let achou = -1;
+    for (let y = b.y1; y >= b.y1 - band; y--)
+      if (d[(y * c.width + x) * 4 + 3] > 96) {
+        achou = y;
+        break;
+      }
+    baixo.push(achou);
+  }
+  // colunas seguidas (tolera um buraco de 2) viram um pé
+  const pes: { x0: number; x1: number; y: number }[] = [];
+  let atual: { x0: number; x1: number; y: number } | null = null;
+  let buraco = 0;
+  baixo.forEach((y, i) => {
+    const x = b.x0 + i;
+    if (y >= 0) {
+      if (atual && buraco <= 2) (atual.x1 = x), (atual.y = Math.max(atual.y, y));
+      else pes.push((atual = { x0: x, x1: x, y }));
+      buraco = 0;
+    } else buraco++;
+  });
+  const minimo = Math.max(2, (b.x1 - b.x0) * 0.06);
+  return pes
+    .filter((p) => p.x1 - p.x0 + 1 >= minimo)
+    .sort((a, z) => z.x1 - z.x0 - (a.x1 - a.x0))
+    .slice(0, 2)
+    .map((p) => [(p.x0 + p.x1 + 1) / 2, p.y + 1]);
+}
+
 /** Meia largura dos pés (a faixa de baixo do corpo), em pixels da imagem. */
 function meiaLarguraPes(c: HTMLCanvasElement, b: Caixa): number {
   const d = c.getContext('2d')!.getImageData(0, 0, c.width, c.height).data;
@@ -337,18 +384,42 @@ async function processPoses(def: CharacterDef): Promise<LoadedPoses> {
   if (altura <= ALTURA_PIXEL_ART) {
     // pixel art: escala inteira, a imagem inteira, a âncora da pose parada
     const s = Math.max(1, Math.round(def.height / altura));
-    const ancora = new Map<string, { ax: number; ay: number; pes: number }>();
-    for (const p of poses) ancora.set(p.key, { ax: (p.b.fx + 0.5) * s, ay: (p.b.y1 + 1) * s, pes: meiaLarguraPes(p.canvas, p.b) * s });
+    const ancora = new Map<string, { ax: number; ay: number; pes: number; noMeioDosPes: boolean }>();
+    const ancoraDe = (p: PoseLida) => {
+      // com os dois pés à vista, a âncora fica no meio deles (é ali que a peça pisa); senão, embaixo do corpo
+      const pp = pontosPes(p.canvas, p.b);
+      const meio = pp.length === 2;
+      const ax = meio ? Math.round(((pp[0][0] + pp[1][0]) / 2) * s) : (p.b.fx + 0.5) * s;
+      const ay = meio ? Math.round(((pp[0][1] + pp[1][1]) / 2) * s) : (p.b.y1 + 1) * s;
+      return { ax, ay, pes: meiaLarguraPes(p.canvas, p.b) * s, noMeioDosPes: meio };
+    };
+    for (const p of poses) ancora.set(p.key, ancoraDe(p));
+    // os quadros de andar usam a âncora da pose parada (o corpo não escorrega); os pés, cada um os seus
     const inteiro = (p: PoseLida): SpriteFrame => {
-      const a = ancora.get(p.key) ?? { ax: (p.b.fx + 0.5) * s, ay: (p.b.y1 + 1) * s, pes: meiaLarguraPes(p.canvas, p.b) * s };
-      return { canvas: p.canvas, w: p.canvas.width * s, h: p.canvas.height * s, ...a, pixel: true };
+      const a = ancora.get(p.key) ?? ancoraDe(p);
+      const pesPontos = pontosPes(p.canvas, p.b).map(([x, y]): [number, number] => [x * s - a.ax, y * s - a.ay]);
+      return { canvas: p.canvas, w: p.canvas.width * s, h: p.canvas.height * s, ...a, pesPontos, pixel: true };
     };
     for (const p of poses) frames[p.key] = inteiro(p);
     for (const p of todas.filter((x) => x.n >= 0).sort((a, b) => a.n - b.n)) (passos[p.key] ??= []).push(inteiro(p));
   } else {
     const s = def.height / altura;
-    for (const p of poses) frames[p.key] = quadro(p.canvas, p.b, s, RES_POSE);
-    for (const p of todas.filter((x) => x.n >= 0).sort((a, b) => a.n - b.n)) (passos[p.key] ??= []).push(quadro(p.canvas, p.b, s, RES_POSE));
+    const grande = (p: PoseLida, parada: boolean): SpriteFrame => {
+      const f = quadro(p.canvas, p.b, s, RES_POSE);
+      f.pes = meiaLarguraPes(p.canvas, p.b) * s;
+      const pp = pontosPes(p.canvas, p.b).map(([x, y]): [number, number] => [(x - p.b.x0) * s, (y - p.b.y0) * s]);
+      // parada e com os dois pés à vista: a âncora vai para o meio deles (é ali que a peça pisa, no meio da
+      // casa); o quadro de andar fica com a de baixo do corpo (cada um é recortado sozinho)
+      if (parada && pp.length === 2) {
+        f.ax = (pp[0][0] + pp[1][0]) / 2;
+        f.ay = (pp[0][1] + pp[1][1]) / 2;
+        f.noMeioDosPes = true;
+      }
+      f.pesPontos = pp.map(([x, y]): [number, number] => [x - f.ax, y - f.ay]);
+      return f;
+    };
+    for (const p of poses) frames[p.key] = grande(p, true);
+    for (const p of todas.filter((x) => x.n >= 0).sort((a, b) => a.n - b.n)) (passos[p.key] ??= []).push(grande(p, false));
   }
   return { frames, passos };
 }

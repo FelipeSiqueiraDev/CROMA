@@ -145,6 +145,40 @@ function desenharSombraPes(ctx: CanvasRenderingContext2D, x: number, y: number, 
   ctx.restore();
 }
 
+/** Proporção do anel da peça no chão (altura / largura). */
+const ANEL_Q = 0.46;
+
+/**
+ * O anel que passa embaixo dos dois pés (em relação ao meio deles): a elipse do chão que tem um pé em
+ * cada ponta, nem pequena demais (pés juntos) nem enorme (passada larga).
+ */
+function anelPelosPes(pes: [number, number][]): [number, number] {
+  const hx = Math.abs(pes[0][0] - pes[1][0]) / 2;
+  const hy = Math.abs(pes[0][1] - pes[1][1]) / 2;
+  const r = Math.max(17, Math.min(34, Math.hypot(hx, hy / ANEL_Q)));
+  return [r, r * ANEL_Q];
+}
+
+/**
+ * Sombra de contato da arte grande (alta definição): suave como as sombras dos móveis, bem escura
+ * no miolo (onde a sola encosta) e sumindo para fora.
+ */
+function desenharSombraSuave(ctx: CanvasRenderingContext2D, x: number, y: number, rx: number, ry: number) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(1, ry / rx);
+  const g = ctx.createRadialGradient(0, 0, 0, 0, 0, rx);
+  g.addColorStop(0, 'rgba(0,0,0,0.72)');
+  g.addColorStop(0.5, 'rgba(0,0,0,0.5)');
+  g.addColorStop(0.8, 'rgba(0,0,0,0.18)');
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(0, 0, rx, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
 /** Sombra projetada por uma luz: para onde vai no chão (casas), a que distância a luz está e quão escura é. */
 interface SombraDaLuz {
   D: [number, number];
@@ -1318,7 +1352,7 @@ export class RoomView {
         const cela = ghost ? undefined : celas?.mobi.get(it.id);
         const nodeAlpha = (xray ? alpha * 0.28 : alpha) * (cela ? 1 - 0.72 * cela.transp : 1);
         const d: Drawable = {
-          box,
+          box: node.ordem ? m.box(node.ordem) : box,
           sx0: sx0 - 12,
           sx1: sx1 + 12,
           sy0: sy0 - 24,
@@ -1491,10 +1525,6 @@ export class RoomView {
       // ~1,75 m de altura para a ordem de desenho
       const box: WBox = { x0: cx - half, x1: cx + half, y0: cy - half, y1: cy + half, z0: baseZ, z1: baseZ + ALTURA_PESSOA };
       const deitada = !!marcas?.deitadas.has(u.id);
-      // a peça pisa no meio da casa: o centro da pegada das botas fica no centro dela, e não a ponta
-      // da bota (sem isso, a sombra e o anel aparecem na frente dos pés e ela parece flutuar)
-      // (o boneco já vem com a âncora no meio da pegada)
-      const afunda = !bq && (pf || sp) && !deitada && !seated && u.sit !== 2 ? Math.round(H * 0.05) : 0;
       const fy = u.sit === 2 ? sy - 8 : sy;
       const door = this.door;
       const clip = !!door && (door.seg.wall === 'l' ? cx < door.seg.plane : cy < door.seg.plane);
@@ -1508,6 +1538,10 @@ export class RoomView {
         : sp
           ? (quadroDaFolha(sp.def, sp.lc, u.dir, now, u.phase, sPose)?.q ?? null)
           : null;
+      // a peça pisa no meio da casa: o centro da pegada das botas fica no centro dela, e não a ponta
+      // da bota (sem isso, a sombra e o anel aparecem na frente dos pés e ela parece flutuar)
+      // (o boneco e a pose com a âncora no meio dos pés já vêm assim)
+      const afunda = !bq && (pf || sp) && !quadro?.noMeioDosPes && !deitada && !seated && u.sit !== 2 ? Math.round(H * 0.05) : 0;
       const { luz, sombras } = luzesDaPeca(luzesCena, sx, sy - HE * 0.5, cx, cy);
       if (!seated)
         chaoPecas.push(() => {
@@ -1526,18 +1560,26 @@ export class RoomView {
             const pes = bpes ? Math.max(15, Math.min(26, abre)) : pf?.pes ? Math.max(15, Math.min(26, pf.pes + 4)) : 19;
             const rx = deitada ? 30 : pes;
             const ry = deitada ? 10 : Math.max(6, Math.round(pes * 0.42));
-            // em volta: o chão escurece um pouco, sumindo para fora (o corpo tapa a luz)
-            const amb = ctx.createRadialGradient(sx, sy, 0, sx, sy, rx * 1.35);
+            // a pose com a âncora no meio dos pés: o anel passa embaixo dos dois, um pé em cada ponta
+            const doisPes = !bpes && !deitada && quadro?.noMeioDosPes && quadro.pesPontos?.length === 2 ? quadro.pesPontos : null;
+            const [arx, ary] = doisPes ? anelPelosPes(doisPes) : [rx + 3, ry + 2];
+            // em volta: o chão escurece um pouco, sumindo para fora (o corpo tapa a luz); na pose com os dois pés
+            // achados, no meio deles e cobrindo os dois
+            const pp = !bpes && !deitada ? quadro?.pesPontos : undefined;
+            const ax0 = pp?.length ? sx + pp.reduce((s, p) => s + p[0], 0) / pp.length : sx;
+            const ay0 = pp?.length ? sy + afunda + pp.reduce((s, p) => s + p[1], 0) / pp.length : sy;
+            const rxa = pp && pp.length > 1 ? Math.max(rx, Math.abs(pp[0][0] - pp[1][0]) / 2 + 12) : rx;
+            const amb = ctx.createRadialGradient(ax0, ay0, 0, ax0, ay0, rxa * 1.35);
             amb.addColorStop(0, 'rgba(0,0,0,0.42)');
             amb.addColorStop(0.6, 'rgba(0,0,0,0.2)');
             amb.addColorStop(1, 'rgba(0,0,0,0)');
             ctx.save();
-            ctx.translate(sx, sy);
+            ctx.translate(ax0, ay0);
             ctx.scale(1, ry / rx);
-            ctx.translate(-sx, -sy);
+            ctx.translate(-ax0, -ay0);
             ctx.fillStyle = amb;
             ctx.beginPath();
-            ctx.arc(sx, sy, rx * 1.35, 0, Math.PI * 2);
+            ctx.arc(ax0, ay0, rxa * 1.35, 0, Math.PI * 2);
             ctx.fill();
             ctx.restore();
             // a sombra que cada luz por perto joga no chão, do lado oposto a ela: mais longa quanto mais longe a luz
@@ -1553,7 +1595,19 @@ export class RoomView {
                 const k = Math.max(0.45, 1 - alt / 9);
                 desenharSombraPes(ctx, sx + Math.round(dx), sy + Math.round(dy), Math.round(8 * k), Math.max(2, Math.round(3.5 * k)));
               }
-            else if (!deitada) desenharSombraPes(ctx, sx, sy, Math.round(rx * 0.86), Math.round(ry * 0.86));
+            else if (!deitada && quadro?.pesPontos?.length && u.sit !== 2) {
+              // a pose (pixel art ou arte grande): uma sombra embaixo de cada pé que a imagem mostra, inclusive o
+              // de trás (mais alto na tela), que sem ela parecia flutuar
+              // um pouco maior que a sola: a bota tapa a metade de cima e o resto aparece em volta dela (a pose é
+              // desenhada `afunda` mais para baixo, e a sombra vai junto)
+              for (const [dx, dy] of quadro.pesPontos)
+                if (quadro.pixel) desenharSombraPes(ctx, sx + Math.round(dx), sy + afunda + Math.round(dy), 10, 4);
+                else {
+                  // a larga, que some para fora, e o miolo bem rente à sola, onde ela encosta no chão
+                  desenharSombraSuave(ctx, sx + dx, sy + afunda + dy + 0.5, 15, 6);
+                  desenharSombraSuave(ctx, sx + dx, sy + afunda + dy + 0.3, 8, 2.6);
+                }
+            } else if (!deitada) desenharSombraPes(ctx, sx, sy, Math.round(rx * 0.86), Math.round(ry * 0.86));
             // anel na cor do personagem (no combate, na cor do lado): fino, em volta da sombra; a peça ativa pulsa
             const active = u.id === this.myId;
             const pulse = active ? 1 + Math.sin(now / 260) * 0.06 : 1;
@@ -1561,13 +1615,13 @@ export class RoomView {
             ctx.lineWidth = active ? 1.8 : 1.2;
             ctx.strokeStyle = rgba(corBase, active ? 0.78 : 0.5);
             ctx.beginPath();
-            ctx.ellipse(sx, sy, (rx + 3) * pulse, (ry + 2) * pulse, 0, 0, Math.PI * 2);
+            ctx.ellipse(sx, sy, arx * pulse, ary * pulse, 0, 0, Math.PI * 2);
             ctx.stroke();
             if (isSel || active) {
               ctx.lineWidth = 1;
               ctx.strokeStyle = 'rgba(255,255,255,0.38)';
               ctx.beginPath();
-              ctx.ellipse(sx, sy, (rx + 6) * pulse, (ry + 3.5) * pulse, 0, 0, Math.PI * 2);
+              ctx.ellipse(sx, sy, (arx + 3) * pulse, (ary + 1.5) * pulse, 0, 0, Math.PI * 2);
               ctx.stroke();
             }
             ctx.restore();

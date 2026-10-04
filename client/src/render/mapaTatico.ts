@@ -2,6 +2,7 @@ import { combate as cb, footprint, getFurni, M_POR_CASA, Z_PER_M, type FloorItem
 import { contornoArea, type Casa } from '../room/combateGeo';
 import type { MarcasCombate } from './combateMarcas';
 import { imagemDeCima, imagemDoChao, tamanhoReal } from './furniArte';
+import { VAO_PORTA_M } from './furniKit';
 import { texturaPiso } from './texturas';
 
 /**
@@ -244,7 +245,7 @@ export interface OpcoesMesa {
   fundo?: boolean;
   /** o escuro de cada casa das celas fechadas ("x,y" -> 0 a 1): o que tem dentro some no escuro */
   celas?: Map<string, number> | null;
-  /** o raio da ficha das peças, em casas (o padrão, 1, é o quadrado do livro que a peça Média ocupa: 2 casas) */
+  /** o raio da ficha das peças, em casas (o padrão, 0,5: a ficha tem a largura de uma casa, 0,75 m) */
   ficha?: number;
 }
 
@@ -308,8 +309,9 @@ export function desenharMesa(ctx: CanvasRenderingContext2D, map: RoomMap, piso: 
     blocos.push({ prof: prof(it.x + fp.sx / 2, it.y + fp.sy / 2), z: it.z ?? 0, desenhar: () => desenharMovel(ctx, v, it, def) });
   }
   for (const p of paredes(map)) blocos.push({ prof: prof((p.x0 + p.x1) / 2, (p.y0 + p.y1) / 2) - (p.fundo ? 100 : 0), z: 0, desenhar: () => desenharParede(ctx, v, p, piso) });
-  // a peça Média ocupa 1 quadrado do livro (1,5 m = 2 casas): a ficha tem esse tamanho
-  const raio = opcoes.ficha ?? 1;
+  // a ficha no tamanho de uma pessoa vista de cima, na proporção dos móveis: uma casa (0,75 m) de largura
+  // (o quadrado do livro, 1,5 m, é o espaço que a peça ocupa nas regras, e não o tamanho dela)
+  const raio = opcoes.ficha ?? 0.5;
   for (const p of pecas) blocos.push({ prof: prof(p.x + 0.5, p.y + 0.5) + 0.02, z: 0.2, desenhar: () => desenharPeca(ctx, v, p, raio) });
   blocos.sort((a, b) => a.prof - b.prof || a.z - b.z);
   for (const b of blocos) b.desenhar();
@@ -737,7 +739,10 @@ function desenharPortaNaParede(ctx: CanvasRenderingContext2D, v: CameraVoo, map:
     if (chao(x + dx, y + dy)) continue;
     const fundo = dx < 0 || dy < 0;
     const alto = fundo ? ALTO_PAREDE : 0.12 * Z_PER_M;
-    const vao = dy !== 0 ? { x: x + 0.1, y: dy < 0 ? y - t : y + 1, w: 0.8, h: t } : { x: dx < 0 ? x - t : x + 1, y: y + 0.1, w: t, h: 0.8 };
+    // o vão da porta, no meio da casa (a porta cabe nela, com o batente)
+    const lv = VAO_PORTA_M / M_POR_CASA;
+    const m0 = (1 - lv) / 2;
+    const vao = dy !== 0 ? { x: x + m0, y: dy < 0 ? y - t : y + 1, w: lv, h: t } : { x: dx < 0 ? x - t : x + 1, y: y + m0, w: t, h: lv };
     // o vão até em cima (na maquete, a parede do fundo some no buraco da porta)
     ctx.setTransform(matrizNaAltura(v, alto));
     ctx.fillStyle = '#16120e';

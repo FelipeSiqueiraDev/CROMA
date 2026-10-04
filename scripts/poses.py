@@ -96,6 +96,47 @@ def recortar(img):
     return poses
 
 
+def recortar_hd(img):
+    """
+    As 8 poses em alta definição (--hd): a borda suave da arte fica (o tabuleiro desenha a arte
+    grande suavizada, como as poses do Tepes), e a cor que o gerador deixou escondida embaixo da
+    transparência (o fundo vermelho da prévia) é trocada pela cor do corpo mais perto, para a
+    borda não ganhar contorno. Nada de pixel duro.
+    """
+    op = img[:, :, 3] >= 128
+    cols = faixas(op.sum(axis=0))
+    lins = faixas(op.sum(axis=1))
+    if len(cols) != 4 or len(lins) != 2:
+        raise SystemExit(f'Esperava uma grade 4x2 de poses; achei {len(cols)} colunas e {len(lins)} linhas.')
+    poses = {}
+    for r, (ya, yb) in enumerate(lins):
+        for c, (xa, xb) in enumerate(cols):
+            cel = img[max(0, ya - 3):yb + 4, max(0, xa - 3):xb + 4].copy()
+            a = cel[:, :, 3].astype(int)
+            a[a < 24] = 0
+            corpo = a >= 250
+            # a cor de dentro escorre para a borda (cada volta, um pixel)
+            cor = cel[:, :, :3].astype(float)
+            peso = corpo.astype(float)
+            soma = cor * peso[..., None]
+            for _ in range(4):
+                p = np.pad(peso, 1)
+                s = np.pad(soma, ((1, 1), (1, 1), (0, 0)))
+                viz_p = p[:-2, 1:-1] + p[2:, 1:-1] + p[1:-1, :-2] + p[1:-1, 2:]
+                viz_s = s[:-2, 1:-1] + s[2:, 1:-1] + s[1:-1, :-2] + s[1:-1, 2:]
+                novo = (peso == 0) & (viz_p > 0)
+                soma[novo] = viz_s[novo]
+                peso[novo] = viz_p[novo]
+            borda = (a > 0) & ~corpo & (peso > 0)
+            cor[borda] = soma[borda] / peso[borda][:, None]
+            cel[:, :, :3] = cor.round().clip(0, 255).astype(np.uint8)
+            cel[:, :, 3] = a.astype(np.uint8)
+            cel[a == 0] = 0
+            ys, xs = np.nonzero(a > 0)
+            poses[ORDEM[r][c]] = cel[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
+    return poses
+
+
 def reduzir(rgba, escala):
     """Pixel duro: cada pixel novo pega a cor mais frequente do bloco (agrupada), e só fica opaco se o bloco for mais da metade corpo."""
     h, w = rgba.shape[:2]
@@ -326,11 +367,20 @@ def main():
     ap.add_argument('--altura', type=int, default=104, help='altura da pessoa no tabuleiro, em pixels da arte')
     ap.add_argument('--previa', help='grava também uma prévia ampliada dos quadros')
     ap.add_argument('--passos', action='store_true', help='grava também o passo simples (andar-<estado>-<direção>-<n>.png)')
+    ap.add_argument('--hd', action='store_true', help='alta definição: a arte do jeito que veio, com a borda suave (sem pixel duro)')
     a = ap.parse_args()
     destino = os.path.join(PASTA, a.personagem, SUB)
     if not os.path.isdir(os.path.join(PASTA, a.personagem)):
         raise SystemExit(f'Não achei a pasta do personagem: {os.path.join(PASTA, a.personagem)}')
     os.makedirs(destino, exist_ok=True)
+    if a.hd:
+        # o tabuleiro reduz suavizado (arte grande); a folga em volta fica para a sombra e a luz
+        for d, p in recortar_hd(ler(a.imagem)).items():
+            q = enquadrar(p)
+            gravar(q, os.path.join(destino, f'idle-{a.estado}-{d}.png'))
+            print(f'{d}: {q.shape[1]}x{q.shape[0]}')
+        print(f'Gravado em {destino} (alta definição)')
+        return
     poses = recortar(ler(a.imagem))
     alturas = sorted(p.shape[0] for p in poses.values())
     escala = a.altura / alturas[len(alturas) // 2]

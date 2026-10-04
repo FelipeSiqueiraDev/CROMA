@@ -94,6 +94,7 @@ Não substituem `folha.webp` nem os `retrato-*.png`. São do modelo realista, de
 | `w` | de lado, olhando para a esquerda ← (só com 8) |
 
 - **Tamanho:** na grade 1:1 (a pessoa com ~104 pixels de altura), corpo inteiro, **na mesma escala e com os pés no mesmo ponto** em todas as direções e estados. A âncora é o meio da faixa de baixo do corpo (entre os pés).
+- **Arte grande, em alta definição (04/10):** a arte realista (a Catarina nova, ~470 px de altura) não vira pixel art: `npm run arte:poses -- <nome> --estado <estado> --hd` recorta com a borda suave e mantém a resolução. O tabuleiro acha os dois pés de cada pose (a sola mais baixa de cada bota) e põe a âncora **no meio deles**: é esse ponto que pisa no meio da casa, o anel passa embaixo de cada pé e cada pé tem a sombra de contato dele. Por isso as botas precisam aparecer **separadas**, cada uma com a sola à vista.
 - **Como entregar:** a imagem do gerador como saiu, **um personagem por imagem**, com as 8 direções paradas numa grade 4×2, nesta ordem, e fundo transparente ou verde puro `#00FF00`:
 
 | | 1 | 2 | 3 | 4 |
@@ -354,6 +355,7 @@ O jeito certo de cada móvel: **uma folha por móvel, com ele girando**, para vi
 - Nome: `client/public/arte/mobiliario/folhas/<nome-do-movel>.png`. O construtor recorta, acerta tamanho e âncora e grava `mobiliario/<id>/giro-<0|2|4|6>.png`.
 - **O tamanho é o de verdade** (revisto em 02/10): o pedido diz as medidas do móvel em metros, perto de uma pessoa de 1,80 m (no tabuleiro, 94 px). O construtor dá a cada móvel as medidas de verdade (`"real"` na ficha `scripts/3d/fichas/moveis-bar.json`), com a mesma escala nas 4 vistas, e o põe no meio da casa ou encostado na parede. Móvel que é uma caixa e veio baixo ou comprido demais (o balcão) é redesenhado na caixa de verdade; a prateleira repete as fileiras de garrafas até a altura certa, em vez de esticar.
 - Faltou um lado na folha? O construtor espelha outra vista (a frente para a esquerda vira a frente para a direita).
+- **Cabe na casa (04/10):** a base do móvel não pode passar das casas dele (largura × fundo). O gerador costuma desenhar largo e o construtor acerta pela altura; quando a base passa da casa, o jogo encolhe a peça por igual até caber (`encaixe`, em `client/src/render/furniArte.ts`), e ela fica mais baixa que o tamanho de verdade. A peça da parede (a porta) aperta só ao longo da parede. O certo é pedir o desenho já na proporção de verdade (as medidas na lista do pedido).
 
 ### Outros modelos do mesmo móvel (decidido em 03/10)
 
@@ -361,7 +363,7 @@ Móvel que se repete muito no mesmo cômodo (as bancadas de armas, as mesas de t
 
 ### Portas dos cômodos (decidido em 03/10)
 
-As portas das passagens têm arte de madeira (`porta-madeira-aberta.png`, `-fechada`, `-trancada`) e de metal (`porta-metal-*`), cada folha com 2 vistas: a porta na parede da direita e na da esquerda (ficha `scripts/3d/fichas/moveis-portas.json`). A de metal vale nos cômodos de piso de metal e de cela (o arsenal e a prisão): na ficha, `"def": "portal@metal"`. Nas paredes da frente, que não aparecem, a porta continua desenhada por código (a soleira e o contorno do vão): `"so_giros": true`.
+As portas das passagens têm arte de madeira (`porta-madeira-aberta.png`, `-fechada`, `-trancada`) e de metal (`porta-metal-*`), cada folha com 2 vistas: a porta na parede da direita e na da esquerda (ficha `scripts/3d/fichas/moveis-portas.json`). A de metal vale nos cômodos de piso de metal e de cela (o arsenal e a prisão): na ficha, `"def": "portal@metal"`. Nas paredes da frente, que não aparecem, a porta continua desenhada por código (a soleira e o contorno do vão): `"so_giros": true`. **A porta cabe na casa (04/10):** vão de 0,65 m e batente de 5 cm, 0,75 m no total (`VAO_PORTA_M`); a arte de hoje (1,04 m) o jogo aperta ao longo da parede. Arte nova de porta já vem nessa largura.
 
 ### Itens de parede, tapetes, chão e parede (decidido em 02/10)
 
@@ -375,7 +377,7 @@ Na vista tática a câmera sobe e mostra a sala de cima, como um mapa de batalha
 
 - **Móvel:** `<folha isométrica>-cima.png` (ex.: `mesa-sinuca-cima.png`), **128 px por casa** na pegada inteira do móvel (largura × fundo em casas: a mesa de sinuca, 2×4, tem 256×512; a casa tem 0,75 m, então 1 m = 171 px). O jogo mede onde o móvel está na imagem e o põe no tamanho de verdade dele, então uma imagem desenhada em outra escala também serve. A **frente para baixo** (o lado de sentar, as portas, a frente do balcão); o jogo gira para os outros giros. O objeto no tamanho de verdade, no meio, e o resto transparente. Sem sombra (o jogo faz pela altura), sem chão, sem texto. O estado que muda o que se vê de cima vem como `<folha>-cima-<estado>.png` (o baú aberto).
 - **Parede:** `parede-cima-<piso>.png`, 512×80, o topo da parede visto de cima, emendando dos dois lados; a beira de baixo (o lambri, o rodapé) fica para dentro da sala. Uma por estilo de piso (`madeira`, `concreto`, `cela`...).
-- **Fichas das peças:** `ficha-agente.png` e `ficha-ameaca.png`, 256×256, o aro visto de cima com o **meio transparente** (o retrato entra no furo; o furo do agente vai até 0,78 do raio do aro). O jogo pinta o aro do agente na cor dele; o da ameaça fica como veio.
+- **Fichas das peças:** do tamanho de uma pessoa vista de cima, 1 casa (0,75 m) de largura (revisto em 04/10). `ficha-agente.png` e `ficha-ameaca.png`, 256×256, o aro visto de cima com o **meio transparente** (o retrato entra no furo; o furo do agente vai até 0,78 do raio do aro). O jogo pinta o aro do agente na cor dele; o da ameaça fica como veio.
 
 Para pôr no jogo: `python scripts/3d/cima.py <pasta com as PNGs>`. Cada móvel vai para `mobiliario/<móvel>/cima.png` (pela ficha que usa aquela folha) e entra no `moveis.json` (`cima`); a parede e as fichas vão para `client/public/arte/tatico/`. Sem a imagem, o jogo desenha o móvel por código. O pedido da vez está na pasta da arte do GPT (`PROMPT-VISTA-DE-CIMA.txt`). **Feito:** o Bar (teste, 03/10).
 

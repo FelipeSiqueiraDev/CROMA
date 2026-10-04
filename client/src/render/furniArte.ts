@@ -1,6 +1,6 @@
 import { M_POR_CASA, Z_PER_M, type FurniDef } from '@crona/shared';
 import { rgba } from './color';
-import { N, V, type FVisual } from './furniKit';
+import { N, naParede, V, type FVisual } from './furniKit';
 import { iso } from './iso';
 import { drawFlame, type LBox, type Painter } from './painter';
 
@@ -90,6 +90,61 @@ interface TelaParede {
 interface Imagens {
   normal: HTMLCanvasElement;
   espelho: HTMLCanvasElement;
+  /** a largura do desenho (os pixels que aparecem), em pixels da imagem */
+  largura: number;
+}
+
+/** A largura do que aparece na imagem (alfa acima de 40), em pixels. */
+function larguraDoDesenho(c: HTMLCanvasElement): number {
+  const d = c.getContext('2d', { willReadFrequently: true })!.getImageData(0, 0, c.width, c.height).data;
+  let x0 = c.width;
+  let x1 = -1;
+  for (let y = 0; y < c.height; y++)
+    for (let x = 0; x < c.width; x++)
+      if (d[(y * c.width + x) * 4 + 3] > 40) {
+        if (x < x0) x0 = x;
+        if (x > x1) x1 = x;
+      }
+  return x1 < 0 ? c.width : x1 - x0 + 1;
+}
+
+/** Peças da linha da parede (a porta, a porta da cela): apertam ao longo da parede, sem perder a altura. */
+const DA_PAREDE = /^(portal|cell_door|cell_front|cell_wall|cell_bars|bars|iwall)/;
+
+/**
+ * Quanto a peça encolhe para caber nas casas dela. O desenho vai ao tamanho de verdade pela altura
+ * (moveis.py), e o gerador costuma desenhar largo: a base passava da casa (o carrinho entrava na casa
+ * da frente, a porta na pia do lado). Pela largura do desenho e pela medida de verdade, acha a base
+ * desenhada e encolhe por igual até ela caber (a peça da parede, só ao longo da parede). base: a base
+ * desenhada depois disso, em metros (a vista de cima usa a mesma).
+ */
+interface Encaixe {
+  f: number;
+  parede: boolean;
+  base: [number, number] | null;
+}
+const encaixes = new Map<string, Encaixe>();
+
+function encaixe(chave: string, a: MovelArte, def: FurniDef, prontas: Imagens[]): Encaixe {
+  const salvo = encaixes.get(chave);
+  if (salvo) return salvo;
+  const e: Encaixe = { f: 1, parede: DA_PAREDE.test(def.kind), base: null };
+  if (a.real && prontas.length) {
+    const [rw, rd] = a.real;
+    const larguras = prontas.map((im) => im.largura * a.escala).sort((x, y) => x - y);
+    const medida = larguras[Math.floor(larguras.length / 2)];
+    // quantas vezes o desenho é maior que o tamanho de verdade (na tela, a largura é a da frente mais a do fundo)
+    const vezes = medida / (((rw + rd) * 32) / M_POR_CASA);
+    const bw = rw * vezes;
+    const bd = rd * vezes;
+    const cw = def.width * M_POR_CASA;
+    const cd = def.depth * M_POR_CASA;
+    const f = e.parede ? Math.min(1, cw / bw) : Math.min(1, cw / bw, cd / bd);
+    e.f = f < 0.99 ? f : 1;
+    e.base = e.parede ? [bw * e.f, bd] : [bw * e.f, bd * e.f];
+  }
+  encaixes.set(chave, e);
+  return e;
 }
 
 let lista: Record<string, MovelArte> | null = null;
@@ -146,7 +201,7 @@ function pronta(arquivo: string): Imagens | null {
       g.translate(normal.width, 0);
       g.scale(-1, 1);
       g.drawImage(normal, 0, 0);
-      imagens.set(url, { normal, espelho });
+      imagens.set(url, { normal, espelho, largura: larguraDoDesenho(normal) });
     };
     img.onerror = () => imagens.set(url, 'erro');
     img.src = url;
@@ -160,7 +215,8 @@ function pronta(arquivo: string): Imagens | null {
  * As luzes continuam as do desenho por código. state: o estado do móvel (0 = aceso).
  */
 export function visualComArte(def: FurniDef, base: FVisual, state = 0, seed = 0, rot?: number, piso?: string): FVisual | null {
-  const salvo = lista?.[chaveDaArte(def.id, seed, piso)];
+  const chave = chaveDaArte(def.id, seed, piso);
+  const salvo = lista?.[chave];
   if (!salvo) return null;
   // a porta: arte só nas paredes do fundo; nas da frente (que não aparecem), a soleira do desenho por código
   if (salvo.soGiros && rot !== undefined && !salvo.giros?.[String(rot) as '4']) return null;
@@ -200,13 +256,21 @@ export function visualComArte(def: FurniDef, base: FVisual, state = 0, seed = 0,
       const respira = 1 + 0.03 * Math.sin(performance.now() / 1700 + seed);
       luzes = luzes.map((L) => ({ ...L, u: L.u + s, v: L.v + s, intensity: L.intensity * respira }));
     }
-    return V([N(caixa, (p) => desenharGiro(p, a, prontas, aceso ? (a.brilho?.cor ?? def.colors[0] ?? '#ffd98a') : null, cor, ang, forca, falha))], luzes);
+    // o encaixe na casa, pelas vistas do estado 0 (os outros estados vêm na mesma escala)
+    const vistas0 = Object.values(salvo.giros ?? {}).map((v) => (v ? pronta(v.arquivo) : null));
+    const enc = encaixe(chave, salvo, def, vistas0.every((x) => !!x) ? (vistas0 as Imagens[]) : (Object.values(prontas) as Imagens[]));
+    // a peça da parede, apertada, fica dentro da casa também na ordem de desenho
+    const cx: LBox = enc.parede && enc.f < 1 ? [caixa[0], caixa[1], Math.max(0, caixa[2]), Math.min(def.width, caixa[3]), caixa[4], caixa[5]] : caixa;
+    const no = N(cx, (p) => desenharGiro(p, a, prontas, aceso ? (a.brilho?.cor ?? def.colors[0] ?? '#ffd98a') : null, cor, ang, forca, falha, enc, salvo.encosta));
+    // a moldura da porta é parede na ordem de desenho: o que fica na sala, encostado nela, vem na frente
+    return V([def.kind === 'portal' ? naParede(no) : no], luzes);
   }
   if (!a.frente) return null;
   const frente = pronta(a.frente.arquivo);
   const costas = a.costas ? pronta(a.costas.arquivo) : null;
   if (!frente || (a.costas && !costas)) return null;
-  return V([N(caixa, (p) => desenhar(p, a, frente, costas))], base.lights);
+  const enc = encaixe(chave, a, def, costas ? [frente, costas] : [frente]);
+  return V([N(caixa, (p) => desenhar(p, a, frente, costas, enc))], base.lights);
 }
 
 /** O tapete (ou a rosa dos ventos) visto de cima, para o mapa tático; null sem arte ou enquanto ela carrega. */
@@ -223,10 +287,16 @@ export function imagemDeCima(defId: string, estado = 0): { img: HTMLCanvasElemen
   return img ? { img, caixa: vista?.caixa ?? null } : null;
 }
 
-/** O tamanho de verdade do móvel (metros) e se ele encosta no fundo da casa, pela arte dele; null sem arte. */
+/**
+ * O tamanho do móvel (metros) e se ele encosta no fundo da casa, pela arte dele; null sem arte. A base é
+ * a que o isométrico desenha (já encaixada na casa), para as duas vistas baterem; enquanto a arte não
+ * chega, a medida de verdade.
+ */
 export function tamanhoReal(defId: string): { real: [number, number, number]; encosta: boolean } | null {
   const a = lista?.[defId];
-  return a?.real ? { real: a.real, encosta: !!a.encosta } : null;
+  if (!a?.real) return null;
+  const base = encaixes.get(defId)?.base;
+  return { real: base ? [base[0], base[1], a.real[2]] : a.real, encosta: !!a.encosta };
 }
 
 /**
@@ -253,21 +323,52 @@ export function desenharParedeComArte(ctx: CanvasRenderingContext2D, defId: stri
   return true;
 }
 
-/** Onde a imagem vai na tela: o canto de cima à esquerda e o tamanho. */
-function lugar(p: Painter, img: HTMLCanvasElement, ax: number, ay: number, k: number, centro: boolean) {
+/** O encaixe da peça na hora de desenhar: quanto ela encolhe e se encosta no fundo da casa. */
+interface Ajuste {
+  enc: Encaixe;
+  encosta: boolean;
+}
+
+/** O ponto do chão que fica parado quando a peça encolhe: o meio da casa ou, encostada (e a da parede), o meio do fundo. */
+function pivo(p: Painter, encosta: boolean): [number, number] {
+  const w = p.m.box([0, p.m.D, 0, p.m.W, 0, 0]);
+  const cx = (w.x0 + w.x1) / 2;
+  const cy = (w.y0 + w.y1) / 2;
+  if (!encosta) return iso(cx, cy, w.z0);
+  // o fundo é o lado oposto à frente (giro 4: a frente para +y, o fundo no y da casa)
+  const r = p.m.rot;
+  return r === 4 ? iso(cx, w.y0, w.z0) : r === 0 ? iso(cx, w.y1, w.z0) : r === 2 ? iso(w.x0, cy, w.z0) : iso(w.x1, cy, w.z0);
+}
+
+/** Onde a imagem vai na tela: o canto de cima à esquerda e o tamanho (já encolhida para caber na casa). */
+function lugar(p: Painter, img: HTMLCanvasElement, ax: number, ay: number, k: number, centro: boolean, aj?: Ajuste) {
   const w = p.m.box([0, p.m.D, 0, p.m.W, 0, 0]);
   // a âncora: a quina da frente da base (a de baixo na tela) ou o centro da base
   const [bx, by] = centro ? iso((w.x0 + w.x1) / 2, (w.y0 + w.y1) / 2, w.z0) : iso(w.x1, w.y1, w.z0);
-  return { x: bx - ax * k, y: by - ay * k, w: img.width * k, h: img.height * k };
+  const r = { x: bx - ax * k, y: by - ay * k, w: img.width * k, h: img.height * k };
+  const f = aj && !aj.enc.parede ? aj.enc.f : 1;
+  if (f >= 1) return r;
+  const [px, py] = pivo(p, aj!.encosta);
+  return { x: px + (r.x - px) * f, y: py + (r.y - py) * f, w: r.w * f, h: r.h * f };
 }
 
-function pintar(p: Painter, img: HTMLCanvasElement, ax: number, ay: number, k: number, centro: boolean) {
-  const r = lugar(p, img, ax, ay, k, centro);
+function pintar(p: Painter, img: HTMLCanvasElement, ax: number, ay: number, k: number, centro: boolean, aj?: Ajuste) {
+  const r = lugar(p, img, ax, ay, k, centro, aj);
   const ctx = p.ctx;
   const suave = ctx.imageSmoothingEnabled;
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(img, r.x, r.y, r.w, r.h);
+  const aperta = aj?.enc.parede ? aj.enc.f : 1;
+  if (aperta < 1) {
+    // a peça da parede aperta só ao longo dela, sem perder a altura: o x encolhe em volta do meio dela
+    // e o y acompanha a inclinação da parede na tela
+    const [px] = pivo(p, true);
+    const s = p.m.rot === 4 || p.m.rot === 0 ? 0.5 : -0.5;
+    ctx.save();
+    ctx.transform(aperta, (aperta - 1) * s, 0, 1, (1 - aperta) * px, -(aperta - 1) * s * px);
+    ctx.drawImage(img, r.x, r.y, r.w, r.h);
+    ctx.restore();
+  } else ctx.drawImage(img, r.x, r.y, r.w, r.h);
   ctx.imageSmoothingEnabled = suave;
   return r;
 }
@@ -375,30 +476,45 @@ function brilhar(p: Painter, r: { x: number; y: number }, k: number, x: number, 
 }
 
 /** Desenhado nos 4 giros: a imagem do giro, como ela é (e o brilho da lâmpada acesa e da tela). ang: o balanço da lâmpada. */
-function desenharGiro(p: Painter, a: MovelArte, prontas: Partial<Record<string, Imagens>>, luz: string | null, corTela: string | null = null, ang = 0, forcaTela = 1, falha = 1) {
+function desenharGiro(
+  p: Painter,
+  a: MovelArte,
+  prontas: Partial<Record<string, Imagens>>,
+  luz: string | null,
+  corTela: string | null = null,
+  ang = 0,
+  forcaTela = 1,
+  falha = 1,
+  enc?: Encaixe,
+  encosta = false,
+) {
   const g = String(p.m.rot);
   const vista = a.giros?.[g as '4'] ?? a.giros?.['4'] ?? Object.values(a.giros ?? {})[0];
   const imgs = prontas[g] ?? prontas['4'] ?? Object.values(prontas)[0];
   if (!vista || !imgs) return;
+  const aj: Ajuste | undefined = enc ? { enc, encosta: encosta || enc.parede } : undefined;
+  // pixels da tela por pixel da imagem, já com o encolhimento (o brilho, a tela e as chamas vão juntos)
+  const k = a.escala * (enc && !enc.parede ? enc.f : 1);
+  const centro = vista.ancora === 'centro';
   // a lâmpada do teto acesa joga um feixe até o chão: sem teto no desenho, é ele que mostra que ela está lá no alto
   if (a.caixa && a.brilho && luz && p.power > 0.1) {
-    const r0 = lugar(p, imgs.normal, vista.ax, vista.ay, a.escala, vista.ancora === 'centro');
-    feixe(p, r0.x + a.brilho.x * a.escala, r0.y + a.brilho.y * a.escala, a.brilho.r * a.escala, luz, p.power * falha);
+    const r0 = lugar(p, imgs.normal, vista.ax, vista.ay, a.escala, centro, aj);
+    feixe(p, r0.x + a.brilho.x * k, r0.y + a.brilho.y * k, a.brilho.r * k, luz, p.power * falha);
   }
   if (ang) {
     // gira em volta do ponto onde o fio prende (o meio de cima da imagem)
-    const r0 = lugar(p, imgs.normal, vista.ax, vista.ay, a.escala, vista.ancora === 'centro');
+    const r0 = lugar(p, imgs.normal, vista.ax, vista.ay, a.escala, centro, aj);
     const px = r0.x + r0.w / 2;
     p.ctx.save();
     p.ctx.translate(px, r0.y);
     p.ctx.rotate(ang);
     p.ctx.translate(-px, -r0.y);
   }
-  const r = pintar(p, imgs.normal, vista.ax, vista.ay, a.escala, vista.ancora === 'centro');
-  if (a.brilho && luz && p.power > 0.1) brilhar(p, r, a.escala, a.brilho.x, a.brilho.y, a.brilho.r, luz, 0.55 * p.power * falha);
+  const r = pintar(p, imgs.normal, vista.ax, vista.ay, a.escala, centro, aj);
+  if (a.brilho && luz && p.power > 0.1) brilhar(p, r, k, a.brilho.x, a.brilho.y, a.brilho.r, luz, 0.55 * p.power * falha);
   const tela = a.tela?.giros[g as '4'];
-  if (tela && corTela && p.power > 0.1) brilhar(p, r, a.escala, tela.x, tela.y, tela.r, corTela, (a.tela?.forca ?? 0.42) * forcaTela * p.power);
-  if (luz) acenderChamas(p.ctx, a.chamas?.[g], r.x, r.y, a.escala, p.seed ?? 0);
+  if (tela && corTela && p.power > 0.1) brilhar(p, r, k, tela.x, tela.y, tela.r, corTela, (a.tela?.forca ?? 0.42) * forcaTela * p.power);
+  if (luz) acenderChamas(p.ctx, a.chamas?.[g], r.x, r.y, k, p.seed ?? 0);
   if (ang) p.ctx.restore();
 }
 
@@ -441,7 +557,7 @@ function deitar(p: Painter, img: HTMLCanvasElement) {
 }
 
 /** Só a frente (e as costas): o espelho faz os outros dois giros. */
-function desenhar(p: Painter, a: MovelArte, frente: Imagens, costas: Imagens | null) {
+function desenhar(p: Painter, a: MovelArte, frente: Imagens, costas: Imagens | null, enc?: Encaixe) {
   const rot = p.m.rot;
   // giros 2 e 4 mostram a frente (2: na face de baixo à direita; 4: à esquerda); 0 e 6, as costas
   const deFrente = rot === 2 || rot === 4;
@@ -452,5 +568,5 @@ function desenhar(p: Painter, a: MovelArte, frente: Imagens, costas: Imagens | n
   const espelhar = (vista.lado ?? 'esquerda') !== ladoNaTela;
   const img = espelhar ? imgs.espelho : imgs.normal;
   const ax = espelhar ? img.width - vista.ax : vista.ax;
-  pintar(p, img, ax, vista.ay, a.escala, vista.ancora === 'centro');
+  pintar(p, img, ax, vista.ay, a.escala, vista.ancora === 'centro', enc ? { enc, encosta: !!a.encosta || enc.parede } : undefined);
 }

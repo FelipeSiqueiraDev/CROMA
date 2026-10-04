@@ -1,7 +1,7 @@
 import { M_POR_CASA, Z_PER_M, type FurniDef } from '@crona/shared';
 import { hash, rgba, rng, shade } from './color';
 import { OUTLINE, type LBox, type LFace, type Painter } from './painter';
-import { B, crateFace, drawers, faceRange, lightIf, N, PAPER, V, vents, wallBlock, WARM, type Builder, type FNode, type FVisual, type LightDef } from './furniKit';
+import { B, BATENTE_PORTA_M, crateFace, drawers, faceRange, lightIf, N, naParede, PAPER, V, VAO_PORTA_M, vents, wallBlock, WARM, type Builder, type FNode, type FVisual, type LightDef } from './furniKit';
 import { SEDE_BUILDERS } from './furniSede';
 import { FAZENDA_BUILDERS } from './furniFazenda';
 
@@ -1223,16 +1223,17 @@ const builders: Record<string, Builder> = {
 
   portal(def, state) {
     const [wood] = def.colors;
-    // vão de porta de verdade: 0,9 m de largura (1,2 casa, centrado na casa) por 2,1 m, batente de 7 cm
-    const A0 = -(0.9 / M_POR_CASA - 1) / 2;
+    // vão de porta de verdade (VAO_PORTA_M, centrado na casa) por 2,1 m, com o batente dentro da casa
+    const A0 = (1 - VAO_PORTA_M / M_POR_CASA) / 2;
     const A1 = 1 - A0;
+    const bt = BATENTE_PORTA_M / M_POR_CASA;
     const H = 2.1;
-    const jl: LBox = [0, 0.16, A0 - 0.1, A0, 0, H];
-    const jr: LBox = [0, 0.16, A1, A1 + 0.1, 0, H];
-    const lintel: LBox = [0, 0.16, A0 - 0.1, A1 + 0.1, H, H + 0.12];
+    const jl: LBox = [0, 0.16, A0 - bt, A0, 0, H];
+    const jr: LBox = [0, 0.16, A1, A1 + bt, 0, H];
+    const lintel: LBox = [0, 0.16, A0 - bt, A1 + bt, H, H + 0.12];
     const vao: LBox = [0, 0.02, A0, A1, 0, H];
     const folha: LBox = [0.05, 0.1, A0, A1, 0.01, H];
-    const soleira: LBox = [0, 0.16, A0 - 0.1, A1 + 0.1, 0, 0.03];
+    const soleira: LBox = [0, 0.16, A0 - bt, A1 + bt, 0, 0.03];
     const fechada = state === 1 || state === 2;
     const trancada = state === 2;
     const corFolha = shade(wood, 0.32);
@@ -1258,7 +1259,7 @@ const builders: Record<string, Builder> = {
           ctx.fillRect(0, A0, 0.9, A1 - A0);
         });
       }),
-      N(vao, (p) => {
+      naParede(N(vao, (p) => {
         if (baixa(p)) return;
         p.face(vao, 'front', A0, A1, 0, H, '#050404', true);
         // a escuridão do outro lado: um pouco menos escura embaixo, onde bate a luz da sala
@@ -1269,8 +1270,8 @@ const builders: Record<string, Builder> = {
           ctx.fillStyle = g;
           ctx.fillRect(A0, 0, A1 - A0, H);
         });
-      }),
-      N(folha, (p) => {
+      })),
+      naParede(N(folha, (p) => {
         if (!fechada) return;
         if (baixa(p)) {
           // a folha fechada, só o contorno, para não tapar a sala
@@ -1291,24 +1292,24 @@ const builders: Record<string, Builder> = {
         // maçaneta
         p.line([0.12, A1 - 0.16, 1.0], [0.12, A1 - 0.28, 1.0], '#c9a85a', 2.5);
         if (trancada) cadeado(p, 0.12);
-      }),
-      N(soleira, (p) => {
+      })),
+      naParede(N(soleira, (p) => {
         if (baixa(p)) p.box(soleira, shade(wood, 0.1), { edge: 0.25 });
-      }),
-      N(jl, (p) => {
+      })),
+      naParede(N(jl, (p) => {
         if (!baixa(p)) return p.box(jl, wood, { edge: 0.2 });
         p.box([jl[0], jl[1], jl[2], jl[3], 0, 0.32], wood, { edge: 0.2 });
         p.line([0.08, A0 - 0.05, 0.32], [0.08, A0 - 0.05, H], 'rgba(210,170,130,0.32)', 2);
-      }),
-      N(jr, (p) => {
+      })),
+      naParede(N(jr, (p) => {
         if (!baixa(p)) return p.box(jr, wood, { edge: 0.2 });
         p.box([jr[0], jr[1], jr[2], jr[3], 0, 0.32], wood, { edge: 0.2 });
         p.line([0.08, A1 + 0.05, 0.32], [0.08, A1 + 0.05, H], 'rgba(210,170,130,0.32)', 2);
-      }),
-      N(lintel, (p) => {
+      })),
+      naParede(N(lintel, (p) => {
         if (!baixa(p)) return p.box(lintel, wood, { edge: 0.25 });
         p.line([0.08, A0 - 0.05, H + 0.06], [0.08, A1 + 0.05, H + 0.06], 'rgba(210,170,130,0.32)', 2);
-      }),
+      })),
     ]);
   },
 
