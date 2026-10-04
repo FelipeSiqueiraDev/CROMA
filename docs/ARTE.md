@@ -8,6 +8,8 @@ Quem faz a arte entrega **só arquivos de imagem**. Todo o código (encaixar, an
 
 ## Regras que valem para tudo
 
+- **Cada peça pedida tem um gabarito (04/10):** a caixa ou o contorno exato dela, em escala, na câmera do tabuleiro, com uma pessoa de 1,80 m (`scripts/3d/gabarito.py`; vão em `gabaritos/pedidos/` na pasta da arte). Desenha-se por cima dele: a peça cabe na caixa, a base nas casas dela (0,75 m cada), as bordas da parede a 2 para 1. A entrega é medida (`scripts/3d/conferir_arte.py`) e o que passar volta.
+
 - **PNG com fundo transparente.** As exceções estão indicadas.
 - **Sem texto, sem números e sem ícones pintados** nas peças da interface. O texto é colocado pelo jogo, para poder mudar e animar.
 - **Sem sombra projetada** em volta da peça; o jogo aplica a sombra. Sombras internas (dobra, mancha, queimado) fazem parte da arte.

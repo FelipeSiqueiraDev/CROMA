@@ -192,7 +192,7 @@ Todos os pedidos estão na pasta da arte do GPT. O Felipe cola no Códex: *"Leia
 | `PROMPT-VISTA-DE-CIMA.txt` | Partes 2 a 12, um `vista-de-cima-<sala>.zip` por sala | O teste (Bar) está no jogo. As outras salas esperam o Felipe aprovar o estilo do Bar. |
 | `PROMPT-VARIACOES-E-ARSENAL.txt` | `variacoes-e-arsenal.zip` | Parou em 5 de 30. As 5 prontas estão na pasta de trabalho do Códex: `%TEMP%\variacoes-e-arsenal-20261003\final`. |
 | `LISTA-REFAZER.txt` | `bau-militar-aberto.png` | Por fazer. |
-| (a escrever, 04/10) | Os móveis que o gerador desenhou largos, de novo na proporção de verdade: carrinho (`trolley`), biombo (`divider`), fliperama (`arcade`), carrinho do zelador (`janitor_cart`), poltronas (`armchair`, `armchair_leather`), sofá (`sofa_booth`), leito (`hospital_bed`), armário do bar (`bar_cabinet`), caixas de peças (`parts_boxes`), privada (`toilet_steel`) e a porta da cela (`cell_door`). Hoje o jogo encolhe cada um até caber na casa, e eles ficam mais baixos. | Por pedir. |
+| `PROMPT-PORTAS-E-MEDIDAS.txt` (04/10) | `portas-novas.zip` (as 6 portas, de 0,75 m) primeiro; depois `moveis-na-medida.zip` (13 móveis que vieram largos) e `parede-na-medida.zip` (6 itens de parede deitados). Cada peça com o gabarito em `gabaritos/pedidos/` e a folha de hoje em `gabaritos/pedidos/hoje/`. | Novo. A lista saiu do `conferir_arte.py` (30 fora da medida; a porta de grade da cela fica para o lote da prisão). |
 | `PROMPT-FAZENDA.txt` (03/10) | `fazenda-teste.zip` primeiro; depois `fazenda-texturas`, `-predios`, `-natureza`, `-casa` e `calabouco` | Novo. |
 | `PROMPT-PERSONAGENS.txt` (03/10) | `personagens-teste.zip` (a Catarina) primeiro; depois `personagens-8-direcoes`, `-armados`, `alosi-andar` e `ameacas` | Novo. |
 
@@ -208,6 +208,9 @@ Todos os pedidos estão na pasta da arte do GPT. O Felipe cola no Códex: *"Leia
 | `variacoes-e-arsenal.zip` | As variações como `"def": "<id>~b"`; o teclado em `interface/teclado-geladeira/`. |
 | `bau-militar-aberto.png` | Trocar na ficha do arsenal (estado 1 do `chest_army`). |
 | Zips da Fazenda | Fichas novas (`moveis-fazenda-*.json`); as texturas no `texturas.json` (`grama`, `estrada`, `lavoura`, `cascalho`, `terra`, a parede do celeiro); estilos novos para o píer e o calabouço; os mobis novos do calabouço. |
+| `portas-novas.zip` | As folhas no lugar das de hoje em `client/public/arte/mobiliario/folhas/porta-*.png`. Na `scripts/3d/fichas/moveis-portas.json`: `"real": [0.75, 0.08, 2.17]`, `"topo": [0.75, 0.08]`, `"caixa": [0, 0.24, 0, 1, 0, 2.17]`; `python scripts/3d/moveis.py scripts/3d/fichas/moveis-portas.json`. No `furniKit.ts`: `VAO_PORTA_M = 0.65` e `BATENTE_PORTA_M = 0.05`. Confira com `python scripts/3d/conferir_arte.py --so portal,portal@metal` e no tabuleiro (Laboratório: a estante encostada; Banheiro: a pia). |
+| `moveis-na-medida.zip` | As folhas no lugar das de hoje (mesmo nome) e `moveis.py` com a ficha de cada uma (a do cômodo); `conferir_arte.py --so <ids>`. Com a peça cabendo na casa, o `encaixe` não encolhe mais nada. |
+| `parede-na-medida.zip` | Idem; o `conferir_arte.py` mede as bordas (0,5 ± 0,06). |
 | Zips dos personagens | `npm run arte:poses` e `npm run arte:boneco`. Cada personagem novo precisa das marcações em `scripts/bonecos/<nome>.json`. |
 
 **Zips que já entraram e ainda estão na raiz da pasta.** Ficam ali até a fila de ícones acabar, porque o `FALTAM-ICONES.txt` aponta para eles; depois vão para `_entregas-originais/`.

@@ -140,7 +140,9 @@ O básico está no `AGENTS.md`. Além dele:
 **Regras de todo pedido**
 - **Câmera:** "um quadrado no chão vira losango 2:1, um círculo vira elipse 2 por 1, nem mais de cima, nem mais de lado, nem de frente".
 - **Vistas:** as 4 vistas na ordem do `gabarito-camera-4-vistas.png`, no mesmo tamanho, com o objeto inteiro.
-- **Medidas:** o tamanho de verdade em metros, perto de uma pessoa de 1,80 m.
+- **Medidas:** o tamanho de verdade em metros, perto de uma pessoa de 1,80 m, e **que caiba nas casas da peça** (a casa tem 0,75 m: um móvel de 1 casa tem no máximo 0,75 × 0,75 m de base; a porta, 0,75 m na parede).
+- **Gabarito por peça (04/10):** só a regra da câmera não basta, o gerador desenha largo e deitado. Cada peça pedida leva um gabarito em escala: `python scripts/3d/gabarito.py <pedido.json> "<pasta da arte>/gabaritos/pedidos"` desenha a caixa exata (chão: as 4 vistas, frente em vermelho e costas em azul, a pegada em casas; parede: as 2 vistas, o contorno na parede) com a pessoa de 1,80 m. O pedido diz "desenhe por cima da caixa, sem passar dela" e põe a folha de hoje ao lado como referência de estilo. Exemplo: `scripts/3d/pedidos/portas-e-medidas.json`.
+- **Tolerância escrita no pedido:** o que o Claude vai medir (a base cabe nas casas, a porta tem 0,75 m, as bordas da parede a 0,5 ± 0,06). O que passar volta.
 - **Imagem:** fundo transparente de verdade, nada escrito, nenhum símbolo oficial.
 - **Entrega:**
   - teste primeiro;
@@ -160,6 +162,7 @@ O básico está no `AGENTS.md`. Além dele:
 
 **Conferir um móvel antes de dar por pronto**
 - **Nunca pela imagem solta.**
+  - `python scripts/3d/conferir_arte.py [--so <ids>]` mede o que chegou contra o pedido: a base cabe nas casas, a porta tem 1 casa, as bordas do item de parede seguem a parede. Diz o que volta.
   - `python scripts/3d/auditoria.py <saída>` acha ângulo errado, pedaço cortado e desenho fora da caixa.
   - `python scripts/3d/eixos.py` acha comprimento no giro trocado (vale para móvel em caixa; nos outros, confira no olho).
   - `python scripts/3d/fila.py <móvel> <giro> <passo> <saida.png>` emenda três módulos.
