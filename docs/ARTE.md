@@ -44,6 +44,8 @@ Vale para tudo o que fica no tabuleiro: os bonecos e o mapa (piso, paredes e mó
 
 ## 1. Personagens
 
+**Decidido em 04/10:** todos os personagens do tabuleiro são **chibi** (umas 4 a 5 cabeças, 1,80 m de altura como todo mundo), **no traço do cenário**: contorno escuro fino na cor do material, sombreado suave com desgaste, a paleta dessaturada da Sede e a luz de cima, para parecerem parte da mesma cena dos móveis. O pedido e as referências estão no `PROMPT-PERSONAGENS.txt` (pasta da arte do GPT); o gabarito é o `gabarito-personagem-8-direcoes.png` (`scripts/3d/gabarito.py`, peça `"pessoa"`). As decisões abaixo (realista, chibi de 01/10) são o histórico; o formato dos arquivos continua valendo.
+
 Pasta: `client/public/arte/personagens/<nome>/`, com `<nome>` = `tepes`, `catarina`, `alosi`, `cora-falcao` (ou o nome de um personagem novo).
 
 **Decidido em 30/09:** a folha de sprite de hoje de cada agente (`folha.webp`, pintada) é a **arte de referência** dele: aparece grande na FICHAS e vai para a Hand do jogador (tela que vem depois). O **tabuleiro** vai ganhar arte nova para cada agente, no modelo chibi e na grade 1:1 (seção acima), com todos os ângulos e as animações de andar. As poses paradas já têm formato ("Poses do tabuleiro", abaixo); o das animações entra aqui antes de ser feito.

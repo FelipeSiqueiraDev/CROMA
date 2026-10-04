@@ -125,13 +125,11 @@ O Felipe trocou o nome do jogo para **CRONA**, de Cronos e de crônica. A regra 
 
 ## Pela metade
 
-- **A Catarina nova** (`personagens-teste.zip`, 04/10): o Códex fez as 8 direções.
-  - Convertidas pelo `npm run arte:poses -- catarina --estado desarmado --hd` para `client/public/arte/personagens/catarina/tabuleiro-32bits/`, **fora do git**, esperando o Felipe aprovar. A primeira conversão (pixel art) ficou "pixelada demais" para ele; a `--hd` mantém a resolução da arte. Depois ele pediu os pés no chão (feito: âncora no meio dos pés, sombra em cada pé). Perto da Alosi tem umas 6 cabeças de altura em vez de 7.
-  - **Se ele aprovar:**
-    1. Commit da pasta.
-    2. Marcações em `scripts/bonecos/catarina.json` para o `npm run arte:boneco` (respirar e piscar).
-    3. Mandar o Códex seguir para as Partes 1 a 5 do `PROMPT-PERSONAGENS.txt`.
-  - **Se não aprovar:** apague a pasta e peça para refazer, dizendo o motivo.
+- **Personagens em chibi (decidido em 04/10).** O Felipe escolheu o chibi para todos os personagens do tabuleiro (agentes, NPCs e ameaças): no tablet, ele se reconhece de longe e fica bem atrás dos móveis (prévia no Laboratório, ao lado da Catarina realista e atrás da bancada). Mas no **traço do cenário**: a referência de corpo que ele trouxe destoava (contorno preto grosso, cores vivas chapadas); o personagem tem que parecer parte da mesma cena dos móveis.
+  - **O pedido:** `PROMPT-PERSONAGENS.txt` foi refeito para os 4 agentes em chibi (teste com a Catarina, as 8 direções dos outros, os armados e as animações), com o gabarito `gabaritos/pedidos/gabarito-personagem-8-direcoes.png` (`scripts/3d/pedidos/personagens.json`) e as referências em `gabaritos/agentes/` (`chibi-referencia-corpo.png` = o corpo, `cena-referencia-laboratorio.png` = o traço). Os NPCs e as ameaças ficam para um pedido depois dos agentes aprovados.
+  - **A Catarina realista em alta definição** (a entrega de 03/10, convertida com `--hd`) saiu do jogo: está guardada na pasta da arte em `_substituidas/catarina-realista-hd-04-10/` e o zip em `_entregas-originais/personagens-teste-realista-03-10.zip`. O código de alta definição (`--hd`, os pés achados na imagem, a sombra em cada pé) fica e serve para o chibi.
+  - **Quando o teste chegar:** `npm run arte:poses -- catarina --estado desarmado --hd`, conferir no tabuleiro (a altura pela caixa, os pés, o traço perto dos móveis) e mostrar ao Felipe. Aprovado: as marcações em `scripts/bonecos/catarina.json` para respirar e piscar (o `boneco.py` foi feito para pixel art; talvez precise de ajuste para a arte maior) e seguir as Partes 1 a 3.
+  - **Ainda a decidir:** esconder o sinal branco da arma junto da mão (`drawWeaponMark`) quando a arte tiver a pose armada.
 - **As interações dos agentes no tabuleiro** (pedidas em 04/10). Quando a arte da Parte 5 chegar (formato no `ARTE.md`, "As interações do agente"), o `RoomView` precisa tocar cada uma:
   - **Abrir e pegar:** quando o mestre usa a ação com a peça comandada, virada para o objeto.
   - **Atacar:** no ataque do combate.
@@ -203,7 +201,7 @@ Todos os pedidos estão na pasta da arte do GPT. O Felipe cola no Códex: *"Leia
 | `LISTA-REFAZER.txt` | `bau-militar-aberto.png` | Por fazer. |
 | `PROMPT-PORTAS-E-MEDIDAS.txt` (04/10) | `portas-novas.zip` (as 6 portas, de 0,75 m) primeiro; depois `moveis-na-medida.zip` (13 móveis que vieram largos) e `parede-na-medida.zip` (6 itens de parede deitados). Cada peça com o gabarito em `gabaritos/pedidos/` e a folha de hoje em `gabaritos/pedidos/hoje/`. | Novo. A lista saiu do `conferir_arte.py` (30 fora da medida; a porta de grade da cela fica para o lote da prisão). |
 | `PROMPT-FAZENDA.txt` (03/10) | `fazenda-teste.zip` primeiro; depois `fazenda-texturas`, `-predios`, `-natureza`, `-casa` e `calabouco` | Novo. |
-| `PROMPT-PERSONAGENS.txt` (03/10) | `personagens-teste.zip` (a Catarina) primeiro; depois `personagens-8-direcoes`, `-armados`, `alosi-andar` e `ameacas` | Novo. |
+| `PROMPT-PERSONAGENS.txt` (refeito em 04/10, chibi no traço do cenário) | `personagens-teste.zip` (a Catarina) primeiro; depois `personagens-8-direcoes`, `personagens-armados` e `animacoes-<agente>` | Novo. O pedido realista de 03/10 está em `_substituidas/`. |
 
 **O que fazer quando cada zip chegar**
 
@@ -220,7 +218,7 @@ Todos os pedidos estão na pasta da arte do GPT. O Felipe cola no Códex: *"Leia
 | `portas-novas.zip` | As folhas no lugar das de hoje em `client/public/arte/mobiliario/folhas/porta-*.png`. Na `scripts/3d/fichas/moveis-portas.json`: `"real": [0.75, 0.08, 2.17]`, `"topo": [0.75, 0.08]`, `"caixa": [0, 0.24, 0, 1, 0, 2.17]`; `python scripts/3d/moveis.py scripts/3d/fichas/moveis-portas.json`. No `furniKit.ts`: `VAO_PORTA_M = 0.65` e `BATENTE_PORTA_M = 0.05`. Confira com `python scripts/3d/conferir_arte.py --so portal,portal@metal` e no tabuleiro (Laboratório: a estante encostada; Banheiro: a pia). |
 | `moveis-na-medida.zip` | As folhas no lugar das de hoje (mesmo nome) e `moveis.py` com a ficha de cada uma (a do cômodo); `conferir_arte.py --so <ids>`. Com a peça cabendo na casa, o `encaixe` não encolhe mais nada. |
 | `parede-na-medida.zip` | Idem; o `conferir_arte.py` mede as bordas (0,5 ± 0,06). |
-| Zips dos personagens | `npm run arte:poses` e `npm run arte:boneco`. Cada personagem novo precisa das marcações em `scripts/bonecos/<nome>.json`. |
+| Zips dos personagens | `npm run arte:poses -- <nome> --estado <estado> --hd` e `npm run arte:boneco`. Cada personagem novo precisa das marcações em `scripts/bonecos/<nome>.json`. |
 
 **Zips que já entraram e ainda estão na raiz da pasta.** Ficam ali até a fila de ícones acabar, porque o `FALTAM-ICONES.txt` aponta para eles; depois vão para `_entregas-originais/`.
 - `icones-armas.zip`

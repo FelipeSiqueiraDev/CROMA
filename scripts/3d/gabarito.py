@@ -202,13 +202,53 @@ def peca_parede(p, saida):
     page.get_pixmap(dpi=72).save(saida)
 
 
+def peca_pessoa(p, saida):
+    """
+    O personagem nas 8 direções, na ordem da folha (em cima: n, ne, e, se; embaixo: s, sw, w, nw): em
+    cada casa, o losango do chão (1 casa), a caixa de 1,80 m de altura onde ele cabe em pé e a seta
+    para onde ele olha. Os pés no meio do losango, na mesma linha em todas.
+    """
+    alto = p.get('altura', 1.8)
+    larg, fundo = p.get('corpo', [0.5, 0.3])
+    doc = fitz.open()
+    L, A = 380, 560
+    page = doc.new_page(width=L * 4, height=A * 2 + TOPO)
+    page.draw_rect(page.rect, color=None, fill=FUNDO)
+    texto(page, 30, 32, f"{p['titulo']}: {m(alto)} m de altura, em pé no meio da casa (0,75 m), nas 8 direções", 17, True)
+    texto(page, 30, 56, 'Desenhe o personagem DENTRO da caixa: a cabeça encosta no topo, os pés no meio do losango, todos na mesma linha. A seta é para onde ele olha.', 13)
+    # a direção na tela (para onde ele olha) -> o vetor no chão (x, y); n = para cima na tela
+    dirs = [('n', (-1, -1)), ('ne', (0, -1)), ('e', (1, -1)), ('se', (1, 0)), ('s', (1, 1)), ('sw', (0, 1)), ('w', (-1, 1)), ('nw', (-1, 0))]
+    nomes = {'n': 'de costas', 'ne': 'costas para a direita', 'e': 'de lado, para a direita', 'se': 'frente para a direita',
+             's': 'de frente', 'sw': 'frente para a esquerda', 'w': 'de lado, para a esquerda', 'nw': 'costas para a esquerda'}
+    s = (A - 140) / (alto * PX_Z + 32)
+    sh = page.new_shape()
+    for k, (d, (vx, vy)) in enumerate(dirs):
+        col, lin = k % 4, k // 4
+        o = (col * L + L / 2, TOPO + lin * A + A - 70 - 16 * s)
+        page.draw_rect(fitz.Rect(col * L + 8, TOPO + lin * A + 8, (col + 1) * L - 8, TOPO + (lin + 1) * A - 8), color=(0.7, 0.7, 0.68), width=1)
+        texto(page, col * L + 22, TOPO + lin * A + 30, f'{d.upper()}: {nomes[d]}', 13, True)
+        # a casa e a caixa do corpo, no meio dela
+        P = lambda x, y, z: ponto(o, s, x, y, z)
+        poli(sh, [P(0, 0, 0), P(CASA, 0, 0), P(CASA, CASA, 0), P(0, CASA, 0)], CHAO, CHAO, 0.25, 1.5)
+        c = CASA / 2
+        caixa(sh, o, s, c - larg / 2, c + larg / 2, c - fundo / 2, c + fundo / 2, alto, LADO, LADO)
+        # a seta no chão, do meio para a frente
+        n = (vx * vx + vy * vy) ** 0.5
+        ax, ay = vx / n * 0.45, vy / n * 0.45
+        linha(sh, P(c, c, 0), P(c + ax, c + ay, 0), FRENTE, 3.0)
+        sh.draw_circle(P(c + ax, c + ay, 0), 4)
+        sh.finish(color=FRENTE, fill=FRENTE, width=1)
+    sh.commit()
+    page.get_pixmap(dpi=72).save(saida)
+
+
 def main():
     pedido = json.load(open(sys.argv[1], encoding='utf-8'))
     pasta = sys.argv[2]
     os.makedirs(pasta, exist_ok=True)
     for p in pedido:
         saida = os.path.join(pasta, f"gabarito-{p['nome']}.png")
-        (peca_parede if p.get('parede') else peca_chao)(p, saida)
+        (peca_pessoa if p.get('pessoa') else peca_parede if p.get('parede') else peca_chao)(p, saida)
         print(saida)
 
 
