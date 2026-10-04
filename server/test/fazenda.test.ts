@@ -246,9 +246,11 @@ describe("Fazenda Olhos de Águia", () => {
       "o feno em cima",
     );
     gm.send({ t: "join", roomId: celeiro.data.id });
-    // sem ninguém no celeiro, a passagem fica escondida
+    // o mestre empurra mesmo sem peça no celeiro, e empurra de volta
     gm.send({ t: "use", id: feno().id });
-    assert.equal(alcapao().state, 0);
+    assert.equal(alcapao().state, 1, "empurrado sem peça na sala");
+    gm.send({ t: "use", id: feno().id });
+    assert.equal(alcapao().state, 0, "coberto de novo");
     const tk = fora.tokenList()[0];
     hotel.moveToken(fora, tk.id, celeiro.data.id);
     gm.send({ t: "use", id: feno().id });
@@ -267,7 +269,9 @@ describe("Fazenda Olhos de Águia", () => {
       [escada.x, escada.y + 1],
       "no pé da escada",
     );
-    // sem ninguém no celeiro, o feno volta e cobre o alçapão
+    // com o mestre olhando o celeiro, o alçapão continua aberto; ele sai da cena e o feno volta e cobre
+    assert.equal(feno().lock?.open, true);
+    gm.send({ t: "join", roomId: calabouco.data.id });
     assert.equal(feno().lock?.open, false);
     assert.equal(alcapao().state, 0);
     // subindo pela escada com a passagem fechada, ela abre por dentro, e a peça sai do lado do buraco

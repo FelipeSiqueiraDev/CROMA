@@ -236,7 +236,7 @@ describe('passagem secreta (geladeira)', () => {
     assert.ok(salao.hasToken(-tk.id), 'a peça está no salão');
   });
 
-  test('sem ninguém no bar, a passagem se fecha sozinha', () => {
+  test('sem ninguém no bar (nenhuma peça e o mestre fora da cena), a passagem se fecha sozinha', () => {
     const bar = room('Bar');
     const salao = room('Salão Principal');
     gm.send({ t: 'unlock', id: fridge().id, code: SEDE_CODE });
@@ -244,9 +244,12 @@ describe('passagem secreta (geladeira)', () => {
     // enquanto sobra alguém, continua aberta
     for (const tk of tokens.slice(0, -1)) hotel.moveToken(bar, tk.id, salao.data.id);
     assert.equal(fridge().lock?.open, true);
-    // o último desce: a geladeira volta para cima da escada
+    // o último desce: com o mestre olhando o bar, ela continua aberta
     hotel.moveToken(bar, tokens[tokens.length - 1].id, salao.data.id);
     assert.equal(bar.tokenList().length, 0);
+    assert.equal(fridge().lock?.open, true);
+    // o mestre sai da cena: a geladeira volta para cima da escada
+    gm.send({ t: 'join', roomId: salao.data.id });
     assert.equal(fridge().lock?.open, false);
     assert.deepEqual([fridge().x, fridge().y], [20, 0]);
     assert.equal(stairs().state, 0);
@@ -257,12 +260,15 @@ describe('passagem secreta (geladeira)', () => {
     assert.equal(fridge().lock?.open, true);
   });
 
-  test('regra absoluta: com o bar vazio, a senha certa não abre', () => {
+  test('com o bar vazio, o mestre abre mesmo assim; quando ele sai da cena, ela se fecha', () => {
     const bar = room('Bar');
     const salao = room('Salão Principal');
     for (const tk of bar.tokenList()) hotel.moveToken(bar, tk.id, salao.data.id);
     gm.send({ t: 'unlock', id: fridge().id, code: SEDE_CODE });
-    assert.equal(gm.last('lockResult')?.ok, false);
+    assert.equal(gm.last('lockResult')?.ok, true);
+    assert.equal(fridge().lock?.open, true);
+    assert.deepEqual([fridge().x, fridge().y], [19, 0]);
+    gm.send({ t: 'join', roomId: salao.data.id });
     assert.equal(fridge().lock?.open, false);
     assert.deepEqual([fridge().x, fridge().y], [20, 0]);
   });

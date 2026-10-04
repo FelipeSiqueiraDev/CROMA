@@ -128,6 +128,7 @@ const view = new RoomView(canvas, {
   },
   select: () => app.emit('selection'),
   openHint: (kind, id) => hintViewer.open(kind, id),
+  aviso: (texto) => toast(texto),
 });
 app.view = view;
 // pose de cada peça no tabuleiro: Armado (no painel da peça) e machucado (menos da metade dos PV)

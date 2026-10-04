@@ -259,6 +259,8 @@ export interface RoomEvents {
   use(id: number): void;
   select(sel: Selection): void;
   openHint(kind: 'floor' | 'wall', id: number): void;
+  /** um aviso curto para quem está mexendo no tabuleiro */
+  aviso?(texto: string): void;
 }
 
 interface Hit {
@@ -888,9 +890,9 @@ export class RoomView {
       this.wallTarget = null;
       const pronto = this.tat.t >= 1;
       this.hoverTile = pronto ? this.casaTatica() : null;
-      const hit = pronto ? this.pickTatico() : null;
+      const hit = pronto && !this.placement ? this.pickTatico() : null;
       this.hoverKey = hit ? hit.kind + hit.id : '';
-      this.canvas.style.cursor = hit ? 'pointer' : 'default';
+      this.canvas.style.cursor = this.placement ? 'crosshair' : hit ? 'pointer' : 'default';
       return;
     }
     const [wx, wy] = this.toWorld(this.mouse.x, this.mouse.y);
@@ -909,16 +911,20 @@ export class RoomView {
   private click(shift: boolean) {
     const map = this.map;
     if (!map) return;
-    // vista tática: o clique é no mapa de cima (no meio do caminho, nada; lá não se constrói)
+    // vista tática: o clique é no mapa de cima (no meio do caminho, nada)
     const tat = this.tat.t > 0;
     if (tat && this.tat.t < 1) return;
     const [wx, wy] = this.toWorld(this.mouse.x, this.mouse.y);
     const now = performance.now();
-    const p = tat ? null : this.placement;
+    const p = this.placement;
     if (p) {
       if (p.kind === 'floor') {
-        const t = this.tileAt(wx, wy);
+        // colocando ou movendo um móvel: a casa do mouse (de cima, a do mapa tático)
+        const t = tat ? this.casaTatica() : this.tileAt(wx, wy);
         if (t) this.events.placeFloor(p, t.x, t.y, shift);
+      } else if (tat) {
+        // de cima não aparece a parede para escolher o lugar
+        this.events.aviso?.('Item de parede: coloque na vista isométrica (tecla T).');
       } else {
         const def = getWallFurni(p.defId);
         const t = def ? this.computeWallTarget(wx, wy, def) : null;
@@ -1105,7 +1111,10 @@ export class RoomView {
       escuro: Math.min(0.5, info.darkness * 0.7) * (1 - passo(0.15, 1, t)),
       celas: celas?.casa,
       noChao: (c) => marcasNoChao(c, marcas, pos, mouse, now),
-      porCima: (c, vv) => marcasPorCima(c, vv, marcas, pos, mouse),
+      porCima: (c, vv) => {
+        marcasPorCima(c, vv, marcas, pos, mouse);
+        this.edicaoTatica(c, vv);
+      },
     });
     const foto = this.tat.foto;
     const a = 1 - passo(0, 0.2, t);
@@ -1119,6 +1128,57 @@ export class RoomView {
       ctx.restore();
     }
     this.vinheta(ctx);
+  }
+
+  /**
+   * Na vista tática, mexendo nos móveis: o móvel escolhido com o contorno tracejado e, colocando ou
+   * movendo um, o fantasma dele na casa do mouse (verde se cabe, vermelho se não), com a frente
+   * marcada (o R e o botão direito giram).
+   */
+  private edicaoTatica(ctx: CanvasRenderingContext2D, v: CameraVoo) {
+    const map = this.map;
+    if (!map || v.t < 1) return;
+    ctx.save();
+    ctx.setTransform(matrizNaAltura(v, 0));
+    const px = 1 / v.escala;
+    const sel = this.selection;
+    const escolhido = sel?.kind === 'floor' ? map.getItem(sel.id) : undefined;
+    const defEscolhido = escolhido ? getFurni(escolhido.defId) : undefined;
+    if (escolhido && defEscolhido && !this.placement) {
+      const fp = footprint(defEscolhido, escolhido.rot);
+      ctx.strokeStyle = AMBER;
+      ctx.lineWidth = 2 * px;
+      ctx.setLineDash([6 * px, 4 * px]);
+      ctx.strokeRect(escolhido.x, escolhido.y, fp.sx, fp.sy);
+      ctx.setLineDash([]);
+    }
+    const p = this.placement;
+    const t = this.hoverTile;
+    const def = p?.kind === 'floor' ? getFurni(p.defId) : undefined;
+    if (p?.kind === 'floor' && def && t) {
+      const fp = footprint(def, p.rot);
+      const ok = map.canPlace(p.defId, t.x, t.y, p.rot, p.moveId).ok;
+      ctx.fillStyle = ok ? 'rgba(120,255,160,0.28)' : 'rgba(255,80,80,0.3)';
+      ctx.strokeStyle = ok ? 'rgba(120,255,160,0.95)' : 'rgba(255,80,80,0.95)';
+      ctx.lineWidth = 2 * px;
+      ctx.fillRect(t.x, t.y, fp.sx, fp.sy);
+      ctx.strokeRect(t.x, t.y, fp.sx, fp.sy);
+      // a frente: o lado para onde o móvel olha (giro 4: +y, 0: -y, 2: +x, 6: -x)
+      const [a, b] =
+        p.rot === 4
+          ? [[t.x, t.y + fp.sy], [t.x + fp.sx, t.y + fp.sy]]
+          : p.rot === 0
+            ? [[t.x, t.y], [t.x + fp.sx, t.y]]
+            : p.rot === 2
+              ? [[t.x + fp.sx, t.y], [t.x + fp.sx, t.y + fp.sy]]
+              : [[t.x, t.y], [t.x, t.y + fp.sy]];
+      ctx.lineWidth = 6 * px;
+      ctx.beginPath();
+      ctx.moveTo(a[0], a[1]);
+      ctx.lineTo(b[0], b[1]);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   /** As peças como fichas do mapa tático: o retrato, a cor do lado, o PV, a vez, a mira. */

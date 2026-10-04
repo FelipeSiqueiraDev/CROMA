@@ -186,8 +186,13 @@ export class RoomInstance {
     this.hotel = hotel;
     this.map = new RoomMap(data.heightmap, data.door, data.items, data.wallItems);
     for (const t of data.tokens ?? []) this.spawnToken(t, null);
-    // regra absoluta: sem ninguém na sala, a passagem secreta fica fechada (também ao carregar)
-    if (!this.users.size) this.closeWhenEmpty(false);
+    // sem ninguém na sala, a passagem secreta fica fechada (também ao carregar)
+    if (!this.temAlguem()) this.closeWhenEmpty(false);
+  }
+
+  /** Alguém na sala: uma peça no tabuleiro ou o mestre olhando a cena (a mesa não conta). */
+  private temAlguem() {
+    return this.users.size > 0 || [...this.viewers.values()].some((c) => this.canBuild(c));
   }
 
   get userCount() {
@@ -349,13 +354,13 @@ export class RoomInstance {
     this.users.delete(tokenId);
     this.broadcast({ t: 'userLeave', id: tokenId });
     this.saveTokens();
-    if (!this.users.size) this.closeWhenEmpty();
+    if (!this.temAlguem()) this.closeWhenEmpty();
     return this.tokenData(u);
   }
 
   /**
-   * Regra absoluta: sem ninguém na sala, a passagem secreta se fecha. O mobi volta para o
-   * lugar mesmo com algo no caminho (não sobrou ninguém para ver).
+   * Sem ninguém na sala (nenhuma peça e o mestre fora da cena), a passagem secreta se fecha. O
+   * mobi volta para o lugar mesmo com algo no caminho (não sobrou ninguém para ver).
    */
   private closeWhenEmpty(avisar = true) {
     for (const it of this.map.allItems()) {
@@ -515,6 +520,8 @@ export class RoomInstance {
   leave(c: Client) {
     if (!this.viewers.delete(c.id)) return;
     c.room = null;
+    // o mestre saiu da cena e não sobrou peça: a passagem se fecha
+    if (!this.temAlguem()) this.closeWhenEmpty();
     this.hotel.roomChanged();
   }
 
@@ -963,8 +970,7 @@ export class RoomInstance {
     const it = this.map.getItem(id);
     if (!it?.lock) return;
     if (it.lock.open) return c.send({ t: 'lockResult', id, ok: true });
-    // regra absoluta: sem ninguém na sala, a passagem fica fechada
-    if (!this.users.size) return c.send({ t: 'lockResult', id, ok: false, reason: 'Sem ninguém aqui, a passagem fica fechada.' });
+    // o mestre abre a qualquer hora (com ou sem peça na sala); ela se fecha quando ele sai e não sobra ninguém
     const code = typeof raw === 'string' ? raw.replace(/\D/g, '').slice(0, 12) : '';
     if (!code || code !== it.lock.code) return c.send({ t: 'lockResult', id, ok: false });
     const why = this.slideLock(it, true);
@@ -989,8 +995,6 @@ export class RoomInstance {
   private empurrar(c: Client, it: FloorItem) {
     if (!this.canBuild(c)) return this.err(c, 'Só o mestre mexe nisso.');
     const abrir = !it.lock!.open;
-    // regra absoluta, como na senha: sem ninguém na sala, a passagem fica escondida
-    if (abrir && !this.users.size) return this.err(c, 'Sem ninguém aqui, a passagem fica escondida.');
     const why = this.slideLock(it, abrir);
     if (why) return this.err(c, why);
     const nome = anyFurniName(it.defId);
