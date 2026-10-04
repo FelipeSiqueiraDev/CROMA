@@ -24,6 +24,15 @@ export function lerChaveFicha(): string | null {
   }
 }
 
+/** Guarda a chave da ficha que a conta do jogador trouxe (abre com ?ficha, sem o link). */
+export function guardarChaveFicha(chave: string) {
+  try {
+    localStorage.setItem(CHAVE, chave);
+  } catch {
+    /* sem armazenamento */
+  }
+}
+
 export function esquecerChaveFicha() {
   try {
     localStorage.removeItem(CHAVE);

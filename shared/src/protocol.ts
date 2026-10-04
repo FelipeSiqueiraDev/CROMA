@@ -3,7 +3,7 @@ import type { AcaoCombate, Combate, FichaAmeaca } from './combate/tipos';
 import type { RollResult } from './dice';
 import type { FloorItem, FloorStyle, Hint, ParticleKind, WallItem } from './room';
 import type { CampaignState, LootKind } from './rpg';
-import type { Role, Session, SessionAction, Token } from './session';
+import type { PapelConta, Role, Session, SessionAction, Token } from './session';
 import type { FichaSalva } from './fichas';
 import type { TipoItemCatalogo } from './regras/ficha';
 import type { VitalKey } from './vitals';
@@ -337,7 +337,15 @@ export type ClientMsg =
    * Mestre: o computador do servidor, ou quem manda a chave do link do mestre
    * (gmKey). mesa = tela da mesa, que sempre entra como jogador.
    */
-  | { t: 'login'; name: string; look: AvatarLook; gmKey?: string; mesa?: boolean; fichaKey?: string }
+  | { t: 'login'; name: string; look: AvatarLook; gmKey?: string; mesa?: boolean; fichaKey?: string; sessao?: string }
+  /**
+   * Contas da plataforma (a tela de entrada): e-mail e senha. A primeira conta, ou a criada no
+   * computador do servidor, é de mestre; as outras, de jogador. A resposta é a mensagem `conta`.
+   */
+  | { t: 'contaCriar'; nome: string; email: string; senha: string }
+  | { t: 'contaEntrar'; email: string; senha: string }
+  /** sair: a sessão deste aparelho deixa de valer */
+  | { t: 'contaSair'; sessao: string }
   /** ações da sessão (contrato em session.ts); só o mestre */
   | { t: 'act'; a: SessionAction }
   | { t: 'rooms' }
@@ -409,6 +417,13 @@ export type ClientMsg =
 export type ServerMsg =
   | { t: 'hello'; characters: CharacterDef[] }
   | { t: 'welcome'; id: number; name: string; look: AvatarLook; token: string; inventory: InvItem[]; home?: number; role: Role }
+  /**
+   * Resposta da conta. ok: a sessão (guardada no aparelho e mandada no login), o nome, o papel e,
+   * para o jogador com a ficha ligada, a chave da ficha. Sem ok: o motivo (expirou = a sessão
+   * guardada não vale mais).
+   */
+  | { t: 'conta'; ok: true; sessao: string; nome: string; papel: PapelConta; fichaKey?: string }
+  | { t: 'conta'; ok: false; erro: string; expirou?: boolean }
   | { t: 'error'; msg: string }
   | { t: 'notice'; msg: string }
   | { t: 'roomList'; rooms: RoomSummary[] }

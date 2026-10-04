@@ -118,6 +118,16 @@ Nada novo: usa os retratos, os ícones e as folhas da FICHAS. Os cartões de res
 
 ## O tabuleiro (revisto em 02/10)
 
+- [ ] ✱ **Catarina nas 8 direções** (`PROMPT-PERSONAGENS.txt`, Parte 0): entregue em 04/10 (`personagens-teste.zip`) e já convertida para o tabuleiro (`personagens/catarina/tabuleiro-32bits/`). **Esperando a aprovação do Felipe** (perto da Alosi, ela ficou com umas 6 cabeças de altura em vez de 7).
+- [ ] ✱ **As interações de cada agente** (`PROMPT-PERSONAGENS.txt`, Parte 5; formato no [ARTE.md](ARTE.md), "As interações do agente"):
+  - andar, nas 8 direções;
+  - abrir porta e armário;
+  - pegar item;
+  - atacar com a arma de cada um;
+  - cair e caído.
+
+  Um zip por agente.
+
 - [ ] ✱ **A folha das 8 direções de cada agente, no estilo de proporção real** (a Alosi de jaqueta creme de 02/10): `personagens/<nome>/oito-direcoes.png`, grade 4×2, parado, braços um pouco afastados do corpo, mesmo tamanho em todas as casas, fundo transparente. O formato está no [ARTE.md](ARTE.md) ("Folha das 8 direções"). Dela sai o boneco que anda no tabuleiro. **Primeiro a Alosi**, depois Tepes, Catarina e Cora.
 - [x] **Folha de objetos 1** (`mobiliario/props-ordo-realitas.png`, Códex): 11 móveis no jogo (a lista está no [SEDE-DA-ORDEM.md](SEDE-DA-ORDEM.md)).
 - [x] ✱ **O bar, um móvel por folha, nos 4 giros** (`mobiliario/folhas/<nome>.png`, formato no [ARTE.md](ARTE.md), "Móvel nos 4 giros"; a lista no [SEDE-DA-ORDEM.md](SEDE-DA-ORDEM.md), "Bar"): todos os móveis, os itens de parede (relógio, arandela, TV, ventilador), o tapete gasto e as texturas de chão e parede. **Falta:** o tapete persa (`rug_ornate`, visto de cima) e as costas da geladeira amarela, do expositor e do frigobar.

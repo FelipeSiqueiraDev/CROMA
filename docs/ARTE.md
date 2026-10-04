@@ -122,6 +122,24 @@ npm run arte:boneco -- alosi
 
   As peças do tronco e da roupa deslizam linha a linha (como o pixel art faz nas inclinações pequenas); as dos membros giram em volta da junta, sem amassar; tudo em pixel duro. Grava em `tabuleiro-32bits/`: `parado-<estado>-<direção>.png` e `andar-<estado>-<direção>.png` (tiras com os quadros lado a lado; a segunda linha, quando a direção mostra os olhos, é a de olhos fechados) e `anim.json` (tamanho e âncora de cada direção, quantos quadros, o tempo do parado, a fase do andar no meio da casa e onde ficam os pés em cada quadro). Com o `anim.json`, o boneco vale no lugar das poses e dos passos.
 - **Andar desenhado quadro a quadro** (o que fica perfeito): **uma imagem por direção**, com os **8 quadros do ciclo lado a lado, numa fileira só**, todos na mesma escala, com os pés na mesma linha, fundo verde puro `#00FF00` (ou transparente), sem chão, sem sombra, sem texto e sem moldura. O ciclo começa no contato do pé direito: 1 contato (pé direito na frente, calcanhar no chão), 2 baixo (o peso na perna direita, joelhos dobrados), 3 passagem (a perna esquerda passa do lado da direita, com o joelho dobrado e o pé no ar), 4 alto (a esquerda vai à frente), 5 contato (pé esquerdo na frente), 6 baixo, 7 passagem (a direita passa), 8 alto. Os braços vão ao contrário das pernas, com o cotovelo um pouco dobrado; cabelo e casaco balançam um pouco a cada passo. Mesmo personagem, mesmas cores e proporções da imagem das 8 direções paradas. Nome: `andar-<estado>-<direção>.png` (ex.: `andar-desarmado-se.png`), numa pasta qualquer; o construtor roda `npm run arte:boneco -- alosi --andar-desenhado <pasta>`: os quadros são separados, reduzidos para a escala da pose parada, pintados com as cores dela, alinhados pelo meio do tronco e pelo pé mais baixo, e os pés de cada quadro são achados para a sombra de contato. Pode vir com outro número de quadros (`--quadros 6`). Faltando `sw`, `w` ou `nw`, entra `se`, `e` ou `ne` espelhado (a corrente troca de lado: o melhor é ter as 8). O parado continua respirando e piscando pelo boneco; andando, ele não pisca.
+- **As interações do agente (pedidas em 04/10; o jogo ainda não toca, o construtor liga quando chegarem).**
+  - **Formato:** o mesmo do andar desenhado: uma imagem por animação e direção, os quadros lado a lado numa fileira, na escala da folha das 8 direções do agente, pés na mesma linha (menos no cair e no caído), fundo verde `#00FF00` ou transparente. O primeiro e o último quadro de abrir, pegar e atacar são a pose parada.
+  - **As animações:**
+
+    | Animação | Arquivo | Direções | Quadros |
+    |---|---|---|---|
+    | Andar | `andar-<estado>-<direção>.png` | as 8 | 8 |
+    | Abrir porta, armário, gaveta, baú | `abrir-<direção>.png` | as 4 diagonais (ne, se, sw, nw) | 6 |
+    | Pegar item | `pegar-<direção>.png` | as 4 diagonais | 6 |
+    | Atacar, com a arma de cada um | `atacar-<direção>.png` | as 4 diagonais | 6 |
+    | Cair | `cair-<direção>.png` | as 4 diagonais | 5 |
+    | Caído (morrendo, inconsciente) | `caido-<direção>.png` | as 4 diagonais | 1 |
+
+  - **Como o jogo vai usar:** com 4 diagonais, as outras direções usam a mais perto.
+    - **Abrir e pegar:** tocam quando o mestre usa a ação com a peça comandada, virada para o objeto.
+    - **Atacar:** toca no ataque do combate.
+    - **Cair e caído:** tocam quando os PV chegam a 0.
+  - **Pedido pronto:** `PROMPT-PERSONAGENS.txt`, Parte 5, na pasta da arte do GPT.
 - **Quadros de andar desenhados à mão** (para quem não tem boneco): `andar-<estado>-<direção>-<n>.png` com n = 1, 2, 3... em ordem, no mesmo tamanho da pose parada da direção e com os pés no mesmo ponto. Um ciclo são dois passos, e o jogo toca um ciclo por casa; pode ter de 4 a 16 quadros. Entram sozinhos.
 - **Como o jogo escolhe:** o estado vem do botão **Armado** (no painel da peça) e dos PV (**menos da metade = machucado**, como no livro); a direção vem da peça (↺ ↻, Q e E) ou do caminho que ela anda. Faltando uma direção, usa a vizinha; faltando um estado, o mais parecido. No carregamento, o quase transparente em volta some e o corpo fica totalmente opaco.
 - **Como o jogo toca o boneco:** andando, o quadro vem do quanto a peça já andou (e não do relógio): no meio de cada casa ela está na passagem, então para ali com os pés juntos, e virando no caminho o passo continua na direção nova. Parado, respira com a fase de cada peça (os agentes não respiram juntos) e pisca em hora aleatória, de 2,4 a 6 s, às vezes duas vezes seguidas. A sombra de contato vai embaixo de cada pé, menor e mais clara com o pé no ar.

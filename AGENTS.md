@@ -27,7 +27,7 @@ npm run banco:restaurar -- server/data/backups/<arquivo>.dump --sim
 npm run banco:parar
 ```
 
-- **Mestre:** o computador que roda o servidor. Abre direto a interface em `http://localhost:5173`, sem login.
+- **Mestre:** entra pela tela de entrada (e-mail e senha) em `http://localhost:5173`. A primeira conta criada, ou a criada no computador do servidor, é a do mestre. Em desenvolvimento, `?auto` pula a entrada.
 - **Mesa (tablet):** `http://IP-deste-computador:5173/?mesa`. O servidor imprime o link ao subir. Na primeira vez, o Windows pode pedir para liberar o Node no firewall.
 - **Mestre em outro aparelho:** link com `?mestre=CHAVE`, também impresso pelo servidor. A chave fica no banco (`gmKey` na tabela `config`).
 - **Jogador (a própria ficha, no celular):** link `?ficha=CHAVE`, que o mestre gera na aba FICHAS (botão ⋯ da Identificação). O jogador vê e edita só a ficha dele; NEX e pontos de prestígio ficam com o mestre.
@@ -83,6 +83,10 @@ Pediram arte ("começa a arte", "faz os retratos", "faz os ícones da FICHAS")? 
 
 ## Estado (atualizado em 03/10/2026; o que está em aberto fica no `docs/EM-ABERTO.md`)
 
+- **Entrada e contas (04/10):** quem abre o CRONA sem link vê a tela de entrada (`client/src/ui/entrada.ts`, a arte em `client/public/arte/login/`, animada). Lá entra com e-mail e senha ou cria a conta.
+  - **As contas** ficam no servidor (`server/src/contas.ts`): senha em scrypt e uma sessão por aparelho.
+  - **Papéis:** a primeira conta, ou a criada no computador do servidor, é de mestre; as outras são de jogador. O jogador liga a conta à ficha abrindo o link `?ficha=` com ela.
+  - **Sem conta, como antes:** a mesa (`?mesa`), os links `?ficha=` e `?mestre=`, e o `?auto` do desenvolvimento.
 - **Sede da Ordem** (campanha que abre por padrão): o bar no térreo e onze cômodos no subsolo, montados a partir da planta "Mapa Base Ordo Realitas" (`server/src/seedSede.ts`). A lista do visual, cômodo por cômodo, está em `docs/SEDE-DA-ORDEM.md`. Mudou a montagem? Suba `SEDE_REV`: a Sede é refeita no lugar, mantendo cômodos, peças e registro.
 - **Passagem secreta:** a geladeira do bar tem fechadura com senha (0413). O mestre digita no painel do objeto; certa, ela desliza e a escada escondida aparece. Quem sobe pela escada com a passagem fechada abre por dentro. Quando não sobra ninguém na sala, a passagem se fecha sozinha.
 - **Celas da prisão (03/10):** paredes de concreto e porta de aço no lugar da grade. A porta abre e fecha com clique duplo; fechada, ninguém passa (`openState` no mobi) e a cela fica no escuro (chão, móveis, a lâmpada dela e quem estiver lá dentro). Aberta, acende aos poucos e a parede entre ela e a câmera fica transparente. A porta tem `cela` no mobi; o jogo acha as casas de dentro a partir dela (`client/src/room/celas.ts`).

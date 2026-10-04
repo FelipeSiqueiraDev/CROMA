@@ -83,6 +83,11 @@ export interface Client {
   local?: boolean;
   /** jogador que entrou pelo link da própria ficha (`?ficha=CHAVE`) */
   fichaId?: number;
+  /** conta da plataforma com que entrou (tela de entrada) */
+  contaId?: number;
+  /** senhas erradas seguidas nesta conexão, e até quando ela espera depois de muitas */
+  falhasConta?: number;
+  esperaConta?: number;
   send(msg: ServerMsg): void;
   /** encerra esta conexão (sessão aberta em outra aba) */
   kick?(): void;

@@ -41,7 +41,9 @@ import {
   noCatalogo,
   type AcaoMochila,
   type Loot,
+  type PapelConta,
 } from '@crona/shared';
+import { confereSenha, contaDaSessao, EMAIL_RE, fecharSessao, hashSenha, novaSessao, SENHA_MIN, type Conta } from './contas';
 import { loadDb, saveDbNow, scheduleSave, type CampaignData, type Database, type RoomData, type UserData } from './db';
 import { RoomInstance, type Client, type HotelApi } from './roomInstance';
 import { refreshPortraits } from './portraits';
@@ -1313,6 +1315,9 @@ export class Hotel implements HotelApi {
   }
 
   private handle(c: Client, m: Record<string, unknown>) {
+    // a conta (tela de entrada) vale antes e depois do login
+    if (m.t === 'contaCriar' || m.t === 'contaEntrar') return void this.conta(c, m);
+    if (m.t === 'contaSair') return this.contaSair(m);
     if (!c.name) {
       if (m.t === 'login') this.login(c, m);
       return;
@@ -1392,18 +1397,86 @@ export class Hotel implements HotelApi {
     c.room?.handle(c, m);
   }
 
+  // ---------- contas (a tela de entrada) ----------
+  /** Criar conta ou entrar com e-mail e senha. A resposta é a mensagem `conta`. */
+  private async conta(c: Client, m: Record<string, unknown>) {
+    const agora = Date.now();
+    const falha = (erro: string) => c.send({ t: 'conta', ok: false, erro });
+    if ((c.esperaConta ?? 0) > agora) return falha('Muitas tentativas seguidas. Espere meio minuto e tente de novo.');
+    const email = typeof m.email === 'string' ? m.email.trim().toLowerCase() : '';
+    const senha = typeof m.senha === 'string' ? m.senha : '';
+    if (email.length > 120 || !EMAIL_RE.test(email)) return falha('Confira o e-mail.');
+    if (senha.length < SENHA_MIN || senha.length > 200) return falha(`A senha precisa de pelo menos ${SENHA_MIN} caracteres.`);
+    const contas = (this.db.contas ??= []);
+    if (m.t === 'contaCriar') {
+      const nome = typeof m.nome === 'string' ? m.nome.trim().replace(/\s+/g, ' ') : '';
+      if (nome.length < 2 || nome.length > MAX_NAME || !NAME_RE.test(nome))
+        return falha(`O nome precisa de 2 a ${MAX_NAME} letras ou números.`);
+      if (nome.toLowerCase() === SYSTEM_OWNER.toLowerCase()) return falha('Esse nome é reservado.');
+      const ocupado = () =>
+        contas.some((x) => x.email === email) ? 'Já existe uma conta com esse e-mail.' : contas.some((x) => x.nome.toLowerCase() === nome.toLowerCase()) ? 'Esse nome já é de outra conta.' : null;
+      if (ocupado()) return falha(ocupado()!);
+      const hash = await hashSenha(senha);
+      // outra conexão pode ter criado igual enquanto a senha virava hash
+      if (ocupado()) return falha(ocupado()!);
+      // a primeira conta, ou a criada no computador do servidor, é a do mestre
+      const papel: PapelConta = !contas.length || c.local ? 'mestre' : 'jogador';
+      const conta: Conta = { id: (this.db.nextContaId ??= 1), nome, email, senha: hash, papel, sessoes: [], criadaEm: agora };
+      this.db.nextContaId++;
+      contas.push(conta);
+      if (this.persist) console.log(`[contas] conta nova: ${nome} (${papel})`);
+      return this.contaAberta(c, conta);
+    }
+    const conta = contas.find((x) => x.email === email);
+    // sem a conta, o tempo de resposta é o mesmo (não entrega quais e-mails existem)
+    const certa = conta ? await confereSenha(senha, conta.senha) : (await hashSenha(senha), false);
+    if (!conta || !certa) {
+      c.falhasConta = (c.falhasConta ?? 0) + 1;
+      if (c.falhasConta >= 5) (c.falhasConta = 0), (c.esperaConta = agora + 30_000);
+      return falha('E-mail ou senha não conferem.');
+    }
+    c.falhasConta = 0;
+    this.contaAberta(c, conta);
+  }
+
+  private contaAberta(c: Client, conta: Conta) {
+    const sessao = novaSessao(conta);
+    this.save();
+    const ficha = conta.papel === 'jogador' && conta.fichaId ? (this.db.fichas ?? []).find((f) => f.id === conta.fichaId) : undefined;
+    c.send({ t: 'conta', ok: true, sessao, nome: conta.nome, papel: conta.papel, ...(ficha?.chave ? { fichaKey: ficha.chave } : {}) });
+  }
+
+  private contaSair(m: Record<string, unknown>) {
+    if (typeof m.sessao === 'string' && m.sessao && fecharSessao(this.db.contas, m.sessao)) this.save();
+  }
+
   private login(c: Client, m: Record<string, unknown>) {
-    const name = typeof m.name === 'string' ? m.name.trim().replace(/\s+/g, ' ') : '';
+    // com a sessão da conta, o nome e o papel saem da conta
+    const sessao = typeof m.sessao === 'string' && m.sessao ? m.sessao : null;
+    const conta = sessao ? contaDaSessao(this.db.contas, sessao) : undefined;
+    if (sessao && !conta) return c.send({ t: 'conta', ok: false, erro: 'Sua sessão terminou. Entre de novo.', expirou: true });
+    const name = conta ? conta.nome : typeof m.name === 'string' ? m.name.trim().replace(/\s+/g, ' ') : '';
     if (name.length < 2 || name.length > MAX_NAME || !NAME_RE.test(name))
       return c.send({ t: 'error', msg: `Nome inválido (2 a ${MAX_NAME} letras, números, espaço, _ - .).` });
     const key = name.toLowerCase();
     if (key === SYSTEM_OWNER.toLowerCase()) return c.send({ t: 'error', msg: 'Esse nome é reservado.' });
-    // a tela da mesa é sempre jogador; mestre = o próprio computador do servidor ou quem tem a chave
+    // a tela da mesa é sempre jogador; mestre = o próprio computador do servidor, quem tem a chave
+    // ou a conta de mestre
     const hasKey = typeof m.gmKey === 'string' && !!m.gmKey && this.checkGmKey(m.gmKey);
-    const daFicha = typeof m.fichaKey === 'string' && m.fichaKey ? this.fichaPelaChave(m.fichaKey) : undefined;
+    let daFicha = typeof m.fichaKey === 'string' && m.fichaKey ? this.fichaPelaChave(m.fichaKey) : undefined;
+    // o jogador com conta continua na ficha dele mesmo que o mestre tenha trocado o link
+    if (!daFicha && conta?.papel === 'jogador' && conta.fichaId) daFicha = (this.db.fichas ?? []).find((f) => f.id === conta.fichaId);
     if (typeof m.fichaKey === 'string' && m.fichaKey && !daFicha) return c.send({ t: 'error', msg: 'Link de ficha inválido. Peça um novo ao mestre.' });
-    const role: Role = m.mesa === true || daFicha ? 'player' : c.local || hasKey ? 'gm' : 'player';
+    // o jogador que abre o link da ficha com a conta fica com ela ligada à conta
+    if (conta?.papel === 'jogador' && daFicha && conta.fichaId !== daFicha.id) {
+      conta.fichaId = daFicha.id;
+      this.save();
+    }
+    // com a conta, vale o papel dela (o computador do servidor sozinho não basta), mas a chave do
+    // mestre continua valendo
+    const role: Role = m.mesa === true || daFicha ? 'player' : hasKey || conta?.papel === 'mestre' || (!conta && c.local) ? 'gm' : 'player';
     c.fichaId = daFicha?.id;
+    c.contaId = conta?.id;
     // mesma pessoa abrindo em outra aba: a conexão nova assume (jogador não derruba o mestre)
     for (const o of this.clients.values())
       if (o !== c && o.key === key && o.role === 'gm' && role !== 'gm') return c.send({ t: 'error', msg: 'Esse nome já está em uso na sessão.' });

@@ -13,6 +13,8 @@ import { computeWalls, type Door } from './walls';
 
 /** Mestre controla a sessão; jogador só acompanha. */
 export type Role = 'gm' | 'player';
+/** Papel de uma conta da plataforma: o mestre controla as sessões; o jogador, a própria ficha. */
+export type PapelConta = 'mestre' | 'jogador';
 
 /** Ponto no quadro da cena: 0..1 nos dois eixos (0,0 = canto superior esquerdo). */
 export interface NormPoint {

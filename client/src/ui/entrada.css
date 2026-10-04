@@ -1,0 +1,538 @@
+/* A tela de entrada (client/src/ui/entrada.ts). Tudo em pixels do palco (a arte de 1672×941 ou
+   941×1672), que escala inteiro; --u aumenta letras e ícones no celular. As cores saíram da arte:
+   painel #050b14, campo #060c16, borda #a18873, ouro #d28a34. */
+
+.entrada {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  overflow: hidden;
+  background: #050403;
+  opacity: 0;
+  transition: opacity 0.9s ease;
+}
+.entrada.pronta {
+  opacity: 1;
+}
+.entrada.saindo {
+  opacity: 0;
+  transform: scale(1.035);
+  transition:
+    opacity 0.85s ease,
+    transform 0.85s ease;
+  pointer-events: none;
+}
+.ent-palco {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  --u: 1;
+}
+.ent-fundo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.ent-fx,
+.ent-poeira {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.ent-fx > i {
+  position: absolute;
+  display: block;
+  transform: translate(-50%, -50%);
+}
+
+/* ---------------------------------------------------------------- luzes */
+.fx-chama,
+.fx-luz-vela,
+.fx-lua,
+.fx-emblema {
+  border-radius: 50%;
+  mix-blend-mode: screen;
+  will-change: opacity, transform;
+}
+.fx-chama {
+  width: var(--r);
+  height: var(--r);
+  background: radial-gradient(circle, rgba(255, 214, 140, 0.55), rgba(255, 160, 70, 0.18) 34%, transparent 68%);
+  animation: ent-tremula 1.7s infinite ease-in-out;
+}
+.fx-luz-vela {
+  width: var(--r);
+  height: var(--r);
+  background: radial-gradient(circle, rgba(255, 170, 80, 0.16), rgba(255, 140, 60, 0.06) 42%, transparent 70%);
+  animation: ent-tremula 2.3s infinite ease-in-out reverse;
+}
+@keyframes ent-tremula {
+  0% {
+    opacity: 0.84;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  9% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.04);
+  }
+  17% {
+    opacity: 0.76;
+    transform: translate(-50%, -50%) scale(0.98);
+  }
+  31% {
+    opacity: 0.95;
+    transform: translate(-50%, -50%) scale(1.02);
+  }
+  44% {
+    opacity: 0.8;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  58% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.05);
+  }
+  71% {
+    opacity: 0.78;
+    transform: translate(-50%, -50%) scale(0.99);
+  }
+  86% {
+    opacity: 0.93;
+    transform: translate(-50%, -50%) scale(1.01);
+  }
+  100% {
+    opacity: 0.84;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+.fx-lua {
+  width: var(--r);
+  height: var(--r);
+  background: radial-gradient(circle, rgba(255, 226, 150, 0.4), transparent 65%);
+  animation: ent-pulsa 6s infinite ease-in-out;
+}
+.fx-emblema {
+  width: calc(var(--r) * 2);
+  height: calc(var(--r) * 2);
+  background: radial-gradient(circle, rgba(255, 196, 90, 0.3), rgba(255, 170, 60, 0.1) 40%, transparent 68%);
+  animation: ent-pulsa 4.2s infinite ease-in-out;
+}
+@keyframes ent-pulsa {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: translate(-50%, -50%) scale(0.96);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.04);
+  }
+}
+.fx-estrela {
+  width: calc(var(--u) * 3px);
+  height: calc(var(--u) * 3px);
+  background: #fff3c4;
+  box-shadow: 0 0 calc(var(--u) * 6px) calc(var(--u) * 2px) rgba(255, 236, 170, 0.7);
+  opacity: 0;
+  animation: ent-pisca 3s infinite ease-in-out;
+}
+@keyframes ent-pisca {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  45% {
+    opacity: 0.9;
+  }
+  55% {
+    opacity: 0.25;
+  }
+  70% {
+    opacity: 0.8;
+  }
+}
+.fx-fumaca {
+  width: calc(var(--u) * 34px);
+  height: calc(var(--u) * 64px);
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(220, 215, 228, 0.34), transparent 70%);
+  filter: blur(calc(var(--u) * 6px));
+  opacity: 0;
+  animation: ent-sobe 5s infinite ease-out;
+}
+@keyframes ent-sobe {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 0) scale(0.6);
+  }
+  18% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-25%, calc(var(--u) * -160px)) scale(1.8);
+  }
+}
+.fx-faisca {
+  width: calc(var(--u) * 18px);
+  height: calc(var(--u) * 18px);
+  background: #ffd77a;
+  clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%);
+  filter: drop-shadow(0 0 calc(var(--u) * 4px) #ffb23e);
+  opacity: 0;
+  animation: ent-faisca 3.6s infinite ease-in-out;
+}
+@keyframes ent-faisca {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.2) rotate(0deg);
+  }
+  14% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) rotate(45deg);
+  }
+  32% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.3) rotate(90deg);
+  }
+}
+
+/* ---------------------------------------------------------------- o painel */
+.ent-painel {
+  position: absolute;
+  background: #050b14;
+  /* as beiradas somem no painel da arte */
+  box-shadow: 0 0 calc(var(--u) * 10px) calc(var(--u) * 6px) #050b14;
+  font-family: 'Pixelify Sans', 'Ubuntu Mono', monospace;
+  color: #e9dccb;
+}
+.ent-painel > * {
+  position: absolute;
+  box-sizing: border-box;
+  transition:
+    top 0.38s cubic-bezier(0.2, 0.8, 0.2, 1),
+    height 0.38s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.3s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    filter 0.2s ease;
+}
+.ent-painel.sem-transicao > * {
+  transition: none;
+}
+.ent-painel > .oculto {
+  opacity: 0;
+  pointer-events: none;
+}
+/* a chegada: cada peça sobe um pouco, uma depois da outra (o botão de ouro segue com o brilho) */
+.entrada.pronta .ent-painel > :not(.oculto):not(.ent-erro):not(.ent-principal),
+.ent-painel.troca > :not(.oculto):not(.ent-erro):not(.ent-principal) {
+  animation: ent-chega 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.entrada.pronta .ent-painel > .ent-email,
+.ent-painel.troca > .ent-email {
+  animation-delay: 0.08s;
+}
+.entrada.pronta .ent-painel > .ent-senha,
+.ent-painel.troca > .ent-senha {
+  animation-delay: 0.16s;
+}
+.entrada.pronta .ent-painel > .ent-ou,
+.ent-painel.troca > .ent-ou {
+  animation-delay: 0.3s;
+}
+.entrada.pronta .ent-painel > .ent-outro,
+.ent-painel.troca > .ent-outro {
+  animation-delay: 0.36s;
+}
+.entrada.pronta .ent-painel > .ent-principal,
+.ent-painel.troca > .ent-principal {
+  animation:
+    ent-chega 0.6s 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) both,
+    ent-varre 5s 1.8s infinite;
+}
+@keyframes ent-chega {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--u) * 14px));
+  }
+}
+
+/* campos */
+.ent-campo {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 14px);
+  padding: 0 calc(var(--u) * 18px);
+  background: #060c16;
+  border: calc(var(--u) * 2px) solid #a18873;
+  border-radius: calc(var(--u) * 7px);
+  box-shadow:
+    inset 0 0 0 calc(var(--u) * 1px) rgba(0, 0, 0, 0.6),
+    0 0 0 calc(var(--u) * 1px) rgba(161, 136, 115, 0.12);
+  cursor: text;
+}
+.ent-campo:focus-within {
+  border-color: #e2a64a;
+  box-shadow:
+    0 0 calc(var(--u) * 14px) rgba(226, 166, 74, 0.35),
+    inset 0 0 calc(var(--u) * 10px) rgba(226, 166, 74, 0.08);
+}
+.ent-ic {
+  flex: none;
+  width: calc(var(--u) * 28px);
+  height: calc(var(--u) * 28px);
+  color: #cdbca6;
+}
+.ent-ic svg,
+.ent-olho svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.ent-campo:focus-within .ent-ic {
+  color: #ffd27a;
+}
+.ent-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  color: #f1e6d4;
+  font: inherit;
+  font-size: calc(var(--u) * 20px);
+  letter-spacing: 0.02em;
+  caret-color: #ffc35a;
+}
+.ent-input::placeholder {
+  color: #6f6b67;
+  opacity: 1;
+}
+.ent-input:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 100px #060c16 inset;
+  -webkit-text-fill-color: #f1e6d4;
+  caret-color: #ffc35a;
+  transition: background-color 9999s;
+}
+.ent-olho {
+  flex: none;
+  width: calc(var(--u) * 28px);
+  height: calc(var(--u) * 28px);
+  padding: 0;
+  background: none;
+  border: 0;
+  color: #a99a88;
+  cursor: pointer;
+}
+.ent-olho:hover,
+.ent-olho:focus-visible {
+  color: #ffd27a;
+  outline: none;
+}
+
+/* botões */
+.ent-botao {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0 calc(var(--u) * 48px);
+  font-family: inherit;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  cursor: pointer;
+  overflow: hidden;
+}
+.ent-principal {
+  color: #2b1606;
+  font-size: calc(var(--u) * 24px);
+  font-weight: 700;
+  text-shadow: 0 1px 0 rgba(255, 236, 190, 0.6);
+  border: calc(var(--u) * 2px) solid #3a1e08;
+  border-radius: calc(var(--u) * 6px);
+  /* o brilho que corre por cima do ouro */
+  background:
+    linear-gradient(105deg, transparent 42%, rgba(255, 252, 235, 0.55) 50%, transparent 58%) no-repeat,
+    linear-gradient(#f6cf6a 0%, #e9a944 46%, #c97f2c 100%);
+  background-size:
+    260% 100%,
+    100% 100%;
+  background-position:
+    170% 0,
+    0 0;
+  box-shadow:
+    inset 0 calc(var(--u) * 2px) 0 rgba(255, 240, 190, 0.75),
+    inset 0 calc(var(--u) * -3px) 0 rgba(120, 60, 10, 0.55),
+    0 calc(var(--u) * 4px) calc(var(--u) * 10px) rgba(0, 0, 0, 0.45),
+    0 0 calc(var(--u) * 18px) rgba(255, 170, 60, 0.18);
+  animation: ent-varre 5s 1.6s infinite;
+}
+/* os losangos das pontas, como na arte */
+.ent-principal::before,
+.ent-principal::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: calc(var(--u) * 12px);
+  height: calc(var(--u) * 18px);
+  background: #7a3f0c;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  transform: translateY(-50%);
+}
+.ent-principal::before {
+  left: calc(var(--u) * 22px);
+}
+.ent-principal::after {
+  right: calc(var(--u) * 22px);
+}
+@keyframes ent-varre {
+  0% {
+    background-position:
+      170% 0,
+      0 0;
+  }
+  22%,
+  100% {
+    background-position:
+      -70% 0,
+      0 0;
+  }
+}
+.ent-principal:hover {
+  filter: brightness(1.08) saturate(1.05);
+}
+.ent-principal:active {
+  filter: brightness(0.94);
+}
+.ent-principal:focus-visible {
+  outline: calc(var(--u) * 2px) solid #ffe3a3;
+  outline-offset: calc(var(--u) * 3px);
+}
+.ent-outro {
+  color: #efe3d1;
+  font-size: calc(var(--u) * 18px);
+  letter-spacing: 0.1em;
+  background: #060c16;
+  border: calc(var(--u) * 2px) solid #c08442;
+  border-radius: calc(var(--u) * 5px);
+  box-shadow:
+    inset 0 0 0 calc(var(--u) * 3px) #060c16,
+    inset 0 0 0 calc(var(--u) * 4px) rgba(192, 132, 66, 0.35);
+}
+.ent-outro:hover,
+.ent-outro:focus-visible {
+  outline: none;
+  color: #ffd27a;
+  border-color: #f0b058;
+  box-shadow:
+    inset 0 0 0 calc(var(--u) * 3px) #060c16,
+    inset 0 0 0 calc(var(--u) * 4px) rgba(240, 176, 88, 0.45),
+    0 0 calc(var(--u) * 12px) rgba(240, 176, 88, 0.25);
+}
+
+/* "ou", o erro e a mensagem */
+.ent-ou,
+.ent-erro {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: calc(var(--u) * 24px);
+  transform: translateY(-50%);
+  font-size: calc(var(--u) * 16px);
+}
+.ent-ou {
+  gap: calc(var(--u) * 16px);
+  color: #9a8f86;
+}
+.ent-ou::before,
+.ent-ou::after {
+  content: '';
+  width: calc(var(--u) * 102px);
+  height: 1px;
+  background: #47433d;
+}
+.ent-erro {
+  color: #ff9b7a;
+  font-size: calc(var(--u) * 15px);
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+}
+.ent-painel.com-erro .ent-erro {
+  opacity: 1;
+}
+.ent-painel.com-erro .ent-ou {
+  opacity: 0;
+}
+.ent-msg {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: calc(var(--u) * 10px);
+  padding: 0 calc(var(--u) * 6px);
+  text-align: center;
+  font-size: calc(var(--u) * 17px);
+  line-height: 1.35;
+  color: #e9dccb;
+}
+.ent-msg b {
+  color: #ffd27a;
+  font-size: calc(var(--u) * 22px);
+}
+.ent-painel.treme {
+  animation: ent-treme 0.45s;
+}
+@keyframes ent-treme {
+  0%,
+  100% {
+    transform: none;
+  }
+  20% {
+    transform: translateX(calc(var(--u) * -8px));
+  }
+  40% {
+    transform: translateX(calc(var(--u) * 7px));
+  }
+  60% {
+    transform: translateX(calc(var(--u) * -4px));
+  }
+  80% {
+    transform: translateX(calc(var(--u) * 3px));
+  }
+}
+.ent-painel.esperando .ent-principal {
+  cursor: progress;
+}
+.ent-painel.esperando .ent-rotulo {
+  animation: ent-respira 1s infinite ease-in-out;
+}
+@keyframes ent-respira {
+  50% {
+    opacity: 0.45;
+  }
+}
+.entrada .ent-painel.certo > .ent-principal {
+  background: linear-gradient(#fbe08c, #f0b84f 50%, #d68f32);
+  box-shadow:
+    inset 0 calc(var(--u) * 2px) 0 rgba(255, 240, 190, 0.75),
+    0 0 calc(var(--u) * 32px) rgba(255, 200, 90, 0.6);
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ent-fx > i,
+  .ent-principal,
+  .entrada.pronta .ent-painel > *,
+  .ent-painel.troca > * {
+    animation: none !important;
+  }
+}

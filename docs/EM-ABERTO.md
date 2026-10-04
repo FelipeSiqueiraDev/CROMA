@@ -95,8 +95,43 @@ O Felipe trocou o nome do jogo para **CRONA**, de Cronos e de crônica. A regra 
 - **Ferramentas no repositório** (antes ficavam no rascunho de uma sessão):
   - `scripts/dev/`: banco de teste, captura, vigia de zips, folha dos giros;
   - `scripts/3d/`: auditoria, eixos, fila, folha de cima, pedido da vista de cima.
+- **A tela de entrada e as contas (04/10).**
+  - **A tela:** é a arte do Felipe, em `client/public/arte/login/`: a mesa de RPG à luz de vela, uma versão para o computador e uma para o celular. Os campos de verdade ficam em cima dos desenhados (`client/src/ui/entrada.ts` e `entrada.css`).
+  - **As animações:** a vela tremula e ilumina a mesa, o céu pisca, a lua pulsa, sai fumaça da caneca, o emblema brilha com faíscas, a poeira flutua na luz e um brilho passa pelo botão.
+  - **As contas** ficam no servidor (`server/src/contas.ts`, guardadas na tabela `config`):
+    - e-mail e senha, com a senha em scrypt;
+    - uma sessão por aparelho, que vale 180 dias;
+    - depois de 5 senhas erradas, a conexão espera 30 s.
+  - **Os papéis:**
+    - a primeira conta, ou a criada no computador do servidor, é de **mestre**; as outras são de **jogador**;
+    - o jogador abre o link `?ficha=` com a conta e a ficha fica ligada a ela; nas próximas vezes, entra direto na ficha.
+  - **Continua como antes:**
+    - a mesa (`?mesa`), os links `?ficha=` e `?mestre=`;
+    - o `?auto` do desenvolvimento, que pula a entrada.
+  - **"Encerrar sessão"** sai da conta e volta à entrada.
+  - **Testes:** 6 em `server/test/contas.test.ts`.
+- **A marca CRONA (04/10):**
+  - os logos estão em `client/public/arte/marca/`;
+  - o ícone do CRONA aparece na aba do navegador e no celular.
 
 ## Pela metade
+
+- **A Catarina nova** (`personagens-teste.zip`, 04/10): o Códex fez as 8 direções.
+  - Elas já foram convertidas pelo `npm run arte:poses` para `client/public/arte/personagens/catarina/tabuleiro-32bits/`, **fora do git**, esperando o Felipe aprovar. No tabuleiro ficou boa, mas perto da Alosi tem umas 6 cabeças de altura em vez de 7.
+  - **Se ele aprovar:**
+    1. Commit da pasta.
+    2. Marcações em `scripts/bonecos/catarina.json` para o `npm run arte:boneco` (respirar e piscar).
+    3. Mandar o Códex seguir para as Partes 1 a 5 do `PROMPT-PERSONAGENS.txt`.
+  - **Se não aprovar:** apague a pasta e peça para refazer, dizendo o motivo.
+- **As interações dos agentes no tabuleiro** (pedidas em 04/10). Quando a arte da Parte 5 chegar (formato no `ARTE.md`, "As interações do agente"), o `RoomView` precisa tocar cada uma:
+  - **Abrir e pegar:** quando o mestre usa a ação com a peça comandada, virada para o objeto.
+  - **Atacar:** no ataque do combate.
+  - **Cair e caído:** quando os PV chegam a 0.
+
+  O andar já toca (o `anim.json` do boneco).
+- **Contas:**
+  - **Senha esquecida:** ainda não tem "esqueci a senha" (sem e-mail no servidor). O jeito é o mestre apagar a conta, que fica em `config.contas` no banco, e criar de novo.
+  - **Lista de contas:** falta uma lista na interface do mestre, para ver as contas, trocar o papel e desligar a ficha.
 
 - **Requisição de equipamento** (`shared/src/regras/requisicao.ts`):
   - modificações e maldições dentro da requisição;

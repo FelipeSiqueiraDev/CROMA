@@ -10,6 +10,7 @@ import './ui/combate.css';
 import './ui/itens.css';
 import './ui/teclado.css';
 import './ui/requisicao.css';
+import './ui/entrada.css';
 import { anyFurniName, getFurni, getWallFurni, portraitState, vitalConditions, type ServerMsg } from '@crona/shared';
 import { Net } from './net';
 import { clearIconCache } from './render/bubbles';
@@ -25,7 +26,9 @@ import { HintViewer } from './ui/infostand';
 import { Shell } from './ui/shell';
 import { loadLogin, saveLogin } from './ui/login';
 import { TableScreen } from './ui/table';
-import { esquecerChaveFicha, lerChaveFicha, TelaFicha } from './ui/telaFicha';
+import { esquecerChaveFicha, guardarChaveFicha, lerChaveFicha, TelaFicha } from './ui/telaFicha';
+import { Entrada } from './ui/entrada';
+import { esquecerSessao, guardarSessao, lerSessao } from './session/conta';
 import { janelaAberta } from './ui/fichaModal';
 import { NavigatorWin } from './ui/navigator';
 import { RoomSettingsWin } from './ui/roomSettings';
@@ -46,6 +49,13 @@ const tableMode = tableRequested();
 /** link da ficha do jogador (?ficha=CHAVE): só a ficha dele, no celular */
 const fichaKey = tableMode ? null : lerChaveFicha();
 const fichaMode = !!fichaKey;
+/** a conta deste aparelho (a tela de entrada) */
+let sessaoConta = lerSessao();
+/** em desenvolvimento, ?auto entra direto, sem a tela de entrada */
+const devAuto = import.meta.env.DEV && new URLSearchParams(location.search).has('auto');
+/** quem entra pela conta: o mestre e o jogador sem link (a mesa e os links continuam como antes) */
+const pedeConta = !tableMode && !fichaMode && !gmKey && !devAuto;
+let entrada: Entrada | null = null;
 const root = document.getElementById('app')!;
 const canvas = h('canvas', { class: 'room-canvas', 'aria-label': 'Tabuleiro' });
 
@@ -156,6 +166,7 @@ const shell = tableMode || fichaMode
       fx: () => fx.toggle(),
       help: () => help.toggle(),
       logout: () => {
+        if (sessaoConta) return sairDaConta();
         net.close();
         sessionEnded();
       },
@@ -164,6 +175,7 @@ const params = new URLSearchParams(location.search);
 const table = tableMode ? new TableScreen(app) : null;
 const telaFicha = fichaMode
   ? new TelaFicha(app, () => {
+      if (sessaoConta) return sairDaConta();
       net.close();
       sessionEnded();
     })
@@ -186,19 +198,58 @@ app.on('placement', () => {
   if (p) shell?.setPlacement(`Movendo ${anyFurniName(p.defId)}: clique no destino · R gira · Esc cancela`);
 });
 
-/** Entra sem tela de login: o mestre com o nome salvo (ou "Mestre"), a mesa com o nome dela. */
+/**
+ * Entra no tabuleiro. Com a conta (tela de entrada), o nome e o papel saem dela; sem conta, o
+ * mestre com o nome salvo (ou "Mestre") e a mesa com o nome dela, como antes.
+ */
 function login(fresh = false) {
   const saved = loadLogin();
   const dev = import.meta.env.DEV ? params.get('auto') : null;
+  const sessao = sessaoConta && !tableMode ? { sessao: sessaoConta.sessao } : {};
   if (fichaMode) {
     // o nome da conexão sai da chave (o mesmo link em outro aparelho assume a sessão)
-    net.send({ t: 'login', name: `Agente ${fichaKey!.replace(/[^\p{L}\p{N}]/gu, '').slice(0, 6)}`, look: saved.look, fichaKey: fichaKey! });
+    net.send({ t: 'login', name: `Agente ${fichaKey!.replace(/[^\p{L}\p{N}]/gu, '').slice(0, 6)}`, look: saved.look, fichaKey: fichaKey!, ...sessao });
     return;
   }
   const name = tableMode ? tableName(fresh) : dev || saved.name || 'Mestre';
-  net.send({ t: 'login', name, look: saved.look, gmKey, mesa: tableMode });
+  net.send({ t: 'login', name, look: saved.look, gmKey, mesa: tableMode, ...sessao });
 }
-login();
+
+/** A tela de entrada (conta da plataforma), com um aviso se houver. */
+function mostrarEntrada(aviso?: string) {
+  entrada ??= new Entrada({
+    enviar: (m) => net.send(m),
+    verMesa: () => location.replace(`${location.pathname}?mesa`),
+    sairDaConta: () => sairDaConta(),
+  });
+  entrada.mostrar(aviso);
+}
+
+/** Sair da conta neste aparelho: a sessão deixa de valer e volta a tela de entrada. */
+function sairDaConta() {
+  if (sessaoConta) net.send({ t: 'contaSair', sessao: sessaoConta.sessao });
+  esquecerSessao();
+  esquecerChaveFicha();
+  sessaoConta = null;
+  setTimeout(() => location.replace(location.pathname), 250);
+}
+
+const temChaveFicha = () => {
+  try {
+    return !!localStorage.getItem('crona.fichaKey');
+  } catch {
+    return false;
+  }
+};
+if (pedeConta && sessaoConta?.papel === 'jogador') {
+  // o jogador com conta: a tela dele é a ficha que a conta lembra
+  if (temChaveFicha()) location.replace(`${location.pathname}?ficha`);
+  else {
+    mostrarEntrada();
+    entrada!.semFicha(sessaoConta.nome);
+  }
+} else if (pedeConta && !sessaoConta) mostrarEntrada();
+else login();
 let loginTries = 0;
 
 /** "Encerrar sessão": desconecta e mostra um aviso para voltar. */
@@ -228,9 +279,34 @@ net.onMessage = (m: ServerMsg) => {
       sprites.setDefs(m.characters);
       app.emit('characters');
       if (me && reconnecting) {
-        if (fichaMode) net.send({ t: 'login', name: me.name, look: me.look, fichaKey: fichaKey! });
-        else net.send({ t: 'login', name: me.name, look: me.look, gmKey, mesa: tableMode });
+        const sessao = sessaoConta && !tableMode ? { sessao: sessaoConta.sessao } : {};
+        if (fichaMode) net.send({ t: 'login', name: me.name, look: me.look, fichaKey: fichaKey!, ...sessao });
+        else net.send({ t: 'login', name: me.name, look: me.look, gmKey, mesa: tableMode, ...sessao });
       }
+      break;
+    case 'conta':
+      if (m.ok) {
+        sessaoConta = { sessao: m.sessao, nome: m.nome, papel: m.papel };
+        guardarSessao(sessaoConta);
+        if (m.papel === 'jogador') {
+          // o jogador vai para a ficha dele; sem ficha ligada, o aviso
+          if (m.fichaKey) {
+            guardarChaveFicha(m.fichaKey);
+            entrada?.sucesso(m.nome);
+            setTimeout(() => location.replace(`${location.pathname}?ficha`), 600);
+          } else entrada?.semFicha(m.nome);
+        } else {
+          entrada?.sucesso(m.nome);
+          login();
+        }
+      } else if (m.expirou) {
+        esquecerSessao();
+        sessaoConta = null;
+        // o link (da ficha ou do mestre) continua valendo sem a conta
+        if (pedeConta) mostrarEntrada(m.erro);
+        else login();
+      } else if (entrada) entrada.erro(m.erro);
+      else toast(m.erro, 'error');
       break;
     case 'welcome': {
       app.state.me = { id: m.id, name: m.name, look: m.look, token: m.token };
@@ -253,6 +329,9 @@ net.onMessage = (m: ServerMsg) => {
       loginTries = 0;
       shell?.show();
       table?.show();
+      // o tabuleiro abriu: a tela de entrada some devagar por cima dele
+      entrada?.sair();
+      entrada = null;
       app.emit('me');
       app.emit('inventory');
       if (reconnecting && app.state.room) wantRoom = app.state.room.id;
@@ -279,7 +358,8 @@ net.onMessage = (m: ServerMsg) => {
       else if (!app.state.me && fichaMode) {
         if (/inválido/.test(m.msg)) esquecerChaveFicha();
         telaFicha?.erro(m.msg);
-      } else toast(m.msg, 'error');
+      } else if (!app.state.me && entrada) entrada.erro(m.msg);
+      else toast(m.msg, 'error');
       break;
     case 'notice':
       toast(m.msg);
