@@ -1405,10 +1405,10 @@ export class Hotel implements HotelApi {
     if ((c.esperaConta ?? 0) > agora) return falha('Muitas tentativas seguidas. Espere meio minuto e tente de novo.');
     const email = typeof m.email === 'string' ? m.email.trim().toLowerCase() : '';
     const senha = typeof m.senha === 'string' ? m.senha : '';
-    if (email.length > 120 || !EMAIL_RE.test(email)) return falha('Confira o e-mail.');
-    if (senha.length < SENHA_MIN || senha.length > 200) return falha(`A senha precisa de pelo menos ${SENHA_MIN} caracteres.`);
     const contas = (this.db.contas ??= []);
     if (m.t === 'contaCriar') {
+      if (email.length > 120 || !EMAIL_RE.test(email)) return falha('Confira o e-mail.');
+      if (senha.length < SENHA_MIN || senha.length > 200) return falha(`A senha precisa de pelo menos ${SENHA_MIN} caracteres.`);
       const nome = typeof m.nome === 'string' ? m.nome.trim().replace(/\s+/g, ' ') : '';
       if (nome.length < 2 || nome.length > MAX_NAME || !NAME_RE.test(nome))
         return falha(`O nome precisa de 2 a ${MAX_NAME} letras ou números.`);
@@ -1427,7 +1427,9 @@ export class Hotel implements HotelApi {
       if (this.persist) console.log(`[contas] conta nova: ${nome} (${papel})`);
       return this.contaAberta(c, conta);
     }
-    const conta = contas.find((x) => x.email === email);
+    // entrar: pelo e-mail ou pelo nome da conta (a regra da senha é só para criar)
+    if (email.length < 2 || email.length > 120 || !senha || senha.length > 200) return falha('E-mail ou senha não conferem.');
+    const conta = contas.find((x) => x.email === email) ?? (email.includes('@') ? undefined : contas.find((x) => x.nome.toLowerCase() === email));
     // sem a conta, o tempo de resposta é o mesmo (não entrega quais e-mails existem)
     const certa = conta ? await confereSenha(senha, conta.senha) : (await hashSenha(senha), false);
     if (!conta || !certa) {

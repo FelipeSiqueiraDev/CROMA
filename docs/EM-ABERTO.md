@@ -1,4 +1,4 @@
-# Em aberto: onde paramos (03/10/2026)
+# Em aberto: onde paramos (04/10/2026)
 
 O que está pela metade, o que falta e o que o Códex ainda vai entregar. Leia junto com o [`GUIA-DO-CLAUDE.md`](GUIA-DO-CLAUDE.md), que diz como trabalhar aqui. **Atualize este arquivo ao fim de cada bloco de trabalho.**
 
@@ -113,11 +113,17 @@ O Felipe trocou o nome do jogo para **CRONA**, de Cronos e de crônica. A regra 
 - **A marca CRONA (04/10):**
   - os logos estão em `client/public/arte/marca/`;
   - o ícone do CRONA aparece na aba do navegador e no celular.
+- **Proporções do tabuleiro (04/10)**, pedidas pelo Felipe ("os objetos estão maiores que deveriam", "o personagem não está no mapa de verdade"):
+  - **Pés no chão:** a pose em alta definição (`npm run arte:poses -- <nome> --hd`) não vira pixel art. O tabuleiro acha os dois pés na imagem e põe a âncora no meio deles (`pesPontos` em `sprites.ts`): o anel passa embaixo de cada pé e cada pé tem a sombra de contato dele (`RoomView.ts`).
+  - **Portas:** o vão tem 0,65 m e a moldura cabe na casa (`VAO_PORTA_M` em `furniKit.ts`). A arte da porta aperta ao longo da parede, sem perder a altura. Na ordem de desenho, a moldura é parede (`naParede`): a estante e a pia encostadas vêm na frente dela.
+  - **Móveis que passavam da casa:** o gerador desenha largo e o `moveis.py` acerta pela altura. Agora a peça cuja base passa da casa encolhe por igual até caber (`encaixe` em `furniArte.ts`, medido na própria imagem: vale para a arte nova também). Foram 17 de 95; os que mais encolheram: carrinho (77%), biombo (80%), fliperama (84%), carrinho do zelador (85%) e poltronas (91%). Eles ficaram mais baixos que o tamanho de verdade: ver "Arte em aberto".
+  - **Vista de cima:** a ficha da peça tem 1 casa (0,75 m), o tamanho de uma pessoa vista de cima, na proporção dos móveis (antes, 1 quadrado de 1,5 m). Os móveis usam a mesma base do isométrico.
+  - **Entrada:** entra com o e-mail ou com o nome da conta; a regra dos 6 caracteres vale só para criar. `scripts/dev/conta.mts` cria uma conta direto no banco (servidor parado). A prévia (`crona_visual`) tem a conta `admin`, de mestre, para o Felipe ver a tela.
 
 ## Pela metade
 
 - **A Catarina nova** (`personagens-teste.zip`, 04/10): o Códex fez as 8 direções.
-  - Elas já foram convertidas pelo `npm run arte:poses` para `client/public/arte/personagens/catarina/tabuleiro-32bits/`, **fora do git**, esperando o Felipe aprovar. No tabuleiro ficou boa, mas perto da Alosi tem umas 6 cabeças de altura em vez de 7.
+  - Convertidas pelo `npm run arte:poses -- catarina --estado desarmado --hd` para `client/public/arte/personagens/catarina/tabuleiro-32bits/`, **fora do git**, esperando o Felipe aprovar. A primeira conversão (pixel art) ficou "pixelada demais" para ele; a `--hd` mantém a resolução da arte. Depois ele pediu os pés no chão (feito: âncora no meio dos pés, sombra em cada pé). Perto da Alosi tem umas 6 cabeças de altura em vez de 7.
   - **Se ele aprovar:**
     1. Commit da pasta.
     2. Marcações em `scripts/bonecos/catarina.json` para o `npm run arte:boneco` (respirar e piscar).
@@ -146,8 +152,7 @@ O Felipe trocou o nome do jogo para **CRONA**, de Cronos e de crônica. A regra 
   O grosso espera o kit de interface do GPT (abaixo).
 - **Ícones pintados no COMBATE** (a escolha da arma) **e no inventário rápido do MAPA:** espera o OK do Felipe.
 - **Vista tática:**
-  - fichas grandes fora do combate (decidir);
-  - testar no tablet de verdade;
+  - testar no tablet de verdade, com as fichas de 1 casa (04/10);
   - a arte de cima e as paredes das outras 11 salas quando chegarem.
 - **Bonecos:** conferir o pixel depois da escala de 91%. Talvez refazer as tiras pelo `scripts/boneco.py`.
 - **Calabouço:**
@@ -186,6 +191,7 @@ Todos os pedidos estão na pasta da arte do GPT. O Felipe cola no Códex: *"Leia
 | `PROMPT-VISTA-DE-CIMA.txt` | Partes 2 a 12, um `vista-de-cima-<sala>.zip` por sala | O teste (Bar) está no jogo. As outras salas esperam o Felipe aprovar o estilo do Bar. |
 | `PROMPT-VARIACOES-E-ARSENAL.txt` | `variacoes-e-arsenal.zip` | Parou em 5 de 30. As 5 prontas estão na pasta de trabalho do Códex: `%TEMP%\variacoes-e-arsenal-20261003\final`. |
 | `LISTA-REFAZER.txt` | `bau-militar-aberto.png` | Por fazer. |
+| (a escrever, 04/10) | Os móveis que o gerador desenhou largos, de novo na proporção de verdade: carrinho (`trolley`), biombo (`divider`), fliperama (`arcade`), carrinho do zelador (`janitor_cart`), poltronas (`armchair`, `armchair_leather`), sofá (`sofa_booth`), leito (`hospital_bed`), armário do bar (`bar_cabinet`), caixas de peças (`parts_boxes`), privada (`toilet_steel`) e a porta da cela (`cell_door`). Hoje o jogo encolhe cada um até caber na casa, e eles ficam mais baixos. | Por pedir. |
 | `PROMPT-FAZENDA.txt` (03/10) | `fazenda-teste.zip` primeiro; depois `fazenda-texturas`, `-predios`, `-natureza`, `-casa` e `calabouco` | Novo. |
 | `PROMPT-PERSONAGENS.txt` (03/10) | `personagens-teste.zip` (a Catarina) primeiro; depois `personagens-8-direcoes`, `-armados`, `alosi-andar` e `ameacas` | Novo. |
 
@@ -216,7 +222,6 @@ Todos os pedidos estão na pasta da arte do GPT. O Felipe cola no Códex: *"Leia
 - Fechar o PR `#2` do Códex (`codex/arte-tepes-32bits`), que ficou sobrando.
 - Quando apagar as cópias antigas da troca de nome (o container `croma-postgres`, a pasta `CROMA-3D`, a pasta `CROMA` do projeto). Por enquanto, guardar.
 - Ligar a Sede aos arredores da Fazenda.
-- Fichas grandes na vista tática fora do combate.
 
 ## Problemas conhecidos
 

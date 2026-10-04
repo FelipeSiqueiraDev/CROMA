@@ -230,9 +230,15 @@ export class Entrada {
     const nome = this.campos.nome.input.value.trim();
     const email = this.campos.email.input.value.trim();
     const senha = this.campos.senha.input.value;
-    if (this.modo === 'criar' && nome.length < 2) return this.erro('Escreva o seu nome (pelo menos 2 letras).'), this.campos.nome.input.focus();
-    if (!EMAIL_RE.test(email)) return this.erro('Confira o e-mail.'), this.campos.email.input.focus();
-    if (senha.length < 6) return this.erro('A senha precisa de pelo menos 6 caracteres.'), this.campos.senha.input.focus();
+    if (this.modo === 'criar') {
+      if (nome.length < 2) return this.erro('Escreva o seu nome (pelo menos 2 letras).'), this.campos.nome.input.focus();
+      if (!EMAIL_RE.test(email)) return this.erro('Confira o e-mail.'), this.campos.email.input.focus();
+      if (senha.length < 6) return this.erro('A senha precisa de pelo menos 6 caracteres.'), this.campos.senha.input.focus();
+    } else {
+      // entrar: o e-mail ou o nome da conta, e a senha (a regra dos 6 caracteres é só para criar)
+      if (email.length < 2) return this.erro('Escreva o e-mail ou o nome da conta.'), this.campos.email.input.focus();
+      if (!senha) return this.erro('Escreva a senha.'), this.campos.senha.input.focus();
+    }
     this.esperar(true);
     this.op.enviar(this.modo === 'criar' ? { t: 'contaCriar', nome, email, senha } : { t: 'contaEntrar', email, senha });
   }
@@ -291,6 +297,11 @@ export class Entrada {
     this.ou.style.left = this.erroEl.style.left = `${L.campo.x - p.x}px`;
     this.ou.style.width = this.erroEl.style.width = `${L.campo.w}px`;
     this.campos.senha.input.autocomplete = modo === 'criar' ? 'new-password' : 'current-password';
+    // para entrar, vale o e-mail ou o nome da conta
+    const email = this.campos.email.input;
+    email.placeholder = modo === 'criar' ? 'E-mail' : 'E-mail ou nome';
+    email.setAttribute('aria-label', email.placeholder);
+    email.type = modo === 'criar' ? 'email' : 'text';
     if (!this.esperando) {
       this.rotulo(this.principal, modo === 'criar' ? 'CRIAR CONTA' : modo === 'semFicha' ? 'VER O TABULEIRO' : 'ENTRAR');
       this.rotulo(this.outro, modo === 'criar' ? 'JÁ TENHO CONTA' : modo === 'semFicha' ? 'SAIR DA CONTA' : 'CRIAR CONTA');

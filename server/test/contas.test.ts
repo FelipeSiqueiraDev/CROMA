@@ -103,6 +103,23 @@ describe("contas da plataforma", () => {
     assert.ok((await p.espera("conta")).ok);
   });
 
+  test("entra pelo nome da conta também; a regra da senha curta é só para criar", async () => {
+    const p = new Peer(hotel);
+    await criar(p, "Felipe", "mestre@crona.test");
+    p.send({ t: "contaEntrar", email: "FELIPE", senha: "segredo1" });
+    const r = await p.espera("conta");
+    assert.ok(r.ok && r.nome === "Felipe");
+    // a conta criada fora do formulário (scripts/dev/conta.mts), com a senha curta, entra
+    const { hashSenha } = await import("../src/contas");
+    hotel.db.contas!.push({ id: 99, nome: "admin", email: "admin@crona.local", senha: await hashSenha("admin"), papel: "mestre", sessoes: [], criadaEm: Date.now() });
+    p.send({ t: "contaEntrar", email: "admin", senha: "admin" });
+    const a = await p.espera("conta");
+    assert.ok(a.ok && a.papel === "mestre");
+    p.send({ t: "contaEntrar", email: "admin", senha: "errada" });
+    const e = await p.espera("conta");
+    assert.ok(!e.ok && /não conferem/.test(e.erro));
+  });
+
   test("muitas senhas erradas seguidas: a conexão espera um pouco", async () => {
     const p = new Peer(hotel);
     await criar(p, "Felipe", "mestre@crona.test");
