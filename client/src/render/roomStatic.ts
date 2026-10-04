@@ -61,7 +61,7 @@ const FLOOR_THICK = 0.35;
 const DOOR_H = 2.1 * Z_PER_M;
 /**
  * o buraco na parede, centrado na casa da porta: o vão mais meio batente de cada lado, para a moldura
- * da porta (que cabe na casa) cobrir a borda dele; negativo = mais estreito que a casa
+ * da porta cobrir a borda dele (o quanto ele passa da casa para cada lado)
  */
 const VAO_SOBRA = ((VAO_PORTA_M + BATENTE_PORTA_M) / M_POR_CASA - 1) / 2;
 /** o degrau de cima da escada que sobe para a porta (o vão começa nele) */

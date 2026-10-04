@@ -44,11 +44,12 @@ export const V = (nodes: FNode[], lights: LightDef[] = []): FVisual => ({ nodes,
 export const naParede = (n: FNode): FNode => ({ ...n, ordem: [n.b[0] - 0.3, n.b[1] - 0.3, n.b[2], n.b[3], n.b[4], n.b[5]] });
 
 /**
- * A porta cabe na casa dela (0,75 m), com o batente: o vão tem 0,65 m (a "porta de 70") e o batente,
- * 5 cm de cada lado. Mais larga, ela entrava nas casas do lado (na pia, na estante encostada).
+ * A porta no tamanho da arte dela (0,95 m com o batente, mais larga que a casa de 0,75 m): o vão tem
+ * 0,8 m e o batente, 7,5 cm de cada lado. Ela passa um pouco para as casas do lado; na ordem de
+ * desenho, a moldura é parede (`naParede`), e o que fica encostado nela vem na frente.
  */
-export const VAO_PORTA_M = 0.65;
-export const BATENTE_PORTA_M = 0.05;
+export const VAO_PORTA_M = 0.8;
+export const BATENTE_PORTA_M = 0.075;
 
 export const WARM = '#ffb45a';
 export const PAPER = '#d8cdb0';

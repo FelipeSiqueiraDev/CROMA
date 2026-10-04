@@ -1223,7 +1223,7 @@ const builders: Record<string, Builder> = {
 
   portal(def, state) {
     const [wood] = def.colors;
-    // vão de porta de verdade (VAO_PORTA_M, centrado na casa) por 2,1 m, com o batente dentro da casa
+    // vão de porta de verdade (VAO_PORTA_M, centrado na casa) por 2,1 m, do tamanho da arte da porta
     const A0 = (1 - VAO_PORTA_M / M_POR_CASA) / 2;
     const A1 = 1 - A0;
     const bt = BATENTE_PORTA_M / M_POR_CASA;

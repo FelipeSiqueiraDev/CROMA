@@ -739,7 +739,7 @@ function desenharPortaNaParede(ctx: CanvasRenderingContext2D, v: CameraVoo, map:
     if (chao(x + dx, y + dy)) continue;
     const fundo = dx < 0 || dy < 0;
     const alto = fundo ? ALTO_PAREDE : 0.12 * Z_PER_M;
-    // o vão da porta, no meio da casa (a porta cabe nela, com o batente)
+    // o vão da porta, no meio da casa (do tamanho da arte da porta)
     const lv = VAO_PORTA_M / M_POR_CASA;
     const m0 = (1 - lv) / 2;
     const vao = dy !== 0 ? { x: x + m0, y: dy < 0 ? y - t : y + 1, w: lv, h: t } : { x: dx < 0 ? x - t : x + 1, y: y + m0, w: t, h: lv };
