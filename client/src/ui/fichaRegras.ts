@@ -179,6 +179,8 @@ export interface Escolher {
   /** texto curto acima da lista */
   dica?: string;
   /** quantas marcar (1 = escolha única) */
+  /** pode gravar sem nada escolhido (as condições: tirar a última) */
+  podeVazio?: boolean;
   qtd: number;
   opcoes: () => Opcao[];
   atual: () => string[];

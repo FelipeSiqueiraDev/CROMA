@@ -1628,6 +1628,27 @@ html {
   color: #f2eadc;
   font-size: 1.2rem;
 }
+/* as condições marcadas pelo mestre (as outras saem sozinhas pelo PV e pela SAN) */
+.vt-cond.marcada {
+  background: #4a3a26;
+}
+.vt-cond.mais {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: 0.1rem dashed rgba(60, 46, 30, 0.5);
+  background: none;
+  color: #4a3e30;
+  cursor: pointer;
+}
+.vt-cond.mais .ic {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+.vt-cond.mais:hover {
+  border-style: solid;
+  color: #1f1b17;
+}
 .tool.state.on {
   border-color: rgba(123, 32, 25, 0.7);
   background: rgba(123, 32, 25, 0.16);

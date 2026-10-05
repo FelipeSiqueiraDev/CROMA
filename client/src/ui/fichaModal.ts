@@ -130,7 +130,7 @@ export function escolher(e: Escolher, aoGravar: () => void): Promise<boolean> {
         );
       if (!vis.length) lista.append(h('p', { class: 'fj-vazio' }, 'Nada com esse nome.'));
       cont.textContent = multi ? `${escolhidos.size} de ${e.qtd}` : '';
-      gravar.disabled = multi ? escolhidos.size === 0 : escolhidos.size !== 1 && !e.atual().length;
+      gravar.disabled = multi ? escolhidos.size === 0 && !e.podeVazio : escolhidos.size !== 1 && !e.atual().length;
     };
     const gravar = botao('Gravar', 'ok', 'forte', () => {
       e.aplicar([...escolhidos]);

@@ -829,6 +829,7 @@ export class FichasScreen {
         titulo: 'Condições',
         dica: 'Machucado, morrendo, perturbado e enlouquecendo saem sozinhos pelo PV e pela SAN (LR p. 310–311).',
         qtd: 40,
+        podeVazio: true,
         opcoes: () =>
           cat.CATALOGO.condicoes.map((x) => ({
             id: x.id,

@@ -53,6 +53,7 @@ import { infoItem, romano, textoRef } from './fichaRegras';
 import { doCatalogoPeloNome, listaDoCatalogo } from './catalogoItens';
 import { TecladoSenha } from './teclado';
 import { TopBar } from './topbar';
+import { escolher } from './fichaModal';
 import { existeArte, ic } from './icons';
 
 export interface ShellActions {
@@ -1073,7 +1074,8 @@ export class Shell {
   /** Fichas do servidor: a aba ITENS mostra a mochila de cada agente por elas. */
   setFichasMapa(lista: FichaSalva[]) {
     this.fichasMapa = lista;
-    if (this.rpgTab === 'ITENS') this.renderRpg(true);
+    // a mochila (ITENS) e as condições marcadas (PLAYERS) vêm das fichas
+    this.renderRpg(true);
   }
 
   /** Abas dos andares acima da planta (só com mais de um andar). */
@@ -2283,9 +2285,52 @@ export class Shell {
         ),
       );
     }
+    // as condições do agente: as que saem sozinhas pelo PV e pela SAN e as que o mestre marca (na ficha).
+    // Ficam aqui e no celular do jogador; a FICHAS do mestre é só a das regras.
     const labels = conditionLabels(vitalConditions(p.vitals));
-    if (labels.length) wrap.append(h('div', { class: 'vt-conds' }, ...labels.map((l) => h('span', { class: 'vt-cond' }, l))));
+    const ficha = this.fichasMapa.find((f) => f.personagem !== undefined && f.personagem === p.look?.charId);
+    const marcadas = (ficha?.condicoes ?? []).map((c) => regras.catalogo.condicao(c)?.nome ?? c);
+    if (labels.length || marcadas.length || (this.gm && ficha))
+      wrap.append(
+        h(
+          'div',
+          { class: 'vt-conds' },
+          ...labels.map((l) => h('span', { class: 'vt-cond' }, l)),
+          ...marcadas.map((l) => h('span', { class: 'vt-cond marcada' }, l)),
+          this.gm && ficha ? h('button', { class: 'vt-cond mais', type: 'button', title: 'Condições', 'aria-label': `Condições de ${p.name}`, onclick: () => this.escolherCondicoes(ficha) }, ic('mais'), marcadas.length ? null : h('span', null, 'Condição')) : null,
+        ),
+      );
     return wrap;
+  }
+
+  /** As condições do livro para marcar no agente (as automáticas saem sozinhas pelo PV e pela SAN). */
+  private escolherCondicoes(ficha: FichaSalva) {
+    const AUTO = ['machucado', 'morrendo', 'perturbado', 'enlouquecendo'];
+    void escolher(
+      {
+        titulo: `Condições de ${ficha.nome}`,
+        dica: 'Machucado, morrendo, perturbado e enlouquecendo saem sozinhos pelo PV e pela SAN (LR p. 310–311).',
+        qtd: 40,
+        podeVazio: true,
+        opcoes: () =>
+          regras.catalogo.CATALOGO.condicoes.map((x) => ({
+            id: x.id,
+            nome: x.nome,
+            ref: x.ref,
+            resumo: x.resumo,
+            ok: !x.automatica,
+            motivos: x.automatica ? ['Sai sozinha pela ficha.'] : [],
+            avisos: x.inclui?.length ? [`Inclui: ${x.inclui.map((i) => regras.catalogo.condicao(i)?.nome ?? i).join(', ')}.`] : [],
+          })),
+        atual: () => ficha.condicoes ?? [],
+        aplicar: (ids) => {
+          const nova: FichaSalva = { ...ficha, condicoes: ids.filter((i) => !AUTO.includes(i)), atualizadaEm: new Date().toISOString() };
+          if (!nova.condicoes?.length) delete nova.condicoes;
+          this.app.net.send({ t: 'fichaSalvar', ficha: nova });
+        },
+      },
+      () => this.renderRpg(true),
+    );
   }
 
   /** Cartão da sala (esquerda): a foto, o nome, a descrição e o andar. */
