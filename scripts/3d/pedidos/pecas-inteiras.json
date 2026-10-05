@@ -1,0 +1,55 @@
+[
+ {
+  "nome": "estante-parede-verissimo",
+  "titulo": "Estante do Veríssimo, a parede inteira",
+  "casas": [
+   6,
+   1
+  ],
+  "real": [
+   4.5,
+   0.45,
+   2.6
+  ],
+  "encosta": true
+ },
+ {
+  "nome": "mesa-arsenal",
+  "titulo": "Mesa grande do Arsenal, inteira",
+  "casas": [
+   4,
+   2
+  ],
+  "real": [
+   3.0,
+   1.3,
+   0.92
+  ]
+ },
+ {
+  "nome": "cortina-leito-lado",
+  "titulo": "Cortina do leito: um lado inteiro (trilho e cortina)",
+  "casas": [
+   1,
+   3
+  ],
+  "real": [
+   0.1,
+   2.25,
+   2.0
+  ]
+ },
+ {
+  "nome": "cortina-leito-frente",
+  "titulo": "Cortina do leito: a frente inteira, com a abertura",
+  "casas": [
+   4,
+   1
+  ],
+  "real": [
+   3.0,
+   0.1,
+   2.0
+  ]
+ }
+]

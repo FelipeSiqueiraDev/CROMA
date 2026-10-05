@@ -1,13 +1,13 @@
 [
  {
   "nome": "balcao-loja",
-  "titulo": "Balcão da loja (módulo que emenda)",
+  "titulo": "Balcão da loja, inteiro",
   "casas": [
-   2,
+   6,
    1
   ],
   "real": [
-   1.5,
+   4.5,
    0.65,
    1.0
   ]
