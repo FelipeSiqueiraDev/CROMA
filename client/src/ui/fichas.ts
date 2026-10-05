@@ -34,7 +34,7 @@ import {
   textoTeste,
   type Campo,
 } from './fichaRegras';
-import { arte, ic, type NomeIcone } from './icons';
+import { arte, arteOu, ic, type NomeIcone } from './icons';
 import { paperize } from './paperArt';
 import { sfx } from './sfx';
 import { vestirTema } from './temaUi';
@@ -83,6 +83,22 @@ export interface OpcoesFichas {
   jogador: boolean;
 }
 
+/** O ícone pintado do título de cada painel (o kit de interface). */
+const TITULO_PINTADO: Record<string, string> = {
+  'fx-ident': 'identificacao',
+  'fx-atrib': 'atributos',
+  'fx-rec': 'recursos',
+  'fx-deriv': 'derivados',
+  'fx-cond': 'condicoes',
+  'fx-per': 'pericias',
+  'fx-pod': 'poderes',
+  'fx-rit': 'rituais',
+  'fx-comp': 'companheiro',
+  'fx-equip': 'equipamentos',
+  'fx-inv': 'inventario',
+  'fx-notas': 'anotacoes',
+};
+
 export class FichasScreen {
   readonly el: HTMLElement;
   private app: App;
@@ -125,7 +141,10 @@ export class FichasScreen {
     const papel = (el: HTMLElement, seed: number, extra: Parameters<typeof paperize>[1] = { seed }) => (paperize(el, { tone: '#d9c9a9', burn: 1, torn: 1.1, stains: 1, creases: 0.3, crumple: 0.35, specks: 0.6, pad: 18, ...extra, seed }), el);
     const secao = (cls: string, titulo: string | null, icone: NomeIcone | null, escuro = false) => {
       const s = h('section', { class: `fx-p ${cls}${escuro ? ' escuro' : ''}` });
-      if (titulo) s.append(h('header', { class: 'fx-tit' }, icone ? h('span', { class: 'fx-tit-ic' }, ic(icone)) : null, h('h3', null, titulo), h('span', { class: 'fx-tit-extra' })));
+      // o ícone pintado do título (arte/icones/titulo-*.png); sem ele, o de linha
+      const pintado = TITULO_PINTADO[cls];
+      const icTit = icone ? (pintado ? arteOu([`/arte/icones/titulo-${pintado}.png`], ic(icone)) : ic(icone)) : null;
+      if (titulo) s.append(h('header', { class: 'fx-tit' }, icTit ? h('span', { class: 'fx-tit-ic' }, icTit) : null, h('h3', null, titulo), h('span', { class: 'fx-tit-extra' })));
       s.append(h('div', { class: 'fx-corpo-p' }));
       return s;
     };
@@ -160,7 +179,7 @@ export class FichasScreen {
     this.barra = h('div', { class: 'fx-barra' });
     this.vazio = h('div', { class: 'fx-vazio hidden' });
     const pilha = h('div', { class: 'fx-pilha', 'aria-hidden': 'true' }, h('span', { class: 'fx-pilha-a' }), h('span', { class: 'fx-pilha-b' }), h('span', { class: 'fx-pilha-c' }));
-    for (const [i, s] of [...pilha.children].entries()) paperize(s as HTMLElement, { seed: 130 + i, tone: i === 1 ? '#cdbb99' : '#c4b08e', burn: 1.2, torn: 2, stains: 1.4, pad: 12 });
+    for (const [i, s] of [...pilha.children].entries()) paperize(s as HTMLElement, { kit: false, seed: 130 + i, tone: i === 1 ? '#cdbb99' : '#c4b08e', burn: 1.2, torn: 2, stains: 1.4, pad: 12 });
     this.dica = h('div', { class: 'fx-dica hidden', role: 'tooltip' });
     this.el = h(
       'div',

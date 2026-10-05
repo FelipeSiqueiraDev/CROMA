@@ -5,6 +5,8 @@
  * referência tem 1536×1024); `k` converte para px de CSS.
  */
 
+import { arteCarregada } from './icons';
+
 type Pt = [number, number];
 export type Corner = 'tl' | 'tr' | 'br' | 'bl';
 
@@ -46,7 +48,15 @@ export interface PaperOpts {
   stripe?: string;
   /** margem do canvas em volta do papel (px de design) */
   pad?: number;
+  /**
+   * O papel pintado do kit de interface (kit.css), na cor do tema da tela: o claro ('painel'), o
+   * outro claro ('painel-2') ou o escuro. É o padrão; false fica com o papel desenhado aqui (os
+   * recortes rasgados, os bilhetes).
+   */
+  kit?: PapelKit | false;
 }
+
+export type PapelKit = 'painel' | 'painel-2' | 'escuro';
 
 export interface BrushOpts {
   seed: number;
@@ -832,8 +842,31 @@ function mount(el: HTMLElement, pad: number, id: string, paint: Painter) {
   return cv;
 }
 
+/** A lista da arte (null até chegar) e os papéis que esperam por ela para virar papel do kit. */
+let arte: Set<string> | null = null;
+const esperando = new Map<HTMLElement, PapelKit>();
+void arteCarregada.then((l) => {
+  arte = l;
+  for (const [el, k] of esperando) if (temKit(k)) vestirKit(el, k);
+  esperando.clear();
+});
+const ARQ_KIT: Record<PapelKit, string> = { painel: 'papel-painel', 'painel-2': 'papel-painel-2', escuro: 'papel-escuro' };
+const temKit = (k: PapelKit) => !!arte?.has(`/arte/temas/ordem/interface/fichas/${ARQ_KIT[k]}-fonte.png`);
+
+/** O papel do kit atrás do conteúdo (a moldura e o miolo vêm do kit.css, na cor do tema). */
+function vestirKit(el: HTMLElement, k: PapelKit) {
+  unpaint(el);
+  el.querySelector(':scope > .kit-papel')?.remove();
+  el.prepend(Object.assign(document.createElement('span'), { className: `kit-papel ${k}`, ariaHidden: 'true' }));
+  el.classList.add('papered', 'kit');
+}
+
 /** Transforma o elemento numa folha de papel (canvas atrás do conteúdo). */
 export function paperize(el: HTMLElement, o: PaperOpts) {
+  const k = o.kit === false ? null : (o.kit ?? 'painel');
+  if (k && arte) {
+    if (temKit(k)) return vestirKit(el, k);
+  } else if (k) esperando.set(el, k);
   const backPad = Math.max(0, ...(o.backs ?? []).map((b) => Math.max(Math.abs(b.dx), Math.abs(b.dy)) + Math.max(Math.abs(b.dw ?? 0), Math.abs(b.dh ?? 0)) / 2 + 6));
   const pad = o.pad ?? Math.max(26, backPad + 20);
   return mount(el, pad, `p${JSON.stringify(o)}`, (ctx, W, H, k, dpr) => drawPaper(ctx, W, H, k, dpr, o));

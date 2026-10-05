@@ -11,6 +11,7 @@ import './ui/itens.css';
 import './ui/teclado.css';
 import './ui/requisicao.css';
 import './ui/entrada.css';
+import './ui/kit.css';
 import { anyFurniName, getFurni, getWallFurni, portraitState, vitalConditions, type ServerMsg } from '@crona/shared';
 import { Net } from './net';
 import { clearIconCache } from './render/bubbles';

@@ -1,0 +1,467 @@
+/* =====================================================================
+   O kit de interface do Códex (PROMPT-INTERFACE-GAME) vestindo as telas.
+   As peças vêm como variáveis (--ui-<grupo>-<peça>, temaUi.ts), já na cor
+   do tema da tela. Estão no dobro do tamanho: um corte de N pixels da peça
+   vira N/2 pixels da referência, ou N/20 rem (1rem = 10 px da referência).
+   As peças que esticam usam border-image: os cantos ficam, o meio estica.
+   Sem a arte, cada regra cai no desenho de antes (tema.css, mapa.css...).
+   ===================================================================== */
+
+/* ---------- barra do topo ---------- */
+.tb2 {
+  background: var(--ui-topo-barra-topo, linear-gradient(180deg, #121315 0%, #0b0c0e 100%)) left top / auto 8.1rem repeat-x;
+}
+.tb2::after {
+  display: none;
+}
+
+/* as abas: normal, foco, apertado e ativo (na cor do tema), cortadas em 28 */
+.tb2-aba {
+  position: relative;
+  border: 1.4rem solid transparent;
+  border-image: var(--ui-topo-aba-topo-normal) 28 fill / 1.4rem stretch;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  padding: 0 1rem;
+  min-width: 17rem;
+  height: 5.6rem;
+  color: #d8cfbd;
+  text-shadow: 0 0.2rem 0.2rem #000;
+}
+.tb2-aba:hover {
+  border-image-source: var(--ui-topo-aba-topo-foco);
+}
+.tb2-aba:active {
+  border-image-source: var(--ui-topo-aba-topo-apertado);
+}
+.tb2-aba.on {
+  border-image-source: var(--ui-topo-aba-topo-ativo);
+  background: none;
+  box-shadow: none;
+  color: #f6ece0;
+  text-shadow: 0 0 0.9rem color-mix(in srgb, var(--destaque) 70%, transparent), 0 0.2rem 0.2rem #000;
+}
+/* a camada de brilho: a peça + 24 px de cada lado, só luz, pulsando */
+.tb2-aba.on::after {
+  content: '';
+  position: absolute;
+  inset: -2.6rem;
+  background: var(--ui-topo-aba-topo-brilho) center / 100% 100% no-repeat;
+  pointer-events: none;
+  animation: kit-pulsa 2.6s ease-in-out infinite;
+}
+.tb2-aba.fora {
+  opacity: 0.45;
+}
+.tb2-aba .arte-ic,
+.tb2-bt .arte-ic {
+  display: grid;
+  place-items: center;
+}
+.tb2-aba .arte-ic img {
+  width: 3.2rem;
+  height: 3.2rem;
+  object-fit: contain;
+  filter: drop-shadow(0 0.15rem 0.2rem #000);
+}
+
+/* os botões de ícone (clima, configurações, registro) e o de sair (perigo) */
+.tb2-bt {
+  width: 5.2rem;
+  height: 5.2rem;
+  border: 0;
+  border-radius: 0;
+  background: var(--ui-topo-botao-icone-normal) center / 100% 100% no-repeat;
+  box-shadow: none;
+}
+.tb2-bt:hover {
+  background-image: var(--ui-topo-botao-icone-foco);
+}
+.tb2-bt:active {
+  background-image: var(--ui-topo-botao-icone-apertado);
+}
+.tb2-bt.sair {
+  background-image: var(--ui-topo-botao-icone-perigo-normal);
+}
+.tb2-bt.sair:hover {
+  background-image: var(--ui-topo-botao-icone-perigo-foco);
+}
+.tb2-bt.sair:active {
+  background-image: var(--ui-topo-botao-icone-perigo-apertado);
+}
+.tb2-bt .arte-ic img {
+  width: 3.1rem;
+  height: 3.1rem;
+  object-fit: contain;
+  filter: drop-shadow(0 0.15rem 0.2rem #000);
+}
+.tb2-bt:hover .arte-ic img,
+.tb2-aba:not(.fora):hover .arte-ic img {
+  filter: drop-shadow(0 0 0.5rem color-mix(in srgb, var(--destaque) 60%, transparent)) drop-shadow(0 0.15rem 0.2rem #000);
+}
+.tb2-sep {
+  width: 0.4rem;
+  background: var(--ui-topo-separador-topo, linear-gradient(180deg, transparent, #34363a 20%, #34363a 80%, transparent)) center / 100% 100% no-repeat;
+}
+.tb2-div {
+  width: 0.4rem;
+  height: 5rem;
+  background: var(--ui-topo-separador-topo, #4a4b4e) center / 100% 100% no-repeat;
+}
+
+@keyframes kit-pulsa {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tb2-aba.on::after {
+    animation: none;
+    opacity: 0.8;
+  }
+}
+
+/* ---------- o papel (paperize, paperArt.ts): moldura de 48 e o miolo de 256 repetido ---------- */
+.kit-papel {
+  position: absolute;
+  inset: -1.6rem;
+  z-index: -1;
+  pointer-events: none;
+  border: 2.4rem solid transparent;
+  border-image: var(--ui-fichas-papel-painel-fonte) 48 / 2.4rem round;
+  background: var(--ui-fichas-papel-painel-miolo) 0 0 / 12.8rem 12.8rem repeat;
+  background-clip: padding-box;
+  background-origin: padding-box;
+  filter: drop-shadow(0.1rem 0.5rem 0.6rem rgba(0, 0, 0, 0.6));
+}
+.kit-papel.painel-2 {
+  border-image-source: var(--ui-fichas-papel-painel-2-fonte);
+  background-image: var(--ui-fichas-papel-painel-2-miolo);
+}
+.kit-papel.escuro {
+  border-image-source: var(--ui-fichas-papel-escuro-fonte);
+  background-image: var(--ui-fichas-papel-escuro-miolo);
+}
+
+/* ---------- MAPA: a moldura do tabuleiro (corte 80) e os botões do HUD (corte 20) ---------- */
+.board-moldura {
+  border: 4rem solid transparent;
+  border-image: var(--ui-tabuleiro-moldura-tabuleiro-fonte) 80 / 4rem stretch;
+  background: none;
+  box-shadow: inset 0 0 3rem rgba(0, 0, 0, 0.55);
+  inset: -0.6rem;
+}
+.board-moldura .bm-risco {
+  display: none;
+}
+.board-vista {
+  border: 0;
+  background: none;
+  box-shadow: none;
+  padding: 0;
+  gap: 0.6rem;
+}
+.board-vista .bv {
+  height: 3.6rem;
+  padding: 0 0.6rem;
+  border: 1rem solid transparent;
+  border-image: var(--ui-tabuleiro-botao-hud-normal) 20 fill / 1rem stretch;
+  border-radius: 0;
+  background: none;
+  opacity: 1;
+  color: #a9c6e4;
+}
+.board-vista .bv:hover {
+  border-image-source: var(--ui-tabuleiro-botao-hud-foco);
+}
+.board-vista .bv.on {
+  border-image-source: var(--ui-tabuleiro-botao-hud-ativo);
+  background: none;
+  box-shadow: none;
+  color: #eef6ff;
+}
+
+/* ---------- MAPA: as casas do inventário rápido ---------- */
+.qslot {
+  border-radius: 0;
+  background: var(--ui-fichas-casa-item-normal) center / 100% 100% no-repeat;
+  box-shadow: none;
+}
+.qslot:not(.empty):hover {
+  background-image: var(--ui-fichas-casa-item-foco);
+}
+.qslot.on,
+.qslot.sel {
+  background-image: var(--ui-fichas-casa-item-escolhida);
+}
+.qslot.empty {
+  background: var(--ui-fichas-casa-item-vazia) center / 100% 100% no-repeat;
+  box-shadow: none;
+}
+
+/* ---------- MAPA: os botões das AÇÕES (o botão grande do kit, corte 28, atrás do conteúdo) ---------- */
+.acao {
+  position: relative;
+  isolation: isolate;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  text-shadow: 0 0.15rem 0.2rem #000;
+}
+.acao::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border: 1.4rem solid transparent;
+  border-image: var(--ui-kit-botao-grande-normal) 28 fill / 1.4rem stretch;
+}
+.acao:not(:disabled):hover {
+  background: none;
+}
+.acao:not(:disabled):hover::before {
+  border-image-source: var(--ui-kit-botao-grande-foco);
+}
+.acao:not(:disabled):active {
+  box-shadow: none;
+  transform: translateY(0.1rem);
+}
+.acao:not(:disabled):active::before {
+  border-image-source: var(--ui-kit-botao-grande-apertado);
+}
+.acao:disabled {
+  opacity: 1;
+  color: rgba(239, 230, 214, 0.42);
+}
+.acao:disabled::before {
+  border-image-source: var(--ui-kit-botao-grande-desligado);
+}
+.acao.on {
+  background: none;
+  box-shadow: none;
+  color: #fff3ea;
+}
+.acao.on::before {
+  border-image-source: var(--ui-kit-botao-grande-ativo);
+}
+
+/* =====================================================================
+   FICHAS
+   ===================================================================== */
+
+/* o quadradinho do ícone dos títulos e o dos atributos */
+.fx-tit-ic {
+  background: var(--ui-fichas-ladrilho-titulo) center / 100% 100% no-repeat;
+  box-shadow: none;
+  border-radius: 0;
+}
+.fx-tit-ic .arte-ic img,
+.fx-at-ic .arte-ic img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.fx-at-ic {
+  background: var(--ui-fichas-ladrilho-atributo-normal) center / 100% 100% no-repeat;
+  box-shadow: none;
+  border-radius: 0;
+}
+.fx-at:hover .fx-at-ic {
+  background-image: var(--ui-fichas-ladrilho-atributo-foco);
+}
+
+/* as barras de PV, PE e SAN: a tinta que se repete e a moldura de metal (corte 20) por cima */
+.fx-bar {
+  position: relative;
+  overflow: visible;
+  border-radius: 0;
+  background: #120f0d;
+  box-shadow: inset 0 0.2rem 0.4rem rgba(0, 0, 0, 0.7);
+}
+.fx-bar::after {
+  content: '';
+  position: absolute;
+  inset: -0.45rem -0.35rem;
+  pointer-events: none;
+  border: 1rem solid transparent;
+  border-image: var(--ui-fichas-barra-moldura) 20 / 1rem stretch;
+}
+.fx-bar i {
+  border-radius: 0;
+  box-shadow: none;
+}
+.fx-bar.pv i {
+  background: var(--ui-fichas-barra-pv, var(--cor-bar)) left center / auto 100% repeat-x;
+}
+.fx-bar.pe i {
+  background: var(--ui-fichas-barra-pe, var(--cor-bar)) left center / auto 100% repeat-x;
+}
+.fx-bar.san i {
+  background: var(--ui-fichas-barra-san, var(--cor-bar)) left center / auto 100% repeat-x;
+}
+
+/* as placas dos derivados (corte 20) */
+.fx-dv {
+  position: relative;
+  isolation: isolate;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: #efe6d4;
+}
+.fx-dv::before {
+  content: '';
+  position: absolute;
+  inset: -0.2rem;
+  z-index: -1;
+  border: 1rem solid transparent;
+  border-image: var(--ui-fichas-placa-derivado) 20 fill / 1rem stretch;
+}
+.fx-dv .fx-dv-r {
+  color: #b9ad98;
+}
+.fx-dv .fx-dv-v {
+  color: #f3eadb;
+}
+
+/* as linhas dos equipamentos (corte 24) */
+.fx-equip .fx-tab-l {
+  position: relative;
+  isolation: isolate;
+  border: 0;
+  background: none;
+  color: #e9e0cf;
+}
+.fx-equip .fx-tab-l::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border: 0.6rem solid transparent;
+  border-width: 0.6rem 1.2rem;
+  border-image: var(--ui-fichas-linha-tabela-normal) 24 fill / 0.6rem 1.2rem stretch;
+}
+.fx-equip .fx-tab-l:hover::before {
+  border-image-source: var(--ui-fichas-linha-tabela-foco);
+}
+
+/* as casas do inventário */
+.fx-sl {
+  border: 0;
+  border-radius: 0;
+  background: var(--ui-fichas-casa-item-normal) center / 100% 100% no-repeat;
+  box-shadow: none;
+}
+.fx-sl:hover {
+  background-image: var(--ui-fichas-casa-item-foco);
+}
+.fx-sl.on,
+.fx-sl.sel {
+  background-image: var(--ui-fichas-casa-item-escolhida);
+}
+.fx-sl.vazio,
+.fx-sl:disabled {
+  background-image: var(--ui-fichas-casa-item-vazia);
+}
+
+/* a lista dos agentes: a carta do kit por cima do retrato (cortes 24, 24, 80, 24) */
+.fx-ag {
+  border: 0;
+  border-radius: 0;
+  background: #14110f;
+  box-shadow: 0 0.3rem 0.8rem rgba(0, 0, 0, 0.6);
+}
+.fx-ag::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  border: 1.2rem solid transparent;
+  border-width: 1.2rem 1.2rem 4rem;
+  border-image: var(--ui-cartas-carta-agente-normal-fonte) 24 24 80 24 / 1.2rem 1.2rem 4rem stretch;
+}
+.fx-ag:hover::before {
+  border-image-source: var(--ui-cartas-carta-agente-foco-fonte);
+}
+.fx-ag.on {
+  box-shadow: 0 0.3rem 0.8rem rgba(0, 0, 0, 0.6);
+}
+.fx-ag.on::before {
+  border-image-source: var(--ui-cartas-carta-agente-ativo-fonte);
+}
+.fx-ag.on::after {
+  content: '';
+  position: absolute;
+  inset: -1.2rem;
+  pointer-events: none;
+  background: var(--ui-cartas-carta-agente-brilho) center / 100% 100% no-repeat;
+  animation: kit-pulsa 2.6s ease-in-out infinite;
+}
+.fx-ag-placa {
+  z-index: 2;
+}
+
+/* os botões de baixo (Editar, Adicionar Item, Salvar): o botão grande, atrás do conteúdo */
+.fx-bt {
+  position: relative;
+  isolation: isolate;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  text-shadow: 0 0.15rem 0.2rem #000;
+}
+.fx-bt::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border: 1.4rem solid transparent;
+  border-image: var(--ui-kit-botao-grande-normal) 28 fill / 1.4rem stretch;
+}
+.fx-bt:not(:disabled):hover {
+  background: none;
+}
+.fx-bt:not(:disabled):hover::before {
+  border-image-source: var(--ui-kit-botao-grande-foco);
+}
+.fx-bt:not(:disabled):active::before {
+  border-image-source: var(--ui-kit-botao-grande-apertado);
+}
+.fx-bt:disabled::before {
+  border-image-source: var(--ui-kit-botao-grande-desligado);
+}
+.fx-bt.forte {
+  background: none;
+  box-shadow: none;
+}
+.fx-bt.forte::before {
+  border-image-source: var(--ui-kit-botao-grande-ativo);
+}
+
+/* o personagem grande: o fundo pintado e a moldura (corte 60) por cima */
+.fx-corpo {
+  border: 0;
+  background: #0d1116;
+}
+.fx-corpo-fundo {
+  background: var(--ui-fichas-fundo-personagem, linear-gradient(180deg, #1a2029 0%, #0c1016 100%)) center / cover no-repeat;
+}
+.fx-corpo-fundo::before,
+.fx-corpo-chao {
+  display: none;
+}
+.fx-cantos {
+  inset: 0;
+  z-index: 3;
+  background: none;
+  border: 3rem solid transparent;
+  border-image: var(--ui-fichas-moldura-personagem-fonte) 60 / 3rem stretch;
+}

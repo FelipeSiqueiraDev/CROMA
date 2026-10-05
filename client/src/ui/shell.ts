@@ -444,14 +444,14 @@ export class Shell {
       im.onload = () => ((this.alfineteImg = im), this.drawPlan());
       im.src = '/arte/interface/alfinete.png';
     });
-    paperize(plan, { seed: 12, tone: '#c3b09a', burn: 0.85, grid: 11, backs: [{ dx: -10, dy: 5, rot: -1.4 }] });
+    paperize(plan, { kit: false, seed: 12, tone: '#c3b09a', burn: 0.85, grid: 11, backs: [{ dx: -10, dy: 5, rot: -1.4 }] });
     this.bindPlan();
     // a lista de cenários saiu: a planta interativa é a navegação (a lista fica pronta, fora da tela)
     void scenes;
     const scrapA = h('span', { class: 'scrap scrap-a', 'aria-hidden': 'true' });
-    paperize(scrapA, { seed: 41, tone: '#c1ae97', burn: 0.8, shadow: 0.9, torn: 2.4 });
+    paperize(scrapA, { kit: false, seed: 41, tone: '#c1ae97', burn: 0.8, shadow: 0.9, torn: 2.4 });
     const note = h('span', { class: 'scrap scrap-note', 'aria-hidden': 'true' }, scribble());
-    paperize(note, { seed: 42, tone: '#c4af96', burn: 0.8, torn: 2.2 });
+    paperize(note, { kit: false, seed: 42, tone: '#c4af96', burn: 0.8, torn: 2.2 });
     const noteTape = h('span', { class: 'tape tape-note', 'aria-hidden': 'true' });
 
     // ================= objetivos =================
@@ -503,7 +503,7 @@ export class Shell {
     this.giveWrap = h('section', { class: 'sheet p-give hidden' }, this.giveBody);
     paperize(this.giveWrap, { seed: 15, tone: '#d2bba6', burn: 0.9 });
     const giveScrap = h('span', { class: 'scrap scrap-give', 'aria-hidden': 'true' }, scribble());
-    paperize(giveScrap, { seed: 43, tone: '#c6b199', burn: 0.8, torn: 2.2, backs: [{ dx: -4, dy: 10, rot: -3, dh: -20 }] });
+    paperize(giveScrap, { kit: false, seed: 43, tone: '#c6b199', burn: 0.8, torn: 2.2, backs: [{ dx: -4, dy: 10, rot: -3, dh: -20 }] });
     // esquerda: tudo do mapa (planta, cômodo e objeto, entrega)
     const mapCol = h('aside', { class: 'col-map' }, plan, paperclip('clip clip-sala'), this.salaEl, this.inspEl, this.giveWrap);
 
@@ -538,7 +538,7 @@ export class Shell {
     const acoes = h('section', { class: 'sheet p-acoes' }, h('h3', { class: 'p-title' }, h('i', { class: 'losango', 'aria-hidden': 'true' }), 'AÇÕES'), this.acoesEl);
     paperize(acoes, { seed: 22, tone: '#cdb99c', burn: 1, backs: [{ dx: -4, dy: 5, rot: -0.8, dw: -6 }] });
     const pilha = h('div', { class: 'pilha-mapa', 'aria-hidden': 'true' }, h('span', { class: 'pm-a' }), h('span', { class: 'pm-b' }), h('span', { class: 'pm-c' }));
-    for (const [i, x] of [...pilha.children].entries()) paperize(x as HTMLElement, { seed: 150 + i, tone: i === 1 ? '#cdbb99' : '#c4b08e', burn: 1.2, torn: 2, stains: 1.4, pad: 12 });
+    for (const [i, x] of [...pilha.children].entries()) paperize(x as HTMLElement, { kit: false, seed: 150 + i, tone: i === 1 ? '#cdbb99' : '#c4b08e', burn: 1.2, torn: 2, stains: 1.4, pad: 12 });
     void log;
     const bottom = h('footer', { class: 'bottom' }, this.partyEl, quick, acoes, pilha);
 
@@ -783,7 +783,7 @@ export class Shell {
       return;
     }
     const note = h('section', { class: 'sheet p-soon' }, h('h3', { class: 'p-title' }, t, uline()), h('p', null, 'Esta aba chega nas próximas etapas.'), h('button', { class: 'dbtn', onclick: () => this.setTab('MAPA') }, 'Voltar ao mapa'));
-    paperize(note, { seed: 20 + t.length, tone: '#d0bba5', burn: 0.8 });
+    paperize(note, { kit: false, seed: 20 + t.length, tone: '#d0bba5', burn: 0.8 });
     clear(o).append(note);
     o.classList.remove('hidden');
     enter(note, 'drop', 0, 520);
@@ -2439,7 +2439,7 @@ export class Shell {
       if (c.color !== p.color) {
         c.color = p.color;
         c.el.style.setProperty('--c', p.color);
-        paperize(c.el, { seed: 60 + i * 3, tone: '#cfb99f', burn: 0.72, stripe: p.color, torn: 1.8, backs: [{ dx: 3, dy: 3, rot: 1.8 }, { dx: -3, dy: 5, rot: -1.3 }], pad: 22 });
+        paperize(c.el, { kit: false, seed: 60 + i * 3, tone: '#cfb99f', burn: 0.72, stripe: p.color, torn: 1.8, backs: [{ dx: 3, dy: 3, rot: 1.8 }, { dx: -3, dy: 5, rot: -1.3 }], pad: 22 });
       }
       // na carta cabe o nome curto (como na referência: Catarina, Alosi)
       c.name.textContent = p.name.length <= 11 ? p.name : p.name.split(/\s+/)[0];
@@ -2490,7 +2490,7 @@ export class Shell {
       this.turnButton(id, false),
       this.turnButton(id, true),
     );
-    paperize(el, { seed: 60 + i * 3, tone: '#cfb99f', burn: 0.72, stripe: p.color, torn: 1.8, backs: [{ dx: 3, dy: 3, rot: 1.8 }, { dx: -3, dy: 5, rot: -1.3 }], pad: 22 });
+    paperize(el, { kit: false, seed: 60 + i * 3, tone: '#cfb99f', burn: 0.72, stripe: p.color, torn: 1.8, backs: [{ dx: 3, dy: 3, rot: 1.8 }, { dx: -3, dy: 5, rot: -1.3 }], pad: 22 });
     tilt(el);
     return { el, img, name, away, look: this.portraitKey(p), color: p.color, vitals, vitalsKey: JSON.stringify(p.vitals ?? null) };
   }

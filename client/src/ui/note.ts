@@ -41,7 +41,7 @@ function show(o: NoteOpts): Promise<string[] | null> {
       h('div', { class: 'note-row' }, o.cancel !== undefined ? h('button', { class: 'note-cancel', type: 'button', onclick: () => close(null) }, o.cancel) : null, okBtn),
     );
     const back = h('div', { class: 'note-back' }, paper);
-    paperize(paper, { seed: 300 + o.title.length, tone: '#d3bca5', burn: 0.85, torn: 2.2, backs: [{ dx: 4, dy: 5, rot: 1.6 }] });
+    paperize(paper, { kit: false, seed: 300 + o.title.length, tone: '#d3bca5', burn: 0.85, torn: 2.2, backs: [{ dx: 4, dy: 5, rot: 1.6 }] });
     document.body.append(back);
     open = back;
     sfx.paper();
