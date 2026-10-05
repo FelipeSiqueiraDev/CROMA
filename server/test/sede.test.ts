@@ -317,15 +317,34 @@ describe('montagem nova da Sede', () => {
     const camp = db.campaigns![String(bar.id)];
     camp.log.push({ at: 1, icon: 'scene', text: 'teste' });
     const tk = bar.tokens![0];
-    // simula a montagem antiga
+    // simula a montagem antiga do bar; a do salão não mudou e fica como o mestre deixou
     db.sedeRev = 1;
+    bar.montagem = 'antiga';
     bar.items = bar.items.filter((i) => i.defId !== 'dirt');
+    const salao = db.rooms.find((r) => r.name === SEDE + 'Salão Principal')!;
+    salao.items = salao.items.slice(1);
+    const noSalao = salao.items.length;
     assert.ok(rebuildSede(db));
+    assert.equal(salao.items.length, noSalao);
     assert.deepEqual(db.rooms.filter((r) => r.name.startsWith(SEDE)).map((r) => r.id), ids);
     assert.ok(bar.items.some((i) => i.defId === 'dirt'));
     assert.ok(bar.tokens!.some((t) => t.id === tk.id && t.x === tk.x && t.y === tk.y));
     assert.ok(camp.log.some((l) => l.text === 'teste'));
     assert.equal(rebuildSede(db), false);
+  });
+
+  test('cômodo de antes do resumo: fica como está e ganha só as peças novas da parede', () => {
+    const db = seedDb();
+    upgradeDb(db);
+    const bar = db.rooms.find((r) => r.name === SEDE + 'Bar')!;
+    db.sedeRev = 1;
+    delete bar.montagem;
+    bar.wallItems = bar.wallItems.filter((w) => w.defId !== 'dartboard');
+    bar.items = bar.items.filter((i) => i.defId !== 'dirt');
+    assert.ok(rebuildSede(db));
+    assert.ok(!bar.items.some((i) => i.defId === 'dirt'));
+    assert.equal(bar.wallItems.filter((w) => w.defId === 'dartboard').length, 1);
+    assert.ok(bar.montagem);
   });
 });
 

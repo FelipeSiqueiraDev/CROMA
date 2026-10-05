@@ -16,7 +16,7 @@ import { buildRoom, plan, type FloorSeed, type WallSeed } from './seed';
 export const SEDE = 'Sede · ';
 export const SEDE_CODE = '0413';
 /** Versão da montagem da Sede: subiu, a Sede é refeita no lugar (mesmos cômodos, peças e registro). */
-export const SEDE_REV = 38;
+export const SEDE_REV = 39;
 
 /** Planta retangular com a porta na parede de cima (y = 0), na coluna doorX. */
 export function planTop(w: number, h: number, doorX: number): { heightmap: string; door: Door } {
@@ -205,6 +205,8 @@ const ROOMS: RoomSpec[] = [
       // a TV do futebol, no alto, e o ventilador
       ['tv_wall', 'r', 0, 12.6, 2.99],
       ['fan_wall', 'l', 1, 7.0, 3.54],
+      // o alvo de dardos, entre as arandelas
+      ['dartboard', 'l', 1, 11.0, 2.8],
     ],
     links: [[20, 0, 'salao']],
   },
@@ -860,6 +862,7 @@ export function seedSede(db: Database) {
   const built = new Map<string, RoomData>();
   for (const spec of ROOMS) {
     const room = buildRoom(db, spec.name, spec.description, spec.layout, furnish(spec), spec.wall ?? [], spec.darkness);
+    room.montagem = resumo(spec);
     style(room, spec);
     built.set(spec.key, room);
   }
@@ -880,6 +883,20 @@ export function seedSede(db: Database) {
   db.sedeRev = SEDE_REV;
 }
 
+/** Resumo da montagem de um cômodo (planta, móveis, paredes): mudou, o cômodo é refeito. */
+function resumo(spec: RoomSpec): string {
+  const t = JSON.stringify([spec.layout, spec.floor, spec.wall ?? [], spec.links]);
+  let h = 2166136261;
+  for (let i = 0; i < t.length; i++) h = Math.imul(h ^ t.charCodeAt(i), 16777619) >>> 0;
+  return h.toString(36);
+}
+
+/**
+ * Peças de parede novas num cômodo guardado sem resumo (de antes de 05/10): entram sem refazer o
+ * cômodo, para não desfazer o que o mestre arrumou pelo jogo.
+ */
+const NOVAS_NA_PAREDE: Record<string, string[]> = { bar: ['dartboard'] };
+
 /**
  * Refaz a Sede no lugar quando a montagem muda (SEDE_REV): mesmos cômodos
  * (ids), mesmas peças (numa casa livre se a antiga sumiu), mesmo registro e
@@ -893,6 +910,17 @@ export function rebuildSede(db: Database): boolean {
   for (const spec of ROOMS) {
     const names = [spec.name, ...(spec.was ?? [])];
     let room = existing.find((r) => names.includes(r.name));
+    const h = resumo(spec);
+    // a montagem deste cômodo não mudou (ou é de antes do resumo): fica como o mestre deixou
+    if (room && (room.montagem === h || room.montagem === undefined)) {
+      if (room.montagem === undefined)
+        for (const [defId, w, plane, pos, z] of (spec.wall ?? []).filter((ws) => NOVAS_NA_PAREDE[spec.key]?.includes(ws[0])))
+          if (!room.wallItems.some((it) => it.defId === defId)) room.wallItems.push({ id: db.nextItemId++, defId, wall: w, plane, pos, z, state: 0 });
+      room.montagem = h;
+      style(room, spec);
+      built.set(spec.key, room);
+      continue;
+    }
     const fresh = buildRoom(db, spec.name, spec.description, spec.layout, furnish(spec), spec.wall ?? [], spec.darkness);
     if (room) {
       // mesmo cômodo: só troca planta e móveis
@@ -902,6 +930,7 @@ export function rebuildSede(db: Database): boolean {
       room = fresh;
       db.rooms.push(room);
     }
+    room.montagem = h;
     style(room, spec);
     built.set(spec.key, room);
   }

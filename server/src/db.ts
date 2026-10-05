@@ -36,6 +36,8 @@ export interface RoomData {
   particles?: ParticleKind[];
   /** quantidade de partículas 0..1 */
   particleLevel?: number;
+  /** a montagem da Sede de onde o cômodo saiu (o resumo dela): a Sede refeita só troca os cômodos cuja montagem mudou */
+  montagem?: string;
   /** vista tática ligada (a câmera do tabuleiro em cima) */
   tatico?: boolean;
 }
