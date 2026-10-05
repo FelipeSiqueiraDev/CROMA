@@ -259,14 +259,15 @@ const ROOMS: RoomSpec[] = [
       ['chair_office', 31, 5, 6],
       ['cabinet_file', 33, 0, 4],
       ['cabinet_file', 34, 0, 4],
-      // na frente da escada, onde se chega: o canto de conversa, duas poltronas frente a frente e a
-      // mesinha no meio (o tapete redondo preto e branco da série vem na arte nova)
-      ['armchair', 4, 9, 2],
-      ['table_small', 5, 9, 0],
-      ['armchair', 6, 9, 6],
+      // perto da escada, onde se chega: o canto de conversa, duas poltronas frente a frente e a mesa
+      // de xadrez no meio (arrumado pelo Felipe no jogo, 05/10; o tapete redondo preto e branco da
+      // série vem na arte nova)
+      ['armchair', 3, 12, 2],
+      ['table_chess', 5, 12, 2],
+      ['armchair', 7, 12, 6],
       ['bench', 10, 13, 0],
       ['bench', 13, 13, 0],
-      ['floor_lamp', 8, 11, 0],
+      ['floor_lamp', 7, 6, 0],
       ['plant', 8, 0, 0],
       ['plant', 34, 13, 0],
       ['compass_floor', 16, 7, 0],
