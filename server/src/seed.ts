@@ -18,7 +18,7 @@ import {
 } from '@crona/shared';
 import type { Database, RoomData, TokenData } from './db';
 import { montarFazenda } from './seedFazenda';
-import { rebuildSede, seedSede } from './seedSede';
+import { coresDosAgentes, rebuildSede, seedSede } from './seedSede';
 
 export const SYSTEM_OWNER = 'CRONA';
 
@@ -653,7 +653,8 @@ export function upgradeDb(db: Database): boolean {
   if (v >= SEED_VERSION) {
     const sede = rebuildSede(db);
     const fazenda = montarFazenda(db);
-    return sede || fazenda || renomeou;
+    const cores = coresDosAgentes(db);
+    return sede || fazenda || renomeou || cores;
   }
   for (const r of db.rooms) {
     r.lightMode ??= 'normal';
@@ -724,6 +725,7 @@ export function upgradeDb(db: Database): boolean {
   rebuildSede(db);
   // Fazenda Olhos de Águia: a fazenda de fora, os arredores e o interior das casas
   montarFazenda(db);
+  coresDosAgentes(db);
   db.seedVersion = SEED_VERSION;
   return true;
 }
