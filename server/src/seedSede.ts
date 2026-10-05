@@ -263,11 +263,11 @@ const ROOMS: RoomSpec[] = [
       // de xadrez no meio (arrumado pelo Felipe no jogo, 05/10; o tapete redondo preto e branco da
       // série vem na arte nova)
       ['armchair', 3, 12, 2],
-      ['table_chess', 5, 12, 2],
+      ['table_chess', 5, 12, 4],
       ['armchair', 7, 12, 6],
       ['bench', 10, 13, 0],
       ['bench', 13, 13, 0],
-      ['floor_lamp', 7, 6, 0],
+      ['floor_lamp', 5, 13, 0],
       ['plant', 8, 0, 0],
       ['plant', 34, 13, 0],
       ['compass_floor', 16, 7, 0],
