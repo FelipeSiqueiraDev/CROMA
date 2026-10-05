@@ -16,7 +16,7 @@ import { buildRoom, plan, type FloorSeed, type WallSeed } from './seed';
 export const SEDE = 'Sede · ';
 export const SEDE_CODE = '0413';
 /** Versão da montagem da Sede: subiu, a Sede é refeita no lugar (mesmos cômodos, peças e registro). */
-export const SEDE_REV = 37;
+export const SEDE_REV = 38;
 
 /** Planta retangular com a porta na parede de cima (y = 0), na coluna doorX. */
 export function planTop(w: number, h: number, doorX: number): { heightmap: string; door: Door } {
@@ -215,7 +215,7 @@ const ROOMS: RoomSpec[] = [
     particles: ['dust'],
     lamp: 'fluorescent',
     name: SEDE + 'Salão Principal',
-    description: 'O coração da Sede: mesas de trabalho, a mesa redonda da equipe e a escada que sobe para o bar.',
+    description: 'O coração da Sede, bem iluminado: a fileira das quatro mesas de trabalho, os armários de ferro, os papéis dos casos e, na frente da escada, o canto das duas poltronas.',
     layout: salaoPlan(),
     floorName: 'Subsolo',
     style: 'concreto',
@@ -249,28 +249,21 @@ const ROOMS: RoomSpec[] = [
       ['chair_office', 25, 3, 6],
       ['chair_office', 25, 4, 6],
       ['chair_office', 25, 5, 6],
-      // mesa redonda da equipe
-      ['table_round', 29, 2, 0],
-      ['chair_red', 29, 1, 4],
-      ['chair_red', 30, 1, 4],
-      ['chair_red', 28, 2, 2],
-      ['chair_red', 28, 3, 2],
-      ['chair_red', 31, 2, 6],
-      ['chair_red', 31, 3, 6],
-      ['chair_red', 29, 4, 0],
-      ['chair_red', 30, 4, 0],
-      // mesa oval do canto, com poltrona
-      ['table_meeting', 31, 8, 2],
-      ['chair_red', 30, 8, 2],
-      ['chair_red', 30, 10, 2],
-      ['armchair', 33, 9, 6],
-      ['table_small', 34, 11, 0],
+      // a quarta mesa da fileira (na série são quatro mesas de metal em fila, com as banquetas)
+      ['table_work', 29, 3, 2],
+      ['chair_office', 28, 3, 2],
+      ['chair_office', 28, 4, 2],
+      ['chair_office', 28, 5, 2],
+      ['chair_office', 31, 3, 6],
+      ['chair_office', 31, 4, 6],
+      ['chair_office', 31, 5, 6],
       ['cabinet_file', 33, 0, 4],
       ['cabinet_file', 34, 0, 4],
-      // xadrez perto da escada
-      ['table_chess', 4, 11, 0],
-      ['armchair', 3, 11, 2],
-      ['armchair', 5, 11, 6],
+      // na frente da escada, onde se chega: o canto de conversa, duas poltronas frente a frente e a
+      // mesinha no meio (o tapete redondo preto e branco da série vem na arte nova)
+      ['armchair', 4, 9, 2],
+      ['table_small', 5, 9, 0],
+      ['armchair', 6, 9, 6],
       ['bench', 10, 13, 0],
       ['bench', 13, 13, 0],
       ['floor_lamp', 8, 11, 0],
