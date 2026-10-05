@@ -105,13 +105,25 @@ def recortar_hd(img):
     """
     op = img[:, :, 3] >= 128
     cols = faixas(op.sum(axis=0))
-    lins = faixas(op.sum(axis=1))
-    if len(cols) != 4 or len(lins) != 2:
-        raise SystemExit(f'Esperava uma grade 4x2 de poses; achei {len(cols)} colunas e {len(lins)} linhas.')
+    if len(cols) != 4:
+        raise SystemExit(f'Esperava uma grade 4x2 de poses; achei {len(cols)} colunas.')
     poses = {}
-    for r, (ya, yb) in enumerate(lins):
-        for c, (xa, xb) in enumerate(cols):
+    for c, (xa, xb) in enumerate(cols):
+        # cada coluna acha o vão entre as duas poses (o cabelo de baixo pode passar da linha da grade
+        # numa coluna e não em outra); sem vão, corta na linha mais vazia perto do meio
+        perfil = op[:, xa:xb + 1].sum(axis=1)
+        lins = faixas(perfil)
+        if len(lins) != 2:
+            h = len(perfil)
+            meio = int(np.argmin(perfil[int(h * 0.35):int(h * 0.65)])) + int(h * 0.35)
+            lins = [faixas(perfil[:meio])[0], [(a + meio, b + meio) for a, b in faixas(perfil[meio:])][-1]]
+            lins = [(lins[0][0], meio - 1), (meio, lins[1][1])]
+        for r, (ya, yb) in enumerate(lins):
             cel = img[max(0, ya - 3):yb + 4, max(0, xa - 3):xb + 4].copy()
+            if r == 0:
+                cel[max(0, yb + 1 - max(0, ya - 3)):] = 0  # nada da pose de baixo
+            else:
+                cel[:max(0, ya - max(0, ya - 3))] = 0
             a = cel[:, :, 3].astype(int)
             a[a < 24] = 0
             corpo = a >= 250
