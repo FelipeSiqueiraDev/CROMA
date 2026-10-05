@@ -3081,23 +3081,23 @@
   "giros": {
    "4": {
     "arquivo": "counter_wood/giro-4.png",
-    "ax": 123.0,
-    "ay": 188.0
+    "ax": 121.5,
+    "ay": 135.2
    },
    "6": {
     "arquivo": "counter_wood/giro-6.png",
-    "ax": 59.0,
-    "ay": 188.0
+    "ax": 57.5,
+    "ay": 131.2
    },
    "0": {
     "arquivo": "counter_wood/giro-0.png",
-    "ax": 123.0,
-    "ay": 188.0
+    "ax": 121.5,
+    "ay": 136.2
    },
    "2": {
     "arquivo": "counter_wood/giro-2.png",
-    "ax": 59.0,
-    "ay": 188.0
+    "ax": 57.5,
+    "ay": 135.2
    }
   },
   "real": [
