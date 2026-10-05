@@ -2728,7 +2728,17 @@ select.fx-inp {
     white-space: nowrap;
   }
 
-  /* ---------- vida: PV, PE e SAN, e as condições embaixo ---------- */
+  /* ---------- a FICHAS do mestre (as regras): o personagem maior e, embaixo, só os máximos ---------- */
+  .fx:not(.jogador) .fx-corpo { height: 64.4rem; }
+  .fx:not(.jogador) .fx-g-vida { top: 75.2rem; height: 11.4rem; }
+  .fx:not(.jogador) .fx-rec .fx-corpo-p {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.8rem;
+    padding: 0.6rem 1rem 0;
+  }
+
+  /* ---------- vida: PV, PE e SAN, e as condições embaixo (a tela do jogador) ---------- */
   .fx-g-vida > .fx-rec {
     flex: none;
   }

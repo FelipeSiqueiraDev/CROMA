@@ -675,6 +675,18 @@ export class FichasScreen {
   private renderRec(fs: FichaSalva, c: Calc) {
     const v = this.vitais(fs, c);
     const corpo = this.corpoDe(this.pRec);
+    // a FICHAS do mestre é a das regras: só os máximos. O que acontece em jogo (PV, PE e SAN de agora,
+    // as condições) fica na lateral do MAPA e no celular do jogador, que continua com as barras.
+    if (!this.o.jogador) {
+      const caixa = (k: 'pv' | 'pe' | 'san', rotulo: string, icone: NomeIcone, dica: string) =>
+        h('div', { class: `fx-dv ${k}`, 'data-dica': dica }, h('span', { class: 'fx-dv-ic' }, arte(`/arte/icones/${k}.png`, icone)), h('span', { class: 'fx-dv-t' }, h('span', { class: 'fx-dv-r' }, rotulo), h('b', { class: 'fx-dv-v' }, String(v[`${k}Max` as const]))));
+      corpo.replaceChildren(
+        caixa('pv', 'PV MÁX.', 'coracao', 'Pontos de vida: os da classe, mais o Vigor, e o que cada NEX soma.'),
+        caixa('pe', 'PE MÁX.', 'cerebro', 'Pontos de esforço: os da classe, mais a Presença, e o que cada NEX soma.'),
+        caixa('san', 'SAN MÁX.', 'espiral', 'Sanidade: a da classe e o que cada NEX soma.'),
+      );
+      return;
+    }
     const linha = (k: 'pv' | 'pe' | 'san', rotulo: string, icone: NomeIcone) => {
       const atual = v[k];
       const max = v[`${k}Max` as const];
@@ -760,6 +772,9 @@ export class FichasScreen {
   // ---------------------------------------------------------------- condições
 
   private renderCond(fs: FichaSalva, c: Calc) {
+    // as condições são do jogo, não das regras: na FICHAS do mestre não aparecem
+    this.pCond.classList.toggle('hidden', !this.o.jogador);
+    if (!this.o.jogador) return;
     const v = this.vitais(fs, c);
     const auto = vitalConditions(v);
     const marcadas = new Set(fs.condicoes ?? []);
