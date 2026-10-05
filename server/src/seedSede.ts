@@ -16,7 +16,7 @@ import { buildRoom, plan, type FloorSeed, type WallSeed } from './seed';
 export const SEDE = 'Sede · ';
 export const SEDE_CODE = '0413';
 /** Versão da montagem da Sede: subiu, a Sede é refeita no lugar (mesmos cômodos, peças e registro). */
-export const SEDE_REV = 33;
+export const SEDE_REV = 36;
 
 /** Planta retangular com a porta na parede de cima (y = 0), na coluna doorX. */
 export function planTop(w: number, h: number, doorX: number): { heightmap: string; door: Door } {
@@ -456,7 +456,7 @@ const ROOMS: RoomSpec[] = [
     particles: ['dust'],
     lamp: 'fluorescent',
     name: SEDE + 'Laboratório',
-    description: 'Bancadas nas paredes e uma ilha no meio: microscópio, frascos e o computador das análises.',
+    description: 'O laboratório do Renan, com cara de clínica: bancadas nas paredes e duas bancadas compridas no meio, microscópios, frascos e o quadro branco.',
     layout: planBottom(9, 10, 6),
     floorName: 'Subsolo',
     style: 'azulejo',
@@ -464,32 +464,33 @@ const ROOMS: RoomSpec[] = [
     plan: { x: 30, y: -3 },
     floor: [
       ['portal', 6, 9, 0],
-      // a estante no canto; as bancadas da parede do fundo, com o microscópio e o computador
-      ['bookshelf', 0, 0, 4],
-      ['lab_bench', 3, 0, 4],
-      ['microscope', 3, 0, 4],
-      ['flasks', 4, 0, 4],
-      ['stool_lab', 3, 1, 0],
-      ['lab_bench', 5, 0, 4],
-      ['monitor', 5, 0, 4],
-      ['chair_office', 5, 1, 0],
+      // como na planta da série: as bancadas na parede do fundo e na da esquerda, e duas bancadas
+      // compridas no meio, paralelas, com o corredor entre elas; o quadro branco no fundo
+      ['lab_bench', 0, 0, 4],
+      ['microscope', 0, 0, 4],
+      ['flasks', 1, 0, 4],
+      ['stool_lab', 0, 1, 0],
+      ['whiteboard', 3, 0, 4],
       ['cabinet_file', 7, 0, 4],
       ['cabinet_file', 8, 0, 4],
-      // a bancada da parede esquerda, com o radar
-      ['lab_bench', 0, 2, 2],
-      ['monitor_green', 0, 2, 2],
-      ['chair_office', 1, 2, 6],
-      ['lab_bench', 0, 4, 2],
-      ['flasks', 0, 5, 2],
-      // a ilha no meio, de frente para a sala, com as banquetas
-      ['lab_bench', 4, 4, 4],
-      ['microscope', 4, 4, 4],
-      ['lab_bench', 6, 4, 4],
-      ['flasks', 7, 4, 4],
-      ['stool_lab', 4, 5, 0],
-      ['stool_lab', 6, 5, 0],
-      ['trolley', 7, 7, 0],
-      ...lamps([2, 2], [5, 3], [5, 7]),
+      ['lab_bench', 0, 3, 2],
+      ['monitor_green', 0, 3, 2],
+      ['chair_office', 1, 3, 6],
+      ['lab_bench', 0, 5, 2],
+      ['flasks', 0, 6, 2],
+      ['lab_bench', 3, 3, 2],
+      ['microscope', 3, 3, 2],
+      ['lab_bench', 3, 5, 2],
+      ['monitor', 3, 5, 2],
+      ['lab_bench', 5, 3, 6],
+      ['flasks', 5, 4, 6],
+      ['lab_bench', 5, 5, 6],
+      ['microscope', 5, 6, 6],
+      ['stool_lab', 4, 4, 0],
+      ['stool_lab', 4, 6, 0],
+      ['chair_office', 6, 2, 0],
+      ['trolley', 7, 6, 0],
+      ...lamps([2, 2], [4, 5], [7, 3]),
     ],
     wall: [
       ['board_investigation', 'r', 0, 4.6, 2.18],
@@ -546,37 +547,49 @@ const ROOMS: RoomSpec[] = [
     ambient: '#c0622a',
     particles: ['dust', 'smoke'],
     name: SEDE + 'Gabinete',
-    description: 'O escritório do Veríssimo: a mesa grande de madeira, a pintura atrás da cadeira, o quadro de investigação com os fios vermelhos, as poltronas vermelhas no tapete e o sofá.',
-    layout: planBottom(9, 10, 2),
+    description: 'O escritório do Veríssimo, imponente: as estantes grandes no fundo, a mesa grande de madeira com a cadeira dele, o sofá vermelho embaixo da pintura do Coliseu, as quatro poltronas no tapete, o quadro de detetive e o canto das relíquias.',
+    layout: planBottom(12, 10, 2),
     floorName: 'Subsolo',
     style: 'taco',
     darkness: 0.5,
     plan: { x: 54, y: -3 },
     floor: [
       ['portal', 2, 9, 0],
-      // a mesa grande do Veríssimo no meio da parede do fundo, a cadeira dele entre ela e a pintura
-      ['chair_office', 4, 0, 4],
-      ['desk_wood', 3, 1, 4],
-      ['desk_lamp', 3, 1, 4],
-      ['papers', 4, 1, 4],
-      // o tapete na frente da mesa, com as duas poltronas vermelhas de quem vem prestar contas
-      ['rug_ornate', 2, 3, 0],
-      ['armchair_red', 3, 3, 0],
-      ['armchair_red', 4, 3, 0],
-      // a estante e o arquivo na parede do fundo, o candelabro do outro lado da mesa
-      ['bookshelf', 6, 0, 4],
-      ['cabinet_file', 8, 0, 4],
-      ['candelabra', 1, 0, 0],
-      // o sofá vermelho na parede da esquerda
-      ['sofa_booth', 0, 6, 2],
-      ['plant', 8, 8, 0],
-      ...lamps([4, 2], [4, 7]),
+      // a parede do fundo é o que impressiona: as estantes grandes dos dois lados e, no meio, o sofá
+      // vermelho embaixo da pintura do Coliseu (a estante que pega a parede inteira vem na arte nova)
+      ['bookshelf', 1, 0, 4],
+      ['bookshelf', 3, 0, 4],
+      ['sofa_booth', 5, 0, 4],
+      ['bookshelf', 7, 0, 4],
+      ['bookshelf', 9, 0, 4],
+      ['cabinet_file', 11, 0, 4],
+      ['candelabra', 4, 1, 0],
+      ['candelabra', 7, 1, 0],
+      // a mesa grande perto do centro, cheia de livros e folhas, com a cadeira do Veríssimo atrás
+      ['chair_office', 5, 2, 4],
+      ['desk_wood', 5, 3, 4],
+      ['desk_lamp', 5, 3, 4],
+      ['books_stack', 6, 3, 4],
+      // as quatro poltronas avermelhadas na frente, no tapete; o armário de metal ao lado da mesa
+      ['rug_ornate', 4, 4, 2],
+      ['armchair_red', 4, 5, 0],
+      ['armchair_red', 5, 5, 0],
+      ['armchair_red', 6, 5, 0],
+      ['armchair_red', 7, 5, 0],
+      ['cabinet_file', 8, 3, 4],
+      // o canto de exibição, na parede da esquerda: as relíquias nos pedestais (as armaduras e a
+      // vitrine dos itens paranormais vêm na arte nova)
+      ['pedestal', 0, 3, 2],
+      ['pedestal', 0, 5, 2],
+      ['pedestal', 0, 7, 2],
+      ['plant', 11, 9, 0],
+      ...lamps([6, 4], [6, 8], [2, 5], [10, 5]),
     ],
     wall: [
-      // atrás da cadeira, a pintura (do Coliseu, na série); o quadro de investigação com os fios vermelhos
-      ['painting', 'r', 0, 4.4, 2.45],
-      ['board_investigation', 'l', 0, 3.2, 2.18],
-      ['clock', 'r', 0, 7.2, 3.54],
+      // a pintura do Coliseu atrás da cadeira, o quadro de detetive enorme, o relógio
+      ['painting', 'r', 0, 6.0, 2.6],
+      ['board_investigation', 'l', 0, 1.6, 2.18],
+      ['clock', 'r', 0, 10.6, 3.54],
     ],
     links: [[2, 9, 'corredor']],
   },
