@@ -16,7 +16,7 @@ import { buildRoom, plan, type FloorSeed, type WallSeed } from './seed';
 export const SEDE = 'Sede · ';
 export const SEDE_CODE = '0413';
 /** Versão da montagem da Sede: subiu, a Sede é refeita no lugar (mesmos cômodos, peças e registro). */
-export const SEDE_REV = 36;
+export const SEDE_REV = 37;
 
 /** Planta retangular com a porta na parede de cima (y = 0), na coluna doorX. */
 export function planTop(w: number, h: number, doorX: number): { heightmap: string; door: Door } {
@@ -467,25 +467,17 @@ const ROOMS: RoomSpec[] = [
       // como na planta da série: as bancadas na parede do fundo e na da esquerda, e duas bancadas
       // compridas no meio, paralelas, com o corredor entre elas; o quadro branco no fundo
       ['lab_bench', 0, 0, 4],
-      ['microscope', 0, 0, 4],
-      ['flasks', 1, 0, 4],
       ['stool_lab', 0, 1, 0],
       ['whiteboard', 3, 0, 4],
       ['cabinet_file', 7, 0, 4],
       ['cabinet_file', 8, 0, 4],
       ['lab_bench', 0, 3, 2],
-      ['monitor_green', 0, 3, 2],
       ['chair_office', 1, 3, 6],
       ['lab_bench', 0, 5, 2],
-      ['flasks', 0, 6, 2],
       ['lab_bench', 3, 3, 2],
-      ['microscope', 3, 3, 2],
       ['lab_bench', 3, 5, 2],
-      ['monitor', 3, 5, 2],
       ['lab_bench', 5, 3, 6],
-      ['flasks', 5, 4, 6],
       ['lab_bench', 5, 5, 6],
-      ['microscope', 5, 6, 6],
       ['stool_lab', 4, 4, 0],
       ['stool_lab', 4, 6, 0],
       ['chair_office', 6, 2, 0],
@@ -711,9 +703,7 @@ const ROOMS: RoomSpec[] = [
       // o posto da enfermagem no canto de baixo: o balcão em L, com a mesa e o computador dentro
       ['lab_bench', 13, 10, 2],
       ['lab_bench', 14, 10, 4],
-      ['med_tray', 14, 10, 4],
       ['lab_bench', 16, 10, 4],
-      ['vitals_monitor', 17, 10, 4],
       ['lab_bench', 18, 10, 4],
       ['desk_metal', 16, 12, 4],
       ['computer_old', 16, 12, 4],
