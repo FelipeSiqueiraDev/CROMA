@@ -19,7 +19,7 @@ Este guia é para o Claude que pega o CRONA do zero, numa conversa nova ou noutr
    | Personagens no tabuleiro | [`PERSONAGENS-3D.md`](PERSONAGENS-3D.md) |
    | Formato da arte | [`ARTE.md`](ARTE.md) |
    | O que falta desenhar | [`CHECKLIST-ARTE.md`](CHECKLIST-ARTE.md) |
-3. **A memória da conta anterior.** Se existir, leia `%USERPROFILE%\.claude\projects\<a pasta que termina em MEUS-PROJETOS-CROMA>\memory\MEMORY.md` e os arquivos dela, que têm mais detalhes de cada combinado. As conversas antigas (`*.jsonl`) ficam na mesma pasta, e as imagens que o Felipe mandou no meio de uma resposta estão nelas em base64.
+3. **A memória.** Se existir, leia `%USERPROFILE%\.claude\projects\F--Dhellow-CRONA-projeto\memory\MEMORY.md` (a pasta do projeto desde 05/10; a memória antiga, de quando o projeto ficava no OneDrive, foi copiada para lá) e os arquivos dela, que têm mais detalhes de cada combinado. As conversas antigas (`*.jsonl`) ficam na mesma pasta, e as imagens que o Felipe mandou no meio de uma resposta estão nelas em base64.
 4. Veja o estado do git (`git status`, `git log --oneline -5`) e pergunte ao Felipe o que vem primeiro entre os itens do `EM-ABERTO.md`.
 
 ## Quem é quem
@@ -120,7 +120,7 @@ O básico está no `AGENTS.md`. Além dele:
 ## A arte (o caminho do Códex)
 
 **A pasta da arte**
-- Fica em `%USERPROFILE%\OneDrive\Área de Trabalho\TEXTURAS MAPA\BASE - Ordo Realitas\`.
+- Fica em `F:\Dhellow\CRONA\arte\TEXTURAS MAPA\BASE - Ordo Realitas\`.
 - O `LEIA-ME.txt` dela é o mapa:
   - os pedidos `PROMPT-*.txt`;
   - `gabaritos/`: câmera, estilo, telas, agentes e "como está hoje";

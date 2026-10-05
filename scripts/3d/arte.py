@@ -28,7 +28,7 @@ import fitz
 import numpy as np
 
 sys.stdout.reconfigure(encoding='utf-8')
-RAIZ = os.environ.get('CRONA_3D') or os.environ.get('CROMA_3D') or 'C:/Users/felip/CRONA-3D'
+RAIZ = os.environ.get('CRONA_3D') or 'F:/Dhellow/CRONA/3d'
 R2 = math.sqrt(0.5)
 # para onde a frente olha em cada direção, no chão do tabuleiro (como no filmar.py)
 FRENTE = {'ne': (0.0, -1.0), 'e': (R2, -R2), 'se': (1.0, 0.0), 's': (R2, R2), 'sw': (0.0, 1.0), 'w': (-R2, R2), 'nw': (-1.0, 0.0), 'n': (-R2, -R2)}

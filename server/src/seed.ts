@@ -643,19 +643,13 @@ function liftWallItems(r: RoomData) {
 /** Aplica conteúdo novo em bancos antigos sem apagar nada. */
 export function upgradeDb(db: Database): boolean {
   const v = db.seedVersion ?? 1;
-  // o jogo mudou de nome (CROMA → CRONA, 03/10): os cômodos do sistema e o saguão antigo
-  let renomeou = false;
-  for (const r of db.rooms) {
-    if (r.owner === 'CROMA') (r.owner = SYSTEM_OWNER), (renomeou = true);
-    if (r.name === 'Saguão CROMA') (r.name = 'Saguão CRONA'), (renomeou = true);
-  }
   // a Sede e a fazenda mudam de montagem sem esperar versão nova do banco
   if (v >= SEED_VERSION) {
     const sede = rebuildSede(db);
     const fazenda = montarFazenda(db);
     const cores = coresDosAgentes(db);
     const temas = temasDosAgentes(db);
-    return sede || fazenda || renomeou || cores || temas;
+    return sede || fazenda || cores || temas;
   }
   for (const r of db.rooms) {
     r.lightMode ??= 'normal';

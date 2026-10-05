@@ -11,10 +11,7 @@
 #                                    aparelho (?mestre=); o `npm run crona` acha o IP (CRONA_IP)
 # A porta fica presa a 127.0.0.1: o tablet e os outros aparelhos da rede não
 # enxergam o banco (eles falam só com o servidor do CRONA).
-#
-# Até 03/10/2026 o jogo se chamava CROMA, e o banco ficava no container croma-postgres
-# (volume croma_croma-dados). Na troca de nome, os dados foram copiados para este banco
-# novo; o antigo ficou desligado, inteiro, como cópia de segurança (não apague).
+
 name: crona
 services:
   banco:

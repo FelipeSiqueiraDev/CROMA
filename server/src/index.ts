@@ -19,7 +19,7 @@ try {
 // Em desenvolvimento o Vite usa PORT; o servidor fica na 3001 (ou CRONA_PORT).
 // Com --prod (npm start) respeita PORT, como a maioria das hospedagens espera.
 const PROD = process.argv.includes('--prod');
-const PORT = Number(process.env.CRONA_PORT ?? process.env.CROMA_PORT ?? (PROD ? process.env.PORT : undefined) ?? 3001);
+const PORT = Number(process.env.CRONA_PORT ?? (PROD ? process.env.PORT : undefined) ?? 3001);
 const CLIENT_DIST = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../client/dist');
 const ARTE_FONTE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../client/public/arte');
 const MAX_UPLOAD = 12 * 1024 * 1024;

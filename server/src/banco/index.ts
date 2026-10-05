@@ -15,8 +15,7 @@ export interface Banco {
 }
 
 export async function abrirBanco(): Promise<Banco> {
-  // o nome antigo (CROMA_DB_URL, de antes de 03/10) continua valendo
-  const url = process.env.CRONA_DB_URL ?? process.env.CROMA_DB_URL;
+  const url = process.env.CRONA_DB_URL;
   if (!url) {
     const json = new BancoJson();
     await usarBanco(json);

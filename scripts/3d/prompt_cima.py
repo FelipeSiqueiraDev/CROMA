@@ -15,7 +15,7 @@ import sys
 AQUI = os.path.dirname(os.path.abspath(__file__))
 JOGO = os.path.dirname(os.path.dirname(AQUI))
 PASTA_GPT = os.environ.get('CRONA_ARTE_GPT') or os.path.join(
-    os.path.expanduser('~'), 'OneDrive', 'Área de Trabalho', 'TEXTURAS MAPA', 'BASE - Ordo Realitas')
+    'F:/Dhellow/CRONA/arte', 'TEXTURAS MAPA', 'BASE - Ordo Realitas')
 SAIDA = sys.argv[sys.argv.index('--saida') + 1] if '--saida' in sys.argv else os.path.join(PASTA_GPT, 'PROMPT-VISTA-DE-CIMA.txt')
 CASA_M = 0.75
 PX = 128  # pixels por casa

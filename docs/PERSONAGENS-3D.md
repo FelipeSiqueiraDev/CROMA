@@ -12,7 +12,7 @@ dos personagens (enviadas em 02/10) são a referência de roupa, cabelo e cores.
 1. **Boneco-base e animações** (Quaternius, licença CC0: domínio público, sem
    crédito): *Universal Base Characters* (corpo com esqueleto de 65 ossos) e
    *Universal Animation Library* 1 e 2 (as animações, no mesmo esqueleto).
-   Ficam fora do repositório, em `C:\Users\felip\CRONA-3D\fontes`.
+   Ficam fora do repositório, em `F:\Dhellow\CRONA\3d\fontes`.
 2. **Montar** (`montar.py` + a ficha `fichas/<nome>.json`): proporções (ombros,
    tronco, grossura de braços e pernas, altura), pele, cabelo, barba, óculos,
    roupas e acessórios. As roupas saem do próprio corpo: as faces de cada
@@ -33,7 +33,7 @@ dos personagens (enviadas em 02/10) são a referência de roupa, cabelo e cores.
    tiras por animação e direção e o `anim.json` (versão 2), que o servidor acha
    e o tabuleiro toca.
 
-Os scripts ficam em `C:\Users\felip\CRONA-3D\scripts` enquanto o caminho é
+Os scripts ficam em `F:\Dhellow\CRONA\3d\scripts` enquanto o caminho é
 testado e vêm para o repositório quando estiverem prontos.
 
 ## Escala e ângulo

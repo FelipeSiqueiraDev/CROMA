@@ -27,45 +27,20 @@ O que está pela metade, o que falta e o que o Códex ainda vai entregar. Leia j
 
 (A sobra da câmera de cima, em `client/src/render/iso.ts`, foi descartada em 03/10 a pedido do Felipe.)
 
-## A troca de nome: CROMA virou CRONA (03/10)
+## Onde está cada coisa (desde 05/10, tudo no F:)
 
-O Felipe trocou o nome do jogo para **CRONA**, de Cronos e de crônica. A regra foi **não perder nada**: o que era arriscado de renomear ganhou uma **cópia** com o nome novo, e o original ficou guardado.
+O C: encheu em 05/10 (0 bytes livres, o Docker parou). A pedido do Felipe, tudo o que é do CRONA foi para **`F:\Dhellow\CRONA`**, e as cópias do C: foram apagadas depois de conferidas (mesmo número de arquivos e de bytes).
 
-**O que mudou**
-- **Tela, documentos e pedidos de arte:**
-  - a tela, o título da aba e os registros do servidor (`[crona]`);
-  - os documentos;
-  - os `.txt` da pasta da arte do GPT.
-- **Código:**
-  - os pacotes (`@crona/shared`, `@crona/server`, `@crona/client`);
-  - o `window.__crona` de desenvolvimento;
-  - os presets `crona` e `crona-visual` do `.claude/launch.json`.
-- **Variáveis:**
-  - `CRONA_DB_URL`, `CRONA_PORT`, `CRONA_3D`, `CRONA_ARTE_GPT`, `CRONA_LR_PDF`, `CRONA_SAH_PDF`;
-  - **as `CROMA_...` antigas continuam valendo.**
-- **No navegador de cada aparelho** (`client/src/migrarNome.ts`):
-  - o que estava guardado como `croma.*` é copiado para `crona.*` (a chave do mestre, a ficha do jogador, o nome, o som);
-  - ninguém perde o acesso.
-- **No banco:**
-  - os cômodos do sistema passaram a ser do dono `CRONA`;
-  - o saguão antigo virou "Saguão CRONA" (`upgradeDb`).
+| O que | Onde |
+|---|---|
+| O projeto (o repositório) | `F:\Dhellow\CRONA\projeto` (até 05/10: `...\OneDrive\Área de Trabalho\Dhellow\MEUS PROJETOS\CRONA`) |
+| A pasta da arte do GPT (os `PROMPT-*.txt`, os gabaritos, as entregas) | `F:\Dhellow\CRONA\arte\TEXTURAS MAPA\BASE - Ordo Realitas` |
+| O Blender (personagens 3D) | `F:\Dhellow\CRONA\3d` |
+| O disco do Docker (o jogo, o banco e os volumes) | **Falta mover:** pela tela do Docker, Settings → Resources → Advanced → Disk image location → `F:\Dhellow\CRONA\docker`. O disco tem também os containers de outros projetos do Felipe (o C.R.I.S e outros). |
+| As entregas do Códex | Ainda em `C:\Users\felip\Documents\Codex` (2,3 GB): o Códex retoma a interface lá em 06/10. Depois da entrega, mover para `F:\Dhellow\CRONA\arte`. |
+| A pasta antiga `MEUS PROJETOS\CROMA` (cópia de antes da troca de nome) | Apagar quando esta conversa fechar (a conversa roda nela). |
 
-**O que ganhou cópia (o original está guardado, não apague)**
-
-| O que | O novo | O antigo, guardado |
-|---|---|---|
-| Banco (Docker) | Container `crona-postgres`, volume `crona_crona-dados`, usuário e base `crona` (`docker-compose.yml`, projeto `crona`). Os dados foram restaurados do backup e as 11 tabelas conferidas, linha a linha na contagem. | Container `croma-postgres` **desligado**, com o volume `croma_croma-dados` inteiro. Backup em `server/data/backups/croma_2026-10-03_20-00-07.dump` (os backups novos saem como `crona_*.dump`). |
-| `server/.env` | `CRONA_DB_URL=.../crona` | A linha antiga fica comentada no próprio arquivo. |
-| Pasta do Blender | `C:\Users\felip\CRONA-3D` (cópia idêntica: 7.152 arquivos) | `C:\Users\felip\CROMA-3D`. Os `.blend` antigos marcam `croma_vistas`, e o `filmar.py` lê os dois. |
-| Pasta do projeto | `...\MEUS PROJETOS\CRONA` (cópia feita no fim de 03/10) | `...\MEUS PROJETOS\CROMA`, que vira backup; a memória do Claude antigo fica ligada ao caminho dela. |
-
-**Voltar atrás, se precisar**
-1. `docker stop crona-postgres` e `docker start croma-postgres`.
-2. No `server/.env`, volte para a linha `CROMA_DB_URL` antiga.
-
-**Ficou com o nome antigo de propósito**
-- a migração `001_inicio.sql` (já aplicada; não se mexe em migração aplicada);
-- os caminhos que apontam para a pasta e a memória antigas no `GUIA-DO-CLAUDE.md`.
+**O nome:** é CRONA em todo lugar. Em 05/10 saíram a compatibilidade com o nome antigo (as variáveis `CROMA_*`, a migração das chaves `croma.*` do navegador e dos nomes das salas no banco), a pasta `CROMA-3D` e o banco antigo (`croma-postgres` e o volume `croma_croma-dados`; a cópia dele fica em `server/data/backups/croma_2026-10-03_20-00-07.dump`). Falta só o nome do repositório no GitHub (`FelipeSiqueiraDev/CROMA`), que espera o login. O `filmar.py` ainda lê `croma_vistas` nos `.blend` antigos.
 
 ## O que a branch tem (de 30/09 a 03/10)
 
@@ -256,7 +231,6 @@ Os zips que entraram ficam em `_entregas-originais/`, na pasta da arte.
 - Ícones pintados no COMBATE e no inventário rápido do MAPA.
 - O que vem primeiro: as modificações na requisição ou a FICHAS bonita.
 - Fechar o PR `#2` do Códex (`codex/arte-tepes-32bits`), que ficou sobrando.
-- Quando apagar as cópias antigas da troca de nome (o container `croma-postgres`, a pasta `CROMA-3D`, a pasta `CROMA` do projeto). Por enquanto, guardar.
 - Ligar a Sede aos arredores da Fazenda.
 
 ## Problemas conhecidos

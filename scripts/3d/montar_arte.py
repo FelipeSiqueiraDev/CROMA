@@ -22,7 +22,7 @@ from mathutils import Matrix, Vector
 
 FICHA = sys.argv[sys.argv.index('--') + 1]
 cfg = json.load(open(FICHA, encoding='utf-8'))
-RAIZ = os.environ.get('CRONA_3D') or os.environ.get('CROMA_3D') or 'C:/Users/felip/CRONA-3D'
+RAIZ = os.environ.get('CRONA_3D') or 'F:/Dhellow/CRONA/3d'
 UAL = os.path.join(RAIZ, 'fontes', 'Universal Animation Library[Standard]', 'Unreal-Godot', 'UAL1_Standard.glb')
 
 

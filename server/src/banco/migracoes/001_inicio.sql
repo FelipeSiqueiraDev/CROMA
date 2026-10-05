@@ -1,4 +1,4 @@
--- Primeira versão do banco do CROMA.
+-- Primeira versão do banco do CRONA.
 -- Cada tabela tem colunas legíveis (para abrir num programa de banco e
 -- entender) e a coluna `dados` com o objeto completo que o servidor usa.
 -- O servidor guarda só o que mudou desde a última gravação.

@@ -13,8 +13,7 @@ import { fileURLToPath } from 'node:url';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const env = fs.readFileSync(path.join(REPO, 'server', '.env'), 'utf8');
-// o nome antigo (CROMA_DB_URL) continua valendo
-const url = (/^CRONA_DB_URL=(.*)$/m.exec(env) ?? /^CROMA_DB_URL=(.*)$/m.exec(env))?.[1]?.trim();
+const url = /^CRONA_DB_URL=(.*)$/m.exec(env)?.[1]?.trim();
 if (!url) throw new Error('sem CRONA_DB_URL no server/.env');
 const user = decodeURIComponent(/^postgres(?:ql)?:\/\/([^:@/]+)/.exec(url)?.[1] ?? '');
 if (!user) throw new Error('sem usuário no CRONA_DB_URL');
@@ -39,7 +38,7 @@ else if (cmd === 'apagar') {
   if (psql("SELECT count(*) FROM pg_database WHERE datname = 'crona_visual'") === '0') criar();
   const visual = url.replace(/\/crona(\?|$)/, '/crona_visual$1');
   if (!visual.includes('/crona_visual')) throw new Error('não consegui apontar para crona_visual');
-  const p = spawn('npm run dev', { cwd: REPO, shell: true, stdio: 'inherit', env: { ...process.env, CRONA_DB_URL: visual, CROMA_DB_URL: visual } });
+  const p = spawn('npm run dev', { cwd: REPO, shell: true, stdio: 'inherit', env: { ...process.env, CRONA_DB_URL: visual } });
   p.on('exit', (c) => process.exit(c ?? 0));
   for (const s of ['SIGINT', 'SIGTERM']) process.on(s, () => p.kill(s));
 } else console.log('uso: node scripts/dev/visual.mjs criar | apagar | subir');

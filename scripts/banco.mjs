@@ -1,5 +1,5 @@
 // Cuida do banco do CRONA (Postgres no Docker, container crona-postgres).
-// (As cópias de antes da troca de nome, croma_*.dump, continuam na pasta e não são apagadas.)
+// (As cópias croma_*.dump são de antes de 03/10, quando o jogo ainda tinha o nome antigo.)
 //   node scripts/banco.mjs backup              cópia em server/data/backups/ (guarda as 30 mais novas)
 //   node scripts/banco.mjs restaurar <arquivo> --sim   volta o banco para uma cópia (apaga o que está lá)
 // A cópia é binária (pg_dump -Fc) e sai de dentro do container com docker cp:

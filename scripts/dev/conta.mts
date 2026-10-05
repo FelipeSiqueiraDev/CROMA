@@ -34,10 +34,10 @@ if (!nome || !senha) {
   process.exit(1);
 }
 
-// o banco do server/.env (o nome antigo, CROMA_DB_URL, continua valendo); sem ele, o db.json
+// o banco do server/.env; sem ele, o db.json
 const envPath = path.join(REPO, 'server', '.env');
 const env = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf8') : '';
-let url = (/^CRONA_DB_URL=(.*)$/m.exec(env) ?? /^CROMA_DB_URL=(.*)$/m.exec(env))?.[1]?.trim();
+let url = /^CRONA_DB_URL=(.*)$/m.exec(env)?.[1]?.trim();
 if (url && visual) {
   url = url.replace(/\/crona(\?|$)/, '/crona_visual$1');
   if (!url.includes('/crona_visual')) throw new Error('não consegui apontar para crona_visual');

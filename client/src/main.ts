@@ -1,4 +1,3 @@
-import './migrarNome';
 import './style.css';
 import './ui/shell.css';
 import './ui/table.css';

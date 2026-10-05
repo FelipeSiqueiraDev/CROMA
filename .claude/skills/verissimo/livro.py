@@ -40,8 +40,7 @@ def config():
         with open(arq, encoding="utf-8") as f:
             cfg = json.load(f)
     for livro, var in (("LR", "CRONA_LR_PDF"), ("SAH", "CRONA_SAH_PDF")):
-        # o nome antigo (CROMA_..._PDF) continua valendo
-        valor = os.environ.get(var) or os.environ.get(var.replace("CRONA", "CROMA"))
+        valor = os.environ.get(var)
         if valor:
             cfg[livro] = valor
     return cfg

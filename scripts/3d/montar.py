@@ -22,7 +22,7 @@ from mathutils import Matrix, Vector
 FICHA = sys.argv[sys.argv.index('--') + 1]
 cfg = json.load(open(FICHA, encoding='utf-8'))
 # a pasta de trabalho do 3D (fora do repositório): fontes do Quaternius, personagens montados, filmagens
-RAIZ = os.environ.get('CRONA_3D') or os.environ.get('CROMA_3D') or 'C:/Users/felip/CRONA-3D'
+RAIZ = os.environ.get('CRONA_3D') or 'F:/Dhellow/CRONA/3d'
 BASES = os.path.join(RAIZ, 'fontes', 'Universal Base Characters[Standard]')
 CABELOS = os.path.join(BASES, 'Hairstyles', 'Origin at 0', 'glTF (Godot)')
 BASE = {'homem': 'Superhero_Male_FullBody', 'mulher': 'Superhero_Female_FullBody'}

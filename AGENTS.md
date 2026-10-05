@@ -49,7 +49,7 @@ npm run banco:parar
 - O Vite faz proxy de `/ws`, `/api` e `/uploads` para o servidor.
 - **Banco:** com `CRONA_DB_URL` em `server/.env` (copie de `server/.env.example`), tudo fica no Postgres do Docker (`docker-compose.yml`), só acessível por este computador. As tabelas têm colunas legíveis e a coluna `dados` com o objeto inteiro; o servidor grava só o que mudou. As migrações ficam em `server/src/banco/migracoes/`. Na primeira vez, o `server/data/db.json` é importado. Sem `CRONA_DB_URL`, o servidor usa o `db.json` como antes.
 - Os arquivos enviados (folhas, retratos) ficam em `server/data/uploads/`; tudo em `server/data/` fica fora do git.
-- A pasta do projeto fica no OneDrive: o Vite usa polling para perceber mudanças.
+- A pasta do projeto fica em `F:\Dhellow\CRONA\projeto` (até 05/10 ficava no OneDrive; o Vite continua com polling para perceber mudanças).
 
 ## Estrutura
 
