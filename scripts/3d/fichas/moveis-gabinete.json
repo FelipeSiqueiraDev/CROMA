@@ -9,8 +9,6 @@
     {"def": "desk_lamp", "folha": "client/public/arte/mobiliario/folhas/luminaria-mesa.png", "real": [0.34, 0.2, 0.45], "topo": [0.2, 0.2], "como_esta": true, "altura": "todas", "pisa": 0.16, "giros": {"4": 0, "0": 1, "6": 2, "2": 3}, "estados": {"1": "client/public/arte/mobiliario/folhas/luminaria-mesa-apagada.png"}},
     {"def": "books_stack", "folha": "client/public/arte/mobiliario/folhas/pilha-livros.png", "real": [0.3, 0.22, 0.4], "como_esta": true, "altura": "todas", "pisa": true, "giros": {"4": 0, "6": 1, "0": 2, "2": 3}},
     {"def": "painting", "folha": "client/public/arte/mobiliario/folhas/quadro-paisagem.png", "real": [0.9, 0.05, 0.6], "parede": {"r": [0, 0.5, 0.5], "l": [1, 0.5, 0.5]}},
-    {"def": "painting~b", "folha": "client/public/arte/mobiliario/folhas/quadro-paisagem-b.png", "real": [0.9, 0.05, 0.6], "parede": {"r": [0, 0.5, 0.5], "l": [1, 0.5, 0.5]}},
-    {"def": "painting~c", "folha": "client/public/arte/mobiliario/folhas/quadro-paisagem-c.png", "real": [0.9, 0.05, 0.6], "parede": {"r": [0, 0.5, 0.5], "l": [1, 0.5, 0.5]}},
     {"def": "papers", "folha": "client/public/arte/mobiliario/folhas/papeis-espalhados.png", "W": 1, "D": 1, "chao": true}
   ]
 }
