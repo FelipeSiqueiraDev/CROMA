@@ -195,7 +195,7 @@ Todos os pedidos estão na pasta da arte do GPT. O Felipe cola no Códex: *"Leia
 
 | Pedido | Entrega | Como está (levantamento de 05/10) |
 |---|---|---|
-| `PROMPT-ICONES-ITENS.txt` + `FALTAM-ICONES.txt` | `icones-paranormais.zip` (Parte 4), `icones-cenario.zip` (5) | **No jogo (05/10): 153 ícones.** Partes 1, 2 e 3 completas; da Parte 4, os 24 que o Códex deixou prontos em "Itens do livro" (sem zip). Faltam 47 da Parte 4 e os 44 da Parte 5: a lista está no `FALTAM-ICONES.txt`, refeito em 05/10. Ao importar, use só os zips: a cópia solta do `fuzil-de-assalto.png` em "Itens do livro" é mais velha que a do jogo. |
+| `PROMPT-ICONES-ITENS.txt` | — | **Completo (05/10): 244 ícones no jogo**, as 5 partes (armas; proteções, munição e explosivos; equipamentos; paranormais e amaldiçoados; itens do cenário, por nome e por tipo). |
 | `PROMPT-INTERFACE-GAME.txt` | `interface-teste.zip` primeiro; depois `interface-menus`, `-fichas`, `-combate`, `-modal-itens`, `-celular` e `retratos-agentes` | Nada entregue. |
 | `PROMPT-PRISAO-CELAS.txt` | `prisao-celas.zip` | Nada entregue. |
 | `PROMPT-VISTA-DE-CIMA.txt` | Partes 2 a 12, um `vista-de-cima-<sala>.zip` por sala | **No jogo (05/10):** o Bar e as outras 10 salas (64 móveis, as 10 paredes por piso e os estados abertos do baú e do armário de munição), pelo `cima.py`. Falta só a Prisão (Parte 11), que vem com o lote da prisão. |
@@ -223,10 +223,7 @@ Todos os pedidos estão na pasta da arte do GPT. O Felipe cola no Códex: *"Leia
 | `parede-na-medida.zip` | Idem; o `conferir_arte.py` mede as bordas (0,5 ± 0,06). |
 | Zips dos personagens | `npm run arte:poses -- <nome> --estado <estado> --hd` e `npm run arte:boneco`. Cada personagem novo precisa das marcações em `scripts/bonecos/<nome>.json`. |
 
-**Zips que já entraram e ainda estão na raiz da pasta.** Ficam ali até a fila de ícones acabar, porque o `FALTAM-ICONES.txt` aponta para eles; depois vão para `_entregas-originais/`.
-- `icones-armas.zip`
-- `icones-protecao-municao-explosivos.zip`
-- `vista-de-cima-teste.zip`
+Os zips que entraram ficam em `_entregas-originais/`, na pasta da arte.
 
 ## Decisões que são do Felipe
 
