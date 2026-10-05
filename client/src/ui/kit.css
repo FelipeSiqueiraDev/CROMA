@@ -24,7 +24,6 @@
   background: none;
   box-shadow: none;
   padding: 0 1rem;
-  min-width: 17rem;
   height: 5.6rem;
   color: #d8cfbd;
   text-shadow: 0 0.2rem 0.2rem #000;
@@ -41,6 +40,12 @@
   box-shadow: none;
   color: #f6ece0;
   text-shadow: 0 0 0.9rem color-mix(in srgb, var(--destaque) 70%, transparent), 0 0.2rem 0.2rem #000;
+}
+/* na tela grande, as abas na largura da peça (no celular, cabem no que tiver) */
+@media (min-width: 821px), (orientation: landscape) and (min-width: 561px) {
+  .tb2-aba {
+    min-width: 17rem;
+  }
 }
 /* a camada de brilho: a peça + 24 px de cada lado, só luz, pulsando */
 .tb2-aba.on::after {

@@ -46,7 +46,8 @@ const cat = regras.catalogo;
 
 type Modo = 'jogo' | 'editar';
 type AbaNotas = 'anotacoes' | 'documentos' | 'pistas' | 'perfil';
-type AbaTatico = 'combate' | 'evolucao';
+/** As abas do painel da direita, embaixo (repaginada de 05/10). */
+type AbaGrupo = 'poderes' | 'rituais' | 'companheiro' | 'anotacoes' | 'evolucao';
 
 const ICONE_ATR: Record<regras.AtributoId, NomeIcone> = { agi: 'correr', for: 'punho', int: 'cerebro', pre: 'olho', vig: 'escudo' };
 const CLASSE_NOME = (c: regras.ClasseId | null) => (c ? cat.classe(c).nome : '—');
@@ -111,7 +112,7 @@ export class FichasScreen {
   private campanha: CampaignState | null = null;
   private corpo = new CorpoView();
   private abaNotas: AbaNotas = 'anotacoes';
-  private abaTatico: AbaTatico = 'combate';
+  private abaGrupo: AbaGrupo = 'poderes';
   private soTreinadas = false;
   private timers = new Map<number, number>();
   private dica: HTMLElement;
@@ -128,6 +129,13 @@ export class FichasScreen {
   private pPod: HTMLElement;
   private pRit: HTMLElement;
   private pTat: HTMLElement;
+  private pEvol: HTMLElement;
+  /** os papéis que juntam os painéis (Vida, Atributos e combate, Itens e as Abas) */
+  private gVida: HTMLElement;
+  private gComb: HTMLElement;
+  private gItens: HTMLElement;
+  private gAbas: HTMLElement;
+  private abasNav: HTMLElement;
   private pComp: HTMLElement;
   private pEquip: HTMLElement;
   private pInv: HTMLElement;
@@ -173,9 +181,18 @@ export class FichasScreen {
     this.pRit = papel(secao('fx-rit', 'RITUAIS / PODERES PARANORMAIS', 'pentagrama', true), 108, { seed: 108, tone: '#d4c3a2', burn: 1, torn: 1, pad: 18 });
     this.pTat = secao('fx-tat', null, null);
     this.pComp = papel(secao('fx-comp', 'COMPANHEIRO', 'pata'), 109);
-    this.pEquip = papel(secao('fx-equip', 'EQUIPAMENTOS / ATAQUES', 'mochila'), 110);
+    this.pEquip = papel(secao('fx-equip', 'ITENS E ATAQUES', 'mochila'), 110);
     this.pInv = papel(secao('fx-inv', 'INVENTÁRIO', 'caixa', true), 111, { seed: 111, tone: '#d4c3a2', burn: 1, torn: 1, pad: 18 });
     this.pNotas = papel(secao('fx-notas', 'ANOTAÇÕES / DOCUMENTOS / PISTAS', 'documento'), 112);
+    this.pEvol = papel(secao('fx-evol', 'EVOLUÇÃO', 'linhaTempo'), 113);
+    // ---------- os grupos (na tela grande): cada um é um papel só, com os painéis dentro; no celular
+    // eles somem (display: contents) e cada painel volta a ter o próprio papel ----------
+    const grupo = (cls: string, seed: number, ...filhos: HTMLElement[]) => papel(h('section', { class: `fx-grupo ${cls}` }, ...filhos), seed);
+    this.gVida = grupo('fx-g-vida', 120, this.pRec, this.pCond);
+    this.gComb = grupo('fx-g-comb', 121, this.pAtrib, this.pDeriv, this.pTat);
+    this.gItens = grupo('fx-g-itens', 122, this.pEquip, this.pInv);
+    this.abasNav = h('nav', { class: 'fx-g-abas-nav', role: 'tablist' });
+    this.gAbas = grupo('fx-g-abas', 123, this.abasNav, this.pPod, this.pRit, this.pComp, this.pNotas, this.pEvol);
     this.barra = h('div', { class: 'fx-barra' });
     this.vazio = h('div', { class: 'fx-vazio hidden' });
     const pilha = h('div', { class: 'fx-pilha', 'aria-hidden': 'true' }, h('span', { class: 'fx-pilha-a' }), h('span', { class: 'fx-pilha-b' }), h('span', { class: 'fx-pilha-c' }));
@@ -191,18 +208,11 @@ export class FichasScreen {
         this.pAgentes,
         this.pCorpo,
         this.pIdent,
-        this.pDeriv,
-        this.pAtrib,
-        this.pRec,
-        this.pCond,
+        this.gComb,
+        this.gVida,
         this.pPer,
-        this.pPod,
-        this.pRit,
-        this.pTat,
-        this.pComp,
-        this.pEquip,
-        this.pInv,
-        this.pNotas,
+        this.gAbas,
+        this.gItens,
         this.barra,
         this.vazio,
       ),
@@ -394,6 +404,7 @@ export class FichasScreen {
     this.renderEquip(fs, this.calc);
     this.renderInv(fs, this.calc);
     this.renderNotas(fs);
+    this.renderAbas(this.calc);
     this.renderBarra(fs);
   }
 
@@ -852,7 +863,7 @@ export class FichasScreen {
         ),
       );
     }
-    corpo.replaceChildren(cab, avisarRolagem(h('div', { class: 'fx-tab-rol' }, ...linhas)));
+    corpo.replaceChildren(h('div', { class: 'fx-tab-cabs' }, cab, cab.cloneNode(true)), avisarRolagem(h('div', { class: 'fx-tab-rol' }, ...linhas)));
     this.extraDe(this.pPer).replaceChildren(
       h('button', { class: `fx-mini txt${this.soTreinadas ? ' on' : ''}`, type: 'button', title: 'Mostrar só as treinadas', onclick: () => ((this.soTreinadas = !this.soTreinadas), this.render()) }, this.soTreinadas ? 'Treinadas' : 'Todas'),
     );
@@ -1042,28 +1053,18 @@ export class FichasScreen {
 
   // ---------------------------------------------------------------- tático
 
+  /** Os números do combate (no papel de Atributos e combate) e a linha da evolução (na aba dela). */
   private renderTat(fs: FichaSalva, c: Calc) {
     const pend = c.pendencias.length;
     const erros = c.problemas.filter((p) => p.severidade === 'erro').length;
     const avisos = c.problemas.length - erros;
-    const abas = h(
-      'div',
-      { class: 'fx-tat-abas', role: 'tablist' },
-      h('button', { class: `fx-tat-aba${this.abaTatico === 'combate' ? ' on' : ''}`, type: 'button', onclick: () => ((this.abaTatico = 'combate'), this.render()) }, ic('mira'), 'COMBATE'),
+    const ini = c.pericias.iniciativa;
+    const cel = (rotulo: string, valor: string, dica: string) => h('div', { class: 'fx-tc', 'data-dica': dica }, h('span', null, rotulo), h('b', null, valor));
+    const profs = c.proficiencias.map(nomeProf).join(', ') || '—';
+    this.pTat.replaceChildren(
       h(
-        'button',
-        { class: `fx-tat-aba${this.abaTatico === 'evolucao' ? ' on' : ''}`, type: 'button', onclick: () => ((this.abaTatico = 'evolucao'), this.render()) },
-        ic('linhaTempo'),
-        'EVOLUÇÃO',
-        pend + erros ? h('span', { class: 'fx-tat-n' }, String(pend + erros)) : null,
-      ),
-    );
-    const corpo = h('div', { class: 'fx-tat-corpo' });
-    if (this.abaTatico === 'combate') {
-      const ini = c.pericias.iniciativa;
-      const cel = (rotulo: string, valor: string, dica: string) => h('div', { class: 'fx-tc', 'data-dica': dica }, h('span', null, rotulo), h('b', null, valor));
-      const profs = c.proficiencias.map(nomeProf).join(', ') || '—';
-      corpo.append(
+        'div',
+        { class: 'fx-tat-corpo' },
         cel('INICIATIVA', textoTeste(ini.dados, ini.bonus, ini.penalidadeDados), 'Teste de Iniciativa (Agilidade).'),
         cel('ESQUIVA', c.reacoes.esquiva !== null ? String(c.reacoes.esquiva) : '—', 'Reação (treinado em Reflexos): Defesa + bônus de Reflexos contra um ataque.'),
         cel('BLOQUEIO', c.reacoes.bloqueio !== null ? `RD ${c.reacoes.bloqueio}` : '—', 'Reação (treinado em Fortitude): resistência a dano igual ao bônus de Fortitude contra um ataque corpo a corpo.'),
@@ -1071,34 +1072,59 @@ export class FichasScreen {
         cel('LIMITE PE', `${c.limitePe}/turno`, 'Quantos PE pode gastar por turno.'),
         cel('DT RITUAIS', String(c.dtRituais), '10 + limite de PE + Presença.'),
         h('div', { class: 'fx-tc largo', 'data-dica': profs }, h('span', null, 'PROFICIÊNCIAS'), h('b', null, profs)),
-      );
-    } else {
-      const f = fs.ficha;
-      const linha = h('div', { class: 'fx-ev-linha' });
-      for (const n of regras.NEX_LISTA.filter((x) => x <= f.nex && (x > 0 || f.comecouMundano))) {
-        const pn = c.pendencias.filter((p) => p.nex === n).length;
-        const er = c.problemas.filter((p) => p.nex === n && p.severidade === 'erro').length;
-        const av = c.problemas.filter((p) => p.nex === n && p.severidade === 'aviso').length;
-        linha.append(
-          h(
-            'button',
-            { class: `fx-ev${pn ? ' pend' : er ? ' erro' : av ? ' aviso' : ' ok'}`, type: 'button', 'data-dica': `NEX ${n}%${pn ? ` · ${pn} a escolher` : ''}${er ? ` · ${er} erro${er > 1 ? 's' : ''}` : ''}${av ? ` · ${av} aviso${av > 1 ? 's' : ''}` : ''}`, onclick: () => this.abrirEvolucao(n) },
-            h('i'),
-            h('span', null, `${n}%`),
-          ),
-        );
-      }
-      corpo.append(
-        linha,
+      ),
+    );
+    const f = fs.ficha;
+    const linha = h('div', { class: 'fx-ev-linha' });
+    for (const n of regras.NEX_LISTA.filter((x) => x <= f.nex && (x > 0 || f.comecouMundano))) {
+      const pn = c.pendencias.filter((p) => p.nex === n).length;
+      const er = c.problemas.filter((p) => p.nex === n && p.severidade === 'erro').length;
+      const av = c.problemas.filter((p) => p.nex === n && p.severidade === 'aviso').length;
+      linha.append(
         h(
-          'div',
-          { class: 'fx-ev-res' },
-          h('span', null, pend ? `${pend} escolha${pend > 1 ? 's' : ''} pendente${pend > 1 ? 's' : ''}` : 'Tudo escolhido', erros ? ` · ${erros} erro${erros > 1 ? 's' : ''}` : '', avisos ? ` · ${avisos} aviso${avisos > 1 ? 's' : ''}` : ''),
-          h('button', { class: 'fx-bt mini', type: 'button', onclick: () => this.abrirEvolucao() }, ic('linhaTempo'), h('span', null, 'Ver tudo')),
+          'button',
+          { class: `fx-ev${pn ? ' pend' : er ? ' erro' : av ? ' aviso' : ' ok'}`, type: 'button', 'data-dica': `NEX ${n}%${pn ? ` · ${pn} a escolher` : ''}${er ? ` · ${er} erro${er > 1 ? 's' : ''}` : ''}${av ? ` · ${av} aviso${av > 1 ? 's' : ''}` : ''}`, onclick: () => this.abrirEvolucao(n) },
+          h('i'),
+          h('span', null, `${n}%`),
         ),
       );
     }
-    this.pTat.replaceChildren(h('span', { class: 'fx-cantos', 'aria-hidden': 'true' }), abas, corpo);
+    this.corpoDe(this.pEvol).replaceChildren(
+      linha,
+      h(
+        'div',
+        { class: 'fx-ev-res' },
+        h('span', null, pend ? `${pend} escolha${pend > 1 ? 's' : ''} pendente${pend > 1 ? 's' : ''}` : 'Tudo escolhido', erros ? ` · ${erros} erro${erros > 1 ? 's' : ''}` : '', avisos ? ` · ${avisos} aviso${avisos > 1 ? 's' : ''}` : ''),
+        h('button', { class: 'fx-bt mini', type: 'button', onclick: () => this.abrirEvolucao() }, ic('linhaTempo'), h('span', null, 'Ver tudo')),
+      ),
+    );
+  }
+
+  /** As abas do painel da direita: só a escolhida aparece (no celular, todas, uma embaixo da outra). */
+  private renderAbas(c: Calc) {
+    const temComp = !this.el.classList.contains('sem-comp');
+    const pend = c.pendencias.length + c.problemas.filter((p) => p.severidade === 'erro').length;
+    const abas: [AbaGrupo, string, HTMLElement, number][] = [
+      ['poderes', 'PODERES', this.pPod, 0],
+      ['rituais', 'RITUAIS', this.pRit, c.pendencias.filter((p) => p.tipo === 'ritual').length],
+      ['companheiro', 'COMPANHEIRO', this.pComp, 0],
+      ['anotacoes', 'ANOTAÇÕES', this.pNotas, 0],
+      ['evolucao', 'EVOLUÇÃO', this.pEvol, pend],
+    ];
+    if (this.abaGrupo === 'companheiro' && !temComp) this.abaGrupo = 'poderes';
+    this.abasNav.replaceChildren(
+      ...abas
+        .filter(([id]) => id !== 'companheiro' || temComp)
+        .map(([id, nome, , n]) =>
+          h(
+            'button',
+            { class: `fx-g-aba${this.abaGrupo === id ? ' on' : ''}`, type: 'button', role: 'tab', 'aria-selected': String(this.abaGrupo === id), onclick: () => (sfx.click(), (this.abaGrupo = id), this.renderAbas(c)) },
+            nome,
+            n ? h('span', { class: 'fx-g-aba-n' }, String(n)) : null,
+          ),
+        ),
+    );
+    for (const [id, , el] of abas) el.classList.toggle('fora-da-aba', id !== this.abaGrupo);
   }
 
   /** Linha do tempo completa: o que foi escolhido em cada NEX, o que falta e o que quebra regra. */
