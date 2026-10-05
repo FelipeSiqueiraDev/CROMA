@@ -36,7 +36,7 @@ O C: encheu em 05/10 (0 bytes livres, o Docker parou). A pedido do Felipe, tudo 
 | O projeto (o repositório) | `F:\Dhellow\CRONA\projeto` (até 05/10: `...\OneDrive\Área de Trabalho\Dhellow\MEUS PROJETOS\CRONA`) |
 | A pasta da arte do GPT (os `PROMPT-*.txt`, os gabaritos, as entregas) | `F:\Dhellow\CRONA\arte\TEXTURAS MAPA\BASE - Ordo Realitas` |
 | O Blender (personagens 3D) | `F:\Dhellow\CRONA\3d` |
-| O disco do Docker (o jogo, o banco e os volumes) | **Falta mover:** pela tela do Docker, Settings → Resources → Advanced → Disk image location → `F:\Dhellow\CRONA\docker`. O disco tem também os containers de outros projetos do Felipe (o C.R.I.S e outros). |
+| O disco do Docker (o jogo, o banco e os volumes) | `F:\Dhellow\CRONA\docker\DockerDesktopWSL` (movido pelo Felipe em 05/10, pela tela do Docker). Guarda também os containers dos outros projetos dele (o C.R.I.S e outros). |
 | As entregas do Códex | Ainda em `C:\Users\felip\Documents\Codex` (2,3 GB): o Códex retoma a interface lá em 06/10. Depois da entrega, mover para `F:\Dhellow\CRONA\arte`. |
 | A pasta antiga `MEUS PROJETOS\CROMA` (cópia de antes da troca de nome) | Apagar quando esta conversa fechar (a conversa roda nela). |
 
