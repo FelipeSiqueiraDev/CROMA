@@ -94,7 +94,8 @@ própria folha ("folha" no móvel); senão vale a da ficha.
 - "so_giros": só os giros da ficha têm arte; nos outros, o jogo desenha por código (a porta:
   nas paredes do fundo a arte, nas da frente, que não aparecem, a soleira). Um móvel com
   "def": "<id>@<material>" (portal@metal) é a arte daquele móvel nos cômodos desse material,
-  e "<id>~<letra>" (gun_table~b) é outro modelo do mesmo móvel, que o jogo sorteia por peça.
+  e "<id>~<letra>" (gun_table~b) é outro modelo do mesmo móvel, que o jogo sorteia por peça. O outro
+  modelo usa a câmera medida no modelo base (vem depois dele na ficha), para os módulos emendarem.
 - "espelhar_estado": {"1": {"6": "2"}}: a vista de um estado que veio torta é a de outro giro
   espelhada (o baú aberto visto de costas).
 - "estados": {"1": folha, ...} (móvel desenhado como está): o mesmo móvel em outro estado
@@ -827,6 +828,10 @@ def manter_cima(ent, antigo):
             ent[k] = antigo[k]
 
 
+# a câmera de cada giro de cada móvel base, para os outros modelos dele ("<id>~b") usarem a mesma
+CAMERAS = {}
+
+
 def quatro_giros(m, folha, caixas, destino, escala):
     """
     O móvel desenhado nos 4 giros: cada vista no tamanho de verdade, no ângulo do tabuleiro.
@@ -897,8 +902,21 @@ def quatro_giros(m, folha, caixas, destino, escala):
             print(f"{m['def']} giro {giro}: pela imagem, {img.shape[1]}x{img.shape[0]}", flush=True)
             continue
         livre = ('proporcao' if m.get('como_esta') else 'tudo') if real else False
-        ang = angulos_do_desenho(rec) if m.get('angulos') else None
-        cam, nota = ajustar_camera(rec[:, :, 3] > 100, wr, dr, hr, livre=livre, angulos=ang)
+        base_cam = CAMERAS.get((m['def'].split('~')[0], giro)) if '~' in m['def'] and not espelho and not m.get('retificar') else None
+        if base_cam:
+            # outro modelo do mesmo móvel (gun_table~b): o desenho é o do modelo base com outra coisa em
+            # cima, no mesmo lugar da folha; medido sozinho, a câmera saía um pouco diferente e os módulos
+            # lado a lado ficavam em degrau. Usa a câmera do base, só deslocada pelo recorte.
+            cam = dict(base_cam['cam'])
+            cam['u0'] += base_cam['origem'][0] - origem[0]
+            cam['v0'] += base_cam['origem'][1] - origem[1]
+            nota = base_cam['nota']
+            print(f"{m['def']} giro {giro}: a câmera do {m['def'].split('~')[0]}", flush=True)
+        else:
+            ang = angulos_do_desenho(rec) if m.get('angulos') else None
+            cam, nota = ajustar_camera(rec[:, :, 3] > 100, wr, dr, hr, livre=livre, angulos=ang)
+            if '~' not in m['def'] and not espelho and not m.get('retificar'):
+                CAMERAS[(m['def'], giro)] = {'cam': cam, 'origem': origem, 'nota': nota}
         ys_, xs_ = np.nonzero(rec[:, :, 3] > 100)
         vistas.append({'giro': giro, 'nome': nome, 'rec': rec, 'troca': troca, 'Wt': Wt, 'Dt': Dt,
                        'wr': wr, 'dr': dr, 'hr': hr, 'cam': cam, 'nota': nota,
@@ -1019,6 +1037,44 @@ def chamas_pela_diferenca(acesa, ax, ay, apagada, bx, by):
     return achar_chamas(acesa, quente)
 
 
+def alinhar_estado(base, bax, bay, outra, oax, oay, busca=14, topo=False):
+    """
+    O deslocamento (em pixels da vista) que põe o desenho do outro estado em cima do estado 0: o que
+    tem a menor diferença de cor nos pixels do corpo do estado 0 (a porta aberta muda um pedaço, mas o
+    resto do móvel bate). (0, 0) quando a folha já estava no lugar. topo ("alinhar_estado": "topo" na
+    ficha, o armário que abre a porta): compara só o tampo (o quinto de cima), que não muda ao abrir, com
+    uma busca maior; não serve para o baú, em que é o tampo que abre.
+    """
+    B = base.astype(np.float32)
+    O = outra.astype(np.float32)
+    corpo = B[..., 3] > 200
+    ys, xs = np.nonzero(corpo)
+    if topo:
+        alto = ys.max() - ys.min()
+        sel = ys < ys.min() + 0.22 * alto
+        ys, xs = ys[sel], xs[sel]
+        busca = 40
+    if len(ys) < 50:
+        return 0, 0
+    # na tela, o pixel (x, y) do estado 0 cai no pixel (x + ox - bx, y + oy - by) do outro
+    dx0, dy0 = int(round(oax - bax)), int(round(oay - bay))
+    melhor, achado, zero = None, (0, 0), None
+    for sy in range(-busca, busca + 1):
+        for sx in range(-busca, busca + 1):
+            u, v = xs + dx0 + sx, ys + dy0 + sy
+            ok = (u >= 0) & (v >= 0) & (u < O.shape[1]) & (v < O.shape[0])
+            dif = np.full(len(ys), 3 * 255.0, dtype=np.float32)
+            dif[ok] = np.abs(O[v[ok], u[ok], :3] - B[ys[ok], xs[ok], :3]).sum(axis=1) + (O[v[ok], u[ok], 3] < 128) * 3 * 255.0
+            # a mediana: a parte que mudou (a porta aberta) não decide; no tampo, que não muda, a média
+            nota = float(dif.mean()) if topo else float(np.median(dif))
+            if sx == 0 and sy == 0:
+                zero = nota
+            if melhor is None or nota < melhor - 1e-3 or (abs(nota - melhor) <= 1e-3 and abs(sx) + abs(sy) < abs(achado[0]) + abs(achado[1])):
+                melhor, achado = nota, (sx, sy)
+    # só mexe quando o desenho bate claramente melhor (a porta aberta, que muda quase tudo, fica onde está)
+    return achado if zero is not None and melhor < 0.6 * zero else (0, 0)
+
+
 def outros_estados(m, ent, origens, caixas, pasta, imgs):
     """
     As vistas dos outros estados (o armário aberto): cada uma recortada na folha dela, no pedaço
@@ -1050,7 +1106,13 @@ def outros_estados(m, ent, origens, caixas, pasta, imgs):
             X, Y = x0 + vista['ax'] / kx, y0 + vista['ay'] / ky
             nome = f'giro-{giro}-{estado}.png'
             gravar(img, os.path.join(pasta, nome))
-            dest['giros'][giro] = {'arquivo': f"{m['def']}/{nome}", 'ax': round((X - vx) * kx, 1), 'ay': round((Y - vy) * ky, 1)}
+            oax, oay = (X - vx) * kx, (Y - vy) * ky
+            # o gerador nem sempre desenha o outro estado no mesmo lugar da folha: acerta pelo desenho
+            # (o corpo do móvel, que não muda, cai em cima do corpo do estado 0)
+            sx, sy = alinhar_estado(base, vista['ax'], vista['ay'], img, oax, oay, topo=m.get('alinhar_estado') == 'topo')
+            if sx or sy:
+                print(f"{m['def']} giro {giro}, estado {estado}: alinhado pelo desenho ({sx:+d}, {sy:+d} px)", flush=True)
+            dest['giros'][giro] = {'arquivo': f"{m['def']}/{nome}", 'ax': round(oax + sx, 1), 'ay': round(oay + sy, 1)}
             if 'ancora' in vista:
                 dest['giros'][giro]['ancora'] = vista['ancora']
             imgs.append(img)

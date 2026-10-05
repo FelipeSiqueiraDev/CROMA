@@ -3898,18 +3898,18 @@
     "giros": {
      "4": {
       "arquivo": "locker_ammo/giro-4-1.png",
-      "ax": 93.0,
-      "ay": 257.2
+      "ax": 108.0,
+      "ay": 253.2
      },
      "6": {
       "arquivo": "locker_ammo/giro-6-1.png",
-      "ax": 79.4,
-      "ay": 249.6
+      "ax": 73.4,
+      "ay": 248.6
      },
      "0": {
       "arquivo": "locker_ammo/giro-0-1.png",
-      "ax": 58.7,
-      "ay": 252.2
+      "ax": 61.7,
+      "ay": 248.2
      },
      "2": {
       "arquivo": "locker_ammo/giro-2-1.png",
@@ -5166,18 +5166,18 @@
     "giros": {
      "4": {
       "arquivo": "locker_ammo~b/giro-4-1.png",
-      "ax": 92.6,
-      "ay": 257.1
+      "ax": 107.6,
+      "ay": 253.1
      },
      "6": {
       "arquivo": "locker_ammo~b/giro-6-1.png",
-      "ax": 79.6,
+      "ax": 73.6,
       "ay": 249.1
      },
      "0": {
       "arquivo": "locker_ammo~b/giro-0-1.png",
-      "ax": 59.1,
-      "ay": 252.2
+      "ax": 62.1,
+      "ay": 248.2
      },
      "2": {
       "arquivo": "locker_ammo~b/giro-2-1.png",
@@ -5223,18 +5223,18 @@
     "giros": {
      "4": {
       "arquivo": "locker_ammo~c/giro-4-1.png",
-      "ax": 94.1,
-      "ay": 254.7
+      "ax": 109.1,
+      "ay": 250.7
      },
      "6": {
       "arquivo": "locker_ammo~c/giro-6-1.png",
-      "ax": 73.7,
+      "ax": 67.7,
       "ay": 249.1
      },
      "0": {
       "arquivo": "locker_ammo~c/giro-0-1.png",
-      "ax": 59.1,
-      "ay": 252.2
+      "ax": 62.1,
+      "ay": 248.2
      },
      "2": {
       "arquivo": "locker_ammo~c/giro-2-1.png",
@@ -5438,23 +5438,23 @@
   "giros": {
    "2": {
     "arquivo": "cabinet_file~b/giro-2.png",
-    "ax": 49.1,
-    "ay": 188.9
+    "ax": 50.1,
+    "ay": 191.9
    },
    "6": {
     "arquivo": "cabinet_file~b/giro-6.png",
-    "ax": 46.5,
-    "ay": 181.5
+    "ax": 47.4,
+    "ay": 185.3
    },
    "0": {
     "arquivo": "cabinet_file~b/giro-0.png",
-    "ax": 49.5,
-    "ay": 182.3
+    "ax": 50.1,
+    "ay": 185.1
    },
    "4": {
     "arquivo": "cabinet_file~b/giro-4.png",
-    "ax": 58.3,
-    "ay": 185.7
+    "ax": 57.5,
+    "ay": 190.7
    }
   },
   "real": [
@@ -5469,23 +5469,23 @@
   "giros": {
    "2": {
     "arquivo": "cabinet_file~c/giro-2.png",
-    "ax": 49.4,
-    "ay": 191.6
+    "ax": 49.6,
+    "ay": 191.9
    },
    "6": {
     "arquivo": "cabinet_file~c/giro-6.png",
-    "ax": 47.3,
-    "ay": 184.3
+    "ax": 47.4,
+    "ay": 185.3
    },
    "0": {
     "arquivo": "cabinet_file~c/giro-0.png",
-    "ax": 49.2,
-    "ay": 184.1
+    "ax": 50.1,
+    "ay": 185.1
    },
    "4": {
     "arquivo": "cabinet_file~c/giro-4.png",
-    "ax": 48.2,
-    "ay": 191.1
+    "ax": 48.5,
+    "ay": 190.7
    }
   },
   "real": [
