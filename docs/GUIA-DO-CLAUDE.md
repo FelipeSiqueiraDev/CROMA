@@ -107,7 +107,7 @@ O básico está no `AGENTS.md`. Além dele:
   ```
 
   Comandos úteis na página:
-  - **Trocar de cena:** `__crona.net.send({ t: 'join', roomId })` (os ids estão em `__crona.state.rooms`).
+  - **Olhar uma cena:** `__crona.net.send({ t: 'peek', roomId })` (os ids estão em `__crona.state.rooms`). **Não use `join`:** ele leva junto a peça que o mestre comanda (o agente sai da sala onde o Felipe o deixou; para devolver, `join` na sala onde ele está e `{ t: 'tokenScene', tokenId, roomId }`).
   - **Andar com uma peça:** `view.myId = id; view.events.walk(x, y)`.
   - **Antes de capturar:** `v.autoFit = true; v.needFit = true`, ou trave a câmera com `autoFit = false; needFit = false; camAnim = null`.
 - **Mudou a montagem da Sede ou da Fazenda?** Suba `SEDE_REV` / `FAZENDA_REV` **a cada edição**: a versão que o banco já aplicou não refaz nada. Confira em memória antes com `npx tsx`, montando `seedDb()` e `upgradeDb()`; o `console.warn` diz o que não coube.

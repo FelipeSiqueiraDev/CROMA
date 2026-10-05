@@ -16,7 +16,7 @@ import { buildRoom, plan, type FloorSeed, type WallSeed } from './seed';
 export const SEDE = 'Sede · ';
 export const SEDE_CODE = '0413';
 /** Versão da montagem da Sede: subiu, a Sede é refeita no lugar (mesmos cômodos, peças e registro). */
-export const SEDE_REV = 39;
+export const SEDE_REV = 41;
 
 /** Planta retangular com a porta na parede de cima (y = 0), na coluna doorX. */
 export function planTop(w: number, h: number, doorX: number): { heightmap: string; door: Door } {
@@ -104,6 +104,22 @@ const cell = (bx: number, bedY: number, sideY: number, frontY: number, rot: numb
   ['cell_front', bx + 2, frontY, rot],
   ['cell_front', bx + 3, frontY, rot],
 ];
+
+/**
+ * Cela da parede da esquerda (4 casas de comprimento, a frente corre em y e olha para a câmera):
+ * a cama encostada no fundo, o vaso no canto e a frente com a porta de aço. by = primeira linha;
+ * frontX = coluna da frente.
+ */
+const cellL = (by: number, frontX: number): FloorSeed[] => [
+  ['bed', 0, by, 4],
+  ['toilet_steel', 0, by + 3, 0],
+  ['cell_front', frontX, by, 2],
+  ['cell_door_steel', frontX, by + 1, 2],
+  ['cell_front', frontX, by + 2, 2],
+  ['cell_front', frontX, by + 3, 2],
+];
+/** Parede de concreto entre as celas (corre em x), de x0 a x1. */
+const wallX = (y: number, x0: number, x1: number): FloorSeed[] => Array.from({ length: x1 - x0 + 1 }, (_, i) => ['cell_front', x0 + i, y, 4] as FloorSeed);
 
 /** Parede de concreto entre as celas (corre em y), de y0 a y1, inteira como a frente. */
 const wallY = (x: number, y0: number, y1: number): FloorSeed[] => Array.from({ length: y1 - y0 + 1 }, (_, i) => ['cell_front', x, y0 + i, 2] as FloorSeed);
@@ -205,8 +221,8 @@ const ROOMS: RoomSpec[] = [
       // a TV do futebol, no alto, e o ventilador
       ['tv_wall', 'r', 0, 12.6, 2.99],
       ['fan_wall', 'l', 1, 7.0, 3.54],
-      // o alvo de dardos, entre as arandelas
-      ['dartboard', 'l', 1, 11.0, 2.8],
+      // o alvo de dardos, perto do fliperama
+      ['dartboard', 'l', 1, 4.2, 2.8],
     ],
     links: [[20, 0, 'salao']],
   },
@@ -356,52 +372,70 @@ const ROOMS: RoomSpec[] = [
     lamp: 'fluorescent',
     name: SEDE + 'Prisão',
     was: [SEDE + 'Alojamentos'],
-    description: 'Dez celas em duas fileiras, de frente uma para a outra, com o pátio no meio e o posto do carcereiro no canto. Paredes de concreto e portas de aço com visor; dentro, cama de ferro, vaso de aço e os dias riscados na parede. As portas abrem com clique duplo: fechada, a cela fica no escuro e ninguém sai; aberta, a luz acende.',
-    layout: planRight(24, 20, 9),
+    description: 'Seis celas nas duas paredes do fundo, de frente para o pátio, todas de concreto com porta de aço; a do canto, maior, é a de contenção, para o que não é gente: o sigilo no chão e as correntes na parede. No pátio, a mesa do interrogatório debaixo da lâmpada e, perto da porta, o posto do carcereiro com as câmeras. As portas abrem com clique duplo: fechada, a cela fica no escuro e ninguém sai; aberta, a luz acende.',
+    layout: planRight(24, 16, 9),
     floorName: 'Subsolo',
     style: 'cela',
     darkness: 0.6,
     fog: 0.12,
     plan: { x: 4, y: 0 },
+    // Todas as celas nas duas paredes do fundo, com a frente para a câmera: ninguém vê cela pelas costas.
     floor: [
       ['portal', 23, 9, 6],
-      // celas do fundo (a frente virada para o pátio): as paredes entre elas e, na linha da frente, o pilar que fecha o vão
+      // a fileira do fundo: quatro celas, as paredes entre elas e o pilar que fecha a frente
       ...[4, 9, 14, 19].flatMap((x) => [...wallY(x, 0, 2), ['cell_front', x, 3, 4] as FloorSeed]),
       ...cell(0, 0, 1, 3, 4),
       ...cell(5, 0, 1, 3, 4),
       ...cell(10, 0, 1, 3, 4),
       ...cell(15, 0, 1, 3, 4),
-      ...cell(20, 0, 1, 3, 4),
-      // celas da frente (a porta virada para o pátio, de costas para a câmera)
-      ...[4, 9, 14, 19].flatMap((x) => [['cell_front', x, 17, 4] as FloorSeed, ...wallY(x, 18, 19)]),
-      ...cell(0, 19, 18, 17, 4),
-      ...cell(5, 19, 18, 17, 4),
-      ...cell(10, 19, 18, 17, 4),
-      ...cell(15, 19, 18, 17, 4),
-      ...cell(20, 19, 18, 17, 4),
-      // posto do carcereiro: a mesa de frente para a cadeira
-      ['desk_metal', 22, 5, 6],
-      ['chair_office', 21, 6, 2],
-      ['locker', 23, 4, 6],
+      // a fileira da esquerda: uma cela e a de contenção, maior, no canto da frente
+      ...cellL(4, 3),
+      ...wallX(8, 0, 2),
+      ['cell_front', 3, 8, 2],
+      ...[9, 10, 11].map((y) => ['cell_front', 3, y, 2] as FloorSeed),
+      ['cell_door_steel', 3, 12, 2],
+      ...[13, 14, 15].map((y) => ['cell_front', 3, y, 2] as FloorSeed),
+      // a contenção: o sigilo no chão, sem cama, e o sangue e o entulho de quem tentou sair
+      ['sigil_floor', 0, 10, 0],
+      ['blood_drops', 2, 13, 0],
+      ['rubble', 0, 14, 0],
+      // o posto do carcereiro, no canto perto da porta: armários, a mesa das câmeras e a cadeira
+      ['locker_row', 20, 0, 4],
+      ['locker', 22, 0, 4],
+      ['desk_metal', 21, 3, 4],
+      ['monitor', 21, 3, 4],
+      ['chair_office', 21, 2, 4],
+      ['cabinet_file', 23, 3, 6],
+      // o interrogatório, no meio do pátio: a mesinha, as duas cadeiras e a lâmpada em cima
+      ['desk_metal', 11, 9, 0],
+      ['chair_wood', 11, 8, 4],
+      ['chair_wood', 12, 10, 0],
       // a comida que ninguém comeu e os ralos do pátio
       ['food_tray', 6, 1, 4],
-      ['food_tray', 16, 18, 0],
-      ['drain', 7, 8, 0],
-      ['drain', 15, 12, 0],
-      ...lamps([3, 6], [11, 6], [19, 6], [3, 13], [11, 13], [19, 13]),
+      ['food_tray', 1, 11, 2],
+      ['drain', 8, 7, 0],
+      ['drain', 17, 12, 0],
+      ['ceiling_lamp', 11, 9, 0],
+      ...lamps([7, 6], [17, 6], [7, 13], [18, 12]),
     ],
     wall: [
-      // dentro das celas do fundo: a lâmpada de grade e os dias riscados na parede
+      // dentro das celas do fundo: a lâmpada de grade e os dias riscados
       ['cage_lamp', 'r', 0, 1.5, 3.27],
       ['tally_marks', 'r', 0, 2.8, 1.72],
-      ['emergency_light', 'r', 0, 6.5, 3.45],
+      ['cage_lamp', 'r', 0, 6.5, 3.27],
       ['cage_lamp', 'r', 0, 11.5, 3.27],
       ['tally_marks', 'r', 0, 12.5, 2],
-      ['emergency_light', 'r', 0, 16.5, 3.45],
-      ['cage_lamp', 'r', 0, 21.5, 3.27],
-      ['tally_marks', 'r', 0, 22.6, 1.54],
-      ['clock', 'l', 0, 6.5, 3.54],
-      ['tally_marks', 'l', 0, 18.5, 1.72],
+      ['cage_lamp', 'r', 0, 16.5, 3.27],
+      // dentro das celas da esquerda
+      ['cage_lamp', 'l', 0, 6, 3.27],
+      ['tally_marks', 'l', 0, 7.2, 1.72],
+      // a contenção: correntes, o sigilo riscado à unha e a luz de emergência
+      ['chains_wall', 'l', 0, 11, 2.2],
+      ['sigil_scratch', 'l', 0, 13.6, 2],
+      ['emergency_light', 'l', 0, 12.3, 3.45],
+      // o posto: o painel das câmeras e o relógio
+      ['monitor_wall', 'r', 0, 21.5, 2.9],
+      ['clock', 'r', 0, 23.3, 3.6],
     ],
     links: [[23, 9, 'corredor']],
   },
@@ -898,6 +932,19 @@ function resumo(spec: RoomSpec): string {
 const NOVAS_NA_PAREDE: Record<string, string[]> = { bar: ['dartboard'] };
 
 /**
+ * Retoques num cômodo guardado sem refazê-lo: quando o retoque acha o que procura (e devolve true),
+ * mexe só nisso e o cômodo passa a ter o resumo da montagem nova, sem ser refeito.
+ */
+const RETOQUES: Record<string, (room: RoomData) => boolean> = {
+  // o alvo de dardos entrou em cima da porta do bar (05/10): vai para perto do fliperama
+  bar: (room) => {
+    const alvo = room.wallItems.find((w) => w.defId === 'dartboard' && w.pos === 11);
+    if (alvo) alvo.pos = 4.2;
+    return !!alvo;
+  },
+};
+
+/**
  * Refaz a Sede no lugar quando a montagem muda (SEDE_REV): mesmos cômodos
  * (ids), mesmas peças (numa casa livre se a antiga sumiu), mesmo registro e
  * objetivos. Móveis, pistas e itens dos cômodos voltam aos da montagem nova.
@@ -912,7 +959,7 @@ export function rebuildSede(db: Database): boolean {
     let room = existing.find((r) => names.includes(r.name));
     const h = resumo(spec);
     // a montagem deste cômodo não mudou (ou é de antes do resumo): fica como o mestre deixou
-    if (room && (room.montagem === h || room.montagem === undefined)) {
+    if (room && (room.montagem === h || room.montagem === undefined || RETOQUES[spec.key]?.(room))) {
       if (room.montagem === undefined)
         for (const [defId, w, plane, pos, z] of (spec.wall ?? []).filter((ws) => NOVAS_NA_PAREDE[spec.key]?.includes(ws[0])))
           if (!room.wallItems.some((it) => it.defId === defId)) room.wallItems.push({ id: db.nextItemId++, defId, wall: w, plane, pos, z, state: 0 });

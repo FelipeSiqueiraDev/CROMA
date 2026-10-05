@@ -4984,37 +4984,6 @@
   ],
   "encosta": true
  },
- "cell_front": {
-  "escala": 0.5,
-  "giros": {
-   "4": {
-    "arquivo": "cell_front/giro-4.png",
-    "ax": 14.0,
-    "ay": 295.0
-   },
-   "6": {
-    "arquivo": "cell_front/giro-6.png",
-    "ax": 14.0,
-    "ay": 270.0
-   },
-   "0": {
-    "arquivo": "cell_front/giro-0.png",
-    "ax": 65.0,
-    "ay": 270.0
-   },
-   "2": {
-    "arquivo": "cell_front/giro-2.png",
-    "ax": 65.0,
-    "ay": 295.0
-   }
-  },
-  "real": [
-   0.75,
-   0.15,
-   2.2
-  ],
-  "encosta": true
- },
  "gun_table~b": {
   "escala": 0.5,
   "giros": {
