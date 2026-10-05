@@ -156,6 +156,7 @@ const shell = tableMode || fichaMode
   : new Shell(app, {
       navigator: () => navigator.toggle(),
       catalog: () => catalog.toggle(),
+      trocar: (id, defId) => catalog.trocar(id, defId),
       inventory: () => inventory.toggle(),
       characters: () => characters.toggle(),
       settings: () => settings.toggle(),

@@ -19,6 +19,8 @@ export class CatalogWin {
   private cat: FurniCategory = 'escritorio';
   private selected: string | null = null;
   private place: StartPlace;
+  /** trocando um móvel do cômodo por outro (o botão Trocar do painel do móvel) */
+  private troca: { id: number; defId: string } | null = null;
 
   constructor(app: App, place: StartPlace) {
     this.app = app;
@@ -30,9 +32,20 @@ export class CatalogWin {
   toggle() {
     if (this.win.isOpen) this.win.close();
     else {
+      this.troca = null;
       this.render();
       this.win.open();
     }
+  }
+
+  /** Abre o catálogo para trocar o móvel id por outro, na categoria dele. */
+  trocar(id: number, defId: string) {
+    const d = getFurni(defId);
+    this.troca = { id, defId };
+    if (d && !d.interno) this.cat = d.category;
+    this.selected = null;
+    this.render();
+    this.win.open();
   }
 
   private items(): { id: string; name: string; desc?: string }[] {
@@ -81,15 +94,22 @@ export class CatalogWin {
       detail.append(
         h('div', { class: 'detail-thumb' }, thumbCopy(sel, 96)),
         h('div', { class: 'detail-text' }, h('b', null, anyFurniName(sel)), h('small', null, facts.join(' · ')), (fd?.desc ?? wd?.desc) ? h('p', null, fd?.desc ?? wd?.desc ?? '') : null),
-        h('button', { class: 'btn primary', onclick: () => this.tryPlace(sel) }, 'Colocar no quarto'),
+        h('button', { class: 'btn primary', onclick: () => this.tryPlace(sel) }, this.troca ? 'Trocar por este' : 'Colocar no quarto'),
       );
-    } else detail.append(h('p', { class: 'muted' }, 'Escolha um mobi. Duplo clique já começa a colocar.'));
+    } else detail.append(h('p', { class: 'muted' }, this.troca ? `Trocando ${anyFurniName(this.troca.defId)}: escolha o móvel novo (duplo clique já troca).` : 'Escolha um mobi. Duplo clique já começa a colocar.'));
     b.append(h('div', { class: 'catalog-layout' }, cats, h('div', { class: 'catalog-main' }, grid, detail)));
   }
 
   private tryPlace(defId: string) {
     if (!this.app.state.room) return toast('Entre num quarto primeiro.', 'error');
     if (!this.app.canBuild) return toast('Só o mestre do quarto pode construir aqui.', 'error');
+    if (this.troca) {
+      if (!getFurni(defId)) return toast('Item de parede não troca com móvel de chão.', 'error');
+      this.app.net.send({ t: 'swapItem', id: this.troca.id, defId });
+      this.troca = null;
+      this.win.close();
+      return;
+    }
     this.place(defId);
     this.win.close();
   }

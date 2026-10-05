@@ -58,6 +58,8 @@ import { existeArte, ic } from './icons';
 export interface ShellActions {
   fx(): void;
   catalog(): void;
+  /** abre o catálogo para trocar o móvel por outro, no mesmo lugar */
+  trocar(id: number, defId: string): void;
   inventory(): void;
   settings(): void;
   characters(): void;
@@ -353,7 +355,11 @@ export class Shell {
   private logRows = new Map<string, HTMLElement>();
   private logReady = false;
 
+  /** as ações da tela (o catálogo, o inventário...) */
+  private acts: ShellActions;
+
   constructor(app: App, act: ShellActions) {
+    this.acts = act;
     this.app = app;
     this.tokenWin = new TokenWin(app);
     this.hintEditor = new HintEditor(app);
@@ -1787,6 +1793,7 @@ export class Shell {
         const hh = item.hint;
         tools.append(tool(hh.visible ? 'Ocultar' : 'Revelar', () => net.send({ t: 'setHint', id: item.id, hint: { ...hh, visible: !hh.visible } })));
       }
+      if (floor) tools.append(tool('Trocar', () => this.acts.trocar(floor.id, floor.defId)));
       tools.append(tool('Guardar', () => net.send({ t: 'pickup', id: item.id })));
       if (floor && fdef?.portal) {
         const others = this.app.state.rooms.filter((r) => r.id !== this.app.state.room?.id);

@@ -270,6 +270,18 @@ export function visualComArte(def: FurniDef, base: FVisual, state = 0, seed = 0,
   return V([N(caixa, (p) => desenhar(p, a, frente, costas, enc))], base.lights);
 }
 
+/**
+ * A imagem que representa o móvel no catálogo: a vista da frente (giro 4, ou o que houver) ou, no item
+ * de parede, a da parede da direita; o tapete, visto de cima. null sem arte (ou antes da lista chegar).
+ */
+export function arteDaMiniatura(defId: string): string | null {
+  const a = lista?.[defId];
+  if (!a) return null;
+  const v = a.giros?.['4'] ?? a.giros?.['2'] ?? a.frente ?? a.giros?.['6'] ?? a.giros?.['0'] ?? a.parede?.['r'] ?? a.parede?.['l'];
+  const arq = v?.arquivo ?? a.chao?.arquivo;
+  return arq ? `/arte/mobiliario/${arq}` : null;
+}
+
 /** O tapete (ou a rosa dos ventos) visto de cima, para o mapa tático; null sem arte ou enquanto ela carrega. */
 export function imagemDoChao(defId: string): HTMLCanvasElement | null {
   const a = lista?.[defId];

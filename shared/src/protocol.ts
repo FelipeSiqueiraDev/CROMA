@@ -362,6 +362,8 @@ export type ClientMsg =
   | { t: 'moveItem'; id: number; x: number; y: number; rot: number }
   | { t: 'moveWallItem'; id: number; wall: 'l' | 'r'; plane: number; pos: number; z: number }
   | { t: 'pickup'; id: number }
+  /** troca o móvel por outro do catálogo, no mesmo lugar (e no mesmo giro, se der) */
+  | { t: 'swapItem'; id: number; defId: string }
   | { t: 'use'; id: number }
   | { t: 'setHint'; id: number; hint: Hint | null }
   | { t: 'roomSettings'; name: string; description: string; darkness: number; publicBuild: boolean; floor?: string; area?: string; floorStyle?: FloorStyle; ambient?: string | null; particles?: ParticleKind[] }

@@ -672,6 +672,9 @@ export class RoomInstance {
       case 'pickup':
         if (isInt(m.id)) this.pickup(u, m.id);
         break;
+      case 'swapItem':
+        if (isInt(m.id) && typeof m.defId === 'string') this.swapItem(u, m.id, m.defId);
+        break;
       case 'use':
         if (isInt(m.id)) this.use(u, m.id);
         break;
@@ -883,6 +886,34 @@ export class RoomInstance {
     this.map.setWallItem(moved);
     this.persist();
     this.broadcastWall('wallUpdate', moved);
+  }
+
+  /**
+   * Troca o móvel por outro do catálogo no mesmo lugar: no mesmo giro, se der; senão no primeiro que
+   * couber. Não coube de jeito nenhum: o antigo fica onde estava.
+   */
+  private swapItem(u: RoomUser, id: number, defId: string) {
+    const c = u.client;
+    if (!this.canBuild(c)) return this.err(c, 'Sem permissão.');
+    const old = this.map.getItem(id);
+    const def = getFurni(defId);
+    if (!old || !def) return;
+    this.map.removeItem(id);
+    const giros = [old.rot, ...def.rotations.filter((r) => r !== old.rot)].filter((r) => def.rotations.includes(r));
+    for (const rot of giros) {
+      const res = this.map.canPlace(defId, old.x, old.y, rot);
+      if (!res.ok) continue;
+      if (!def.walkable && !def.sit && this.usersOn(this.map.tilesFor(defId, old.x, old.y, rot))) continue;
+      const item: FloorItem = { id: this.hotel.nextItemId(), defId, x: old.x, y: old.y, z: res.z, rot, state: 0 };
+      this.broadcast({ t: 'itemRemove', id });
+      this.map.addItem(item);
+      this.persist();
+      this.broadcastFloor('itemAdd', item);
+      this.resettleAll();
+      return;
+    }
+    this.map.addItem(old);
+    this.err(c, 'O móvel novo não cabe nesse lugar.');
   }
 
   private pickup(u: RoomUser, id: number) {
