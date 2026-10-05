@@ -789,38 +789,6 @@ export function passosFor(lp: LoadedPoses, estado: PortraitState, dir: number): 
  */
 export const passoMs = (quadros: number) => TICK_MS / Math.max(1, quadros);
 
-/** O personagem tem pose armada (a arma aparece pela arte)? */
-export function temPoseArmada(lp: LoadedPoses): boolean {
-  return Object.keys(lp.frames).some((k) => k.startsWith('armado'));
-}
-
-/** Os mesmos desenhos dos ícones de pistola e faca (viewBox 24). */
-const MARCA_ARMA: Record<'fogo' | 'branca', string> = {
-  fogo: 'M3 7h16l2 2-1 2h-6l-1 3h-3l-.5 2H6.5L8 11H3z M9.5 11v2.5',
-  branca: 'M3 21 12.5 11.5 M14 10 21 3l-1 5.5-6 6z m10.5 13.5 2 2',
-};
-let marcas: Record<'fogo' | 'branca', Path2D> | null = null;
-
-/** Arma na mão sem arte armada: o desenho da arma (fogo ou branca) junto da mão. */
-export function drawWeaponMark(ctx: CanvasRenderingContext2D, x: number, y: number, h: number, arma: 'fogo' | 'branca', dir: number) {
-  marcas ??= { fogo: new Path2D(MARCA_ARMA.fogo), branca: new Path2D(MARCA_ARMA.branca) };
-  const lado = [0, 1, 2].includes(((dir % 8) + 8) % 8) ? 1 : -1;
-  const k = 16 / 24;
-  ctx.save();
-  ctx.translate(x + lado * 16, y - h * 0.36);
-  ctx.scale(k * lado, k);
-  ctx.translate(-12, -12);
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.lineWidth = 5;
-  ctx.strokeStyle = 'rgba(10,8,6,0.88)';
-  ctx.stroke(marcas[arma]);
-  ctx.lineWidth = 2.2;
-  ctx.strokeStyle = '#e6dfcf';
-  ctx.stroke(marcas[arma]);
-  ctx.restore();
-}
-
 /**
  * Desenha a pose do tabuleiro com os pés em (x, y). Andando, toca os quadros
  * de andar (`passos`) desde `andando` ms; sem eles, balança como a folha sem

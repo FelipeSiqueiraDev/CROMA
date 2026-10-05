@@ -136,11 +136,6 @@ view.estadoDe = (id) => {
   const ch = app.session.session?.characters.find((c) => c.id === -id);
   return ch ? portraitState(ch.armed, vitalConditions(ch.vitals).machucado) : null;
 };
-// a arma na mão (da ficha, pelo servidor): sem arte armada, o tabuleiro mostra um sinal junto da mão
-view.armaDe = (id) => {
-  const ch = app.session.session?.characters.find((c) => c.id === -id);
-  return ch?.armed ? (ch.arma ?? 'branca') : null;
-};
 // os PV de cada peça (de 0 a 1), para o arco da ficha no mapa tático
 view.pvDe = (id) => {
   const v = app.session.session?.characters.find((c) => c.id === -id)?.vitals;

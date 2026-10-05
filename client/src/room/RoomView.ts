@@ -48,14 +48,12 @@ import {
   drawPose,
   drawSombraProjetada,
   drawSprite,
-  drawWeaponMark,
   framesFor,
   passosFor,
   poseFor,
   quadroDaFolha,
   quadroDaPose,
   sprites,
-  temPoseArmada,
   type LuzNaPeca,
   type SpriteFrame,
 } from '../render/sprites';
@@ -361,8 +359,6 @@ export class RoomView {
   combate: MarcasCombate | null = null;
   /** estado de cada peça (com a arma, machucada): escolhe a pose do tabuleiro, quando o personagem tem (null = desarmado) */
   estadoDe: ((id: number) => PortraitState | null) | null = null;
-  /** arma na mão de cada peça (pela ficha): sem arte armada, o tabuleiro mostra um sinal junto da mão */
-  armaDe: ((id: number) => 'fogo' | 'branca' | null) | null = null;
   /** clique numa peça: devolve true quando a tela usou o clique (escolher o alvo sem trocar a peça comandada) */
   aoClicarPeca: ((id: number) => boolean) | null = null;
   /** clique numa casa para uma ferramenta (medir, área): devolve true quando usou o clique */
@@ -1739,9 +1735,6 @@ export class RoomView {
             });
           if (deitada) ctx.restore();
           if (turning) ctx.restore();
-          // a arma aparece: pela pose armada da arte ou, sem ela, pelo sinal junto da mão
-          const arma = !deitada && !seated ? this.armaDe?.(u.id) : null;
-          if (arma && !(lp && temPoseArmada(lp))) drawWeaponMark(ctx, sx, fy + afunda + dance, H, arma, u.dir);
           if (wave && sp) this.drawEmote(sx, fy - H - 14, now);
           ctx.restore();
           if (eCela > 0.01) ctx.filter = 'none';
