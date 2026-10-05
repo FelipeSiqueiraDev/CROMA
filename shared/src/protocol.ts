@@ -362,6 +362,8 @@ export type ClientMsg =
   | { t: 'moveItem'; id: number; x: number; y: number; rot: number }
   | { t: 'moveWallItem'; id: number; wall: 'l' | 'r'; plane: number; pos: number; z: number }
   | { t: 'pickup'; id: number }
+  /** muda o tamanho do desenho de um quadro (parede) ou de um tapete (chão): de 0,5 a 3 */
+  | { t: 'resizeItem'; id: number; escala: number }
   /** troca o móvel por outro do catálogo, no mesmo lugar (e no mesmo giro, se der) */
   | { t: 'swapItem'; id: number; defId: string }
   | { t: 'use'; id: number }

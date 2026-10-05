@@ -1065,7 +1065,7 @@ export class RoomView {
     return null;
   }
 
-  private drawWallItem(it: { id: number; wall: 'l' | 'r'; plane: number; pos: number; z: number; state: number }, def: WallFurniDef, t: number, lights: Light[], alpha: number, outline: string | null) {
+  private drawWallItem(it: { id: number; wall: 'l' | 'r'; plane: number; pos: number; z: number; state: number; escala?: number }, def: WallFurniDef, t: number, lights: Light[], alpha: number, outline: string | null) {
     const ctx = this.ctx;
     const { ox, oy, k } = this.wallXform(it.wall, it.plane, it.pos, it.z, def);
     ctx.save();
@@ -1073,6 +1073,13 @@ export class RoomView {
     // com arte: a vista desenhada daquela parede, presa no meio do item
     const zc = it.z + def.h / 64;
     const [px, py] = it.wall === 'l' ? iso(it.plane, it.pos, zc) : iso(it.pos, it.plane, zc);
+    // o quadro maior ou menor (o mestre muda): cresce em volta do meio dele
+    const e = it.escala ?? 1;
+    if (e !== 1) {
+      ctx.translate(px, py);
+      ctx.scale(e, e);
+      ctx.translate(-px, -py);
+    }
     const comArte = desenharParedeComArte(ctx, def.id, it.wall, it.state, px, py, it.id);
     ctx.transform(1, k, 0, 1, ox, oy);
     if (!comArte) drawWallFurni(ctx, def, it.state, it.id, t);
@@ -1089,7 +1096,7 @@ export class RoomView {
       const mundo: [number, number, number] = it.wall === 'l' ? [it.plane + 0.2, it.pos - ao, alt] : [it.pos + ao, it.plane + 0.2, alt];
       lights.push({ x: ox + L.x, y: oy + k * L.x + L.y, radius: L.radius, color: L.color, intensity: L.intensity * alpha, flicker: L.flicker, pulse: L.pulse, kind: L.kind, seed: it.id, mundo });
     }
-    return { ox, oy, k };
+    return { ox, oy, k, px, py, e };
   }
 
   // ---------- quadro ----------
@@ -1381,7 +1388,7 @@ export class RoomView {
       const def = getWallFurni(it.defId);
       if (!def) continue;
       const moving = place?.kind === 'wall' && place.moveId === it.id;
-      const { ox, oy, k } = this.drawWallItem(it, def, t, lights, moving ? 0.35 : 1, sel?.kind === 'wall' && sel.id === it.id ? AMBER : null);
+      const { ox, oy, k, px, py, e } = this.drawWallItem(it, def, t, lights, moving ? 0.35 : 1, sel?.kind === 'wall' && sel.id === it.id ? AMBER : null);
       // na parede de dentro de uma cela fechada (a lâmpada de grade, os riscos): no escuro também
       const eParede = escuroEm(celas, it.wall === 'l' ? it.plane + 0.2 : it.pos, it.wall === 'l' ? it.pos : it.plane + 0.2);
       if (eParede > 0.01)
@@ -1398,7 +1405,10 @@ export class RoomView {
       hits.push({
         kind: 'wall',
         id: it.id,
-        test: (x, y) => {
+        test: (x0, y0) => {
+          // no quadro maior ou menor, o ponto volta para o tamanho do desenho
+          const x = px + (x0 - px) / e;
+          const y = py + (y0 - py) / e;
           const lx = x - ox;
           const ly = y - oy - k * lx;
           return lx >= 0 && lx <= def.w && ly >= 0 && ly <= def.h;
@@ -1433,11 +1443,11 @@ export class RoomView {
     }
     // o que cai fora da tela não é desenhado (a fazenda tem centenas de mobis); a luz deles continua valendo
     const vista = { x0: -this.cam.x / z - 120, y0: -this.cam.y / z - 200, x1: (this.vw - this.cam.x) / z + 120, y1: (this.vh - this.cam.y) / z + 120 };
-    const addFurni = (it: { id: number; defId: string; x: number; y: number; z: number; rot: number; state: number }, alpha: number, selected: boolean, ghost: boolean) => {
+    const addFurni = (it: { id: number; defId: string; x: number; y: number; z: number; rot: number; state: number; escala?: number }, alpha: number, selected: boolean, ghost: boolean) => {
       const def = getFurni(it.defId);
       if (!def) return;
       const base = furniVisual(def, it.state, it.id);
-      const vis = visualComArte(def, base, it.state, it.id, it.rot, this.info?.floorStyle) ?? base;
+      const vis = visualComArte(def, base, it.state, it.id, it.rot, this.info?.floorStyle, it.escala ?? 1) ?? base;
       m.set(it.rot, def.width, def.depth, it.x, it.y, it.z);
       const floorH = map.floorHeight(it.x, it.y) ?? 0;
       const flat = !!def.flat && it.z <= floorH + 0.05 && !ghost;

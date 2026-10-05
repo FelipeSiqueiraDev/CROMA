@@ -349,7 +349,8 @@ export function desenharMesa(ctx: CanvasRenderingContext2D, map: RoomMap, piso: 
 /** Tapete, rosa dos ventos, mancha: a arte vista de cima deitada na pegada (em casas); sem arte, uma marca na cor dele. */
 function desenharTapete(ctx: CanvasRenderingContext2D, it: FloorItem, def: FurniDef) {
   const fp = footprint(def, it.rot);
-  const r = { x: it.x, y: it.y, w: fp.sx, h: fp.sy };
+  const e = it.escala ?? 1;
+  const r = { x: it.x + (fp.sx * (1 - e)) / 2, y: it.y + (fp.sy * (1 - e)) / 2, w: fp.sx * e, h: fp.sy * e };
   const img = imagemDoChao(def.id);
   if (img) {
     ctx.save();

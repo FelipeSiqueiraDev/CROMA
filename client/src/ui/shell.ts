@@ -1794,6 +1794,13 @@ export class Shell {
         tools.append(tool(hh.visible ? 'Ocultar' : 'Revelar', () => net.send({ t: 'setHint', id: item.id, hint: { ...hh, visible: !hh.visible } })));
       }
       if (floor) tools.append(tool('Trocar', () => this.acts.trocar(floor.id, floor.defId)));
+      // quadros e tapetes: o tamanho do desenho
+      if (kind === 'wall' || fdef?.flat) {
+        const e = item.escala ?? 1;
+        const passo = (d: number) => net.send({ t: 'resizeItem', id: item.id, escala: Math.round((e + d) * 100) / 100 });
+        if (e < 3) tools.append(tool('Maior', () => passo(0.25)));
+        if (e > 0.5) tools.append(tool('Menor', () => passo(-0.25)));
+      }
       tools.append(tool('Guardar', () => net.send({ t: 'pickup', id: item.id })));
       if (floor && fdef?.portal) {
         const others = this.app.state.rooms.filter((r) => r.id !== this.app.state.room?.id);

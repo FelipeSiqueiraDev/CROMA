@@ -112,6 +112,8 @@ export interface FloorItem {
   actions?: ItemAction[];
   /** fechadura com senha (passagem secreta) */
   lock?: ItemLock;
+  /** tamanho do desenho (quadro na parede, tapete no chão), 1 = o do catálogo; o mestre muda no painel do objeto */
+  escala?: number;
 }
 
 export interface WallItem {
@@ -128,6 +130,8 @@ export interface WallItem {
   hint?: Hint;
   loot?: Loot[];
   actions?: ItemAction[];
+  /** tamanho do desenho (quadro na parede, tapete no chão), 1 = o do catálogo; o mestre muda no painel do objeto */
+  escala?: number;
 }
 
 export type WalkState = 'blocked' | 'walk' | 'sit';
@@ -292,6 +296,11 @@ export class RoomMap {
         if (base === null) base = h;
         else if (h !== base) return fail('O piso precisa estar nivelado.');
         let tileTop = h;
+        // tapete, símbolo no chão, mancha: vai para baixo dos móveis (fica no chão, por baixo de tudo)
+        if (def.flat) {
+          z = Math.max(z, h);
+          continue;
+        }
         for (const it of this.itemsAt(tx, ty)) {
           if (it.id === ignoreId) continue;
           const idef = getFurni(it.defId);

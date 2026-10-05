@@ -213,7 +213,7 @@ function pronta(arquivo: string): Imagens | null {
  * ordem de quem fica na frente), ou null se ele não tem arte (ou ela ainda não chegou).
  * As luzes continuam as do desenho por código. state: o estado do móvel (0 = aceso).
  */
-export function visualComArte(def: FurniDef, base: FVisual, state = 0, seed = 0, rot?: number, piso?: string): FVisual | null {
+export function visualComArte(def: FurniDef, base: FVisual, state = 0, seed = 0, rot?: number, piso?: string, escala = 1): FVisual | null {
   const chave = chaveDaArte(def.id, seed, piso);
   const salvo = lista?.[chave];
   if (!salvo) return null;
@@ -225,7 +225,11 @@ export function visualComArte(def: FurniDef, base: FVisual, state = 0, seed = 0,
   if (a.chao) {
     const img = pronta(a.chao.arquivo);
     if (!img) return null;
-    return V([N(caixa, (p) => deitar(p, img.normal))], base.lights);
+    // o tapete maior ou menor (o mestre muda): cresce em volta do meio da pegada
+    const cx = (caixa[0] + caixa[1]) / 2;
+    const cy = (caixa[2] + caixa[3]) / 2;
+    const cz: LBox = escala === 1 ? caixa : [cx - ((caixa[1] - caixa[0]) * escala) / 2, cx + ((caixa[1] - caixa[0]) * escala) / 2, cy - ((caixa[3] - caixa[2]) * escala) / 2, cy + ((caixa[3] - caixa[2]) * escala) / 2, caixa[4], caixa[5]];
+    return V([N(cz, (p) => deitar(p, img.normal, escala === 1 ? undefined : cz))], base.lights);
   }
   if (a.giros) {
     // outro estado com as vistas dele (o armário aberto): no lugar das do estado 0
@@ -602,10 +606,12 @@ function feixe(p: Painter, x: number, y: number, raio: number, cor: string, forc
 }
 
 /** O tapete: a imagem vista de cima deitada no chão do móvel (a largura na lateral, a altura no comprimento). */
-function deitar(p: Painter, img: HTMLCanvasElement) {
-  const [x0, y0] = p.m.p(0, 0, 0);
-  const [xv, yv] = p.m.p(0, p.m.W, 0);
-  const [xu, yu] = p.m.p(p.m.D, 0, 0);
+function deitar(p: Painter, img: HTMLCanvasElement, cx?: LBox) {
+  // na pegada do móvel ou, no tapete maior ou menor, na caixa dele
+  const [a0, a1, b0, b1] = cx ?? [0, p.m.D, 0, p.m.W];
+  const [x0, y0] = p.m.p(a0, b0, 0);
+  const [xv, yv] = p.m.p(a0, b1, 0);
+  const [xu, yu] = p.m.p(a1, b0, 0);
   const ctx = p.ctx;
   ctx.save();
   ctx.transform((xv - x0) / img.width, (yv - y0) / img.width, (xu - x0) / img.height, (yu - y0) / img.height, x0, y0);

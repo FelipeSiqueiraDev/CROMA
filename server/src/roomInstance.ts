@@ -672,6 +672,9 @@ export class RoomInstance {
       case 'pickup':
         if (isInt(m.id)) this.pickup(u, m.id);
         break;
+      case 'resizeItem':
+        if (isInt(m.id) && isNum(m.escala)) this.resizeItem(u, m.id, m.escala);
+        break;
       case 'swapItem':
         if (isInt(m.id) && typeof m.defId === 'string') this.swapItem(u, m.id, m.defId);
         break;
@@ -886,6 +889,29 @@ export class RoomInstance {
     this.map.setWallItem(moved);
     this.persist();
     this.broadcastWall('wallUpdate', moved);
+  }
+
+  /** O tamanho do desenho de um quadro (item de parede) ou de um tapete (móvel de chão que se pisa). */
+  private resizeItem(u: RoomUser, id: number, escala: number) {
+    const c = u.client;
+    if (!this.canBuild(c)) return this.err(c, 'Sem permissão.');
+    const e = Math.round(Math.max(0.5, Math.min(3, escala)) * 100) / 100;
+    const wall = this.map.getWallItem(id);
+    if (wall) {
+      const novo: WallItem = { ...wall, escala: e === 1 ? undefined : e };
+      this.map.setWallItem(novo);
+      this.persist();
+      this.broadcastWall('wallUpdate', novo);
+      return;
+    }
+    const it = this.map.getItem(id);
+    const def = it ? getFurni(it.defId) : undefined;
+    if (!it || !def) return;
+    if (!def.flat) return this.err(c, 'Só tapetes e quadros mudam de tamanho.');
+    const novo: FloorItem = { ...it, escala: e === 1 ? undefined : e };
+    this.map.updateItem(novo);
+    this.persist();
+    this.broadcastFloor('itemUpdate', novo);
   }
 
   /**
