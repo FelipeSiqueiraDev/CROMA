@@ -343,7 +343,7 @@ export class RoomView {
   private hoverTile: { x: number; y: number } | null = null;
   private hoverKey = '';
   private wallTarget: WallTarget | null = null;
-  private drag: { sx: number; sy: number; cx: number; cy: number; moved: boolean } | null = null;
+  private drag: { sx: number; sy: number; cx: number; cy: number; tx: number; ty: number; moved: boolean } | null = null;
   private lastClick = { t: 0, key: '' };
   private raf = 0;
   private door: { seg: WallSeg; path: Path2D } | null = null;
@@ -371,6 +371,11 @@ export class RoomView {
    * a foto é o isométrico, que se desfaz no começo do caminho.
    */
   private tat: { t: number; alvo: number; antes: number; foto: HTMLCanvasElement | null; v: CameraVoo | null; e: Enquadre | null } = { t: 0, alvo: 0, antes: 0, foto: null, v: null, e: null };
+  /**
+   * O zoom do mapa tático (só nesta tela; a mesa não acompanha): o enquadre da sala vezes k, deslocado
+   * de (dx, dy) px do canvas. k = 1 é a sala inteira no quadro.
+   */
+  private tatZoom = { k: 1, dx: 0, dy: 0 };
   /** o retrato de cada peça para a ficha do mapa tático */
   private retratos = new Map<number, { chave: string; c: HTMLCanvasElement }>();
 
@@ -411,6 +416,7 @@ export class RoomView {
     this.info = info;
     // a cena nova já abre na vista dela (sem a câmera voar na entrada)
     this.tat.alvo = this.tat.t = info.tatico ? 1 : 0;
+    this.tatZoom = { k: 1, dx: 0, dy: 0 };
     this.tat.foto = null;
     this.map = new RoomMap(info.heightmap, info.door, items, wallItems);
     // ao ar livre não tem parede: ninguém fica atrás da porta
@@ -566,6 +572,7 @@ export class RoomView {
   updateInfo(info: RoomInfo) {
     this.info = info;
     this.tat.alvo = info.tatico ? 1 : 0;
+    if (!info.tatico) this.tatZoom = { k: 1, dx: 0, dy: 0 };
   }
 
   private rebuildTiles() {
@@ -795,6 +802,18 @@ export class RoomView {
     if (n) this.setZoom(n, ax, ay);
   }
 
+  /** Aproxima (f > 1) ou afasta o mapa tático, com o ponto (px, py) do canvas parado; de 1x a 5x. */
+  zoomTatico(f: number, px: number, py: number) {
+    const z = this.tatZoom;
+    const k = Math.max(1, Math.min(5, z.k * f));
+    if (k === 1) {
+      this.tatZoom = { k: 1, dx: 0, dy: 0 };
+      return;
+    }
+    const g = k / z.k;
+    this.tatZoom = { k, dx: px + (z.dx - px) * g, dy: py + (z.dy - py) * g };
+  }
+
   private toWorld(sx: number, sy: number): [number, number] {
     return [(sx - this.cam.x) / this.zoom, (sy - this.cam.y) / this.zoom];
   }
@@ -813,7 +832,7 @@ export class RoomView {
       }
       if (e.button !== 0) return;
       c.setPointerCapture(e.pointerId);
-      this.drag = { sx: e.offsetX, sy: e.offsetY, cx: this.cam.x, cy: this.cam.y, moved: false };
+      this.drag = { sx: e.offsetX, sy: e.offsetY, cx: this.cam.x, cy: this.cam.y, tx: this.tatZoom.dx, ty: this.tatZoom.dy, moved: false };
     });
     c.addEventListener('pointermove', (e) => {
       if (this.watchOnly) return;
@@ -830,6 +849,10 @@ export class RoomView {
           this.bubbles.pan(ny - this.cam.y);
           this.cam.x = Math.round(d.cx + dx);
           this.cam.y = ny;
+        } else if (d.moved && this.tat.t >= 1 && this.tatZoom.k > 1) {
+          // com zoom, arrastar anda pelo mapa tático
+          this.tatZoom.dx = d.tx + dx * this.dpr;
+          this.tatZoom.dy = d.ty + dy * this.dpr;
         }
       }
       this.updateHover();
@@ -851,8 +874,9 @@ export class RoomView {
       'wheel',
       (e) => {
         e.preventDefault();
-        if (this.watchOnly || this.tat.t > 0) return;
-        this.zoomStep(e.deltaY < 0 ? 1 : -1, e.offsetX, e.offsetY);
+        if (this.watchOnly) return;
+        if (this.tat.t >= 1) this.zoomTatico(e.deltaY < 0 ? 1.25 : 1 / 1.25, e.offsetX * this.dpr, e.offsetY * this.dpr);
+        else if (this.tat.t <= 0) this.zoomStep(e.deltaY < 0 ? 1 : -1, e.offsetX, e.offsetY);
       },
       { passive: false },
     );
@@ -1087,7 +1111,9 @@ export class RoomView {
     const dpr = this.dpr;
     const fr = this.frame_();
     const quadro = { x: fr.x * dpr, y: fr.y * dpr, w: fr.w * dpr, h: fr.h * dpr };
-    const e = enquadrar(map, quadro.w, quadro.h, 34 * dpr, quadro.x, quadro.y);
+    const e0 = enquadrar(map, quadro.w, quadro.h, 34 * dpr, quadro.x, quadro.y);
+    const z = this.tatZoom;
+    const e = { x: z.dx + e0.x * z.k, y: z.dy + e0.y * z.k, casa: e0.casa * z.k };
     const camIso = { zoom: this.zoom * dpr, camX: this.cam.x * dpr, camY: this.cam.y * dpr };
     const t = this.tat.t;
     const v = cameraVoo(map, camIso, e, t, quadro);
@@ -1102,6 +1128,14 @@ export class RoomView {
       return { x: p.x, y: p.y };
     };
     const mouse = t >= 1 && this.mouse.inside && !this.watchOnly ? this.hoverTile : null;
+    // com zoom, o mapa fica dentro da moldura do tabuleiro
+    const recorta = z.k > 1;
+    if (recorta) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(quadro.x, quadro.y, quadro.w, quadro.h);
+      ctx.clip();
+    }
     desenharMesa(ctx, map, info.floorStyle, this.pecasTaticas(now), v, {
       // no começo do caminho, o escuro da sala (como no isométrico); em cima, o mapa claro
       escuro: Math.min(0.5, info.darkness * 0.7) * (1 - passo(0.15, 1, t)),
@@ -1112,6 +1146,7 @@ export class RoomView {
         this.edicaoTatica(c, vv);
       },
     });
+    if (recorta) ctx.restore();
     const foto = this.tat.foto;
     const a = 1 - passo(0, 0.2, t);
     if (foto && a > 0.001) {
