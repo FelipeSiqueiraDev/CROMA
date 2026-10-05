@@ -133,14 +133,16 @@
   z-index: -1;
   pointer-events: none;
   border: 2.4rem solid transparent;
-  border-image: var(--ui-fichas-papel-painel-fonte) 48 / 2.4rem round;
+  /* a moldura ajustada: a borda queimada se desfaz na textura do miolo, sem a emenda do quadrado
+     (a arte veio com o miolo mais claro que a borda; o ajuste foi feito no canvas, no tom e na textura) */
+  border-image: var(--ui-fichas-papel-painel-fonte-ajustada, var(--ui-fichas-papel-painel-fonte)) 48 / 2.4rem round;
   background: var(--ui-fichas-papel-painel-miolo) 0 0 / 12.8rem 12.8rem repeat;
   background-clip: padding-box;
   background-origin: padding-box;
   filter: drop-shadow(0.1rem 0.5rem 0.6rem rgba(0, 0, 0, 0.6));
 }
 .kit-papel.painel-2 {
-  border-image-source: var(--ui-fichas-papel-painel-2-fonte);
+  border-image-source: var(--ui-fichas-papel-painel-2-fonte-ajustada, var(--ui-fichas-papel-painel-2-fonte));
   background-image: var(--ui-fichas-papel-painel-2-miolo);
 }
 .kit-papel.escuro {
