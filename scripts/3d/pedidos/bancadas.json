@@ -1,0 +1,5 @@
+[
+ {"nome": "bancada-lab-parede", "titulo": "Bancada de laboratório de parede, inteira", "casas": [4, 1], "real": [3.0, 0.65, 0.92], "encosta": true},
+ {"nome": "bancada-lab-curta", "titulo": "Bancada de laboratório curta (cantos)", "casas": [2, 1], "real": [1.5, 0.65, 0.92], "encosta": true},
+ {"nome": "bancada-lab-ilha", "titulo": "Bancada de ilha, inteira, com os dois lados de frente", "casas": [4, 1], "real": [3.0, 0.75, 0.92]}
+]
