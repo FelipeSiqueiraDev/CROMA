@@ -195,7 +195,7 @@ Todos os pedidos estão na pasta da arte do GPT. O Felipe cola no Códex: *"Leia
 
 | Pedido | Entrega | Como está (levantamento de 05/10) |
 |---|---|---|
-| `PROMPT-ICONES-ITENS.txt` + `FALTAM-ICONES.txt` | `icones-equipamentos.zip` (Parte 3), `icones-paranormais.zip` (4), `icones-cenario.zip` (5) | Partes 1 e 2 no jogo (87 ícones). **A Parte 3 chegou inteira em 04/10 às 14h41 (`icones-equipamentos.zip`, 62 ícones): 42 ainda não estão no jogo, falta importar** (o Felipe pediu para deixar para depois, em 05/10). A 4 e a 5 estão inteiras por fazer. |
+| `PROMPT-ICONES-ITENS.txt` + `FALTAM-ICONES.txt` | `icones-paranormais.zip` (Parte 4), `icones-cenario.zip` (5) | **No jogo (05/10): 153 ícones.** Partes 1, 2 e 3 completas; da Parte 4, os 24 que o Códex deixou prontos em "Itens do livro" (sem zip). Faltam 47 da Parte 4 e os 44 da Parte 5: a lista está no `FALTAM-ICONES.txt`, refeito em 05/10. Ao importar, use só os zips: a cópia solta do `fuzil-de-assalto.png` em "Itens do livro" é mais velha que a do jogo. |
 | `PROMPT-INTERFACE-GAME.txt` | `interface-teste.zip` primeiro; depois `interface-menus`, `-fichas`, `-combate`, `-modal-itens`, `-celular` e `retratos-agentes` | Nada entregue. |
 | `PROMPT-PRISAO-CELAS.txt` | `prisao-celas.zip` | Nada entregue. |
 | `PROMPT-VISTA-DE-CIMA.txt` | Partes 2 a 12, um `vista-de-cima-<sala>.zip` por sala | **No jogo (05/10):** o Bar e as outras 10 salas (64 móveis, as 10 paredes por piso e os estados abertos do baú e do armário de munição), pelo `cima.py`. Falta só a Prisão (Parte 11), que vem com o lote da prisão. |
