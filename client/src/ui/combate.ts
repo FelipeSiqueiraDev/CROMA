@@ -20,7 +20,7 @@ import { h, toast } from './dom';
 import { confirmar, janela, perguntarTexto } from './fichaModal';
 import { textoTeste } from './fichaRegras';
 import { NOME_DANO, resistenciasParaMostrar } from './fichas';
-import { ic, type NomeIcone } from './icons';
+import { arteOu, ic, type NomeIcone } from './icons';
 import { paperize } from './paperArt';
 import { sfx } from './sfx';
 
@@ -1448,7 +1448,8 @@ export class CombateScreen {
               this.atualizarMarcas();
             },
           },
-          ic(a.icone),
+          // o ícone pintado do kit (arte/icones/combate-<aba>.png); sem ele, o de linha
+          arteOu([`/arte/icones/combate-${a.id}.png`], ic(a.icone)),
           h('span', null, a.rotulo),
         ),
       ),

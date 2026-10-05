@@ -229,8 +229,8 @@
   border-color: #a18a67;
 }
 .fx-ag.on {
-  border-color: #e0332f;
-  box-shadow: 0 0 1.3rem rgba(230, 40, 36, 0.65), inset 0 0 0.6rem rgba(230, 40, 36, 0.35);
+  border-color: var(--destaque);
+  box-shadow: 0 0 1.3rem color-mix(in srgb, var(--destaque) 65%, transparent), inset 0 0 0.6rem color-mix(in srgb, var(--destaque) 35%, transparent);
 }
 .fx-ag-foto,
 .fx-ag-foto canvas {
@@ -890,7 +890,7 @@ button.fx-id-v:hover {
   border-color: #7f1d1a;
   background: linear-gradient(180deg, #c4413a, #95231f);
   color: #fff4ef;
-  box-shadow: 0 0 0.8rem rgba(200, 50, 40, 0.45), inset 0 0.1rem 0 rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 0.8rem color-mix(in srgb, var(--destaque) 45%, transparent), inset 0 0.1rem 0 rgba(255, 255, 255, 0.2);
 }
 .fx-ch.on .ic {
   opacity: 1;
@@ -1056,7 +1056,7 @@ button.fx-tab-l:hover {
   content: '●';
   margin-left: 0.6rem;
   font-size: 0.9rem;
-  color: #d8322f;
+  color: var(--destaque);
 }
 .fx-eq-ic {
   justify-content: center;
@@ -1247,7 +1247,7 @@ button.fx-tab-l:hover {
 .fx-rt.vazio.pode {
   border-color: #c9302b;
   color: #ff5c55;
-  box-shadow: 0 0 0.8rem rgba(220, 45, 40, 0.5);
+  box-shadow: 0 0 0.8rem color-mix(in srgb, var(--destaque) 50%, transparent);
 }
 .fx-rt-lista:has(.fx-rt-n) {
   row-gap: 1.8rem;
@@ -1749,10 +1749,10 @@ button.fx-tab-l:hover {
   opacity: 0.45;
 }
 .fx-bt.forte {
-  border-color: #d2302d;
+  border-color: var(--destaque);
   color: #ff5a53 !important;
   background: radial-gradient(ellipse 90% 90% at 50% 50%, #3a0e0f, #1c0808);
-  box-shadow: 0 0 1.2rem rgba(226, 42, 38, 0.45), inset 0 0 0.9rem rgba(226, 42, 38, 0.3);
+  box-shadow: 0 0 1.2rem color-mix(in srgb, var(--destaque) 45%, transparent), inset 0 0 0.9rem color-mix(in srgb, var(--destaque) 30%, transparent);
 }
 .fx-bt.perigo {
   border-color: #8a2a27;
@@ -1804,14 +1804,14 @@ button.fx-tab-l:hover {
 }
 .fx:not(.editando) .fx-b-salvar {
   border-color: #6b2a28;
-  box-shadow: 0 0 0.6rem rgba(226, 42, 38, 0.2), inset 0 0 0.6rem rgba(226, 42, 38, 0.15);
+  box-shadow: 0 0 0.6rem color-mix(in srgb, var(--destaque) 20%, transparent), inset 0 0 0.6rem color-mix(in srgb, var(--destaque) 15%, transparent);
 }
 .fx.editando .fx-b-salvar {
   animation: fx-pulsa 2.4s ease-in-out infinite;
 }
 @keyframes fx-pulsa {
   50% {
-    box-shadow: 0 0 2rem rgba(255, 60, 50, 0.7), inset 0 0 1.2rem rgba(226, 42, 38, 0.45);
+    box-shadow: 0 0 2rem color-mix(in srgb, var(--destaque) 70%, transparent), inset 0 0 1.2rem color-mix(in srgb, var(--destaque) 45%, transparent);
   }
 }
 
@@ -2542,7 +2542,7 @@ select.fx-inp {
     display: inline-flex !important;
   }
   .fx-b-editar.on {
-    border-color: #d2302d;
+    border-color: var(--destaque);
   }
   .fx-dica {
     display: none;
@@ -2578,10 +2578,10 @@ select.fx-inp {
   z-index: 40;
   max-width: min(60rem, 90vw);
   padding: 2.4rem 3rem;
-  border: 0.12rem solid #d2302d;
+  border: 0.12rem solid var(--destaque);
   border-radius: 0.4rem;
   background: #16090a;
-  box-shadow: 0 0 2rem rgba(226, 42, 38, 0.35);
+  box-shadow: 0 0 2rem color-mix(in srgb, var(--destaque) 35%, transparent);
   color: #f1e3dc;
   font-family: var(--f-texto);
   font-size: 2rem;

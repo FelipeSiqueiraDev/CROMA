@@ -24,7 +24,7 @@ import {
 } from '@crona/shared';
 import { drawPixelAvatar, PIXEL_AVATAR_HEIGHT, type Pose } from '../render/avatarPixel';
 import { Bubbles, UI_FONT } from '../render/bubbles';
-import { COR_LADO, desenharChao, desenharCima, desenharRotulos, type MarcasCombate } from '../render/combateMarcas';
+import { COR_LADO, baseDoKit, desenharChao, desenharCima, desenharRotulos, type MarcasCombate } from '../render/combateMarcas';
 import { desenharParedeComArte, visualComArte } from '../render/furniArte';
 import { furniVisual } from '../render/furniFloor';
 import { drawWallFurni, wallLights } from '../render/furniWall';
@@ -1735,11 +1735,20 @@ export class RoomView {
             const active = u.id === this.myId;
             const pulse = active ? 1 + Math.sin(now / 260) * 0.06 : 1;
             const corBase = marcas?.bases.get(u.id) ?? u.color;
-            ctx.lineWidth = active ? 1.8 : 1.2;
-            ctx.strokeStyle = rgba(corBase, active ? 0.78 : 0.5);
-            ctx.beginPath();
-            ctx.ellipse(sx, sy, arx * pulse, ary * pulse, 0, 0, Math.PI * 2);
-            ctx.stroke();
+            // no combate, a base pintada do kit (agente ou inimigo); fora dele, o anel na cor do personagem
+            const baseKit = marcas?.bases.has(u.id) ? baseDoKit(corBase) : null;
+            if (baseKit) {
+              // a elipse da arte é mais achatada (uns 3,5:1) que o chão (2:1): a altura vai a 0,85 da largura
+              const bw = arx * 2 * 1.45 * pulse;
+              const bh = bw * 0.85;
+              ctx.drawImage(baseKit, sx - bw / 2, sy - bh / 2, bw, bh);
+            } else {
+              ctx.lineWidth = active ? 1.8 : 1.2;
+              ctx.strokeStyle = rgba(corBase, active ? 0.78 : 0.5);
+              ctx.beginPath();
+              ctx.ellipse(sx, sy, arx * pulse, ary * pulse, 0, 0, Math.PI * 2);
+              ctx.stroke();
+            }
             if (isSel || active) {
               ctx.lineWidth = 1;
               ctx.strokeStyle = 'rgba(255,255,255,0.38)';

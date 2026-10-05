@@ -193,10 +193,10 @@
   opacity: 0.6;
 }
 .rq-secao.on {
-  border-color: #d8322f;
+  border-color: var(--destaque);
   background: linear-gradient(90deg, #8a2219, #571510);
   color: #fff;
-  box-shadow: 0 0 1.4rem rgba(216, 50, 47, 0.35), inset 0 0.1rem 0 rgba(255, 255, 255, 0.14);
+  box-shadow: 0 0 1.4rem color-mix(in srgb, var(--destaque) 35%, transparent), inset 0 0.1rem 0 rgba(255, 255, 255, 0.14);
   transform: translateX(0.4rem);
 }
 .rq-secao.on small {
@@ -334,8 +334,8 @@
   transform: translateY(0) scale(0.98);
 }
 .rq-card.on {
-  border-color: #d8322f;
-  box-shadow: 0 0 0 0.15rem #d8322f, 0 0 2rem rgba(216, 50, 47, 0.45);
+  border-color: var(--destaque);
+  box-shadow: 0 0 0 0.15rem var(--destaque), 0 0 2rem color-mix(in srgb, var(--destaque) 45%, transparent);
 }
 .rq-card.travado {
   filter: saturate(0.2) brightness(0.7);

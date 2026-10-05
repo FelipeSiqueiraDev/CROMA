@@ -465,3 +465,353 @@
   border: 3rem solid transparent;
   border-image: var(--ui-fichas-moldura-personagem-fonte) 60 / 3rem stretch;
 }
+
+/* =====================================================================
+   COMBATE (Parte 3)
+   ===================================================================== */
+
+/* as cartas da ordem de iniciativa: normal, a vez (na cor do tema) e quem já agiu (corte 24) */
+.cb-ini-linha {
+  position: relative;
+  isolation: isolate;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: #ece3d2;
+}
+.cb-ini-linha::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border: 1.2rem solid transparent;
+  border-image: var(--ui-combate-carta-iniciativa-normal) 24 fill / 1.2rem stretch;
+}
+.cb-ini-linha.vez {
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+.cb-ini-linha.vez::before {
+  border-image-source: var(--ui-combate-carta-iniciativa-vez);
+}
+.cb-ini-linha.vez::after {
+  content: '';
+  position: absolute;
+  inset: -1.2rem;
+  z-index: -2;
+  pointer-events: none;
+  background: var(--ui-combate-carta-iniciativa-brilho) center / 100% 100% no-repeat;
+  animation: kit-pulsa 2.6s ease-in-out infinite;
+}
+.cb-ini-linha.agiu::before {
+  border-image-source: var(--ui-combate-carta-iniciativa-agiu);
+}
+
+/* as abas das ações (corte 16) */
+.cb-aba {
+  position: relative;
+  border: 0.8rem solid transparent;
+  border-image: var(--ui-combate-aba-acao-normal) 16 fill / 0.8rem stretch;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  height: 3.2rem;
+  padding: 0;
+  color: #e3d9c6;
+}
+.cb-aba:hover {
+  border-image-source: var(--ui-combate-aba-acao-foco);
+}
+.cb-aba.on {
+  border-image-source: var(--ui-combate-aba-acao-ativa);
+  background: none;
+  box-shadow: none;
+  color: #fff;
+}
+.cb-aba.on::after {
+  content: '';
+  position: absolute;
+  inset: -2rem;
+  pointer-events: none;
+  background: var(--ui-combate-aba-acao-brilho) center / 100% 100% no-repeat;
+  animation: kit-pulsa 2.6s ease-in-out infinite;
+}
+
+/* a barra de passos: a linha e as bolinhas (futuro, atual, feito) */
+.cb-passos::before {
+  height: 0.4rem;
+  background: var(--ui-combate-passo-linha, #8a8580) left center / auto 100% repeat-x;
+}
+.cb-passos li > span {
+  width: 2.8rem;
+  height: 2.8rem;
+  border: 0;
+  border-radius: 0;
+  background: var(--ui-combate-passo-futuro) center / 100% 100% no-repeat;
+  text-shadow: 0 0.1rem 0.2rem #000;
+}
+.cb-passos li.atual > span {
+  background: var(--ui-combate-passo-atual) center / 100% 100% no-repeat;
+}
+.cb-passos li.feito > span {
+  background: var(--ui-combate-passo-feito) center / 100% 100% no-repeat;
+}
+
+/* os cartões das armas (corte 24) */
+.cb-arma {
+  position: relative;
+  isolation: isolate;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: #ece3d2;
+}
+.cb-arma::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border: 1.2rem solid transparent;
+  border-image: var(--ui-combate-cartao-arma-normal) 24 fill / 1.2rem stretch;
+}
+.cb-arma:hover::before {
+  border-image-source: var(--ui-combate-cartao-arma-foco);
+}
+.cb-arma.on {
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+.cb-arma.on::before {
+  border-image-source: var(--ui-combate-cartao-arma-escolhido);
+}
+
+/* a caixa onde se digita o dado (corte 24) */
+.cb-caixa-dado {
+  position: relative;
+  isolation: isolate;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: #ece3d2;
+}
+.cb-caixa-dado::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border: 1.2rem solid transparent;
+  border-image: var(--ui-combate-caixa-dado) 24 fill / 1.2rem stretch;
+}
+
+/* o carimbo do resultado (acerto, erro): a tinta do kit atrás do texto */
+.cb-carimbo {
+  border: 0;
+  border-radius: 0;
+  padding: 1.6rem 2.6rem 1.8rem;
+  background: var(--ui-combate-carimbo, none) center / 100% 100% no-repeat;
+}
+
+/* os chips das ações do turno (livre e usada, corte 16) */
+.cb-acao-chip {
+  border: 0.8rem solid transparent;
+  border-radius: 0;
+  background: none;
+  padding: 0 0.2rem;
+  height: 2.8rem;
+}
+.cb-acao-chip.livre {
+  border-image: var(--ui-combate-chip-acao-livre) 16 fill / 0.8rem stretch;
+}
+.cb-acao-chip.usado {
+  border-image: var(--ui-combate-chip-acao-usada) 16 fill / 0.8rem stretch;
+}
+
+/* o retrato do alvo, com a moldura do kit por cima */
+.cb-foto.alvo {
+  position: relative;
+  border: 0;
+  border-radius: 0;
+}
+.cb-foto.alvo::after {
+  content: '';
+  position: absolute;
+  inset: -0.4rem;
+  pointer-events: none;
+  border: 1.2rem solid transparent;
+  border-image: var(--ui-combate-moldura-retrato-alvo-fonte) 24 / 1.2rem stretch;
+}
+
+/* os botões: o grande do kit atrás do conteúdo; o forte na cor do tema */
+.cb-bt {
+  position: relative;
+  isolation: isolate;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: #efe6d6;
+  text-shadow: 0 0.15rem 0.2rem #000;
+}
+.cb-bt::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border: 1.4rem solid transparent;
+  border-image: var(--ui-kit-botao-grande-normal) 28 fill / 1.4rem stretch;
+}
+.cb-bt:not(:disabled):hover {
+  background: none;
+}
+.cb-bt:not(:disabled):hover::before {
+  border-image-source: var(--ui-kit-botao-grande-foco);
+}
+.cb-bt:not(:disabled):active::before {
+  border-image-source: var(--ui-kit-botao-grande-apertado);
+}
+.cb-bt:disabled::before {
+  border-image-source: var(--ui-kit-botao-grande-desligado);
+}
+.cb-bt.forte,
+.cb-bt.escuro {
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+.cb-bt.forte::before {
+  border-image-source: var(--ui-kit-botao-grande-ativo);
+}
+/* as ferramentas em cima do tabuleiro: os botões do HUD */
+.cb-ferr.cb-bt {
+  color: #a9c6e4;
+}
+.cb-ferr.cb-bt::before {
+  border-width: 1rem;
+  border-image: var(--ui-tabuleiro-botao-hud-normal) 20 fill / 1rem stretch;
+}
+.cb-ferr.cb-bt:not(:disabled):hover::before {
+  border-image-source: var(--ui-tabuleiro-botao-hud-foco);
+}
+.cb-ferr.cb-bt.on {
+  color: #eef6ff;
+}
+.cb-ferr.cb-bt.on::before {
+  border-image-source: var(--ui-tabuleiro-botao-hud-ativo);
+}
+/* o tabuleiro do COMBATE com a moldura azul */
+.cb-palco > .cb-tab {
+  border: 4rem solid transparent;
+  border-image: var(--ui-tabuleiro-moldura-tabuleiro-fonte) 80 / 4rem stretch;
+  border-radius: 0;
+  box-shadow: inset 0 0 2.4rem rgba(0, 0, 0, 0.55);
+  margin: -1rem;
+}
+
+/* =====================================================================
+   PEÇAS GERAIS: campos, seletores, marcadores, opções, chips, dica, rolagem
+   ===================================================================== */
+.cb-inp,
+.fx-inp,
+.rq-busca-campo,
+select.cb-sel {
+  border: 1rem solid transparent;
+  border-image: var(--ui-kit-campo-texto-normal) 20 fill / 1rem stretch;
+  border-radius: 0;
+  background: none;
+  color: #efe6d6;
+  box-shadow: none;
+}
+.cb-inp:focus,
+.fx-inp:focus,
+.rq-busca-campo:focus,
+select.cb-sel:focus {
+  border-image-source: var(--ui-kit-campo-texto-foco);
+  outline: none;
+}
+.cb-inp {
+  border-image-source: var(--ui-kit-campo-numero);
+}
+select.cb-sel {
+  appearance: none;
+  border-image-source: var(--ui-kit-seletor);
+  padding-right: 2.4rem;
+  background: var(--ui-kit-seta-seletor) right 0.2rem center / 1.8rem 1.8rem no-repeat;
+}
+select.cb-sel option {
+  background: #1b1916;
+  color: #efe6d6;
+}
+:is(.cb, .fx, .fj, .rq) input[type="checkbox"] {
+  appearance: none;
+  width: 2.4rem;
+  height: 2.4rem;
+  margin: 0;
+  border: 0;
+  background: var(--ui-kit-marcador-desligado) center / 100% 100% no-repeat;
+  cursor: pointer;
+}
+:is(.cb, .fx, .fj, .rq) input[type="checkbox"]:checked {
+  background-image: var(--ui-kit-marcador-ligado);
+}
+:is(.cb, .fx, .fj, .rq) input[type="radio"] {
+  appearance: none;
+  width: 2.4rem;
+  height: 2.4rem;
+  margin: 0;
+  border: 0;
+  background: var(--ui-kit-opcao-desligada) center / 100% 100% no-repeat;
+  cursor: pointer;
+}
+:is(.cb, .fx, .fj, .rq) input[type="radio"]:checked {
+  background-image: var(--ui-kit-opcao-ligada);
+}
+/* os chips (os do tabuleiro do combate) */
+.cb-chip {
+  border: 0.8rem solid transparent;
+  border-image: var(--ui-kit-chip-normal) 16 fill / 0.8rem stretch;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+/* a dica que segue o mouse (corte 24) */
+.fx-dica {
+  border: 1.2rem solid transparent;
+  border-image: var(--ui-kit-dica-fonte) 24 fill / 1.2rem stretch;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+/* a rolagem das listas */
+:is(.cb, .fx, .fj, .rq, .ui) ::-webkit-scrollbar {
+  width: 1.2rem;
+}
+:is(.cb, .fx, .fj, .rq, .ui) ::-webkit-scrollbar-track {
+  border: 0.5rem solid transparent;
+  border-image: var(--ui-kit-rolagem-trilho) 10 fill / 0.5rem stretch;
+}
+:is(.cb, .fx, .fj, .rq, .ui) ::-webkit-scrollbar-thumb {
+  border: 0.5rem solid transparent;
+  border-image: var(--ui-kit-rolagem-pegador) 10 fill / 0.5rem stretch;
+}
+
+/* as barras de PV, PE e SAN do combate */
+.cb-barra.pv > i {
+  background: var(--ui-fichas-barra-pv, var(--cor)) left center / auto 100% repeat-x;
+}
+.cb-barra.pe > i {
+  background: var(--ui-fichas-barra-pe, var(--cor)) left center / auto 100% repeat-x;
+}
+.cb-barra.san > i {
+  background: var(--ui-fichas-barra-san, var(--cor)) left center / auto 100% repeat-x;
+}
+
+.cb-aba .arte-ic img {
+  width: 2.2rem;
+  height: 2.2rem;
+  object-fit: contain;
+  filter: drop-shadow(0 0.1rem 0.15rem #000);
+}
