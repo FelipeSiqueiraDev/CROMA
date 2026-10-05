@@ -1,6 +1,6 @@
 // A cópia do banco para os testes visuais (crona_visual): o banco de verdade (crona) só é lido.
 //
-//   node scripts/dev/visual.mjs criar    faz a cópia (o servidor de verdade precisa estar parado)
+//   node scripts/dev/visual.mjs criar    faz a cópia (com pg_dump: o jogo do Docker pode estar no ar)
 //   node scripts/dev/visual.mjs apagar   apaga a cópia
 //   node scripts/dev/visual.mjs subir    sobe o `npm run dev` apontando para a cópia (cria se faltar)
 //
@@ -21,13 +21,11 @@ if (!user) throw new Error('sem usuário no CRONA_DB_URL');
 const psql = (sql) => execFileSync('docker', ['exec', 'crona-postgres', 'psql', '-U', user, '-d', 'postgres', '-tAc', sql], { encoding: 'utf8' }).trim();
 
 function criar() {
-  const ativos = psql("SELECT count(*) FROM pg_stat_activity WHERE datname = 'crona'");
-  if (ativos !== '0') {
-    console.log(`O banco crona tem ${ativos} conexão(ões) abertas (o servidor de verdade está no ar?). Pare o servidor e rode de novo.`);
-    process.exit(1);
-  }
+  // o jogo do Docker fica sempre conectado ao crona: a cópia sai do pg_dump (lê sem travar), não do TEMPLATE
+  psql("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'crona_visual'");
   psql('DROP DATABASE IF EXISTS crona_visual');
-  psql('CREATE DATABASE crona_visual TEMPLATE crona');
+  psql('CREATE DATABASE crona_visual');
+  execFileSync('docker', ['exec', 'crona-postgres', 'sh', '-c', `pg_dump -U ${user} -d crona -Fc | pg_restore -U ${user} -d crona_visual --no-owner`], { stdio: 'inherit' });
   console.log('crona_visual criada a partir de crona.');
 }
 

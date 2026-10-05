@@ -137,7 +137,7 @@ function listarArte(): string[] {
   return lista;
 }
 
-const server = http.createServer((req, res) => {
+function atender(req: http.IncomingMessage, res: http.ServerResponse) {
   try {
     route(req, res);
   } catch (e) {
@@ -145,7 +145,8 @@ const server = http.createServer((req, res) => {
     if (!res.headersSent) res.writeHead(500);
     res.end();
   }
-});
+}
+const server = http.createServer(atender);
 
 function route(req: http.IncomingMessage, res: http.ServerResponse) {
   const url = new URL(req.url ?? '/', 'http://localhost');
@@ -195,8 +196,9 @@ function isLocal(req: http.IncomingMessage) {
   return !list.length || LOOPBACK.has(list[list.length - 1]);
 }
 
-/** Endereço deste computador na rede (para o link do tablet). */
+/** Endereço deste computador na rede (para o link do tablet). No Docker, quem diz é o CRONA_IP. */
 function lanAddress() {
+  if (process.env.CRONA_IP) return process.env.CRONA_IP;
   for (const list of Object.values(os.networkInterfaces()))
     for (const a of list ?? []) if (a.family === 'IPv4' && !a.internal) return a.address;
   return 'localhost';
@@ -205,12 +207,27 @@ function lanAddress() {
 const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 256 * 1024 });
 wss.on('connection', (ws, req) => hotel.connect(ws, isLocal(req)));
 
+/**
+ * No Docker, toda conexão chega pelo mesmo endereço interno e não dá para saber quem é este
+ * computador. Então há uma segunda porta, CRONA_PORTA_LOCAL, que o docker-compose publica só em
+ * 127.0.0.1: quem chega por ela é este computador (o mestre, sem senha). A porta de sempre fica
+ * para a rede (o tablet, os celulares).
+ */
+const PORTA_LOCAL = Number(process.env.CRONA_PORTA_LOCAL) || 0;
+if (PORTA_LOCAL) {
+  const local = http.createServer(atender);
+  const wssLocal = new WebSocketServer({ server: local, path: '/ws', maxPayload: 256 * 1024 });
+  wssLocal.on('connection', (ws) => hotel.connect(ws, true));
+  local.listen(PORTA_LOCAL);
+}
+
 server.listen(PORT, () => {
   console.log(`[crona] servidor em http://localhost:${PORT}`);
   // em desenvolvimento a página vem do Vite (5173); em produção, deste servidor
-  const port = PROD ? PORT : 5173;
+  const port = PROD ? Number(process.env.CRONA_PORTA_REDE) || PORT : 5173;
   const lan = lanAddress();
-  console.log(`[crona] mestre (este computador): http://localhost:${port}`);
+  const portaMestre = Number(process.env.CRONA_PORTA_MESTRE) || (PORTA_LOCAL ? PORTA_LOCAL : port);
+  console.log(`[crona] mestre (este computador): http://localhost:${portaMestre}`);
   console.log(`[crona] mesa (tablet):            http://${lan}:${port}/?mesa`);
   console.log(`[crona] mestre em outro aparelho: http://${lan}:${port}/?mestre=${hotel.gmKey}`);
 });

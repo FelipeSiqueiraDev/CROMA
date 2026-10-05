@@ -14,6 +14,20 @@ Ao terminar um bloco de trabalho, atualize o `EM-ABERTO.md`.
 
 ## Rodar
 
+**O jogo de verdade roda no Docker** (desde 05/10): o servidor, a interface e toda a arte numa imagem, ao lado do banco.
+
+```bash
+npm run crona        # monta a imagem e sobe o jogo e o banco (voltam sozinhos com o Docker)
+npm run crona:parar  # desliga o jogo (o banco continua)
+npm run crona:logs   # os links do mestre, da mesa e do mestre em outro aparelho
+```
+
+- **Mestre (este computador):** `http://localhost:8080`. **Mesa e celulares:** `http://IP-da-rede:8080/?mesa` (o `npm run crona` acha o IP e grava no `.env` da raiz). A mesma porta atende os dois: em 127.0.0.1 entra como mestre (porta local do container, `CRONA_PORTA_LOCAL`), no IP da rede não.
+- Mudou a arte ou o código? `npm run crona` de novo (monta a imagem nova). Os arquivos enviados pelo jogo ficam no volume `crona_crona-arquivos`.
+- **Um servidor por banco:** o servidor trava o banco (`pg_try_advisory_lock`). Com o jogo do Docker no ar, o `npm run dev` no banco `crona` recusa; para desenvolver, use a cópia (`node scripts/dev/visual.mjs subir`, banco `crona_visual`, que sai do `crona` por `pg_dump`). O banco de antes do Docker ficou inteiro como `crona_antes_docker`.
+
+Desenvolvimento:
+
 ```bash
 npm install
 npm run banco      # sobe o Postgres do CRONA no Docker (crona-postgres, 127.0.0.1:5433)

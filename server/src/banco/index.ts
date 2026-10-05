@@ -22,11 +22,16 @@ export async function abrirBanco(): Promise<Banco> {
     await usarBanco(json);
     return json;
   }
-  const { BancoPostgres } = await import('./postgres');
+  const { BancoOcupado, BancoPostgres } = await import('./postgres');
   const pg = new BancoPostgres(url);
   try {
     await pg.abrir();
   } catch (e) {
+    if (e instanceof BancoOcupado) {
+      console.error('[banco] Outro servidor do CRONA já está usando este banco (o do Docker? `npm run crona:parar`).');
+      console.error('[banco] Dois servidores no mesmo banco apagariam o que o outro grava: pare um deles.');
+      process.exit(1);
+    }
     const msg = e instanceof Error ? e.message : String(e);
     console.error(`[banco] não consegui abrir o Postgres (${msg}).`);
     console.error('[banco] Suba o banco com `npm run banco` ou tire CRONA_DB_URL de server/.env para usar o db.json.');

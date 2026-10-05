@@ -8,8 +8,9 @@ server/data/
 # arte que não vai para o repositório público (símbolos oficiais de Ordem Paranormal)
 client/public/arte/local/
 
-# configuração local do servidor (senha do banco)
+# configuração local do servidor (senha do banco) e do docker-compose (o IP da rede)
 server/.env
+/.env
 
 # referências de tela com o emblema oficial (repositório público): ficam só na máquina;
 # as cópias com o emblema coberto estão em docs/referencias/

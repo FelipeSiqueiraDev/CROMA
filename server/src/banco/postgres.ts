@@ -14,6 +14,16 @@ import { assinaturas, linhasDe, montar, TABELAS, type Linha, type Tabela } from 
 
 const MIGRACOES = path.join(path.dirname(fileURLToPath(import.meta.url)), 'migracoes');
 
+/** O número da trava do CRONA no Postgres (pg_advisory_lock). */
+const TRAVA = 4177_0310;
+
+/** Outro servidor do CRONA já está usando este banco. */
+export class BancoOcupado extends Error {
+  constructor() {
+    super('outro servidor do CRONA já está usando este banco');
+  }
+}
+
 export class BancoPostgres implements Banco {
   readonly nome = 'postgres' as const;
   readonly sql: postgres.Sql;
@@ -26,8 +36,20 @@ export class BancoPostgres implements Banco {
     this.sql = postgres(url, { max: 3, connect_timeout: 5, onnotice: () => {} });
   }
 
+  /** a conexão que segura a trava do banco enquanto o servidor estiver no ar */
+  private trava: postgres.ReservedSql | null = null;
+
   async abrir() {
     await this.sql`select 1`;
+    // um servidor por banco: o servidor guarda tudo na memória e grava só o que mudou, então dois no
+    // mesmo banco (o do Docker e um `npm run dev`, por exemplo) apagariam o que o outro gravou
+    this.trava = await this.sql.reserve();
+    const [{ ok }] = await this.trava<{ ok: boolean }[]>`select pg_try_advisory_lock(${TRAVA}) as ok`;
+    if (!ok) {
+      this.trava.release();
+      this.trava = null;
+      throw new BancoOcupado();
+    }
     await this.migrar();
   }
 
@@ -108,6 +130,11 @@ export class BancoPostgres implements Banco {
 
   async fechar() {
     if (this.emAndamento) await this.emAndamento;
+    if (this.trava) {
+      await this.trava`select pg_advisory_unlock(${TRAVA})`.catch(() => {});
+      this.trava.release();
+      this.trava = null;
+    }
     await this.sql.end({ timeout: 5 });
   }
 }

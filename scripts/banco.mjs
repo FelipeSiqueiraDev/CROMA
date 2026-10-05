@@ -16,9 +16,9 @@ const MANTER = 30;
 
 const docker = (...args) => execFileSync('docker', args, { stdio: ['ignore', 'pipe', 'inherit'] }).toString();
 
-function rodando() {
+function rodando(container = CONTAINER) {
   try {
-    return docker('inspect', '-f', '{{.State.Running}}', CONTAINER).trim() === 'true';
+    return docker('inspect', '-f', '{{.State.Running}}', container).trim() === 'true';
   } catch {
     return false;
   }
@@ -48,6 +48,8 @@ function restaurar(arquivo, sim) {
     console.log('[banco] Desligue o servidor do CRONA antes e repita com --sim para confirmar.');
     return;
   }
+  // o jogo do Docker guarda tudo na memória: ligado, ele gravaria por cima da cópia restaurada
+  if (rodando('crona-app')) throw new Error('O jogo do Docker está ligado: rode `npm run crona:parar` antes.');
   if (!rodando()) throw new Error('O banco não está ligado: rode `npm run banco`.');
   docker('cp', origem, `${CONTAINER}:/tmp/restaurar.dump`);
   docker('exec', CONTAINER, 'pg_restore', '-U', 'crona', '-d', 'crona', '--clean', '--if-exists', '--no-owner', '/tmp/restaurar.dump');
