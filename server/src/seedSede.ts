@@ -16,7 +16,7 @@ import { buildRoom, plan, type FloorSeed, type WallSeed } from './seed';
 export const SEDE = 'Sede · ';
 export const SEDE_CODE = '0413';
 /** Versão da montagem da Sede: subiu, a Sede é refeita no lugar (mesmos cômodos, peças e registro). */
-export const SEDE_REV = 32;
+export const SEDE_REV = 33;
 
 /** Planta retangular com a porta na parede de cima (y = 0), na coluna doorX. */
 export function planTop(w: number, h: number, doorX: number): { heightmap: string; door: Door } {
@@ -546,7 +546,7 @@ const ROOMS: RoomSpec[] = [
     ambient: '#c0622a',
     particles: ['dust', 'smoke'],
     name: SEDE + 'Gabinete',
-    description: 'A mesa de quem manda na Sede, quatro poltronas de couro para quem vem prestar contas e um tapete antigo.',
+    description: 'O escritório do Veríssimo: a mesa grande de madeira, a pintura atrás da cadeira, o quadro de investigação com os fios vermelhos, as poltronas vermelhas no tapete e o sofá.',
     layout: planBottom(9, 10, 2),
     floorName: 'Subsolo',
     style: 'taco',
@@ -554,31 +554,29 @@ const ROOMS: RoomSpec[] = [
     plan: { x: 54, y: -3 },
     floor: [
       ['portal', 2, 9, 0],
-      // a mesa de quem manda: de costas para a parede da esquerda, de frente para a sala;
-      // quem vem prestar contas senta do outro lado, no tapete
-      ['rug_ornate', 2, 2, 2],
-      ['armchair_leather', 0, 4, 2],
-      ['desk_wood', 1, 3, 6],
-      ['desk_lamp', 1, 3, 6],
-      ['armchair_leather', 2, 3, 6],
-      ['armchair_leather', 2, 4, 6],
-      ['papers', 4, 5, 0],
-      // o canto de conversa, com o candelabro
-      ['armchair_leather', 1, 7, 2],
-      ['table_small', 2, 7, 4],
-      ['books_stack', 2, 7, 4],
-      ['armchair_leather', 3, 7, 6],
-      ['candelabra', 0, 6, 0],
-      ['plant', 0, 9, 0],
-      // o que se guarda, na parede do fundo, ao lado da porta
-      ['cabinet_file', 7, 0, 4],
-      ['locker', 8, 0, 4],
-      ...lamps([3, 4], [4, 7]),
+      // a mesa grande do Veríssimo no meio da parede do fundo, a cadeira dele entre ela e a pintura
+      ['chair_office', 4, 0, 4],
+      ['desk_wood', 3, 1, 4],
+      ['desk_lamp', 3, 1, 4],
+      ['papers', 4, 1, 4],
+      // o tapete na frente da mesa, com as duas poltronas vermelhas de quem vem prestar contas
+      ['rug_ornate', 2, 3, 0],
+      ['armchair_red', 3, 3, 0],
+      ['armchair_red', 4, 3, 0],
+      // a estante e o arquivo na parede do fundo, o candelabro do outro lado da mesa
+      ['bookshelf', 6, 0, 4],
+      ['cabinet_file', 8, 0, 4],
+      ['candelabra', 1, 0, 0],
+      // o sofá vermelho na parede da esquerda
+      ['sofa_booth', 0, 6, 2],
+      ['plant', 8, 8, 0],
+      ...lamps([4, 2], [4, 7]),
     ],
     wall: [
-      ['painting', 'l', 0, 4, 2.36],
-      ['painting', 'r', 0, 2.5, 2.45],
-      ['clock', 'r', 0, 4.5, 3.54],
+      // atrás da cadeira, a pintura (do Coliseu, na série); o quadro de investigação com os fios vermelhos
+      ['painting', 'r', 0, 4.4, 2.45],
+      ['board_investigation', 'l', 0, 3.2, 2.18],
+      ['clock', 'r', 0, 7.2, 3.54],
     ],
     links: [[2, 9, 'corredor']],
   },
@@ -674,7 +672,7 @@ const ROOMS: RoomSpec[] = [
     particles: ['dust'],
     lamp: 'fluorescent',
     name: SEDE + 'Enfermaria',
-    description: 'Seis leitos separados por divisórias, o balcão dos remédios e o posto da enfermagem.',
+    description: 'A ala médica da Marcela: seis cubículos com as camas verdes, fechados por divisórias, os armários de remédio ao lado da porta e o posto da enfermagem no canto.',
     layout: planTop(20, 13, 17),
     floorName: 'Subsolo',
     style: 'ladrilho',
@@ -682,46 +680,34 @@ const ROOMS: RoomSpec[] = [
     plan: { x: 31, y: 26 },
     floor: [
       ['portal', 17, 1, 4],
-      // leitos de cima (cabeceira na parede)
-      ['hospital_bed', 1, 1, 4],
-      ['hospital_bed', 5, 1, 4],
-      ['hospital_bed', 9, 1, 4],
-      ['iv_stand', 2, 1, 0],
-      ['iv_stand', 6, 1, 0],
-      ['iv_stand', 10, 1, 0],
-      ['divider', 4, 1, 2],
-      ['divider', 4, 2, 2],
-      ['divider', 8, 1, 2],
-      ['divider', 8, 2, 2],
-      // leitos de baixo
-      ['hospital_bed', 1, 11, 0],
-      ['hospital_bed', 5, 11, 0],
-      ['hospital_bed', 9, 11, 0],
-      ['iv_stand', 2, 13, 0],
-      ['iv_stand', 6, 13, 0],
-      ['iv_stand', 10, 13, 0],
-      ['divider', 4, 12, 2],
-      ['divider', 4, 13, 2],
-      ['divider', 8, 12, 2],
-      ['divider', 8, 13, 2],
-      // remédios na parede de cima, ao lado da porta
+      // seis cubículos, como na ala médica da série: três em cima (a cabeceira na parede) e três
+      // embaixo; cada um fechado pelas divisórias dos lados e por um pedaço na frente, com o soro
+      ...[1, 5, 9].flatMap((x) => [
+        ['hospital_bed', x, 1, 4] as FloorSeed,
+        ['iv_stand', x + 1, 1, 0] as FloorSeed,
+        ['hospital_bed', x, 11, 0] as FloorSeed,
+        ['iv_stand', x + 1, 13, 0] as FloorSeed,
+      ]),
+      ...[4, 8, 12].flatMap((x) => [1, 2, 3, 11, 12, 13].map((y) => ['divider', x, y, 2] as FloorSeed)),
+      ...[3, 7, 11].flatMap((x) => [['divider', x, 4, 0] as FloorSeed, ['divider', x, 10, 0] as FloorSeed]),
+      // os remédios num canto só: os armários na parede do fundo, ao lado da porta, e a pia
       ['medical_cabinet', 13, 1, 4],
       ['medical_cabinet', 15, 1, 4],
       ['cabinet_file', 18, 1, 4],
       ['sink', 19, 1, 4],
-      // a bancada encostada na parede da esquerda, entre os leitos, com a pia na ponta
-      ['sink', 0, 4, 2],
-      ['lab_bench', 0, 5, 2],
-      ['vitals_monitor', 0, 5, 2],
-      ['lab_bench', 0, 7, 2],
-      ['med_tray', 0, 7, 2],
-      ['lab_bench', 0, 9, 2],
-      // o posto de enfermagem de frente para a porta
-      ['desk_metal', 16, 4, 4],
-      ['computer_old', 16, 4, 4],
-      ['chair_office', 16, 5, 0],
-      ['trolley', 12, 7, 0],
-      ...lamps([3, 7], [7, 7], [11, 3], [14, 5], [13, 11]),
+      // o posto da enfermagem no canto de baixo: o balcão em L, com a mesa e o computador dentro
+      ['lab_bench', 13, 10, 2],
+      ['lab_bench', 14, 10, 4],
+      ['med_tray', 14, 10, 4],
+      ['lab_bench', 16, 10, 4],
+      ['vitals_monitor', 17, 10, 4],
+      ['lab_bench', 18, 10, 4],
+      ['desk_metal', 16, 12, 4],
+      ['computer_old', 16, 12, 4],
+      ['chair_office', 16, 13, 0],
+      // o carrinho no corredor entre os cubículos
+      ['trolley', 7, 7, 0],
+      ...lamps([4, 7], [10, 7], [16, 5], [17, 12]),
     ],
     wall: [
       ['clock', 'r', 1, 19.5, 3.54],
