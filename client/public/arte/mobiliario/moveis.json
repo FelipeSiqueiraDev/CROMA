@@ -75,7 +75,16 @@
    1.5,
    0.7,
    1.2
-  ]
+  ],
+  "cima": {
+   "arquivo": "console/cima.png",
+   "caixa": [
+    0,
+    4,
+    256,
+    123
+   ]
+  }
  },
  "cabinet_file": {
   "escala": 0.5,
@@ -106,7 +115,16 @@
    0.65,
    1.35
   ],
-  "encosta": true
+  "encosta": true,
+  "cima": {
+   "arquivo": "cabinet_file/cima.png",
+   "caixa": [
+    21,
+    8,
+    106,
+    119
+   ]
+  }
  },
  "chair_office": {
   "escala": 0.5,
@@ -136,7 +154,16 @@
    0.62,
    0.62,
    1.0
-  ]
+  ],
+  "cima": {
+   "arquivo": "chair_office/cima.png",
+   "caixa": [
+    11,
+    11,
+    117,
+    117
+   ]
+  }
  },
  "crate_wood": {
   "escala": 0.5,
@@ -183,7 +210,16 @@
    0.8,
    2.04,
    1.0
-  ]
+  ],
+  "cima": {
+   "arquivo": "hospital_bed/cima.png",
+   "caixa": [
+    0,
+    18,
+    128,
+    366
+   ]
+  }
  },
  "bookshelf": {
   "escala": 0.5,
@@ -214,7 +250,16 @@
    0.35,
    2.2
   ],
-  "encosta": true
+  "encosta": true,
+  "cima": {
+   "arquivo": "bookshelf/cima.png",
+   "caixa": [
+    0,
+    34,
+    256,
+    94
+   ]
+  }
  },
  "desk_wood": {
   "escala": 0.5,
@@ -244,7 +289,16 @@
    1.5,
    0.66,
    0.8
-  ]
+  ],
+  "cima": {
+   "arquivo": "desk_wood/cima.png",
+   "caixa": [
+    0,
+    7,
+    256,
+    120
+   ]
+  }
  },
  "chair_bar": {
   "escala": 0.5,
@@ -352,7 +406,16 @@
    2.0,
    0.7,
    0.9
-  ]
+  ],
+  "cima": {
+   "arquivo": "gun_table/cima.png",
+   "caixa": [
+    21,
+    4,
+    362,
+    123
+   ]
+  }
  },
  "plant": {
   "escala": 0.5,
@@ -1257,7 +1320,16 @@
    0.7,
    0.4,
    1.6
-  ]
+  ],
+  "cima": {
+   "arquivo": "divider/cima.png",
+   "caixa": [
+    4,
+    30,
+    123,
+    98
+   ]
+  }
  },
  "medical_cabinet": {
   "escala": 0.5,
@@ -1288,7 +1360,16 @@
    0.45,
    1.9
   ],
-  "encosta": true
+  "encosta": true,
+  "cima": {
+   "arquivo": "medical_cabinet/cima.png",
+   "caixa": [
+    0,
+    25,
+    256,
+    102
+   ]
+  }
  },
  "iv_stand": {
   "escala": 0.5,
@@ -1318,7 +1399,16 @@
    0.5,
    0.5,
    1.9
-  ]
+  ],
+  "cima": {
+   "arquivo": "iv_stand/cima.png",
+   "caixa": [
+    21,
+    21,
+    106,
+    106
+   ]
+  }
  },
  "sink": {
   "escala": 0.5,
@@ -1349,7 +1439,16 @@
    0.46,
    1.0
   ],
-  "encosta": true
+  "encosta": true,
+  "cima": {
+   "arquivo": "sink/cima.png",
+   "caixa": [
+    16,
+    24,
+    112,
+    103
+   ]
+  }
  },
  "lab_bench": {
   "escala": 0.5,
@@ -1379,7 +1478,16 @@
    1.5,
    0.6,
    0.92
-  ]
+  ],
+  "cima": {
+   "arquivo": "lab_bench/cima.png",
+   "caixa": [
+    0,
+    13,
+    256,
+    115
+   ]
+  }
  },
  "trolley": {
   "escala": 0.5,
@@ -1409,7 +1517,16 @@
    0.7,
    0.45,
    0.95
-  ]
+  ],
+  "cima": {
+   "arquivo": "trolley/cima.png",
+   "caixa": [
+    4,
+    25,
+    123,
+    102
+   ]
+  }
  },
  "desk_metal": {
   "escala": 0.5,
@@ -1439,7 +1556,16 @@
    1.5,
    0.65,
    0.78
-  ]
+  ],
+  "cima": {
+   "arquivo": "desk_metal/cima.png",
+   "caixa": [
+    0,
+    8,
+    256,
+    119
+   ]
+  }
  },
  "vitals_monitor": {
   "escala": 0.5,
@@ -1489,7 +1615,16 @@
    0.36,
    0.24,
    0.34
-  ]
+  ],
+  "cima": {
+   "arquivo": "vitals_monitor/cima.png",
+   "caixa": [
+    33,
+    43,
+    94,
+    84
+   ]
+  }
  },
  "med_tray": {
   "escala": 0.5,
@@ -1519,7 +1654,16 @@
    0.42,
    0.3,
    0.16
-  ]
+  ],
+  "cima": {
+   "arquivo": "med_tray/cima.png",
+   "caixa": [
+    28,
+    38,
+    100,
+    89
+   ]
+  }
  },
  "computer_old": {
   "escala": 0.5,
@@ -1571,7 +1715,16 @@
    0.45,
    0.5,
    0.42
-  ]
+  ],
+  "cima": {
+   "arquivo": "computer_old/cima.png",
+   "caixa": [
+    25,
+    21,
+    102,
+    106
+   ]
+  }
  },
  "fluorescent": {
   "escala": 0.5,
@@ -1660,7 +1813,16 @@
    0.7,
    0.8
   ],
-  "encosta": true
+  "encosta": true,
+  "cima": {
+   "arquivo": "toilet/cima.png",
+   "caixa": [
+    30,
+    4,
+    98,
+    123
+   ]
+  }
  },
  "stall_panel": {
   "escala": 0.5,
@@ -1690,7 +1852,16 @@
    0.7,
    0.06,
    1.6
-  ]
+  ],
+  "cima": {
+   "arquivo": "stall_panel/cima.png",
+   "caixa": [
+    4,
+    59,
+    123,
+    69
+   ]
+  }
  },
  "trash_bin": {
   "escala": 0.5,
@@ -1720,7 +1891,16 @@
    0.3,
    0.3,
    0.4
-  ]
+  ],
+  "cima": {
+   "arquivo": "trash_bin/cima.png",
+   "caixa": [
+    38,
+    38,
+    89,
+    89
+   ]
+  }
  },
  "mirror": {
   "escala": 0.5,
@@ -1780,7 +1960,16 @@
    2.25,
    0.95,
    0.78
-  ]
+  ],
+  "cima": {
+   "arquivo": "table_work/cima.png",
+   "caixa": [
+    0,
+    47,
+    384,
+    209
+   ]
+  }
  },
  "stairs_up": {
   "escala": 0.5,
@@ -1810,7 +1999,16 @@
    0.62,
    1.5,
    1.75
-  ]
+  ],
+  "cima": {
+   "arquivo": "stairs_up/cima.png",
+   "caixa": [
+    11,
+    0,
+    117,
+    256
+   ]
+  }
  },
  "table_round": {
   "escala": 0.5,
@@ -1825,7 +2023,16 @@
    1.65,
    1.65,
    0.76
-  ]
+  ],
+  "cima": {
+   "arquivo": "table_round/cima.png",
+   "caixa": [
+    0,
+    0,
+    256,
+    256
+   ]
+  }
  },
  "chair_red": {
   "escala": 0.5,
@@ -1855,7 +2062,16 @@
    0.5,
    0.5,
    0.95
-  ]
+  ],
+  "cima": {
+   "arquivo": "chair_red/cima.png",
+   "caixa": [
+    21,
+    21,
+    106,
+    106
+   ]
+  }
  },
  "table_meeting": {
   "escala": 0.5,
@@ -1885,7 +2101,16 @@
    2.0,
    1.05,
    0.78
-  ]
+  ],
+  "cima": {
+   "arquivo": "table_meeting/cima.png",
+   "caixa": [
+    21,
+    38,
+    362,
+    217
+   ]
+  }
  },
  "table_chess": {
   "escala": 0.5,
@@ -1915,7 +2140,16 @@
    0.6,
    0.6,
    0.72
-  ]
+  ],
+  "cima": {
+   "arquivo": "table_chess/cima.png",
+   "caixa": [
+    13,
+    13,
+    115,
+    115
+   ]
+  }
  },
  "armchair": {
   "escala": 0.5,
@@ -1945,7 +2179,16 @@
    0.66,
    0.66,
    0.78
-  ]
+  ],
+  "cima": {
+   "arquivo": "armchair/cima.png",
+   "caixa": [
+    7,
+    7,
+    120,
+    120
+   ]
+  }
  },
  "armchair_leather": {
   "escala": 0.5,
@@ -1975,7 +2218,16 @@
    0.66,
    0.66,
    0.78
-  ]
+  ],
+  "cima": {
+   "arquivo": "armchair_leather/cima.png",
+   "caixa": [
+    7,
+    7,
+    120,
+    120
+   ]
+  }
  },
  "bench": {
   "escala": 0.5,
@@ -2005,7 +2257,16 @@
    1.3,
    0.4,
    0.45
-  ]
+  ],
+  "cima": {
+   "arquivo": "bench/cima.png",
+   "caixa": [
+    17,
+    30,
+    239,
+    98
+   ]
+  }
  },
  "table_small": {
   "escala": 0.5,
@@ -2035,7 +2296,16 @@
    0.55,
    0.55,
    0.55
-  ]
+  ],
+  "cima": {
+   "arquivo": "table_small/cima.png",
+   "caixa": [
+    17,
+    17,
+    111,
+    111
+   ]
+  }
  },
  "floor_lamp": {
   "escala": 0.5,
@@ -2071,7 +2341,16 @@
    0.45,
    0.45,
    1.8
-  ]
+  ],
+  "cima": {
+   "arquivo": "floor_lamp/cima.png",
+   "caixa": [
+    25,
+    25,
+    102,
+    102
+   ]
+  }
  },
  "board_investigation": {
   "escala": 0.5,
@@ -2208,7 +2487,16 @@
    0.5,
    1.95
   ],
-  "encosta": true
+  "encosta": true,
+  "cima": {
+   "arquivo": "locker/cima.png",
+   "caixa": [
+    21,
+    21,
+    106,
+    106
+   ]
+  }
  },
  "candelabra": {
   "escala": 0.5,
@@ -2374,7 +2662,16 @@
    0.45,
    0.45,
    1.6
-  ]
+  ],
+  "cima": {
+   "arquivo": "candelabra/cima.png",
+   "caixa": [
+    25,
+    25,
+    102,
+    102
+   ]
+  }
  },
  "desk_lamp": {
   "escala": 0.5,
@@ -2430,7 +2727,16 @@
    0.34,
    0.2,
    0.45
-  ]
+  ],
+  "cima": {
+   "arquivo": "desk_lamp/cima.png",
+   "caixa": [
+    35,
+    47,
+    93,
+    81
+   ]
+  }
  },
  "books_stack": {
   "escala": 0.5,
@@ -2460,7 +2766,16 @@
    0.3,
    0.22,
    0.4
-  ]
+  ],
+  "cima": {
+   "arquivo": "books_stack/cima.png",
+   "caixa": [
+    38,
+    45,
+    89,
+    83
+   ]
+  }
  },
  "painting": {
   "escala": 0.5,
@@ -2511,7 +2826,16 @@
    0.45,
    0.3,
    0.25
-  ]
+  ],
+  "cima": {
+   "arquivo": "flasks/cima.png",
+   "caixa": [
+    25,
+    38,
+    102,
+    89
+   ]
+  }
  },
  "microscope": {
   "escala": 0.5,
@@ -2541,7 +2865,16 @@
    0.25,
    0.35,
    0.42
-  ]
+  ],
+  "cima": {
+   "arquivo": "microscope/cima.png",
+   "caixa": [
+    42,
+    34,
+    85,
+    94
+   ]
+  }
  },
  "monitor": {
   "escala": 0.5,
@@ -2619,7 +2952,16 @@
    0.5,
    0.4,
    0.45
-  ]
+  ],
+  "cima": {
+   "arquivo": "monitor/cima.png",
+   "caixa": [
+    21,
+    30,
+    106,
+    98
+   ]
+  }
  },
  "monitor_green": {
   "escala": 0.5,
@@ -2669,7 +3011,16 @@
    0.45,
    0.4,
    0.42
-  ]
+  ],
+  "cima": {
+   "arquivo": "monitor_green/cima.png",
+   "caixa": [
+    25,
+    30,
+    102,
+    98
+   ]
+  }
  },
  "stool_lab": {
   "escala": 0.5,
@@ -2699,7 +3050,16 @@
    0.45,
    0.45,
    0.62
-  ]
+  ],
+  "cima": {
+   "arquivo": "stool_lab/cima.png",
+   "caixa": [
+    25,
+    25,
+    102,
+    102
+   ]
+  }
  },
  "notes_wall": {
   "escala": 0.5,
@@ -2744,7 +3104,16 @@
    1.5,
    0.6,
    0.9
-  ]
+  ],
+  "cima": {
+   "arquivo": "counter_wood/cima.png",
+   "caixa": [
+    0,
+    13,
+    256,
+    115
+   ]
+  }
  },
  "table_tools": {
   "escala": 0.5,
@@ -2774,7 +3143,16 @@
    1.5,
    0.72,
    0.8
-  ]
+  ],
+  "cima": {
+   "arquivo": "table_tools/cima.png",
+   "caixa": [
+    0,
+    2,
+    256,
+    125
+   ]
+  }
  },
  "chair_wood": {
   "escala": 0.5,
@@ -2804,7 +3182,16 @@
    0.45,
    0.45,
    0.9
-  ]
+  ],
+  "cima": {
+   "arquivo": "chair_wood/cima.png",
+   "caixa": [
+    25,
+    25,
+    102,
+    102
+   ]
+  }
  },
  "stool": {
   "escala": 0.5,
@@ -2834,7 +3221,16 @@
    0.35,
    0.35,
    0.55
-  ]
+  ],
+  "cima": {
+   "arquivo": "stool/cima.png",
+   "caixa": [
+    34,
+    34,
+    94,
+    94
+   ]
+  }
  },
  "candles": {
   "escala": 0.5,
@@ -2995,7 +3391,16 @@
    0.4,
    0.3,
    0.35
-  ]
+  ],
+  "cima": {
+   "arquivo": "candles/cima.png",
+   "caixa": [
+    30,
+    38,
+    98,
+    89
+   ]
+  }
  },
  "skull": {
   "escala": 0.5,
@@ -3025,7 +3430,16 @@
    0.18,
    0.22,
    0.3
-  ]
+  ],
+  "cima": {
+   "arquivo": "skull/cima.png",
+   "caixa": [
+    48,
+    45,
+    79,
+    83
+   ]
+  }
  },
  "poster_sigil": {
   "escala": 0.5,
@@ -3089,7 +3503,16 @@
    0.66,
    2.0
   ],
-  "encosta": true
+  "encosta": true,
+  "cima": {
+   "arquivo": "server_rack/cima.png",
+   "caixa": [
+    13,
+    7,
+    115,
+    120
+   ]
+  }
  },
  "printer_dot": {
   "escala": 0.5,
@@ -3119,7 +3542,16 @@
    0.6,
    0.5,
    1.0
-  ]
+  ],
+  "cima": {
+   "arquivo": "printer_dot/cima.png",
+   "caixa": [
+    13,
+    21,
+    115,
+    106
+   ]
+  }
  },
  "whiteboard": {
   "escala": 0.5,
@@ -3149,7 +3581,16 @@
    1.6,
    0.6,
    1.8
-  ]
+  ],
+  "cima": {
+   "arquivo": "whiteboard/cima.png",
+   "caixa": [
+    55,
+    13,
+    328,
+    115
+   ]
+  }
  },
  "media_shelf": {
   "escala": 0.5,
@@ -3180,7 +3621,16 @@
    0.4,
    1.1
   ],
-  "encosta": true
+  "encosta": true,
+  "cima": {
+   "arquivo": "media_shelf/cima.png",
+   "caixa": [
+    51,
+    30,
+    205,
+    98
+   ]
+  }
  },
  "water_cooler": {
   "escala": 0.5,
@@ -3210,7 +3660,16 @@
    0.35,
    0.35,
    1.2
-  ]
+  ],
+  "cima": {
+   "arquivo": "water_cooler/cima.png",
+   "caixa": [
+    34,
+    34,
+    94,
+    94
+   ]
+  }
  },
  "parts_boxes": {
   "escala": 0.5,
@@ -3240,7 +3699,16 @@
    0.6,
    0.5,
    0.5
-  ]
+  ],
+  "cima": {
+   "arquivo": "parts_boxes/cima.png",
+   "caixa": [
+    13,
+    21,
+    115,
+    106
+   ]
+  }
  },
  "ups": {
   "escala": 0.5,
@@ -3270,7 +3738,16 @@
    0.45,
    0.35,
    0.3
-  ]
+  ],
+  "cima": {
+   "arquivo": "ups/cima.png",
+   "caixa": [
+    25,
+    34,
+    102,
+    94
+   ]
+  }
  },
  "monitor_wall": {
   "escala": 0.5,
@@ -3381,7 +3858,16 @@
    0.5,
    2.0
   ],
-  "encosta": true
+  "encosta": true,
+  "cima": {
+   "arquivo": "weapon_rack/cima.png",
+   "caixa": [
+    0,
+    21,
+    256,
+    106
+   ]
+  }
  },
  "locker_ammo": {
   "escala": 0.5,
@@ -3438,7 +3924,27 @@
    0.5,
    1.9
   ],
-  "encosta": true
+  "encosta": true,
+  "cimaEstados": {
+   "1": {
+    "arquivo": "locker_ammo/cima-1.png",
+    "caixa": [
+     13,
+     21,
+     115,
+     106
+    ]
+   }
+  },
+  "cima": {
+   "arquivo": "locker_ammo/cima.png",
+   "caixa": [
+    13,
+    21,
+    115,
+    106
+   ]
+  }
  },
  "chest_army": {
   "escala": 0.5,
@@ -3469,23 +3975,23 @@
     "giros": {
      "4": {
       "arquivo": "chest_army/giro-4-1.png",
-      "ax": 55.2,
-      "ay": 145.6
+      "ax": 50.9,
+      "ay": 140.6
      },
      "6": {
       "arquivo": "chest_army/giro-6-1.png",
-      "ax": 51.9,
-      "ay": 145.9
+      "ax": 51.0,
+      "ay": 119.3
      },
      "0": {
       "arquivo": "chest_army/giro-0-1.png",
-      "ax": 55.8,
-      "ay": 145.6
+      "ax": 60.8,
+      "ay": 119.8
      },
      "2": {
       "arquivo": "chest_army/giro-2-1.png",
-      "ax": 59.1,
-      "ay": 145.9
+      "ax": 58.3,
+      "ay": 141.2
      }
     }
    }
@@ -3494,7 +4000,27 @@
    0.65,
    0.45,
    0.45
-  ]
+  ],
+  "cimaEstados": {
+   "1": {
+    "arquivo": "chest_army/cima-1.png",
+    "caixa": [
+     8,
+     25,
+     119,
+     102
+    ]
+   }
+  },
+  "cima": {
+   "arquivo": "chest_army/cima.png",
+   "caixa": [
+    8,
+    25,
+    119,
+    102
+   ]
+  }
  },
  "ammo_box": {
   "escala": 0.5,
@@ -3524,7 +4050,16 @@
    0.5,
    0.3,
    0.3
-  ]
+  ],
+  "cima": {
+   "arquivo": "ammo_box/cima.png",
+   "caixa": [
+    21,
+    38,
+    106,
+    89
+   ]
+  }
  },
  "stool_metal": {
   "escala": 0.5,
@@ -3554,7 +4089,16 @@
    0.4,
    0.4,
    0.6
-  ]
+  ],
+  "cima": {
+   "arquivo": "stool_metal/cima.png",
+   "caixa": [
+    30,
+    30,
+    98,
+    98
+   ]
+  }
  },
  "tool_board": {
   "escala": 0.5,
@@ -3636,7 +4180,16 @@
    0.45,
    1.9
   ],
-  "encosta": true
+  "encosta": true,
+  "cima": {
+   "arquivo": "locker_row/cima.png",
+   "caixa": [
+    0,
+    25,
+    256,
+    102
+   ]
+  }
  },
  "janitor_cart": {
   "escala": 0.5,
@@ -3666,7 +4219,16 @@
    0.45,
    0.7,
    1.1
-  ]
+  ],
+  "cima": {
+   "arquivo": "janitor_cart/cima.png",
+   "caixa": [
+    25,
+    4,
+    102,
+    123
+   ]
+  }
  },
  "wet_sign": {
   "escala": 0.5,
@@ -3696,7 +4258,16 @@
    0.3,
    0.3,
    0.6
-  ]
+  ],
+  "cima": {
+   "arquivo": "wet_sign/cima.png",
+   "caixa": [
+    38,
+    38,
+    89,
+    89
+   ]
+  }
  },
  "trash_can": {
   "escala": 0.5,
@@ -3726,7 +4297,16 @@
    0.35,
    0.35,
    0.6
-  ]
+  ],
+  "cima": {
+   "arquivo": "trash_can/cima.png",
+   "caixa": [
+    34,
+    34,
+    94,
+    94
+   ]
+  }
  },
  "extinguisher": {
   "escala": 0.5,
@@ -4099,7 +4679,16 @@
    0.9,
    0.5,
    0.6
-  ]
+  ],
+  "cima": {
+   "arquivo": "altar/cima.png",
+   "caixa": [
+    51,
+    21,
+    205,
+    106
+   ]
+  }
  },
  "rubble": {
   "escala": 0.5,
@@ -4129,7 +4718,16 @@
    1.2,
    1.2,
    0.5
-  ]
+  ],
+  "cima": {
+   "arquivo": "rubble/cima.png",
+   "caixa": [
+    25,
+    25,
+    230,
+    230
+   ]
+  }
  },
  "pedestal": {
   "escala": 0.5,
@@ -4159,7 +4757,16 @@
    0.35,
    0.35,
    1.0
-  ]
+  ],
+  "cima": {
+   "arquivo": "pedestal/cima.png",
+   "caixa": [
+    34,
+    34,
+    94,
+    94
+   ]
+  }
  },
  "chains_wall": {
   "escala": 0.5,
@@ -4262,13 +4869,13 @@
   "giros": {
    "4": {
     "arquivo": "portal/giro-4.png",
-    "ax": 20.7,
-    "ay": 299.5
+    "ax": 6.9,
+    "ay": 290.5
    },
    "2": {
     "arquivo": "portal/giro-2.png",
-    "ax": 72.7,
-    "ay": 299.3
+    "ax": 64.1,
+    "ay": 290.4
    }
   },
   "estados": {
@@ -4276,13 +4883,13 @@
     "giros": {
      "4": {
       "arquivo": "portal/giro-4-1.png",
-      "ax": 20.7,
-      "ay": 299.5
+      "ax": 6.9,
+      "ay": 290.5
      },
      "2": {
       "arquivo": "portal/giro-2-1.png",
-      "ax": 72.7,
-      "ay": 299.3
+      "ax": 64.1,
+      "ay": 290.4
      }
     }
    },
@@ -4290,13 +4897,13 @@
     "giros": {
      "4": {
       "arquivo": "portal/giro-4-2.png",
-      "ax": 20.7,
-      "ay": 299.5
+      "ax": 6.9,
+      "ay": 290.5
      },
      "2": {
       "arquivo": "portal/giro-2-2.png",
-      "ax": 72.7,
-      "ay": 299.3
+      "ax": 64.1,
+      "ay": 290.4
      }
     }
    }
@@ -4304,15 +4911,15 @@
   "caixa": [
    0,
    0.24,
-   -0.26,
-   1.26,
+   0,
+   1,
    0,
    2.17
   ],
   "soGiros": true,
   "real": [
-   1.04,
-   0.16,
+   0.75,
+   0.08,
    2.17
   ],
   "encosta": true
@@ -4322,13 +4929,13 @@
   "giros": {
    "4": {
     "arquivo": "portal@metal/giro-4.png",
-    "ax": 24.7,
-    "ay": 297.6
+    "ax": 6.9,
+    "ay": 290.6
    },
    "2": {
     "arquivo": "portal@metal/giro-2.png",
-    "ax": 75.3,
-    "ay": 297.6
+    "ax": 64.1,
+    "ay": 290.5
    }
   },
   "estados": {
@@ -4336,13 +4943,13 @@
     "giros": {
      "4": {
       "arquivo": "portal@metal/giro-4-1.png",
-      "ax": 24.7,
-      "ay": 297.6
+      "ax": 6.9,
+      "ay": 290.6
      },
      "2": {
       "arquivo": "portal@metal/giro-2-1.png",
-      "ax": 75.3,
-      "ay": 297.6
+      "ax": 64.1,
+      "ay": 290.5
      }
     }
    },
@@ -4350,13 +4957,13 @@
     "giros": {
      "4": {
       "arquivo": "portal@metal/giro-4-2.png",
-      "ax": 24.7,
-      "ay": 297.6
+      "ax": 6.9,
+      "ay": 290.6
      },
      "2": {
       "arquivo": "portal@metal/giro-2-2.png",
-      "ax": 75.3,
-      "ay": 297.6
+      "ax": 64.1,
+      "ay": 290.5
      }
     }
    }
@@ -4364,15 +4971,15 @@
   "caixa": [
    0,
    0.24,
-   -0.26,
-   1.26,
+   0,
+   1,
    0,
    2.17
   ],
   "soGiros": true,
   "real": [
-   1.04,
-   0.16,
+   0.75,
+   0.08,
    2.17
   ],
   "encosta": true
@@ -4407,5 +5014,851 @@
    2.2
   ],
   "encosta": true
+ },
+ "gun_table~b": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "gun_table~b/giro-4.png",
+    "ax": 179.0,
+    "ay": 192.4
+   },
+   "6": {
+    "arquivo": "gun_table~b/giro-6.png",
+    "ax": 51.0,
+    "ay": 185.4
+   },
+   "0": {
+    "arquivo": "gun_table~b/giro-0.png",
+    "ax": 179.0,
+    "ay": 187.4
+   },
+   "2": {
+    "arquivo": "gun_table~b/giro-2.png",
+    "ax": 51.0,
+    "ay": 180.4
+   }
+  },
+  "real": [
+   2.0,
+   0.7,
+   0.9
+  ]
+ },
+ "gun_table~c": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "gun_table~c/giro-4.png",
+    "ax": 179.0,
+    "ay": 194.4
+   },
+   "6": {
+    "arquivo": "gun_table~c/giro-6.png",
+    "ax": 51.0,
+    "ay": 187.4
+   },
+   "0": {
+    "arquivo": "gun_table~c/giro-0.png",
+    "ax": 179.0,
+    "ay": 187.4
+   },
+   "2": {
+    "arquivo": "gun_table~c/giro-2.png",
+    "ax": 51.0,
+    "ay": 180.4
+   }
+  },
+  "real": [
+   2.0,
+   0.7,
+   0.9
+  ]
+ },
+ "weapon_rack~b": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "weapon_rack~b/giro-4.png",
+    "ax": 108.0,
+    "ay": 307.0
+   },
+   "0": {
+    "arquivo": "weapon_rack~b/giro-0.png",
+    "ax": 129.0,
+    "ay": 296.0
+   },
+   "6": {
+    "arquivo": "weapon_rack~b/giro-6.png",
+    "ax": 44.0,
+    "ay": 296.0
+   },
+   "2": {
+    "arquivo": "weapon_rack~b/giro-2.png",
+    "ax": 65.0,
+    "ay": 307.0
+   }
+  },
+  "real": [
+   1.5,
+   0.5,
+   2.0
+  ],
+  "encosta": true
+ },
+ "weapon_rack~c": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "weapon_rack~c/giro-4.png",
+    "ax": 108.0,
+    "ay": 307.0
+   },
+   "0": {
+    "arquivo": "weapon_rack~c/giro-0.png",
+    "ax": 129.0,
+    "ay": 296.0
+   },
+   "6": {
+    "arquivo": "weapon_rack~c/giro-6.png",
+    "ax": 44.0,
+    "ay": 296.0
+   },
+   "2": {
+    "arquivo": "weapon_rack~c/giro-2.png",
+    "ax": 65.0,
+    "ay": 307.0
+   }
+  },
+  "real": [
+   1.5,
+   0.5,
+   2.0
+  ],
+  "encosta": true
+ },
+ "locker_ammo~b": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "locker_ammo~b/giro-4.png",
+    "ax": 48.1,
+    "ay": 253.9
+   },
+   "6": {
+    "arquivo": "locker_ammo~b/giro-6.png",
+    "ax": 47.9,
+    "ay": 247.0
+   },
+   "0": {
+    "arquivo": "locker_ammo~b/giro-0.png",
+    "ax": 62.3,
+    "ay": 246.9
+   },
+   "2": {
+    "arquivo": "locker_ammo~b/giro-2.png",
+    "ax": 62.6,
+    "ay": 253.4
+   }
+  },
+  "estados": {
+   "1": {
+    "giros": {
+     "4": {
+      "arquivo": "locker_ammo~b/giro-4-1.png",
+      "ax": 92.6,
+      "ay": 257.1
+     },
+     "6": {
+      "arquivo": "locker_ammo~b/giro-6-1.png",
+      "ax": 79.6,
+      "ay": 249.1
+     },
+     "0": {
+      "arquivo": "locker_ammo~b/giro-0-1.png",
+      "ax": 59.1,
+      "ay": 252.2
+     },
+     "2": {
+      "arquivo": "locker_ammo~b/giro-2-1.png",
+      "ax": 61.0,
+      "ay": 255.5
+     }
+    }
+   }
+  },
+  "real": [
+   0.6,
+   0.5,
+   1.9
+  ],
+  "encosta": true
+ },
+ "locker_ammo~c": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "locker_ammo~c/giro-4.png",
+    "ax": 53.1,
+    "ay": 251.5
+   },
+   "6": {
+    "arquivo": "locker_ammo~c/giro-6.png",
+    "ax": 47.9,
+    "ay": 247.0
+   },
+   "0": {
+    "arquivo": "locker_ammo~c/giro-0.png",
+    "ax": 62.3,
+    "ay": 246.9
+   },
+   "2": {
+    "arquivo": "locker_ammo~c/giro-2.png",
+    "ax": 64.2,
+    "ay": 251.1
+   }
+  },
+  "estados": {
+   "1": {
+    "giros": {
+     "4": {
+      "arquivo": "locker_ammo~c/giro-4-1.png",
+      "ax": 94.1,
+      "ay": 254.7
+     },
+     "6": {
+      "arquivo": "locker_ammo~c/giro-6-1.png",
+      "ax": 73.7,
+      "ay": 249.1
+     },
+     "0": {
+      "arquivo": "locker_ammo~c/giro-0-1.png",
+      "ax": 59.1,
+      "ay": 252.2
+     },
+     "2": {
+      "arquivo": "locker_ammo~c/giro-2-1.png",
+      "ax": 62.6,
+      "ay": 253.2
+     }
+    }
+   }
+  },
+  "real": [
+   0.6,
+   0.5,
+   1.9
+  ],
+  "encosta": true
+ },
+ "bar_shelf~b": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "bar_shelf~b/giro-4.png",
+    "ax": 100.0,
+    "ay": 307.0
+   },
+   "6": {
+    "arquivo": "bar_shelf~b/giro-6.png",
+    "ax": 36.0,
+    "ay": 292.0
+   },
+   "0": {
+    "arquivo": "bar_shelf~b/giro-0.png",
+    "ax": 129.0,
+    "ay": 292.0
+   },
+   "2": {
+    "arquivo": "bar_shelf~b/giro-2.png",
+    "ax": 65.0,
+    "ay": 307.0
+   }
+  },
+  "real": [
+   1.5,
+   0.4,
+   2.0
+  ],
+  "encosta": true
+ },
+ "bar_shelf~c": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "bar_shelf~c/giro-4.png",
+    "ax": 100.0,
+    "ay": 307.0
+   },
+   "6": {
+    "arquivo": "bar_shelf~c/giro-6.png",
+    "ax": 36.0,
+    "ay": 292.0
+   },
+   "0": {
+    "arquivo": "bar_shelf~c/giro-0.png",
+    "ax": 129.0,
+    "ay": 292.0
+   },
+   "2": {
+    "arquivo": "bar_shelf~c/giro-2.png",
+    "ax": 65.0,
+    "ay": 307.0
+   }
+  },
+  "real": [
+   1.5,
+   0.4,
+   2.0
+  ],
+  "encosta": true
+ },
+ "plant~b": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "plant~b/giro-4.png",
+    "ax": 40.0,
+    "ay": 136.1
+   },
+   "2": {
+    "arquivo": "plant~b/giro-2.png",
+    "ax": 45.0,
+    "ay": 136.1
+   },
+   "0": {
+    "arquivo": "plant~b/giro-0.png",
+    "ax": 43.0,
+    "ay": 136.1
+   },
+   "6": {
+    "arquivo": "plant~b/giro-6.png",
+    "ax": 44.0,
+    "ay": 136.1
+   }
+  },
+  "real": [
+   0.5,
+   0.5,
+   1.1
+  ]
+ },
+ "plant~c": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "plant~c/giro-4.png",
+    "ax": 53.5,
+    "ay": 136.1
+   },
+   "2": {
+    "arquivo": "plant~c/giro-2.png",
+    "ax": 51.5,
+    "ay": 136.1
+   },
+   "0": {
+    "arquivo": "plant~c/giro-0.png",
+    "ax": 56.0,
+    "ay": 136.1
+   },
+   "6": {
+    "arquivo": "plant~c/giro-6.png",
+    "ax": 55.5,
+    "ay": 136.1
+   }
+  },
+  "real": [
+   0.5,
+   0.5,
+   1.1
+  ]
+ },
+ "hospital_bed~b": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "hospital_bed~b/giro-4.png",
+    "ax": 63.2,
+    "ay": 229.8
+   },
+   "6": {
+    "arquivo": "hospital_bed~b/giro-6.png",
+    "ax": 191.4,
+    "ay": 218.6
+   },
+   "0": {
+    "arquivo": "hospital_bed~b/giro-0.png",
+    "ax": 60.4,
+    "ay": 223.0
+   },
+   "2": {
+    "arquivo": "hospital_bed~b/giro-2.png",
+    "ax": 187.3,
+    "ay": 233.6
+   }
+  },
+  "real": [
+   0.8,
+   2.04,
+   1.0
+  ]
+ },
+ "hospital_bed~c": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "hospital_bed~c/giro-4.png",
+    "ax": 63.3,
+    "ay": 229.9
+   },
+   "6": {
+    "arquivo": "hospital_bed~c/giro-6.png",
+    "ax": 195.1,
+    "ay": 220.3
+   },
+   "0": {
+    "arquivo": "hospital_bed~c/giro-0.png",
+    "ax": 63.3,
+    "ay": 222.1
+   },
+   "2": {
+    "arquivo": "hospital_bed~c/giro-2.png",
+    "ax": 187.7,
+    "ay": 233.4
+   }
+  },
+  "real": [
+   0.8,
+   2.04,
+   1.0
+  ]
+ },
+ "lab_bench~b": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "lab_bench~b/giro-4.png",
+    "ax": 123.0,
+    "ay": 190.0
+   },
+   "6": {
+    "arquivo": "lab_bench~b/giro-6.png",
+    "ax": 59.0,
+    "ay": 190.0
+   },
+   "0": {
+    "arquivo": "lab_bench~b/giro-0.png",
+    "ax": 123.0,
+    "ay": 190.0
+   },
+   "2": {
+    "arquivo": "lab_bench~b/giro-2.png",
+    "ax": 59.0,
+    "ay": 190.0
+   }
+  },
+  "real": [
+   1.5,
+   0.6,
+   0.92
+  ]
+ },
+ "lab_bench~c": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "lab_bench~c/giro-4.png",
+    "ax": 123.0,
+    "ay": 190.0
+   },
+   "6": {
+    "arquivo": "lab_bench~c/giro-6.png",
+    "ax": 59.0,
+    "ay": 190.0
+   },
+   "0": {
+    "arquivo": "lab_bench~c/giro-0.png",
+    "ax": 123.0,
+    "ay": 190.0
+   },
+   "2": {
+    "arquivo": "lab_bench~c/giro-2.png",
+    "ax": 59.0,
+    "ay": 190.0
+   }
+  },
+  "real": [
+   1.5,
+   0.6,
+   0.92
+  ]
+ },
+ "cabinet_file~b": {
+  "escala": 0.5,
+  "giros": {
+   "2": {
+    "arquivo": "cabinet_file~b/giro-2.png",
+    "ax": 49.1,
+    "ay": 188.9
+   },
+   "6": {
+    "arquivo": "cabinet_file~b/giro-6.png",
+    "ax": 46.5,
+    "ay": 181.5
+   },
+   "0": {
+    "arquivo": "cabinet_file~b/giro-0.png",
+    "ax": 49.5,
+    "ay": 182.3
+   },
+   "4": {
+    "arquivo": "cabinet_file~b/giro-4.png",
+    "ax": 58.3,
+    "ay": 185.7
+   }
+  },
+  "real": [
+   0.5,
+   0.65,
+   1.35
+  ],
+  "encosta": true
+ },
+ "cabinet_file~c": {
+  "escala": 0.5,
+  "giros": {
+   "2": {
+    "arquivo": "cabinet_file~c/giro-2.png",
+    "ax": 49.4,
+    "ay": 191.6
+   },
+   "6": {
+    "arquivo": "cabinet_file~c/giro-6.png",
+    "ax": 47.3,
+    "ay": 184.3
+   },
+   "0": {
+    "arquivo": "cabinet_file~c/giro-0.png",
+    "ax": 49.2,
+    "ay": 184.1
+   },
+   "4": {
+    "arquivo": "cabinet_file~c/giro-4.png",
+    "ax": 48.2,
+    "ay": 191.1
+   }
+  },
+  "real": [
+   0.5,
+   0.65,
+   1.35
+  ],
+  "encosta": true
+ },
+ "painting~b": {
+  "escala": 0.5,
+  "parede": {
+   "r": {
+    "arquivo": "painting~b/parede-r.png",
+    "ax": 40.5,
+    "ay": 45.5
+   },
+   "l": {
+    "arquivo": "painting~b/parede-l.png",
+    "ax": 40.5,
+    "ay": 45.5
+   }
+  }
+ },
+ "painting~c": {
+  "escala": 0.5,
+  "parede": {
+   "r": {
+    "arquivo": "painting~c/parede-r.png",
+    "ax": 40.5,
+    "ay": 45.5
+   },
+   "l": {
+    "arquivo": "painting~c/parede-l.png",
+    "ax": 40.5,
+    "ay": 45.5
+   }
+  }
+ },
+ "tally_marks~b": {
+  "escala": 0.5,
+  "parede": {
+   "r": {
+    "arquivo": "tally_marks~b/parede-r.png",
+    "ax": 22.0,
+    "ay": 16.5
+   },
+   "l": {
+    "arquivo": "tally_marks~b/parede-l.png",
+    "ax": 22.0,
+    "ay": 17.5
+   }
+  }
+ },
+ "tally_marks~c": {
+  "escala": 0.5,
+  "parede": {
+   "r": {
+    "arquivo": "tally_marks~c/parede-r.png",
+    "ax": 22.0,
+    "ay": 16.5
+   },
+   "l": {
+    "arquivo": "tally_marks~c/parede-l.png",
+    "ax": 22.0,
+    "ay": 17.5
+   }
+  }
+ },
+ "table_work~b": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "table_work~b/giro-4.png",
+    "ax": 169.0,
+    "ay": 219.7
+   },
+   "6": {
+    "arquivo": "table_work~b/giro-6.png",
+    "ax": 105.0,
+    "ay": 226.7
+   },
+   "0": {
+    "arquivo": "table_work~b/giro-0.png",
+    "ax": 168.5,
+    "ay": 221.7
+   },
+   "2": {
+    "arquivo": "table_work~b/giro-2.png",
+    "ax": 104.5,
+    "ay": 214.7
+   }
+  },
+  "real": [
+   2.25,
+   0.95,
+   0.78
+  ]
+ },
+ "table_work~c": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "table_work~c/giro-4.png",
+    "ax": 168.5,
+    "ay": 222.7
+   },
+   "6": {
+    "arquivo": "table_work~c/giro-6.png",
+    "ax": 105.0,
+    "ay": 228.7
+   },
+   "0": {
+    "arquivo": "table_work~c/giro-0.png",
+    "ax": 168.5,
+    "ay": 220.7
+   },
+   "2": {
+    "arquivo": "table_work~c/giro-2.png",
+    "ax": 104.5,
+    "ay": 216.7
+   }
+  },
+  "real": [
+   2.25,
+   0.95,
+   0.78
+  ]
+ },
+ "board_investigation~b": {
+  "escala": 0.5,
+  "parede": {
+   "r": {
+    "arquivo": "board_investigation~b/parede-r.png",
+    "ax": 53.0,
+    "ay": 70.5
+   },
+   "l": {
+    "arquivo": "board_investigation~b/parede-l.png",
+    "ax": 53.0,
+    "ay": 70.5
+   }
+  }
+ },
+ "board_investigation~c": {
+  "escala": 0.5,
+  "parede": {
+   "r": {
+    "arquivo": "board_investigation~c/parede-r.png",
+    "ax": 53.0,
+    "ay": 70.5
+   },
+   "l": {
+    "arquivo": "board_investigation~c/parede-l.png",
+    "ax": 53.0,
+    "ay": 70.5
+   }
+  }
+ },
+ "console~b": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "console~b/giro-4.png",
+    "ax": 126.0,
+    "ay": 156.1
+   },
+   "6": {
+    "arquivo": "console~b/giro-6.png",
+    "ax": 62.0,
+    "ay": 153.1
+   },
+   "0": {
+    "arquivo": "console~b/giro-0.png",
+    "ax": 126.0,
+    "ay": 151.1
+   },
+   "2": {
+    "arquivo": "console~b/giro-2.png",
+    "ax": 62.0,
+    "ay": 162.1
+   }
+  },
+  "tela": {
+   "cores": [
+    "#4fe39a",
+    "#5ab8f0",
+    "#6ad0c0"
+   ],
+   "ms": 800,
+   "modo": "tv",
+   "forca": 0.24,
+   "giros": {
+    "4": {
+     "x": 92.1,
+     "y": 44.9,
+     "r": 48.9
+    },
+    "2": {
+     "x": 109.0,
+     "y": 46.7,
+     "r": 48.9
+    }
+   }
+  },
+  "estados": {
+   "1": {
+    "giros": {
+     "4": {
+      "arquivo": "console~b/giro-4-1.png",
+      "ax": 126.0,
+      "ay": 156.1
+     },
+     "6": {
+      "arquivo": "console~b/giro-6-1.png",
+      "ax": 62.0,
+      "ay": 153.1
+     },
+     "0": {
+      "arquivo": "console~b/giro-0-1.png",
+      "ax": 126.0,
+      "ay": 151.1
+     },
+     "2": {
+      "arquivo": "console~b/giro-2-1.png",
+      "ax": 62.0,
+      "ay": 162.1
+     }
+    }
+   }
+  },
+  "real": [
+   1.5,
+   0.7,
+   1.2
+  ]
+ },
+ "console~c": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "console~c/giro-4.png",
+    "ax": 126.0,
+    "ay": 152.1
+   },
+   "6": {
+    "arquivo": "console~c/giro-6.png",
+    "ax": 62.0,
+    "ay": 151.1
+   },
+   "0": {
+    "arquivo": "console~c/giro-0.png",
+    "ax": 126.0,
+    "ay": 148.1
+   },
+   "2": {
+    "arquivo": "console~c/giro-2.png",
+    "ax": 62.0,
+    "ay": 162.1
+   }
+  },
+  "tela": {
+   "cores": [
+    "#4fe39a",
+    "#5ab8f0",
+    "#6ad0c0"
+   ],
+   "ms": 800,
+   "modo": "tv",
+   "forca": 0.24,
+   "giros": {
+    "4": {
+     "x": 92.1,
+     "y": 43.8,
+     "r": 48.9
+    },
+    "2": {
+     "x": 109.0,
+     "y": 46.7,
+     "r": 48.9
+    }
+   }
+  },
+  "estados": {
+   "1": {
+    "giros": {
+     "4": {
+      "arquivo": "console~c/giro-4-1.png",
+      "ax": 126.0,
+      "ay": 152.1
+     },
+     "6": {
+      "arquivo": "console~c/giro-6-1.png",
+      "ax": 62.0,
+      "ay": 151.1
+     },
+     "0": {
+      "arquivo": "console~c/giro-0-1.png",
+      "ax": 126.0,
+      "ay": 148.1
+     },
+     "2": {
+      "arquivo": "console~c/giro-2-1.png",
+      "ax": 62.0,
+      "ay": 162.5
+     }
+    }
+   }
+  },
+  "real": [
+   1.5,
+   0.7,
+   1.2
+  ]
  }
 }
