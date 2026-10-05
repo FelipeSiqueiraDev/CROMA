@@ -8,7 +8,7 @@
  * salvos sozinhos) e editar (um rascunho da ficha inteira; Salvar grava,
  * Cancelar descarta). NEX e pontos de prestígio só o mestre muda.
  */
-import { regras, vitalConditions, type AvatarLook, type CampaignState, type CharacterDef, type FichaSalva, type Vitals } from '@crona/shared';
+import { NOME_TEMA, TEMAS, regras, vitalConditions, type AvatarLook, type CampaignState, type CharacterDef, type FichaSalva, type Vitals } from '@crona/shared';
 import { portraitCanvas } from '../render/portrait';
 import type { App } from './app';
 import { CorpoView } from './corpo';
@@ -37,6 +37,7 @@ import {
 import { arte, ic, type NomeIcone } from './icons';
 import { paperize } from './paperArt';
 import { sfx } from './sfx';
+import { vestirTema } from './temaUi';
 
 type Ficha = regras.Ficha;
 type Calc = regras.Calculado;
@@ -345,6 +346,10 @@ export class FichasScreen {
     const fs = this.atual();
     this.calc = fs ? regras.calcular(fs.ficha) : null;
     this.el.classList.toggle('editando', this.editando);
+    // o tema do agente veste a ficha dele (e, no celular, a tela inteira do jogador)
+    vestirTema(this.el, fs?.tema);
+    const tela = this.el.closest<HTMLElement>('.tela-ficha');
+    if (tela) vestirTema(tela, fs?.tema);
     this.renderAgentes();
     const tem = !!fs;
     this.vazio.classList.toggle('hidden', tem);
@@ -473,6 +478,7 @@ export class FichasScreen {
       linha('NEX', nexBar, ed && this.gm ? () => this.escolherNex() : undefined, 'Nível de exposição paranormal. Só o mestre muda.'),
       linha('Patente', h('span', null, pat, h('small', null, ` ${f.pp} PP`)), ed && this.gm ? () => this.editarPP() : undefined, c.patente ? `Crédito ${c.patente.credito}. Só o mestre muda os pontos de prestígio.` : undefined),
       linha('Idade', f.textos?.idade || '—', ed ? () => this.editarTexto('Idade', 'Idade', f.textos?.idade ?? '', (v) => ((f.textos ??= {}), (f.textos.idade = v || undefined))) : undefined),
+      linha('Tema', NOME_TEMA[fs.tema ?? 'ordem'], ed ? () => this.escolherTema() : undefined, 'O tema da interface do agente: veste a ficha, a requisição e o celular dele.'),
       linha('Campanha', this.campanha?.title || '—'),
       linha('Local', local),
     );
@@ -490,6 +496,26 @@ export class FichasScreen {
       gravar(v.trim());
       this.render();
     });
+  }
+
+  private escolherTema() {
+    const fs = this.rascunho;
+    if (!fs) return;
+    const ops = TEMAS.map((t) => ({ id: t, nome: NOME_TEMA[t], ok: true, motivos: [], avisos: [] }));
+    void escolher(
+      {
+        titulo: 'Tema da interface',
+        dica: 'A cor e a arte da tela do agente. Ordem é o neutro, o das telas do mestre.',
+        qtd: 1,
+        opcoes: () => ops,
+        atual: () => [fs.tema ?? 'ordem'],
+        aplicar: (ids) => {
+          const t = ids[0] as (typeof TEMAS)[number] | undefined;
+          if (t) fs.tema = t === 'ordem' ? undefined : t;
+        },
+      },
+      () => this.render(),
+    );
   }
 
   private escolherNex() {
@@ -1367,7 +1393,7 @@ export class FichasScreen {
     const fs = this.rascunho;
     if (!fs) return;
     // a requisição: o item entra no rascunho (Salvar grava) e a ficha atrás acompanha
-    abrirRequisicao({ ficha: fs.ficha, nome: fs.ficha.nome, mestre: this.gm, aoAdicionar: () => this.render(), aoFechar: () => this.render() });
+    abrirRequisicao({ ficha: fs.ficha, nome: fs.ficha.nome, tema: fs.tema, mestre: this.gm, aoAdicionar: () => this.render(), aoFechar: () => this.render() });
   }
 
   private adicionarRitual() {

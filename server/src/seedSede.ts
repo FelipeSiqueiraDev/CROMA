@@ -1,4 +1,4 @@
-import { RoomMap, type AvatarLook, type Door, type FloorItem, type FloorStyle, type LightMode, type ParticleKind } from '@crona/shared';
+import { RoomMap, type AvatarLook, type Door, type FloorItem, type FloorStyle, type LightMode, type ParticleKind, type Tema } from '@crona/shared';
 import type { Database, RoomData, TokenData } from './db';
 import { buildRoom, plan, type FloorSeed, type WallSeed } from './seed';
 
@@ -821,6 +821,25 @@ export function coresDosAgentes(db: Database): boolean {
       if (cor && t.color !== cor) (t.color = cor), (mudou = true);
     }
   return mudou;
+}
+
+/** O tema da interface de cada agente, pelo elemento dele (05/10). */
+const TEMA_DO_AGENTE: [RegExp, Tema][] = [
+  [/tepes/i, 'sangue'],
+  [/catarina/i, 'morte'],
+  [/alosi/i, 'conhecimento'],
+  [/cora/i, 'energia'],
+];
+
+/** Põe o tema dos quatro agentes nas fichas deles, uma vez só (depois, o jogador troca na ficha). */
+export function temasDosAgentes(db: Database): boolean {
+  if (db.temasAgentes || !db.fichas?.length) return false;
+  for (const f of db.fichas ?? []) {
+    const t = TEMA_DO_AGENTE.find(([re]) => re.test(f.nome))?.[1];
+    if (t && !f.tema) f.tema = t;
+  }
+  db.temasAgentes = true;
+  return true;
 }
 
 /** Os quatro agentes começam no bar, perto da porta da rua (ou onde a montagem pedir: [x, y, direção] de cada um). */

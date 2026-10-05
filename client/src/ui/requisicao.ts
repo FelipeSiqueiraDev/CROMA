@@ -8,13 +8,14 @@
  * A janela fica aberta: dá para pedir vários itens de uma vez. O mestre passa por cima dos limites
  * (com o aviso); o jogador, não. No celular, ela ocupa a tela e o item escolhido sobe de baixo.
  */
-import { regras } from '@crona/shared';
+import { regras, type Tema } from '@crona/shared';
 import { arteDoItem } from './arteItem';
 import { h } from './dom';
 import { janela } from './fichaModal';
 import { infoItem, romano, textoRef } from './fichaRegras';
 import { ic } from './icons';
 import { sfx } from './sfx';
+import { vestirTema } from './temaUi';
 
 const cat = regras.catalogo;
 
@@ -22,6 +23,8 @@ export interface Requisicao {
   /** a ficha que recebe os itens (o rascunho na FICHAS; uma cópia na aba ITENS) */
   ficha: regras.Ficha;
   nome: string;
+  /** o tema do agente: veste a janela */
+  tema?: Tema;
   /** o mestre passa por cima dos limites, com o aviso */
   mestre: boolean;
   /** cada item que entrou (já está em ficha.inventario) */
@@ -101,6 +104,7 @@ export function abrirRequisicao(r: Requisicao) {
   const j = janela('Requisição de equipamento', 'mochila', () => r.aoFechar(), 150);
   const caixa = j.el.querySelector('.fj') as HTMLElement;
   caixa.classList.add('rq');
+  vestirTema(j.el, r.tema);
 
   // ---------- em cima: quem pede, as vagas da patente e a carga
   const topo = h('div', { class: 'rq-topo' });

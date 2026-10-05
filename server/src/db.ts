@@ -107,6 +107,8 @@ export interface Database {
   liveScene?: number;
   /** versão da montagem da Sede da Ordem (ver SEDE_REV) */
   sedeRev?: number;
+  /** os temas dos quatro agentes já foram postos (uma vez só: depois, quem escolhe é o jogador) */
+  temasAgentes?: boolean;
   /** versão da montagem da Fazenda Olhos de Águia (seedFazenda) */
   fazendaRev?: number;
   /** fichas de personagem (motor de regras) */

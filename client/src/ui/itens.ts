@@ -388,6 +388,7 @@ export class AbaItens {
     abrirRequisicao({
       ficha: structuredClone(f.ficha),
       nome: f.ficha.nome,
+      tema: f.tema,
       mestre: true,
       aoAdicionar: (it) => it.tipo !== 'cena' && this.app.net.send({ t: 'mochilaNova', fichaId: f.id, tipo: it.tipo, id: it.id }),
       aoFechar: () => {},

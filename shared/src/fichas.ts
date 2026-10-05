@@ -19,6 +19,14 @@ export interface Companheiro {
   imagem?: string;
 }
 
+/**
+ * O tema da interface do agente (PROMPT-INTERFACE-GAME): escolhido na criação, veste a FICHAS dele,
+ * a requisição e o celular. Ordem é o neutro, o padrão; as telas do mestre e a mesa ficam nele.
+ */
+export const TEMAS = ['ordem', 'sangue', 'morte', 'conhecimento', 'energia'] as const;
+export type Tema = (typeof TEMAS)[number];
+export const NOME_TEMA: Record<Tema, string> = { ordem: 'Ordem', sangue: 'Sangue', morte: 'Morte', conhecimento: 'Conhecimento', energia: 'Energia' };
+
 export interface EstadoFicha {
   pv: number;
   pe: number;
@@ -43,6 +51,8 @@ export interface FichaSalva {
   /** anotações, documentos e pistas do agente */
   notas?: { anotacoes?: string; documentos?: string; pistas?: string };
   companheiro?: Companheiro;
+  /** o tema da interface do agente (sem tema = Ordem) */
+  tema?: Tema;
   /** chave do link do jogador (`?ficha=CHAVE`); só o mestre vê e gera */
   chave?: string;
   criadaEm: string;
@@ -89,6 +99,7 @@ export function sanitizarFicha(raw: unknown): FichaSalva | null {
       if (v) out.atual[k] = v;
     }
   }
+  if (TEMAS.includes(o.tema as Tema) && o.tema !== 'ordem') out.tema = o.tema as Tema;
   const cond = lista(o.condicoes, 40);
   if (cond?.length) out.condicoes = cond;
   if (n && typeof n === 'object') out.notas = { anotacoes: texto(n.anotacoes), documentos: texto(n.documentos), pistas: texto(n.pistas) };

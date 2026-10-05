@@ -33,11 +33,14 @@ import { janelaAberta } from './ui/fichaModal';
 import { NavigatorWin } from './ui/navigator';
 import { RoomSettingsWin } from './ui/roomSettings';
 import { forgetGmKey, readGmKey, tableName, tableRequested } from './session/access';
+import { montarTemas } from './ui/temaUi';
 
 const LAST_ROOM = 'crona.lastRoom';
 const HOME_SEEN = 'crona.homeSeen';
 const net = new Net();
 const app = new App(net);
+// as peças do kit de interface viram variáveis de CSS, por tema
+montarTemas();
 /** chave do link do mestre (?mestre=...), para mestre em outro aparelho */
 const gmKey = readGmKey();
 /**
