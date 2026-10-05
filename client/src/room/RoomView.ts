@@ -341,6 +341,8 @@ export class RoomView {
   private hintTargets: HintTarget[] = [];
   private mouse = { x: -1, y: -1, inside: false };
   private hoverTile: { x: number; y: number } | null = null;
+  /** a casa do mouse está atrás do desenho de um móvel (o contorno vai por cima de tudo) */
+  private cursorPorCima = false;
   private hoverKey = '';
   private wallTarget: WallTarget | null = null;
   private drag: { sx: number; sy: number; cx: number; cy: number; tx: number; ty: number; moved: boolean } | null = null;
@@ -903,6 +905,22 @@ export class RoomView {
     return null;
   }
 
+  /**
+   * O desenho de um móvel alto (estante, balcão, armário) cobre as casas de trás dele. Clicando numa
+   * casa de chão livre que não é a base do móvel, o clique é andar até ela (para pôr a peça atrás do
+   * balcão); o móvel se escolhe pela base dele ou com o clique duplo.
+   */
+  private cobreChaoLivre(hit: Hit | null, tile: { x: number; y: number } | null): boolean {
+    const map = this.map;
+    if (!map || !tile || hit?.kind !== 'floor') return false;
+    const it = map.getItem(hit.id);
+    const def = it ? getFurni(it.defId) : undefined;
+    if (!it || !def || def.walkable || def.sit) return false;
+    const fp = footprint(def, it.rot);
+    const naBase = tile.x >= it.x && tile.y >= it.y && tile.x < it.x + fp.sx && tile.y < it.y + fp.sy;
+    return !naBase && map.walkState(tile.x, tile.y) !== 'blocked';
+  }
+
   private updateHover() {
     if (!this.map) return;
     if (this.tat.t > 0) {
@@ -923,7 +941,9 @@ export class RoomView {
       this.wallTarget = def ? this.computeWallTarget(wx, wy, def) : null;
     } else this.wallTarget = null;
     const hint = this.hintAt(this.mouse.x, this.mouse.y);
-    const hit = hint ? null : this.pickAt(wx, wy);
+    let hit = hint ? null : this.pickAt(wx, wy);
+    this.cursorPorCima = this.cobreChaoLivre(hit, this.hoverTile);
+    if (this.cursorPorCima) hit = null;
     this.hoverKey = hint ? `h${hint.kind}${hint.id}` : hit ? `${hit.kind}${hit.id}` : '';
     this.canvas.style.cursor = this.placement ? 'crosshair' : hint || hit ? 'pointer' : 'default';
   }
@@ -957,11 +977,13 @@ export class RoomView {
       this.events.openHint(hint.kind, hint.id);
       return;
     }
-    const hit = tat ? this.pickTatico() : this.pickAt(wx, wy);
+    let hit = tat ? this.pickTatico() : this.pickAt(wx, wy);
     const key = hit ? `${hit.kind}${hit.id}` : '';
     const dbl = key !== '' && key === this.lastClick.key && now - this.lastClick.t < 380;
     this.lastClick = { t: dbl ? 0 : now, key };
     let tile = tat ? this.casaTatica() : this.tileAt(wx, wy);
+    // o desenho do móvel por cima de chão livre: um clique é andar (o duplo usa o móvel)
+    if (!tat && !dbl && this.cobreChaoLivre(hit, tile)) hit = null;
     // ferramenta do combate (medir, área): a casa da peça também serve
     if (this.aoClicarCasa) {
       if (!tile && hit?.kind === 'user') {
@@ -1846,6 +1868,21 @@ export class RoomView {
       if (h) hits.push(h);
     }
     this.hits = hits;
+    // a casa do mouse atrás de um móvel: o contorno tracejado por cima, para ver onde a peça vai parar
+    if (this.cursorPorCima && ht && this.mouse.inside && !place) {
+      const h = map.standHeight(ht.x, ht.y);
+      const pts = [iso(ht.x, ht.y, h), iso(ht.x + 1, ht.y, h), iso(ht.x + 1, ht.y + 1, h), iso(ht.x, ht.y + 1, h)];
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(pts[0][0], pts[0][1]);
+      for (let i = 1; i < 4; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+      ctx.closePath();
+      ctx.setLineDash([4, 3]);
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = 'rgba(255,244,230,0.85)';
+      ctx.stroke();
+      ctx.restore();
+    }
 
     // névoa (antes da luz: brilha perto das fontes)
     this.fog.draw(ctx, this.info.fog ?? 0, now);
