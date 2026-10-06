@@ -75,39 +75,37 @@ export function toast(msg: string, kind: 'error' | 'info' = 'info') {
 let zTop = 20;
 const openWins: Win[] = [];
 
+/**
+ * As janelas das ferramentas do mestre (construir, configurar a cena, todas as cenas, sprites,
+ * clima, ajuda, pistas): grandes, no meio da tela, com a moldura de papel do kit e o conteúdo num
+ * poço escuro por dentro; atrás, a tela inteira desfoca (como o teclado da geladeira). As que
+ * mexem no tabuleiro ao vivo (o clima) ficam de lado, sem desfocar, para ver o efeito.
+ */
 export class Win {
   readonly el: HTMLElement;
   readonly body: HTMLElement;
+  private fundo: HTMLElement;
   private titleEl: HTMLElement;
   onClose: (() => void) | null = null;
 
-  constructor(title: string, opts: { width?: number; x?: number; y?: number; cls?: string } = {}) {
-    this.titleEl = h('div', { class: 'win-title' }, title);
-    const closeBtn = h('button', { class: 'win-close', title: 'Fechar', 'aria-label': 'Fechar', onclick: () => this.close() }, icon('close', 14));
-    const head = h('div', { class: 'win-head' }, h('span', { class: 'win-mark' }), this.titleEl, closeBtn);
-    this.body = h('div', { class: 'win-body' });
-    this.el = h('section', { class: `win ${opts.cls ?? ''}`, style: `width:${opts.width ?? 360}px`, role: 'dialog', 'aria-label': title }, head, this.body);
-    this.el.style.display = 'none';
-    document.body.append(this.el);
-    const x = opts.x ?? Math.max(16, (innerWidth - (opts.width ?? 360)) / 2);
-    const y = opts.y ?? 80;
-    this.el.style.left = `${x}px`;
-    this.el.style.top = `${y}px`;
-    this.el.addEventListener('pointerdown', () => this.front());
-    let drag: { dx: number; dy: number } | null = null;
-    head.addEventListener('pointerdown', (e) => {
-      if ((e.target as HTMLElement).closest('button')) return;
-      drag = { dx: e.clientX - this.el.offsetLeft, dy: e.clientY - this.el.offsetTop };
-      head.setPointerCapture(e.pointerId);
+  constructor(title: string, opts: { width?: number; x?: number; y?: number; cls?: string; aoVivo?: boolean } = {}) {
+    this.titleEl = h('h3', null, title);
+    const closeBtn = h('button', { class: 'fj-x', type: 'button', title: 'Fechar', 'aria-label': 'Fechar', onclick: () => this.close() }, icon('close', 16));
+    const head = h('header', { class: 'fx-tit' }, h('span', { class: 'fx-tit-ic win-marca' }), this.titleEl, closeBtn);
+    this.body = h('div', { class: 'win-body win-poco' });
+    // a largura de antes vira um pouco maior (as janelas eram pequenas e espremidas)
+    const largura = Math.round((opts.width ?? 360) * 1.25);
+    this.el = h('section', { class: `win fj win-papel ${opts.cls ?? ''}`, style: `width:min(${largura}px, 94vw)`, role: 'dialog', 'aria-modal': opts.aoVivo ? 'false' : 'true', 'aria-label': title }, head, this.body);
+    this.fundo = h('div', { class: `fj-fundo tela-toda win-fundo${opts.aoVivo ? ' ao-vivo' : ''}` }, this.el);
+    this.fundo.style.display = 'none';
+    // o papel pintado (carregado na hora, para não prender o dom.ts ao desenho)
+    void import('./paperArt').then(({ paperize }) => paperize(this.el, { seed: 71 + title.length, tone: '#d8c7a6', burn: 1, torn: 1.4, stains: 1, creases: 0.4, pad: 26 }));
+    this.fundo.addEventListener('pointerdown', (e) => {
+      if (e.target === this.fundo) this.close();
     });
-    head.addEventListener('pointermove', (e) => {
-      if (!drag) return;
-      const nx = Math.max(0, Math.min(innerWidth - 80, e.clientX - drag.dx));
-      const ny = Math.max(0, Math.min(innerHeight - 40, e.clientY - drag.dy));
-      this.el.style.left = `${nx}px`;
-      this.el.style.top = `${ny}px`;
-    });
-    head.addEventListener('pointerup', () => (drag = null));
+    document.body.append(this.fundo);
+    void opts.x;
+    void opts.y;
   }
 
   setTitle(t: string) {
@@ -115,29 +113,24 @@ export class Win {
   }
 
   get isOpen() {
-    return this.el.style.display !== 'none';
+    return this.fundo.style.display !== 'none';
   }
 
   front() {
-    this.el.style.zIndex = String(++zTop);
+    this.fundo.style.zIndex = String(90 + ++zTop);
     const i = openWins.indexOf(this);
     if (i >= 0) openWins.splice(i, 1);
     if (this.isOpen) openWins.push(this);
   }
 
   open() {
-    this.el.style.display = '';
-    const r = this.el.getBoundingClientRect();
-    if (r.right > innerWidth) this.el.style.left = `${Math.max(8, innerWidth - r.width - 8)}px`;
-    if (r.bottom > innerHeight - 70) this.el.style.top = `${Math.max(8, innerHeight - 70 - r.height)}px`;
-    if (this.el.offsetLeft < 8) this.el.style.left = '8px';
-    if (this.el.offsetTop < 8) this.el.style.top = '8px';
+    this.fundo.style.display = '';
     this.front();
   }
 
   close() {
     if (!this.isOpen) return;
-    this.el.style.display = 'none';
+    this.fundo.style.display = 'none';
     const i = openWins.indexOf(this);
     if (i >= 0) openWins.splice(i, 1);
     this.onClose?.();
@@ -147,6 +140,11 @@ export class Win {
     if (this.isOpen) this.close();
     else this.open();
   }
+}
+
+/** Fecha todas as janelas das ferramentas (o mestre vai mexer no tabuleiro). */
+export function fecharJanelas() {
+  for (const w of [...openWins]) w.close();
 }
 
 /** Fecha a janela do topo (Esc). Retorna true se fechou algo. */

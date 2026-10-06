@@ -9,7 +9,7 @@ export class RoomSettingsWin {
 
   constructor(app: App) {
     this.app = app;
-    this.win = new Win('Configurar quarto', { width: 380, x: 90, y: 90 });
+    this.win = new Win('Configurar cena', { width: 380, x: 90, y: 90 });
     this.floor = new FloorEditorWin(app);
     this.win.onClose = () => {
       // desfaz prévia de escuridão não salva

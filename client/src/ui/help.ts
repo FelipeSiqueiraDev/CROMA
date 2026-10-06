@@ -17,7 +17,7 @@ export class HelpWin {
   readonly win: Win;
 
   constructor() {
-    this.win = new Win('Como jogar', { width: 460, y: 70 });
+    this.win = new Win('Como usar', { width: 460, y: 70 });
     this.win.body.append(
       h('dl', { class: 'help' }, ...ROWS.flatMap(([k, v]) => [h('dt', null, k), h('dd', null, v)])),
       h('p', { class: 'muted' }, 'Personagem → Enviar sprite sheet: imagem 4×4 (linhas ↙ ↘ ↖ ↗, colunas = quadros). Fundo branco sai sozinho.'),

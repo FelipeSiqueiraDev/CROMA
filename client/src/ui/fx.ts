@@ -15,7 +15,7 @@ export class FxWin {
 
   constructor(app: App) {
     this.app = app;
-    this.win = new Win('Clima da cena', { width: 330, x: innerWidth - 370, y: 80 });
+    this.win = new Win('Clima da cena', { width: 330, aoVivo: true });
     app.on('room', () => this.win.isOpen && this.render());
   }
 

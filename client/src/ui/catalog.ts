@@ -25,7 +25,7 @@ export class CatalogWin {
   constructor(app: App, place: StartPlace) {
     this.app = app;
     this.place = place;
-    this.win = new Win('Catálogo', { width: 560, x: 80, y: 70, cls: 'catalog' });
+    this.win = new Win('Construir', { width: 560, x: 80, y: 70, cls: 'catalog' });
     app.on('room', () => this.win.isOpen && this.render());
   }
 
@@ -123,7 +123,7 @@ export class InventoryWin {
   constructor(app: App, place: StartPlace) {
     this.app = app;
     this.place = place;
-    this.win = new Win('Inventário', { width: 400, x: innerWidth - 440, y: 90 });
+    this.win = new Win('Mobis guardados', { width: 400, x: innerWidth - 440, y: 90 });
     app.on('inventory', () => this.win.isOpen && this.render());
   }
 

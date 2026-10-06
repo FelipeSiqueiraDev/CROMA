@@ -19,7 +19,7 @@ import { RoomView } from './room/RoomView';
 import { App } from './ui/app';
 import { CatalogWin, InventoryWin } from './ui/catalog';
 import { CharactersWin } from './ui/characters';
-import { closeTopWindow, h, toast } from './ui/dom';
+import { closeTopWindow, fecharJanelas, h, toast } from './ui/dom';
 import { FxWin } from './ui/fx';
 import { HelpWin } from './ui/help';
 import { HintViewer } from './ui/infostand';
@@ -73,6 +73,8 @@ function endPlacement() {
 
 function startPlace(defId: string, invId?: number) {
   usedInv.clear();
+  // colocando no tabuleiro: as janelas saem da frente
+  fecharJanelas();
   const name = anyFurniName(defId);
   if (getWallFurni(defId)) app.view.startPlacement({ kind: 'wall', defId, invId });
   else {
