@@ -12,6 +12,9 @@ import { sfx } from './sfx';
  */
 type Tipo = FerramentaMesa['tipo'];
 
+/** A névoa revelada aos poucos aparece na barra? (docs/FERRAMENTAS-DA-MESA.md) */
+export const NEVOA_NA_TELA = false;
+
 const FORMAS: { id: FormaTraco; nome: string; icone: string }[] = [
   { id: 'livre', nome: 'À mão livre', icone: 'rabisco' },
   { id: 'seta', nome: 'Seta', icone: 'seta' },
@@ -60,7 +63,8 @@ export class FerramentasMesa {
         { class: 'bm-botoes' },
         botao('ponto', 'apontar', 'Apontar', 'P', 'Apontar: clique num lugar e a mesa pisca ali. Alt + clique aponta sem ligar'),
         botao('traco', 'giz', 'Desenhar', 'D', 'Desenhar: arraste no tabuleiro uma seta, um círculo ou um traço; some sozinho'),
-        botao('nevoa', 'nevoa', 'Névoa', 'N', 'Névoa: esconda a sala da mesa e vá mostrando aos poucos'),
+        // a Névoa fica pronta no código, mas fora da tela (o Felipe, 06/10: com as salas pequenas, não faz sentido por enquanto)
+        ...(NEVOA_NA_TELA ? [botao('nevoa', 'nevoa', 'Névoa', 'N', 'Névoa: esconda a sala da mesa e vá mostrando aos poucos')] : []),
         h(
           'button',
           { class: 'bv', type: 'button', title: 'Mapa improvisado: suba uma imagem e ela vira uma cena vista de cima', 'aria-label': 'Mapa improvisado', onclick: () => (sfx.click(), abrirMapaImprovisado(app)) },
@@ -116,7 +120,7 @@ export class FerramentasMesa {
       b.setAttribute('aria-pressed', String(f?.tipo === tipo));
     }
     // a névoa ligada na cena: o botão fica marcado mesmo sem o pincel
-    this.botoes.get('nevoa')!.classList.toggle('tem', !!n);
+    this.botoes.get('nevoa')?.classList.toggle('tem', !!n);
     this.opcoes.classList.toggle('hidden', !f || f.tipo === 'ponto');
     this.opcoes.replaceChildren(...(f?.tipo === 'traco' ? this.opcoesDesenho() : f?.tipo === 'nevoa' ? this.opcoesNevoa() : []));
   }

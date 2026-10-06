@@ -115,7 +115,7 @@ O C: encheu em 05/10 (0 bytes livres, o Docker parou). A pedido do Felipe, tudo 
 Tudo em [`FERRAMENTAS-DA-MESA.md`](FERRAMENTAS-DA-MESA.md). No canto de cima do tabuleiro do MAPA (e Apontar e Desenhar no COMBATE), só o mestre:
 - **Apontar (P, ou Alt + clique):** a mesa pisca no lugar (anéis dourados, feixe de luz).
 - **Desenhar (D):** giz à mão livre, seta ou círculo, em três cores; some em 9 s.
-- **Névoa (N):** cobrir a sala; o pincel mostra e esconde; abre sozinha em volta dos agentes que andam (decisão do Felipe: pincel e automática). Na mesa, o escondido some debaixo de uma fumaça; o mestre vê riscado.
+- **Névoa (N), guardada:** pronta no código, fora da tela a pedido do Felipe (salas pequenas: não faz sentido por enquanto; `NEVOA_NA_TELA`). Cobrir a sala; o pincel mostra e esconde; abre sozinha em volta dos agentes que andam (decisão do Felipe: pincel e automática). Na mesa, o escondido some debaixo de uma fumaça; o mestre vê riscado.
 - **Mapa:** a imagem vira uma cena vista de cima (decisão do Felipe: na vista tática), do tamanho em quadrados de 1,5 m, ligada à cena de agora por uma Entrada, levando os agentes.
 - Testes em `server/test/mesa.test.ts` (9). Visto no navegador, na prévia, com a mesa aberta ao lado.
 - **Falta:** a arte (`PROMPT-FERRAMENTAS-MESA.txt`: os 4 ícones e a textura da névoa); apagar o mapa improvisado pela tela; ver no tablet de verdade. Na prévia (`crona_visual`) ficou a cena de teste "Sede · armazem do porto".

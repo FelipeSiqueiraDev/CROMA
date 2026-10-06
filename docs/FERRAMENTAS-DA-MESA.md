@@ -15,6 +15,8 @@ As marcas (ponto e desenho) ficam em casas, no chão: aparecem iguais no isomét
 
 ## Névoa revelada aos poucos
 
+> **Guardada (06/10):** o Felipe achou sem sentido por enquanto: as salas são pequenas, e entrar numa sala sem ver metade dela não combina. O código fica pronto, mas o botão e a tecla N estão fora da tela (`NEVOA_NA_TELA = false` em `ferramentasMesa.ts`). A névoa do ☀ Clima (o ar sinistro) continua e ele gosta dela.
+
 Decidido pelo Felipe em 06/10: **pincel e automática**.
 
 - **Cobrir a sala** liga a névoa na cena: a mesa só vê em volta dos agentes que estão nela. Fica guardada na cena (`nevoa` no cômodo: uma letra por casa, `'1'` à vista), e volta igual quando o servidor sobe.

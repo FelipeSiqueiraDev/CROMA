@@ -34,6 +34,7 @@ import { NavigatorWin } from './ui/navigator';
 import { RoomSettingsWin } from './ui/roomSettings';
 import { forgetGmKey, readGmKey, tableName, tableRequested } from './session/access';
 import { montarTemas } from './ui/temaUi';
+import { NEVOA_NA_TELA } from './ui/ferramentasMesa';
 
 const LAST_ROOM = 'crona.lastRoom';
 const HOME_SEEN = 'crona.homeSeen';
@@ -539,7 +540,7 @@ window.addEventListener('keydown', (e) => {
   // P, D e N: as ferramentas da mesa (apontar, desenhar, névoa)
   const ferr = { p: 'ponto', d: 'traco', n: 'nevoa' } as const;
   const k = e.key.toLowerCase();
-  if (k in ferr && !v.placement && !e.ctrlKey && !e.metaKey && !e.altKey) {
+  if (k in ferr && (k !== 'n' || NEVOA_NA_TELA) && !v.placement && !e.ctrlKey && !e.metaKey && !e.altKey) {
     shell.ferramentas.alternar(ferr[k as keyof typeof ferr]);
     return;
   }
