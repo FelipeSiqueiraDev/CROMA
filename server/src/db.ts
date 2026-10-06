@@ -1,4 +1,4 @@
-import type { AvatarLook, CharacterDef, combate, Door, FichaSalva, FloorItem, FloorStyle, InvItem, LightMode, LogEntry, NevoaCena, NotaPlanta, Objective, ParticleKind, Vitals, WallItem } from '@crona/shared';
+import type { AvatarLook, CharacterDef, combate, Documento, Door, FichaSalva, FloorItem, FloorStyle, InvItem, LightMode, LogEntry, NevoaCena, NotaPlanta, Objective, ParticleKind, Vitals, WallItem } from '@crona/shared';
 import type { Banco } from './banco';
 import { BancoJson } from './banco/json';
 import type { Conta } from './contas';
@@ -118,6 +118,9 @@ export interface Database {
   /** fichas de personagem (motor de regras) */
   fichas?: FichaSalva[];
   nextFichaId?: number;
+  /** documentos da investigação que o mestre entrega (aba Docs do jogador) */
+  documentos?: Documento[];
+  nextDocId?: number;
   /** contas da plataforma (a tela de entrada; ver src/contas.ts) */
   contas?: Conta[];
   nextContaId?: number;

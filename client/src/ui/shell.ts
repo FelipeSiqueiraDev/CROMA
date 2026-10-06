@@ -20,6 +20,7 @@ import {
   type VitalKey,
   type Vitals,
   type CampaignState,
+  type Documento,
   type FichaSalva,
   type FloorItem,
   type Loot,
@@ -33,6 +34,7 @@ import {
   type SceneInfo,
   type WallItem,
 } from '@crona/shared';
+import { abrirDocumentos, documentosMudaram } from './documentos';
 import { breathMode, livePortrait, portraitCanvas } from '../render/portrait';
 import { sprites } from '../render/sprites';
 import { thumbCopy } from '../render/thumbs';
@@ -326,6 +328,7 @@ export class Shell {
   /** aba ITENS: a mochila de cada agente, pela ficha */
   private abaItens: AbaItens;
   private fichasMapa: FichaSalva[] = [];
+  private docs: Documento[] = [];
   private rpgTabsEl!: HTMLElement;
   private rpgBody!: HTMLElement;
   private rpgSig = '';
@@ -782,6 +785,7 @@ export class Shell {
       ['mochila', 'Mobis guardados', 'Os móveis tirados da cena, para pôr de novo.', act.inventory],
       ['ficha', 'Sprites dos personagens', 'As folhas de cada personagem e as poses.', act.characters],
       ['mapa', 'Todas as cenas', 'Abrir qualquer cena, de qualquer campanha.', act.navigator],
+      ['documento', 'Documentos', 'Relatórios, fotos e pistas para entregar aos agentes (aba Docs do celular).', () => this.abrirDocs()],
       ['livro', 'Como usar', 'Os atalhos e as ferramentas do mestre.', act.help],
     ];
     const cartao = (icone: NomeIcone, nome: string, texto: string, fazer: () => void) =>
@@ -1139,6 +1143,16 @@ export class Shell {
   }
 
   /** Fichas do servidor: a aba ITENS mostra a mochila de cada agente por elas. */
+  /** Os documentos da investigação (o mestre recebe todos). */
+  setDocs(docs: Documento[]) {
+    this.docs = docs;
+    documentosMudaram();
+  }
+
+  private abrirDocs() {
+    abrirDocumentos(this.app, { docs: () => this.docs, fichas: () => this.fichasMapa, campanha: () => this.campaign?.key });
+  }
+
   setFichasMapa(lista: FichaSalva[]) {
     this.fichasMapa = lista;
     // a mochila (ITENS) e as condições marcadas (PLAYERS) vêm das fichas

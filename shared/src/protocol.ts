@@ -4,6 +4,7 @@ import type { RollResult } from './dice';
 import type { FloorItem, FloorStyle, Hint, ParticleKind, WallItem } from './room';
 import type { CampaignState, LootKind } from './rpg';
 import type { PapelConta, Role, Session, SessionAction, Token } from './session';
+import type { Documento } from './documentos';
 import type { FichaSalva } from './fichas';
 import type { AcaoNevoa, MarcaMesa, NevoaCena } from './mesa';
 import type { TipoItemCatalogo } from './regras/ficha';
@@ -391,6 +392,12 @@ export type ClientMsg =
   /** põe ou tira uma modificação ou maldição de um item da mochila (só o mestre; LR p. 60 e 144) */
   | { t: 'mochilaMelhorar'; fichaId: number; uid: number; tipo: 'modificacao' | 'maldicao'; id: string; por: boolean }
   | { t: 'fichaApagar'; id: number }
+  /** documentos da investigação (docs/TELA-DO-JOGADOR.md): o mestre cria, muda e apaga */
+  | { t: 'docSalvar'; doc: Documento }
+  | { t: 'docApagar'; id: number }
+  /** o jogador marca um documento dele, ou passa para a equipe */
+  | { t: 'docMarcar'; id: number; marcado: boolean }
+  | { t: 'docEquipe'; id: number }
   /** gera (ou troca) o link do jogador para a ficha (só o mestre) */
   | { t: 'fichaLink'; id: number }
   /** combate da campanha da cena atual (só o mestre; docs/COMBATE.md) */
@@ -485,6 +492,8 @@ export type ServerMsg =
   /** resposta à senha digitada (só para quem digitou) */
   | { t: 'lockResult'; id: number; ok: boolean; reason?: string }
   /** todas as fichas (só para o mestre); `nova` = id da ficha que acabou de ser criada */
-  | { t: 'fichas'; fichas: FichaSalva[]; nova?: number }
+  | { t: 'fichas'; fichas: FichaSalva[]; nova?: number; equipe?: { id: number; nome: string }[] }
+  /** os documentos: todos para o mestre, os da ficha para o jogador */
+  | { t: 'docs'; docs: Documento[] }
   /** combate da campanha (a mesa recebe só a ordem, a rodada e a vez); null = sem combate */
   | { t: 'combate'; combate: Combate | null; podeDesfazer?: boolean; ameacas?: Record<string, FichaAmeaca> };

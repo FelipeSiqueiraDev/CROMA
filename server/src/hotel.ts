@@ -34,6 +34,10 @@ import {
   regras,
   combate as cmb,
   sanitizarFicha,
+  sanitizarDocumento,
+  documentoDaFicha,
+  documentoParaJogador,
+  MAX_DOCUMENTOS,
   type FichaSalva,
   ACOES_MOCHILA,
   itemParaLoot,
@@ -514,7 +518,7 @@ export class Hotel implements HotelApi {
     return true;
   }
 
-  /** O mestre mexe num item da mochila: mão, roupa, usar, entregar a outra ficha ou largar no chão. */
+  /** Um item da mochila: mão, roupa, usar, entregar a outra ficha ou largar no chão (o jogador, na dele). */
   private mochila(c: Client, m: Record<string, unknown>) {
     const err = (msg: string) => c.send({ t: 'error', msg });
     const f = (this.db.fichas ?? []).find((x) => x.id === m.fichaId);
@@ -523,6 +527,8 @@ export class Hotel implements HotelApi {
     const inv = f?.ficha.inventario ?? [];
     const item = inv.find((x) => x.uid === uid);
     if (!f || !item || !ACOES_MOCHILA.includes(acao)) return err('Item não encontrado.');
+    // o jogador mexe só na própria mochila, e larga no chão só o mestre (é o tabuleiro)
+    if (c.role !== 'gm' && (f.id !== c.fichaId || acao === 'largar')) return err('Você só pode mexer na sua mochila.');
     const nome = regras.nomeDoItem(item);
     let r: regras.ResultadoMochila;
     switch (acao) {
@@ -551,6 +557,7 @@ export class Hotel implements HotelApi {
       case 'entregar': {
         const para = (this.db.fichas ?? []).find((x) => x.id === m.para);
         if (!para || para === f) return err('Entregar para quem?');
+        if (c.role !== 'gm' && para.campanha !== f.campanha) return err('Só para quem está na sua equipe.');
         const s = regras.retirar(inv, uid);
         if (!s.ok) return err(s.motivo);
         const erro = this.naoCabe(para, s.item);
@@ -578,6 +585,77 @@ export class Hotel implements HotelApi {
     if (!r.ok) return err(r.motivo);
     if (r.inventario !== inv) this.trocarMochila(f, r.inventario);
     this.fichaMudou(f);
+  }
+
+  // ---------- documentos (aba Docs do jogador; docs/TELA-DO-JOGADOR.md) ----------
+
+  /** Manda os documentos: todos para o mestre, os da ficha para o jogador. */
+  private enviarDocs(so?: Client) {
+    const docs = this.db.documentos ?? [];
+    const fichas = this.db.fichas ?? [];
+    const para = (c: Client) => {
+      if (c.role === 'gm') return c.send({ t: 'docs', docs });
+      if (!c.fichaId) return;
+      const f = fichas.find((x) => x.id === c.fichaId);
+      c.send({ t: 'docs', docs: docs.filter((d) => documentoDaFicha(d, c.fichaId!, f?.campanha)).map((d) => documentoParaJogador(d, c.fichaId!)) });
+    };
+    if (so) return para(so);
+    for (const c of this.clients.values()) para(c);
+  }
+
+  /** O mestre cria ou muda um documento (as marcas dos jogadores ficam). */
+  private docSalvar(c: Client, m: Record<string, unknown>) {
+    const d = sanitizarDocumento(m.doc);
+    if (!d) return c.send({ t: 'error', msg: 'Documento sem título.' });
+    const lista = (this.db.documentos ??= []);
+    const antigo = d.id ? lista.find((x) => x.id === d.id) : undefined;
+    const fichas = new Set((this.db.fichas ?? []).map((f) => f.id));
+    d.para = d.para.filter((id) => fichas.has(id));
+    if (antigo) {
+      d.criadoEm = antigo.criadoEm;
+      if (antigo.marcadoPor) d.marcadoPor = antigo.marcadoPor;
+      else delete d.marcadoPor;
+      lista[lista.indexOf(antigo)] = d;
+    } else {
+      if (lista.length >= MAX_DOCUMENTOS) return c.send({ t: 'error', msg: `Limite de ${MAX_DOCUMENTOS} documentos.` });
+      d.id = Math.max(this.db.nextDocId ?? 1, ...lista.map((x) => x.id + 1));
+      this.db.nextDocId = d.id + 1;
+      delete d.marcadoPor;
+      lista.push(d);
+    }
+    this.save();
+    this.enviarDocs();
+  }
+
+  private docApagar(m: Record<string, unknown>) {
+    const lista = this.db.documentos ?? [];
+    const i = lista.findIndex((x) => x.id === m.id);
+    if (i < 0) return;
+    lista.splice(i, 1);
+    this.save();
+    this.enviarDocs();
+  }
+
+  /** O jogador marca um documento dele ou passa para a equipe. */
+  private docDoJogador(c: Client, m: Record<string, unknown>) {
+    const d = (this.db.documentos ?? []).find((x) => x.id === m.id);
+    const f = (this.db.fichas ?? []).find((x) => x.id === c.fichaId);
+    if (!d || !f || !documentoDaFicha(d, f.id, f.campanha)) return c.send({ t: 'error', msg: 'Documento não encontrado.' });
+    if (m.t === 'docEquipe') {
+      if (d.equipe) return;
+      d.equipe = true;
+      if (!d.campanha && f.campanha) d.campanha = f.campanha;
+      this.logDoPersonagem(f, 'user', `${f.nome} passou "${d.titulo}" para a equipe.`, c.room);
+    } else {
+      const marcados = new Set(d.marcadoPor ?? []);
+      if (m.marcado === true) marcados.add(f.id);
+      else marcados.delete(f.id);
+      if (marcados.size) d.marcadoPor = [...marcados];
+      else delete d.marcadoPor;
+    }
+    d.atualizadoEm = new Date().toISOString();
+    this.save();
+    this.enviarDocs();
   }
 
   /** Item do catálogo novo na mochila (requisitado à Ordem: conta na patente). */
@@ -712,7 +790,9 @@ export class Hotel implements HotelApi {
       if (c.role === 'gm') return c.send({ t: 'fichas', fichas: todas, nova });
       if (!c.fichaId) return;
       const minha = todas.find((f) => f.id === c.fichaId);
-      c.send({ t: 'fichas', fichas: minha ? [{ ...minha, chave: undefined }] : [] });
+      // a equipe (para entregar um item): os outros agentes da mesma campanha, só o nome
+      const equipe = minha ? todas.filter((f) => f !== minha && f.campanha === minha.campanha).map((f) => ({ id: f.id, nome: f.nome })) : [];
+      c.send({ t: 'fichas', fichas: minha ? [{ ...minha, chave: undefined }] : [], equipe });
     };
     if (so) return para(so);
     for (const c of this.clients.values()) para(c);
@@ -1498,6 +1578,16 @@ export class Hotel implements HotelApi {
       case 'fichaApagar':
         this.fichaApagar(c, m);
         return;
+      case 'docSalvar':
+        this.docSalvar(c, m);
+        return;
+      case 'docApagar':
+        this.docApagar(m);
+        return;
+      case 'docMarcar':
+      case 'docEquipe':
+        this.docDoJogador(c, m);
+        return;
       case 'mochila':
         this.mochila(c, m);
         return;
@@ -1625,7 +1715,10 @@ export class Hotel implements HotelApi {
     this.save();
     c.send({ t: 'welcome', id: c.id, name, look: c.look, token: c.token, inventory: ud.inventory, home: this.db.home, role });
     c.send({ t: 'roomList', rooms: this.roomList() });
-    if (role === 'gm' || c.fichaId) this.enviarFichas(c);
+    if (role === 'gm' || c.fichaId) {
+      this.enviarFichas(c);
+      this.enviarDocs(c);
+    }
     if (this.persist) console.log(`[hotel] ${name} entrou (${role === 'gm' ? 'mestre' : 'jogador'})`);
   }
 

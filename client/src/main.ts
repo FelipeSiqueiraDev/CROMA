@@ -371,7 +371,11 @@ net.onMessage = (m: ServerMsg) => {
       shell?.fichas.setFichas(m.fichas, m.nova);
       shell?.setFichasMapa(m.fichas);
       shell?.combate.setFichas(m.fichas);
-      telaFicha?.fichas.setFichas(m.fichas, m.nova);
+      telaFicha?.setFichas(m.fichas, m.nova, m.equipe);
+      break;
+    case 'docs':
+      telaFicha?.jogo.setDocs(m.docs);
+      shell?.setDocs(m.docs);
       break;
     case 'combate':
       shell?.combate.setCombate(m.combate, m.podeDesfazer, m.ameacas);

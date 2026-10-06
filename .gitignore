@@ -21,6 +21,7 @@ docs/ref-combate.webp
 docs/ref-itens.jpg
 docs/ref-mapa-3.webp
 docs/ref-combate-2.webp
+docs/ref-jogador-*.webp
 
 # as cópias leves da arte (scripts/webp.mjs), feitas no computador do jogo
 client/public/arte/**/*.png.webp

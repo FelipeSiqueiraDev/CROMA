@@ -1,12 +1,14 @@
 /**
- * Tela do jogador (link ?ficha=CHAVE que o mestre manda): só a ficha dele,
- * pensada para o celular. MAPA e COMBATE aparecem na barra, mas ficam com o
- * mestre; NEX e pontos de prestígio também.
+ * Tela do jogador (link ?ficha=CHAVE que o mestre manda, ou a conta dele): abre no modo jogo
+ * (TelaJogador: Agente, Mochila, Poderes, Rituais, Docs, Notas), pensado para o celular; a ficha
+ * inteira fica na engrenagem. NEX e pontos de prestígio ficam com o mestre.
  */
+import type { FichaSalva } from '@crona/shared';
 import type { App } from './app';
 import { h } from './dom';
+import { botao, janela } from './fichaModal';
 import { FichasScreen } from './fichas';
-import { ic } from './icons';
+import { TelaJogador } from './jogador';
 import { sfx } from './sfx';
 import { TopBar } from './topbar';
 
@@ -44,31 +46,62 @@ export function esquecerChaveFicha() {
 export class TelaFicha {
   readonly el: HTMLElement;
   readonly fichas: FichasScreen;
+  /** o modo jogo (abre nele); a ficha inteira fica na engrenagem */
+  readonly jogo: TelaJogador;
+  private completa: HTMLElement;
   private aviso: HTMLElement;
 
   constructor(app: App, sair: () => void) {
     this.fichas = new FichasScreen(app, { jogador: true });
-    const som = h('button', { role: 'menuitemcheckbox', onclick: () => (sfx.setEnabled(!sfx.enabled), desenharSom()) });
-    const desenharSom = () => som.replaceChildren(ic('sol'), sfx.enabled ? 'Sons: ligados' : 'Sons: desligados');
-    desenharSom();
-    const menu = h('div', { class: 'tb2-menu hidden', role: 'menu' }, som);
+    this.jogo = new TelaJogador(app, { fichaCompleta: () => this.verCompleta(true), menu: () => this.menu(), sair });
     const topo = new TopBar({
       abas: [
-        { id: 'MAPA', rotulo: 'MAPA', icone: 'mapa', fora: true },
-        { id: 'COMBATE', rotulo: 'COMBATE', icone: 'espadas', fora: true },
-        { id: 'FICHAS', rotulo: 'FICHAS', icone: 'ficha' },
+        { id: 'JOGO', rotulo: 'JOGO', icone: 'esquerda' },
+        { id: 'FICHAS', rotulo: 'FICHA', icone: 'ficha' },
       ],
       ativa: 'FICHAS',
-      aoTrocar: () => {},
+      aoTrocar: (id) => id === 'JOGO' && this.verCompleta(false),
       botoes: [
-        { id: 'config', icone: 'engrenagem', titulo: 'Configurações', cheio: true, onclick: (e) => (e.stopPropagation(), menu.classList.toggle('hidden')) },
+        { id: 'config', icone: 'engrenagem', titulo: 'Menu', cheio: true, onclick: (e) => (e.stopPropagation(), this.menu()) },
         { id: 'sair', icone: 'sair', titulo: 'Sair', sair: true, onclick: () => sair() },
       ],
     });
-    topo.botoes.get('config')!.parentElement!.append(menu);
-    document.addEventListener('click', () => menu.classList.add('hidden'));
+    this.completa = h('div', { class: 'tf-completa hidden' }, topo.el, this.fichas.el);
     this.aviso = h('div', { class: 'tf-aviso hidden' });
-    this.el = h('div', { class: 'tela-ficha hidden' }, topo.el, this.fichas.el, this.aviso);
+    this.el = h('div', { class: 'tela-ficha hidden' }, this.jogo.el, this.completa, this.aviso);
+  }
+
+  /** As fichas chegaram (só a dele) e a equipe, para entregar itens. */
+  setFichas(fichas: FichaSalva[], nova?: number, equipe?: { id: number; nome: string }[]) {
+    this.fichas.setFichas(fichas, nova);
+    this.jogo.setFicha(fichas[0] ?? null);
+    if (equipe) this.jogo.setEquipe(equipe);
+  }
+
+  private verCompleta(sim: boolean) {
+    sfx.paper();
+    this.completa.classList.toggle('hidden', !sim);
+    this.jogo.el.classList.toggle('hidden', sim);
+    if (sim) this.fichas.show();
+  }
+
+  /** A engrenagem: a ficha completa e o som. */
+  private menu() {
+    const naFicha = !this.completa.classList.contains('hidden');
+    const j = janela('MENU', 'engrenagem', () => {}, 30);
+    const som = botao(sfx.enabled ? 'Sons: ligados' : 'Sons: desligados', 'sol', '', () => {
+      sfx.setEnabled(!sfx.enabled);
+      som.querySelector('span')!.textContent = sfx.enabled ? 'Sons: ligados' : 'Sons: desligados';
+    });
+    j.el.classList.add('tela-toda');
+    j.corpo.append(
+      h(
+        'div',
+        { class: 'tf-menu' },
+        botao(naFicha ? 'Voltar ao jogo' : 'Ficha completa', naFicha ? 'esquerda' : 'ficha', 'forte', () => (j.fechar(), this.verCompleta(!naFicha))),
+        som,
+      ),
+    );
   }
 
   show() {
