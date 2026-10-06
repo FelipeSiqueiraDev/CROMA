@@ -119,8 +119,6 @@ describe('tela do jogador: as três telas juntas', () => {
     jog.send({ t: 'mochila', fichaId: ficha('Catarina Albuquerque').id, uid: katana.uid!, acao: 'empunhar' });
     assert.equal(regras.lugarDoItem(ficha('Catarina Albuquerque').ficha.inventario.find((x) => x.uid === katana.uid)!), 'mao');
     assert.equal(sessao(mesa).characters.find((c) => c.name === 'Catarina Albuquerque')!.armed, true, 'a peça fica armada');
-    jog.send({ t: 'mochila', fichaId: ficha('Catarina Albuquerque').id, uid: katana.uid!, acao: 'largar' });
-    assert.match(jog.last('error')!.msg, /sua mochila/);
     gm.send({ t: 'mochilaNova', fichaId: ficha('D.Tepes').id, tipo: 'arma', id: 'faca' });
     const faca = ficha('D.Tepes').ficha.inventario.find((x) => x.id === 'faca')!;
     jog.send({ t: 'mochila', fichaId: ficha('D.Tepes').id, uid: faca.uid!, acao: 'empunhar' });
@@ -128,6 +126,16 @@ describe('tela do jogador: as três telas juntas', () => {
     jog.send({ t: 'mochila', fichaId: ficha('Catarina Albuquerque').id, uid: katana.uid!, acao: 'entregar', para: ficha('D.Tepes').id });
     assert.ok(ficha('D.Tepes').ficha.inventario.some((x) => x.uid === katana.uid), 'entregou');
     assert.deepEqual(jog.last('fichas')!.equipe?.map((x) => x.nome), ['D.Tepes']);
+  });
+
+  test('largar: o item sai da mochila e vai para o chão, na casa da peça; o mestre e a mesa veem a pilha', () => {
+    gm.send({ t: 'mochilaNova', fichaId: ficha('Catarina Albuquerque').id, tipo: 'arma', id: 'faca' });
+    const faca = ficha('Catarina Albuquerque').ficha.inventario.find((x) => x.id === 'faca')!;
+    jog.send({ t: 'mochila', fichaId: ficha('Catarina Albuquerque').id, uid: faca.uid!, acao: 'largar' });
+    assert.ok(!ficha('Catarina Albuquerque').ficha.inventario.some((x) => x.uid === faca.uid), 'saiu da mochila');
+    const pilha = hotel.rooms.get(sala)!.map.allItems().find((it) => it.loot?.some((l) => l.id === faca.uid));
+    assert.ok(pilha, `está no chão (${jog.last('error')?.msg ?? ''})`);
+    assert.equal(pilha!.loot!.find((l) => l.id === faca.uid)!.item?.id, 'faca', 'com o item (a arte sai dele)');
   });
 });
 

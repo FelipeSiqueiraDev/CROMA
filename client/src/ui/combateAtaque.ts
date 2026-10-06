@@ -41,6 +41,8 @@ export interface ArmaOpcao {
   naMao?: boolean;
   /** o item da mochila (para sacar) */
   uid?: number;
+  /** a jogada pronta do agente (regras/jogadas.ts): já somada; os PE saem junto com o ataque */
+  jogada?: { nome: string; pe: number; linhas: string[]; erros: string[]; avisos: string[]; nota?: string };
 }
 
 export interface AlvoAtaque {
@@ -322,7 +324,9 @@ export class ResolucaoAtaque {
                 )
               : null,
           )
-        : h(
+        : a.jogada
+          ? this.cartaoJogada(x, a, i)
+          : h(
         'button',
         {
           class: `cb-arma${i === this.e.arma ? ' on' : ''}`,
@@ -357,6 +361,40 @@ export class ResolucaoAtaque {
       { class: 'cb-col cb-col-arma' },
       h('h4', null, h('span', null, '1.'), ' ARMA'),
       h('div', { class: 'cb-col-lista cb-rola' }, ...(cards.length ? cards : [h('p', { class: 'cb-vazio' }, 'Sem ataques: crie a ficha da ameaça no painel do alvo.')])),
+    );
+  }
+
+  /** A jogada pronta: o nome, o que ela soma (passo a passo) e o que o motor achou. Com erro, não escolhe. */
+  private cartaoJogada(x: CtxAtaque, a: ArmaOpcao, i: number): HTMLElement {
+    const jg = a.jogada!;
+    const on = i === this.e.arma;
+    const travada = jg.erros.length > 0;
+    return h(
+      'button',
+      {
+        class: `cb-arma cb-jogada${on ? ' on' : ''}${travada ? ' travada' : ''}`,
+        type: 'button',
+        disabled: travada && !on,
+        'aria-pressed': String(on),
+        title: travada ? jg.erros.join(' · ') : `Jogada pronta: ${jg.linhas.join('; ')}`,
+        onclick: () => {
+          if (travada) return;
+          sfx.click();
+          this.e.arma = i;
+          this.e.d20 = this.e.d10 = this.e.soma = this.e.somaExtra = null;
+          x.mudou();
+        },
+      },
+      h('span', { class: 'cb-arma-ic' }, ic('estrela')),
+      h(
+        'span',
+        { class: 'cb-arma-txt' },
+        h('b', null, jg.nome, jg.pe ? h('em', { class: 'cb-jogada-pe' }, ` ${jg.pe} PE`) : null),
+        ...(on || travada ? jg.linhas.map((l) => h('small', null, l)) : [h('small', null, `${a.pericia === 'luta' ? 'Luta' : 'Pontaria'} ${textoTeste(a.dados, a.bonus, a.penalidade)} · ${a.dano} · ${a.margem}/${JUNTA}×${a.multiplicador}`)]),
+        ...jg.erros.map((e) => h('small', { class: 'cb-jogada-erro' }, '✕ ', e)),
+        ...(on ? jg.avisos.map((e) => h('small', { class: 'cb-jogada-aviso' }, '! ', e)) : []),
+        on && jg.nota ? h('small', { class: 'cb-jogada-nota' }, `“${jg.nota}”`) : null,
+      ),
     );
   }
 
@@ -558,7 +596,7 @@ export class ResolucaoAtaque {
       {
         class: 'cb-bt forte',
         type: 'button',
-        disabled: !pronto || semAcao,
+        disabled: !pronto || semAcao || !!arma?.jogada?.erros.length,
         title: semAcao ? 'A ação padrão deste turno já foi usada' : 'Aplica o dano e escreve no registro',
         onclick: () => {
           if (!arma || !alvo || !k.res || !k.teste) return;
@@ -601,6 +639,7 @@ export class ResolucaoAtaque {
               : {}),
             ...(k.res.resultado === 'erro' && !arma.faixa && alvo.agente && alvo.reacoes?.contraAtaque && !alvo.p.reacao ? { contraAtaque: true } : {}),
             ...(arma.vezes ? { vezes: arma.vezes } : {}),
+            ...(arma.jogada ? { jogada: { nome: arma.jogada.nome, pe: arma.jogada.pe } } : {}),
           };
           x.enviar({ tipo: 'ataque', ataque });
           this.e.d20 = this.e.d10 = this.e.soma = this.e.somaExtra = null;

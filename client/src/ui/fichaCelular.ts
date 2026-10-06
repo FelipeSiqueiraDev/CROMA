@@ -16,8 +16,9 @@ import { sprites } from '../render/sprites';
 import type { App } from './app';
 import { h, toast } from './dom';
 import { botao, escolher, janela } from './fichaModal';
-import { escolherCampo, escolherPendencia, GRAU_CURTO, NOME_ATR, NOME_GRAU, periciasCriacao, podeMudarAtributo, pontosAtributo, textoTeste, type Campo } from './fichaRegras';
+import { escolherCampo, escolherPendencia, GRAU_CURTO, infoItem, NOME_ATR, NOME_GRAU, periciasCriacao, podeMudarAtributo, pontosAtributo, textoTeste, type Campo } from './fichaRegras';
 import { abrirRequisicao } from './requisicao';
+import { arteDoItem } from './arteItem';
 import { arte, arteOu, ic, type NomeIcone } from './icons';
 import { sfx } from './sfx';
 import { vestirTema } from './temaUi';
@@ -46,6 +47,8 @@ export class FichaCelular {
   constructor(
     private app: App,
     voltar: () => void,
+    /** abre o item no mesmo modal da aba Mochila */
+    private abrirItem: (uid: number) => void,
   ) {
     const topo = h(
       'header',
@@ -432,7 +435,20 @@ export class FichaCelular {
 
   private cartaoEquipamento(fs: FichaSalva, c: Calc) {
     const vagas = c.itens.filter((l) => l.limite > 0);
+    const itens = fs.ficha.inventario.filter((it) => it.uid);
     return this.cartao('EQUIPAMENTO', 'titulo-equipamentos', 'mochila', [
+      h(
+        'div',
+        { class: 'fc-casas' },
+        ...itens.map((it) =>
+          h(
+            'button',
+            { class: `jg-casa${regras.lugarDoItem(it) !== 'mochila' ? ' usado' : ''}`, type: 'button', title: regras.nomeDoItem(it), onclick: (e: Event) => (e.stopPropagation(), sfx.paper(), this.abrirItem(it.uid!)) },
+            h('span', { class: 'jg-casa-arte' }, arteDoItem(it, infoItem(it, c).icone)),
+            (it.qtd ?? 1) > 1 ? h('span', { class: 'jg-casa-q' }, `x${it.qtd}`) : null,
+          ),
+        ),
+      ),
       h('p', { class: 'fc-nota' }, `${numero(c.carga.usados)}/${c.carga.espacos} espaços · ${vagas.map((l) => `cat. ${['0', 'I', 'II', 'III', 'IV'][l.categoria]} ${l.usados}/${l.limite}`).join(' · ') || 'patente sem limite de categoria'}`),
       botao('Pedir itens à Ordem', 'mais', 'forte', () => {
         const r = clone(fs);

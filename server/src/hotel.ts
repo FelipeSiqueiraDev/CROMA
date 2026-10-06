@@ -85,7 +85,6 @@ const GM_ONLY = new Set([
   'docSalvar',
   'docApagar',
   'mochilaNova',
-  'mochilaMelhorar',
   'interludio',
   'bonusInterludio',
   'place',
@@ -528,8 +527,8 @@ export class Hotel implements HotelApi {
     const inv = f?.ficha.inventario ?? [];
     const item = inv.find((x) => x.uid === uid);
     if (!f || !item || !ACOES_MOCHILA.includes(acao)) return err('Item não encontrado.');
-    // o jogador mexe só na própria mochila, e larga no chão só o mestre (é o tabuleiro)
-    if (c.role !== 'gm' && (f.id !== c.fichaId || acao === 'largar')) return err('Você só pode mexer na sua mochila.');
+    // o jogador mexe só na própria mochila (largar põe o item no chão, onde a peça dele está)
+    if (c.role !== 'gm' && f.id !== c.fichaId) return err('Você só pode mexer na sua mochila.');
     const nome = regras.nomeDoItem(item);
     let r: regras.ResultadoMochila;
     switch (acao) {
@@ -571,7 +570,8 @@ export class Hotel implements HotelApi {
         return;
       }
       case 'largar': {
-        const sala = this.salaDoPersonagem(f.personagem, c.room);
+        // o jogador não está numa cena: vale a que o mestre está jogando (a da mesa), se a peça estiver lá
+        const sala = this.salaDoPersonagem(f.personagem, c.room ?? (this.db.liveScene !== undefined ? this.rooms.get(this.db.liveScene) : undefined));
         if (!sala || !f.personagem) return err(`${f.nome} não está no tabuleiro.`);
         const s = regras.retirar(inv, uid);
         if (!s.ok) return err(s.motivo);
@@ -751,8 +751,13 @@ export class Hotel implements HotelApi {
     const f = (this.db.fichas ?? []).find((x) => x.id === m.fichaId);
     const i = f ? f.ficha.inventario.findIndex((x) => x.uid === m.uid) : -1;
     if (!f || i < 0 || (m.tipo !== 'modificacao' && m.tipo !== 'maldicao') || typeof m.id !== 'string') return c.send({ t: 'error', msg: 'Item não encontrado.' });
-    // só o que serve para o item (a lista do motor)
-    if (!regras.opcoesDeMelhoria(f.ficha, i).some((o) => o.tipo === m.tipo && o.id === m.id)) return c.send({ t: 'error', msg: 'Isso não vai neste item.' });
+    // só o que serve para o item (a lista do motor); o jogador, só na própria mochila e sem passar por cima da regra
+    const op = regras.opcoesDeMelhoria(f.ficha, i).find((o) => o.tipo === m.tipo && o.id === m.id);
+    if (!op) return c.send({ t: 'error', msg: 'Isso não vai neste item.' });
+    if (c.role !== 'gm') {
+      if (f.id !== c.fichaId) return c.send({ t: 'error', msg: 'Você só pode mexer na sua mochila.' });
+      if (!op.ok) return c.send({ t: 'error', msg: `${op.motivos[0] ?? 'A regra não deixa.'} Peça ao mestre.` });
+    }
     const it = f.ficha.inventario[i];
     const campo = m.tipo === 'modificacao' ? 'modificacoes' : 'maldicoes';
     const lista = (it[campo] ?? []).filter((x) => x !== m.id);
@@ -760,6 +765,7 @@ export class Hotel implements HotelApi {
     const novo: regras.ItemFicha = { ...it, [campo]: lista };
     if (!lista.length) delete novo[campo];
     this.trocarMochila(f, f.ficha.inventario.map((x, j) => (j === i ? novo : x)));
+    if (c.role !== 'gm') this.logDoPersonagem(f, 'user', `${f.nome} ${m.por === true ? 'pôs' : 'tirou'} ${op.nome} ${m.por === true ? 'em' : 'de'} ${regras.nomeDoItem(it)}.`, c.room);
     this.fichaMudou(f);
   }
 

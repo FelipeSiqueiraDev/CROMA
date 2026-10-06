@@ -51,7 +51,7 @@ export class TelaFicha {
 
   constructor(app: App, sair: () => void) {
     this.jogo = new TelaJogador(app, { fichaCompleta: () => this.verFicha(true), menu: () => this.menu(), sair });
-    this.ficha = new FichaCelular(app, () => this.verFicha(false));
+    this.ficha = new FichaCelular(app, () => this.verFicha(false), (uid) => this.jogo.abrirItem(uid));
     this.aviso = h('div', { class: 'tf-aviso hidden' });
     this.el = h('div', { class: 'tela-ficha hidden' }, this.jogo.el, this.ficha.el, this.aviso);
   }

@@ -2645,3 +2645,32 @@ button.cb-barra {
   opacity: 0.45;
   cursor: default;
 }
+
+/* as jogadas prontas na coluna da arma: o dourado da jogada, o erro em vermelho, o aviso em âmbar */
+.cb-jogada {
+  border-color: #b8913f !important;
+  background: linear-gradient(rgba(201, 162, 90, 0.16), rgba(201, 162, 90, 0.05)) !important;
+}
+.cb-jogada .cb-arma-ic {
+  color: #f0c25a;
+}
+.cb-jogada.travada {
+  border-color: #8a2219 !important;
+  background: rgba(138, 34, 25, 0.12) !important;
+  opacity: 0.85;
+}
+.cb-jogada-pe {
+  font-style: normal;
+  color: #3d8df0;
+  font-weight: 700;
+}
+.cb-jogada-erro {
+  color: #ff8f80 !important;
+}
+.cb-jogada-aviso {
+  color: #f2c879 !important;
+}
+.cb-jogada-nota {
+  font-style: italic;
+  opacity: 0.85;
+}

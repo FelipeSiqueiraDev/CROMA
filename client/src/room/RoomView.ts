@@ -2,6 +2,8 @@ import {
   DEFAULT_PARTICLE_LEVEL,
   footprint,
   getFurni,
+  PILHA_CHAO,
+  regras as regrasShared,
   getWallFurni,
   playerColorFor,
   RoomMap,
@@ -1696,6 +1698,40 @@ export class RoomView {
 
     for (const real of map.allItems()) {
       if (esconde && this.itemOculto(real)) continue;
+      // o que alguém largou no chão: a arte pintada do item (a mesma da mochila), deitada na casa
+      if (real.defId === PILHA_CHAO && real.loot?.length) {
+        const imgs = real.loot.slice(0, 3).map((l) => imagemDoMapa(`/arte/itens/pintados/${l.item?.id ?? regrasShared.slug(l.name)}.png`)).filter((x): x is HTMLImageElement => !!x);
+        if (imgs.length) {
+          const z = real.z;
+          const box: WBox = { x0: real.x, x1: real.x + 1, y0: real.y, y1: real.y + 1, z0: z, z1: z + 0.2 };
+          const [cx, cy] = iso(real.x + 0.5, real.y + 0.5, z);
+          const T = 34;
+          drawables.push({
+            box,
+            sx0: cx - T,
+            sx1: cx + T,
+            sy0: cy - T - 6,
+            sy1: cy + 8,
+            draw: () => {
+              // a sombra no chão e os itens um pouco espalhados, o primeiro na frente
+              ctx.fillStyle = 'rgba(0,0,0,0.35)';
+              ctx.beginPath();
+              ctx.ellipse(cx, cy + 2, T * 0.7, T * 0.28, 0, 0, Math.PI * 2);
+              ctx.fill();
+              imgs
+                .map((img, i) => ({ img, dx: [0, -14, 13][i], dy: [0, -6, -8][i] }))
+                .reverse()
+                .forEach(({ img, dx, dy }) => {
+                  const k = T / Math.max(img.naturalWidth, img.naturalHeight);
+                  const w = img.naturalWidth * k;
+                  const h = img.naturalHeight * k;
+                  ctx.drawImage(img, cx + dx - w / 2, cy + dy - h + 6, w, h);
+                });
+            },
+          });
+          continue;
+        }
+      }
       const it = this.slides.size ? this.slidPos(real, now) : real;
       const moving = place?.kind === 'floor' && place.moveId === it.id;
       const topZ = addFurni(it, moving ? 0.35 : 1, sel?.kind === 'floor' && sel.id === it.id, false);

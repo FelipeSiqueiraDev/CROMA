@@ -27,19 +27,21 @@ import type { App } from './app';
 import { arteDoItem } from './arteItem';
 import { CorpoView } from './corpo';
 import { h, toast } from './dom';
-import { botao, confirmar, janela } from './fichaModal';
+import { botao, confirmar, escolher, janela } from './fichaModal';
+import { opcoesMelhoria } from './melhorias';
 import { infoItem, NOME_ELEMENTO, textoRef } from './fichaRegras';
 import { arte, arteOu, ic, type NomeIcone } from './icons';
 import { sfx } from './sfx';
 import { vestirTema } from './temaUi';
 
 type Calc = regras.Calculado;
-type Aba = 'agente' | 'mochila' | 'poderes' | 'rituais' | 'docs' | 'notas';
+type Aba = 'agente' | 'mochila' | 'ataques' | 'poderes' | 'rituais' | 'docs' | 'notas';
 const cat = regras.catalogo;
 
 const ABAS: { id: Aba; rotulo: string; icone: NomeIcone; pintado?: string }[] = [
   { id: 'agente', rotulo: 'Agente', icone: 'pessoa', pintado: 'titulo-atributos' },
   { id: 'mochila', rotulo: 'Mochila', icone: 'mochila', pintado: 'titulo-inventario' },
+  { id: 'ataques', rotulo: 'Ataques', icone: 'espadas', pintado: 'combate-atacar' },
   { id: 'poderes', rotulo: 'Poderes', icone: 'estrela', pintado: 'titulo-poderes' },
   { id: 'rituais', rotulo: 'Rituais', icone: 'pentagrama', pintado: 'titulo-rituais' },
   { id: 'docs', rotulo: 'Docs', icone: 'documento', pintado: 'topo-registro' },
@@ -340,6 +342,7 @@ export class TelaJogador {
     const partes: Record<Aba, () => Node[]> = {
       agente: () => this.abaAgente(),
       mochila: () => this.abaMochila(),
+      ataques: () => this.abaAtaques(),
       poderes: () => this.abaPoderes(),
       rituais: () => this.abaRituais(),
       docs: () => this.abaDocs(),
@@ -422,10 +425,12 @@ export class TelaJogador {
     const casas: HTMLElement[] = inv.map((it) => {
       const inf = infoItem(it, c);
       const lugar = regras.lugarDoItem(it);
+      const aura = auraDoItem(it);
       return h(
         'button',
-        { class: `jg-casa${lugar !== 'mochila' ? ' usado' : ''}`, type: 'button', title: inf.nome, 'aria-label': inf.nome, onclick: () => (sfx.paper(), this.abrirItem(it.uid!)) },
+        { class: `jg-casa${lugar !== 'mochila' ? ' usado' : ''}${aura ? ` aura ${aura}` : ''}`, type: 'button', title: inf.nome, 'aria-label': inf.nome, onclick: () => (sfx.paper(), this.abrirItem(it.uid!)) },
         h('span', { class: 'jg-casa-arte' }, arteDoItem(it, inf.icone)),
+        selosDoItem(it),
         (it.qtd ?? 1) > 1 ? h('span', { class: 'jg-casa-q' }, `x${it.qtd}`) : null,
         lugar !== 'mochila' ? h('span', { class: 'jg-casa-lugar', title: lugar === 'mao' ? 'Na mão' : 'Vestido' }, pintado(lugar === 'mao' ? IC.armado : 'protecao', lugar === 'mao' ? 'mao' : 'colete')) : null,
       );
@@ -442,7 +447,7 @@ export class TelaJogador {
   }
 
   /** O item num modal: a arte, o nome, o peso, o que faz e o que dá para fazer com ele. */
-  private abrirItem(uid: number) {
+  abrirItem(uid: number) {
     const it = this.fs?.ficha.inventario.find((x) => x.uid === uid);
     if (!it) return;
     const inf = infoItem(it, this.calc);
@@ -465,13 +470,22 @@ export class TelaJogador {
         }),
       );
     if (this.equipe.length) acoes.push(botao('Entregar', 'pessoa', '', () => (j.fechar(), this.entregar(it, inf.nome))));
+    // modificações e maldições do livro: o motor diz o que cabe (a patente sobe a categoria); o mestre vê no registro
+    if (it.tipo === 'arma' || it.tipo === 'protecao' || it.tipo === 'equipamento') acoes.push(botao('Modificar', 'engrenagem', '', () => (j.fechar(), this.modificar(uid))));
+    acoes.push(
+      botao('Largar', 'lixo', 'perigo', async () => {
+        if (!(await confirmar(`LARGAR ${inf.nome.toUpperCase()}?`, 'O item sai da mochila e fica no chão, na casa onde você está. Qualquer um pode pegar.', 'Largar', true))) return;
+        this.mochila(uid, 'largar');
+        j.fechar();
+      }),
+    );
     const campo = (rot: string, valor: string) => h('div', { class: 'jg-mi-campo' }, h('small', null, rot), h('b', null, valor));
     const efeito = [inf.efeito, inf.obs].filter((x) => x && x !== '—').join(' · ');
     j.corpo.append(
       h(
         'div',
         { class: 'jg-mi' },
-        h('div', { class: 'jg-mi-arte' }, arteDoItem(it, inf.icone)),
+        h('div', { class: `jg-mi-arte${auraDoItem(it) ? ` aura ${auraDoItem(it)}` : ''}` }, arteDoItem(it, inf.icone), selosDoItem(it)),
         h(
           'div',
           { class: 'jg-mi-campos' },
@@ -482,11 +496,41 @@ export class TelaJogador {
         ),
         efeito ? h('p', { class: 'jg-mi-efeito' }, efeito) : null,
         resumo ? h('p', { class: 'jg-mi-txt' }, resumo) : null,
+        ...melhoriasDoItem(it),
         inf.ref ? h('p', { class: 'jg-det-meta' }, textoRef(inf.ref)) : null,
       ),
     );
     if (acoes.length) j.rodape.append(...acoes);
     else j.rodape.append(h('span', { class: 'fj-esp' }), botao('Fechar', 'ok', 'forte', () => j.fechar()));
+  }
+
+  /** As modificações e maldições do item: liga e desliga cada uma, e o servidor confere com a regra. */
+  private modificar(uid: number) {
+    const fs = this.fs;
+    if (!fs) return;
+    const i = fs.ficha.inventario.findIndex((x) => x.uid === uid);
+    if (i < 0) return;
+    const it = fs.ficha.inventario[i];
+    const tem = [...(it.modificacoes ?? []).map((m) => `modificacao:${m}`), ...(it.maldicoes ?? []).map((m) => `maldicao:${m}`)];
+    void escolher(
+      {
+        titulo: `Modificar: ${regras.nomeDoItem(it)}`,
+        dica: 'Cada modificação sobe a categoria do item em I; a primeira maldição em II e as outras em I (LR p. 60 e 144). A patente precisa caber.',
+        qtd: 20,
+        podeVazio: true,
+        opcoes: () => opcoesMelhoria(fs.ficha, i, 'todas', false),
+        atual: () => tem,
+        aplicar: (ids) => {
+          for (const id of new Set([...tem, ...ids])) {
+            const por = ids.includes(id);
+            if (por === tem.includes(id)) continue;
+            const [tipo, mid] = id.split(':') as ['modificacao' | 'maldicao', string];
+            this.app.net.send({ t: 'mochilaMelhorar', fichaId: fs.id, uid, tipo, id: mid, por });
+          }
+        },
+      },
+      () => {},
+    );
   }
 
   private entregar(it: regras.ItemFicha, nome: string) {
@@ -501,6 +545,176 @@ export class TelaJogador {
         ),
       ),
     );
+  }
+
+  // ---------------------------------------------------------------- Ataques e jogadas prontas
+
+  private abaAtaques(): Node[] {
+    const fs = this.fs!;
+    const c = this.calc!;
+    const v = this.vit();
+    const cartaoAtaque = (a: regras.Ataque) => {
+      const it = a.uid !== undefined ? fs.ficha.inventario.find((x) => x.uid === a.uid) : undefined;
+      const inf = it ? infoItem(it, c) : null;
+      return h(
+        'div',
+        { class: `jg-atq${a.naMao ? ' mao' : ''}` },
+        h('span', { class: 'jg-atq-arte' }, it && inf ? arteDoItem(it, inf.icone) : pintado('for', 'punho')),
+        h(
+          'span',
+          { class: 'jg-atq-txt' },
+          h('b', null, a.nome),
+          h('span', { class: 'jg-atq-linha' }, h('em', null, a.pericia === 'pontaria' ? 'Pontaria' : 'Luta'), ` ${textoTesteAtaque(a)}`),
+          h('span', { class: 'jg-atq-linha' }, h('em', null, 'Dano'), ` ${a.dano}`, h('em', null, ' · Crítico'), ` ${a.critico.margem}/×${a.critico.multiplicador}`, a.alcance ? h('em', null, ` · ${a.alcance}`) : null),
+        ),
+        h('span', { class: `jg-atq-lugar${a.naMao ? ' on' : ''}` }, a.naMao ? 'Na mão' : 'Guardada'),
+      );
+    };
+    const jogadas = fs.jogadas ?? [];
+    const cartaoJogada = (j: regras.Jogada) => {
+      const r = regras.conferirJogada(fs.ficha, c, j, { peAtual: v.pe });
+      return h(
+        'button',
+        { class: `jg-jog${r.ok ? '' : ' erro'}`, type: 'button', onclick: () => (sfx.paper(), this.editarJogada(j)) },
+        h('span', { class: 'jg-jog-ic' }, pintado('combate-habilidade', 'estrela')),
+        h('span', { class: 'jg-jog-txt' }, h('b', null, j.nome, r.pe ? h('em', { class: 'jg-selo pe' }, `${r.pe} PE`) : null), h('small', null, r.linhas[0] ?? ''), ...(r.erros.length ? [h('small', { class: 'jg-jog-erro' }, r.erros[0])] : [])),
+        ic('direita'),
+      );
+    };
+    return [
+      this.titulo('ATAQUES', 'espadas'),
+      h('div', { class: 'jg-atqs' }, ...c.ataques.map(cartaoAtaque)),
+      this.titulo('JOGADAS PRONTAS', 'estrela', h('button', { class: 'jg-tit-bt', type: 'button', onclick: () => this.editarJogada(null) }, ic('mais'), h('span', null, 'Nova'))),
+      jogadas.length
+        ? h('div', { class: 'jg-lista' }, ...jogadas.map(cartaoJogada))
+        : h('p', { class: 'jg-vazio' }, 'Monte o que você faz num ataque (a arma, os poderes e os PE) e dê um nome. No combate, o mestre escolhe a jogada e tudo já vem somado e conferido.'),
+    ];
+  }
+
+  /** O montador da jogada: a arma, os poderes que gastam PE e o que cada um soma. O motor confere na hora. */
+  private editarJogada(antiga: regras.Jogada | null) {
+    const fs = this.fs!;
+    const c = this.calc!;
+    const j: regras.Jogada = antiga ? JSON.parse(JSON.stringify(antiga)) : { id: `j${Date.now().toString(36)}`, nome: '', passos: [], ...(c.ataques.find((a) => a.naMao && a.uid !== undefined)?.uid ? { arma: c.ataques.find((a) => a.naMao && a.uid !== undefined)!.uid } : {}) };
+    const poderes = regras.poderesDaJogada(fs.ficha, c);
+    const jan = janela(antiga ? 'JOGADA PRONTA' : 'NOVA JOGADA', 'estrela', () => {}, 56);
+    jan.el.classList.add('tela-toda', 'jg-modal-jogada');
+    const nome = h('input', { class: 'fx-inp', value: j.nome, maxlength: 60, placeholder: 'Ataque supremo shaolin' }) as HTMLInputElement;
+    nome.addEventListener('input', () => ((j.nome = nome.value), conferir()));
+    const nota = h('textarea', { class: 'fx-inp jg-jog-nota', maxlength: 300, placeholder: 'Uma linha para o mestre (opcional)' }) as HTMLTextAreaElement;
+    nota.value = j.nota ?? '';
+    nota.addEventListener('input', () => (j.nota = nota.value.trim() || undefined));
+    const armas = h('div', { class: 'jg-jog-armas' });
+    const passos = h('div', { class: 'jg-jog-passos' });
+    const resultado = h('div', { class: 'jg-jog-res' });
+    const salvar = botao('Salvar', 'salvar', 'forte', () => {
+      j.nome = j.nome.trim();
+      this.mudar((f) => {
+        const lista = (f.jogadas ?? []).filter((x) => x.id !== j.id);
+        f.jogadas = [...lista, j].slice(0, regras.MAX_JOGADAS);
+      });
+      toast('Jogada salva.');
+      jan.fechar();
+    });
+    const desenharArmas = () =>
+      armas.replaceChildren(
+        ...c.ataques.map((a) => {
+          const on = (j.arma ?? undefined) === a.uid;
+          const it = a.uid !== undefined ? fs.ficha.inventario.find((x) => x.uid === a.uid) : undefined;
+          return h(
+            'button',
+            { class: `jg-jog-arma${on ? ' on' : ''}`, type: 'button', onclick: () => (sfx.click(), a.uid === undefined ? delete j.arma : (j.arma = a.uid), desenharArmas(), conferir()) },
+            h('span', { class: 'jg-jog-arma-arte' }, it ? arteDoItem(it, infoItem(it, c).icone) : pintado('for', 'punho')),
+            h('small', null, a.nome),
+          );
+        }),
+      );
+    const stepper = (rot: string, valor: number, passo: number, min: number, max: number, mudar: (n: number) => void) =>
+      h(
+        'div',
+        { class: 'jg-step' },
+        h('small', null, rot),
+        h('button', { type: 'button', class: 'fc-pm', disabled: valor - passo < min, onclick: () => (mudar(valor - passo), desenharPassos(), conferir()) }, ic('menos')),
+        h('b', null, `${valor >= 0 && rot !== 'PE' ? '+' : ''}${valor}`),
+        h('button', { type: 'button', class: 'fc-pm', disabled: valor + passo > max, onclick: () => (mudar(valor + passo), desenharPassos(), conferir()) }, ic('mais')),
+      );
+    const desenharPassos = () =>
+      passos.replaceChildren(
+        ...(poderes.length
+          ? poderes.map(({ poder, custo, escala }) => {
+              const passo = j.passos.find((x) => x.poder === poder.id);
+              const ligar = () => {
+                sfx.click();
+                if (passo) j.passos = j.passos.filter((x) => x !== passo);
+                else j.passos.push(escala ? { poder: poder.id, pe: escala[0].pe, ataque: escala[0].bonus } : { poder: poder.id, pe: custo });
+                desenharPassos();
+                conferir();
+              };
+              const corpo: Node[] = [];
+              if (passo && escala) {
+                const degrau = escala.find((e) => e.pe === passo.pe) ?? escala[0];
+                corpo.push(
+                  h('div', { class: 'jg-jog-degraus' }, ...escala.map((e) => h('button', { type: 'button', class: `fc-chip${e.pe === passo.pe ? ' on' : ''}`, onclick: () => ((passo.pe = e.pe), (passo.ataque = e.bonus), (passo.dano = 0), desenharPassos(), conferir()) }, `${e.pe} PE: +${e.bonus}`))),
+                  stepper('No ataque', passo.ataque ?? 0, 5, 0, degrau.bonus, (n) => ((passo.ataque = n), (passo.dano = degrau.bonus - n))),
+                  h('p', { class: 'jg-jog-dica' }, `No dano: +${degrau.bonus - (passo.ataque ?? 0)} (o resto dos +${degrau.bonus})`),
+                );
+              } else if (passo) {
+                corpo.push(
+                  stepper('PE', passo.pe, 1, custo, 20, (n) => (passo.pe = n)),
+                  stepper('No ataque', passo.ataque ?? 0, 1, -20, 20, (n) => (passo.ataque = n || undefined)),
+                  stepper('No dano', passo.dano ?? 0, 1, -20, 20, (n) => (passo.dano = n || undefined)),
+                  h(
+                    'label',
+                    { class: 'jg-jog-dados' },
+                    h('small', null, 'Dados a mais no dano'),
+                    Object.assign(h('input', { class: 'fx-inp', value: passo.danoDados ?? '', maxlength: 8, placeholder: '1d6' }) as HTMLInputElement, {
+                      oninput: (e: Event) => ((passo.danoDados = (e.target as HTMLInputElement).value.trim() || undefined), conferir()),
+                    }),
+                  ),
+                  h('p', { class: 'jg-jog-dica' }, 'O livro não dá número fixo para isso aqui: o mestre confere o que você escrever.'),
+                );
+              }
+              return h(
+                'div',
+                { class: `jg-jog-passo${passo ? ' on' : ''}` },
+                h('button', { type: 'button', class: 'jg-jog-passo-cab', onclick: ligar }, h('span', { class: 'jg-jog-check' }, passo ? ic('ok') : null), h('b', null, poder.nome), h('em', { class: 'jg-selo pe' }, escala ? `${escala.map((e) => e.pe).join('/')} PE` : `${custo} PE`)),
+                ...corpo,
+              );
+            })
+          : [h('p', { class: 'jg-vazio' }, 'Nenhum poder que gaste PE na ficha ainda. A jogada pode ser só a arma.')]),
+      );
+    const conferir = () => {
+      const r = regras.conferirJogada(fs.ficha, c, j, { peAtual: this.vit().pe });
+      // o PE de agora pode mudar até o combate: aqui só o que é regra trava
+      const travas = r.erros.filter((e) => !/^Faltam PE/.test(e));
+      resultado.replaceChildren(
+        h('h4', null, 'Como fica'),
+        ...r.linhas.map((l) => h('p', null, l)),
+        h('p', { class: 'jg-jog-total' }, `Total: ${r.pe} PE (limite ${c.limitePe} por turno)`),
+        ...r.erros.map((e) => h('p', { class: 'jg-jog-erro' }, ic('fechar'), e)),
+        ...r.avisos.map((e) => h('p', { class: 'jg-jog-aviso' }, ic('alerta'), e)),
+      );
+      (salvar as HTMLButtonElement).disabled = !j.nome.trim() || travas.length > 0;
+    };
+    jan.corpo.append(
+      h('label', { class: 'fc-campo' }, h('span', null, 'Nome da jogada'), nome),
+      h('div', { class: 'fc-campo' }, h('span', null, 'A arma'), armas),
+      h('div', { class: 'fc-campo' }, h('span', null, 'Os poderes (toque para usar)'), passos),
+      h('label', { class: 'fc-campo' }, h('span', null, 'Nota'), nota),
+      resultado,
+    );
+    if (antiga)
+      jan.rodape.append(
+        botao('Apagar', 'lixo', 'perigo', async () => {
+          if (!(await confirmar('APAGAR A JOGADA?', `"${antiga.nome}" sai da lista.`, 'Apagar', true))) return;
+          this.mudar((f) => (f.jogadas = (f.jogadas ?? []).filter((x) => x.id !== antiga.id)));
+          jan.fechar();
+        }),
+      );
+    jan.rodape.append(botao('Cancelar', 'fechar', '', () => jan.fechar()), salvar);
+    desenharArmas();
+    desenharPassos();
+    conferir();
   }
 
   // ---------------------------------------------------------------- Poderes
@@ -839,3 +1053,37 @@ function buscaHabilidade(id: string): regras.Habilidade | undefined {
   return undefined;
 }
 
+
+/** "4d20+5" (com a penalidade de dados, "2d20 (pior)"). */
+function textoTesteAtaque(a: regras.Ataque): string {
+  const r = regras.rolagem(a.dados, a.penalidadeDados);
+  return `${r.dados}d20${a.bonus ? (a.bonus > 0 ? `+${a.bonus}` : `${a.bonus}`) : ''}${r.fica === 'menor' ? ' (pior)' : ''}`;
+}
+
+/** A cor da maldição do item (a do primeiro elemento): a aura da arte. */
+function auraDoItem(it: regras.ItemFicha): string | null {
+  const m = it.maldicoes?.[0];
+  return m ? (cat.maldicao(m)?.elemento ?? 'medo') : it.tipo === 'amaldicoado' ? 'medo' : null;
+}
+
+/** Um selinho por modificação (até três e o "+N"), no canto da arte. */
+function selosDoItem(it: regras.ItemFicha): HTMLElement | null {
+  const mods = it.modificacoes ?? [];
+  if (!mods.length) return null;
+  return h(
+    'span',
+    { class: 'jg-selos', title: mods.map((m) => cat.modificacao(m)?.nome ?? m).join(', ') },
+    ...mods.slice(0, 3).map(() => h('i', { class: 'jg-selo-mod' }, pintado('combate-habilidade', 'engrenagem'))),
+    mods.length > 3 ? h('i', { class: 'jg-selo-mais' }, `+${mods.length - 3}`) : null,
+  );
+}
+
+/** As modificações e maldições no modal do item: o nome e o que fazem. */
+function melhoriasDoItem(it: regras.ItemFicha): HTMLElement[] {
+  const linhas = [
+    ...(it.modificacoes ?? []).map((m) => ({ nome: cat.modificacao(m)?.nome ?? m, cls: 'mod', texto: (cat.modificacao(m) as { resumo?: string } | undefined)?.resumo ?? '' })),
+    ...(it.maldicoes ?? []).map((m) => ({ nome: cat.maldicao(m)?.nome ?? m, cls: `mal ${cat.maldicao(m)?.elemento ?? ''}`, texto: cat.maldicao(m) ? `Maldição de ${NOME_ELEMENTO[cat.maldicao(m)!.elemento]}` : '' })),
+  ];
+  if (!linhas.length) return [];
+  return [h('div', { class: 'jg-mi-mods' }, ...linhas.map((l) => h('p', { class: `jg-mi-mod ${l.cls}` }, h('b', null, l.nome), l.texto ? ` · ${l.texto}` : '')))];
+}

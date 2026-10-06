@@ -2596,3 +2596,428 @@ html.modo-ficha body {
   min-height: 7rem;
   font-size: 2.6rem;
 }
+
+/* ---------- Ataques e jogadas prontas ---------- */
+.jg-atqs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e2);
+  margin-bottom: var(--e3);
+}
+.jg-atq {
+  display: grid;
+  grid-template-columns: 11rem 1fr auto;
+  align-items: center;
+  gap: var(--e2);
+  padding: var(--e1);
+  border: 1.2rem solid transparent;
+  border-image: var(--ui-fichas-placa-derivado) 20 fill / 1.2rem stretch;
+  color: #efe6d4;
+  animation: jg-entra 0.3s ease-out both;
+}
+.jg-atq-arte {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: var(--ui-fichas-casa-item-normal) center / 100% 100% no-repeat;
+}
+.jg-atq-arte .arte-ic,
+.jg-atq-arte .arte-ic img,
+.jg-atq-arte > .ic {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.jg-atq-txt {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+}
+.jg-atq-txt b {
+  font: 700 var(--t-forte) var(--f-titulo);
+}
+.jg-atq-linha {
+  font: 600 var(--t-texto) var(--f-maquina);
+}
+.jg-atq-linha em {
+  font: italic 400 var(--t-mini) var(--f-texto);
+  color: #b9ad98;
+}
+.jg-atq-lugar {
+  align-self: start;
+  padding: 0.2rem var(--e1);
+  border: 0.1rem solid #5a4a40;
+  font-size: var(--t-mini);
+  color: #8d8070;
+}
+.jg-atq-lugar.on {
+  border-color: #c9a25a;
+  color: #f0c25a;
+}
+.jg-jog {
+  display: grid;
+  grid-template-columns: 6rem 1fr auto;
+  align-items: center;
+  gap: var(--e2);
+  width: 100%;
+  padding: var(--e1) var(--e2);
+  border: 1.2rem solid transparent;
+  border-image: var(--ui-fichas-placa-derivado) 20 fill / 1.2rem stretch;
+  background: none;
+  color: #efe6d4;
+  text-align: left;
+  font: inherit;
+  filter: drop-shadow(0 0 0.5rem rgba(201, 162, 90, 0.35));
+  animation: jg-entra 0.3s ease-out both;
+}
+.jg-jog.erro {
+  filter: drop-shadow(0 0 0.5rem rgba(200, 48, 42, 0.5));
+}
+.jg-jog-ic {
+  width: 6rem;
+  height: 6rem;
+}
+.jg-jog-ic .arte-ic,
+.jg-jog-ic .arte-ic img {
+  width: 100%;
+  height: 100%;
+}
+.jg-jog-txt {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+.jg-jog-txt b {
+  display: flex;
+  align-items: center;
+  gap: var(--e1);
+  font: 700 var(--t-forte) var(--f-titulo);
+}
+.jg-jog-txt small {
+  font-size: var(--t-mini);
+  color: #b9ad98;
+}
+.jg-jog-txt .jg-jog-erro,
+.jg-jog-erro {
+  color: #ff8f80 !important;
+}
+.jg-jog > .ic {
+  width: 2.8rem;
+  height: 2.8rem;
+}
+
+/* o montador (janela) */
+.jg-modal-jogada .fj {
+  font-size: 2.4rem;
+}
+.jg-jog-armas {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.6rem;
+}
+.jg-jog-arma {
+  flex: none;
+  width: 11rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  opacity: 0.6;
+  transition: opacity 0.2s, transform 0.15s;
+}
+.jg-jog-arma.on {
+  opacity: 1;
+  transform: scale(1.05);
+}
+.jg-jog-arma-arte {
+  width: 100%;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  padding: 1.2rem;
+  background: var(--ui-fichas-casa-item-normal, #1d1718) center / 100% 100% no-repeat;
+}
+.jg-jog-arma.on .jg-jog-arma-arte {
+  background-image: var(--ui-fichas-casa-item-escolhida, var(--ui-fichas-casa-item-foco));
+}
+.jg-jog-arma-arte .arte-ic,
+.jg-jog-arma-arte .arte-ic img,
+.jg-jog-arma-arte > .ic {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.jg-jog-arma small {
+  font-size: 1.9rem;
+  text-align: center;
+}
+.jg-jog-passos {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.jg-jog-passo {
+  padding: 1rem 1.2rem;
+  border: 0.15rem solid rgba(60, 40, 25, 0.35);
+  border-radius: 0.6rem;
+  background: rgba(255, 255, 255, 0.25);
+  transition: background 0.2s, border-color 0.2s;
+}
+.jg-jog-passo.on {
+  border-color: #8a2219;
+  background: rgba(138, 34, 25, 0.08);
+}
+.jg-jog-passo-cab {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  min-height: 5.6rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+.jg-jog-passo-cab b {
+  flex: 1;
+  font: 700 2.6rem var(--f-titulo);
+}
+.jg-jog-check {
+  width: 4rem;
+  height: 4rem;
+  display: grid;
+  place-items: center;
+  border: 0.2rem solid #5b4634;
+  border-radius: 0.6rem;
+  background: rgba(255, 255, 255, 0.5);
+  color: #8a2219;
+}
+.jg-jog-passo.on .jg-jog-check {
+  background: #8a2219;
+  border-color: #8a2219;
+  color: #fff;
+}
+.jg-jog-check .ic {
+  width: 2.6rem;
+  height: 2.6rem;
+}
+.jg-jog-degraus {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin: 1rem 0;
+}
+.jg-step {
+  display: grid;
+  grid-template-columns: 1fr 7.2rem 9rem 7.2rem;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.8rem;
+}
+.jg-step small {
+  font-size: 2.2rem;
+}
+.jg-step b {
+  text-align: center;
+  font: 700 3.2rem var(--f-titulo);
+}
+.jg-step .fc-pm {
+  color: #f0e6d4;
+}
+.jg-jog-dados {
+  display: grid;
+  grid-template-columns: 1fr 12rem;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.8rem;
+}
+.jg-jog-dados small {
+  font-size: 2.2rem;
+}
+.jg-jog-dica {
+  margin: 0.6rem 0 0;
+  font-size: 2rem;
+  color: #6b5644;
+}
+.jg-jog-nota {
+  min-height: 9rem;
+  resize: vertical;
+}
+.jg-jog-res {
+  margin-top: 1.4rem;
+  padding: 1.4rem;
+  border: 1.2rem solid transparent;
+  border-image: var(--ui-fichas-placa-derivado) 20 fill / 1.2rem stretch;
+  color: #efe6d4;
+}
+.jg-jog-res h4 {
+  margin: 0 0 0.8rem;
+  font: 700 2.6rem var(--f-titulo);
+  color: #f0c25a;
+}
+.jg-jog-res p {
+  display: flex;
+  gap: 0.8rem;
+  margin: 0 0 0.6rem;
+  font: 600 2.2rem var(--f-maquina);
+}
+.jg-jog-res .ic {
+  flex: none;
+  width: 2.4rem;
+  height: 2.4rem;
+}
+.jg-jog-total {
+  color: #9ec8ff;
+}
+.jg-jog-res .jg-jog-aviso {
+  color: #f2c879;
+  font-family: var(--f-texto);
+}
+.jg-jog-res .jg-jog-erro {
+  font-family: var(--f-texto);
+}
+/* sete abas na barra de baixo */
+.jg-nav {
+  grid-template-columns: repeat(7, 1fr);
+}
+
+/* ---------- arma modificada: selos no canto; amaldiçoada: a aura do elemento ---------- */
+.jg-casa,
+.jg-mi-arte {
+  position: relative;
+}
+.jg-selos {
+  position: absolute;
+  right: 0.6rem;
+  bottom: 0.6rem;
+  display: flex;
+  gap: 0.2rem;
+  z-index: 2;
+}
+.jg-selo-mod {
+  width: 3rem;
+  height: 3rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: radial-gradient(circle, #4a3a1c, #1f170c);
+  box-shadow: 0 0 0 0.2rem #c9a25a, 0 0.2rem 0.4rem #000;
+  animation: jg-surge-selo 0.4s ease-out both;
+}
+.jg-selo-mod .arte-ic,
+.jg-selo-mod .arte-ic img,
+.jg-selo-mod > .ic {
+  width: 2.2rem;
+  height: 2.2rem;
+}
+.jg-selo-mais {
+  align-self: center;
+  font: 700 var(--t-mini, 2rem) var(--f-titulo);
+  color: #f0c25a;
+  font-style: normal;
+  text-shadow: 0 0.1rem 0.2rem #000;
+}
+@keyframes jg-surge-selo {
+  from {
+    transform: scale(0);
+  }
+}
+.aura {
+  --aura: #f1efe9;
+}
+.aura.sangue {
+  --aura: #ff2a1f;
+}
+.aura.morte {
+  --aura: #9aa0a8;
+}
+.aura.conhecimento {
+  --aura: #ffcf3a;
+}
+.aura.energia {
+  --aura: #b46cff;
+}
+.aura .jg-casa-arte img,
+.aura.jg-mi-arte > .arte-ic img {
+  animation: jg-aura 2.4s ease-in-out infinite;
+}
+@keyframes jg-aura {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0.4rem var(--aura)) drop-shadow(0 0 0.1rem var(--aura));
+  }
+  50% {
+    filter: drop-shadow(0 0 1.4rem var(--aura)) drop-shadow(0 0 0.4rem var(--aura)) brightness(1.15);
+  }
+}
+.jg-mi-arte .jg-selos {
+  right: 1.2rem;
+  bottom: 1.2rem;
+}
+.jg-mi-arte .jg-selo-mod {
+  width: 4rem;
+  height: 4rem;
+}
+.jg-mi-mods {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.jg-mi-mod {
+  margin: 0;
+  padding: 0.8rem 1.2rem;
+  border-left: 0.5rem solid #c9a25a;
+  background: rgba(201, 162, 90, 0.12);
+  font-size: 2.1rem;
+}
+.jg-mi-mod.mal {
+  border-left-color: #8a2219;
+  background: rgba(138, 34, 25, 0.1);
+}
+
+/* a mochila no cartão de equipamento da ficha */
+.fc-casas {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--e1);
+}
+.fc-casas .jg-casa {
+  padding: 1rem;
+}
+
+/* todas as janelas da tela do jogador no celular: campos e botões do rodapé no tamanho do dedo */
+@media (max-width: 820px) and (orientation: portrait), (max-width: 560px) {
+  html.modo-ficha .fj .fx-inp {
+    min-height: 6rem;
+    font-size: 2.4rem;
+    padding: 0.8rem 1.2rem;
+  }
+  html.modo-ficha .fj .fc-campo > span {
+    font-size: 2.3rem;
+  }
+  html.modo-ficha .fj .fj-rodape {
+    gap: 1rem;
+  }
+  html.modo-ficha .fj .fj-rodape .fx-bt {
+    flex: 1;
+    justify-content: center;
+    min-height: 6.4rem;
+    font-size: 2.3rem;
+  }
+  html.modo-ficha .fj .jg-selo {
+    font-size: 2rem;
+    padding: 0.2rem 0.8rem;
+  }
+}

@@ -328,9 +328,21 @@ function ataque(c: Combate, x: unknown, ctx: Contexto, e: Entrada | undefined): 
   const arma = texto(o.arma, 60) || 'ataque';
   const sits = Array.isArray(o.situacoes) ? o.situacoes.map((s) => texto(s, 40)).filter(Boolean).slice(0, 10) : [];
 
+  // a jogada pronta gasta os PE dela junto (o limite do turno conta, LR p. 23)
+  const jg = o.jogada && typeof o.jogada === 'object' ? (o.jogada as Record<string, unknown>) : null;
+  const peJogada = jg ? (inteiro(jg.pe, 0, 99) ?? 0) : 0;
+  const nomeJogada = jg ? texto(jg.nome, 60) : '';
+  const vitais: MudancaVitais[] = [];
+  if (peJogada) {
+    const v = ctx.vitais(quem.id);
+    if (!v) return erro(`${quem.nome} não tem PE marcados na peça.`);
+    if (v.pe < peJogada) return erro(`${quem.nome} só tem ${v.pe} PE; a jogada pede ${peJogada}.`);
+    ac.pe = (ac.pe ?? 0) + peJogada;
+    mudar(vitais, quem.id, 'pe', v.pe - peJogada);
+  }
   if (reacao) alvo.reacao = true;
   c.acoes[String(quem.id)] = ac;
-  let linha = `${quem.nome} ataca ${alvo.nome} com ${arma}${golpe}${reacao ? ` (${alvo.nome} usa ${reacao})` : ''}: d20 ${d20}, total ${total} contra Defesa ${defesa}`;
+  let linha = `${quem.nome} ataca ${alvo.nome} com ${arma}${nomeJogada ? ` (jogada ${nomeJogada}${peJogada ? `, ${peJogada} PE` : ''})` : ''}${golpe}${reacao ? ` (${alvo.nome} usa ${reacao})` : ''}: d20 ${d20}, total ${total} contra Defesa ${defesa}`;
   if (sits.length) linha += ` (${sits.join(', ')})`;
   const f = o.falha && typeof o.falha === 'object' ? (o.falha as Record<string, unknown>) : null;
   const d10 = f ? inteiro(f.d10, 1, 100) : undefined;
@@ -341,7 +353,6 @@ function ataque(c: Combate, x: unknown, ctx: Contexto, e: Entrada | undefined): 
   registrar(c, ctx.agora, 'acao', `${linha} — ${rotulo}.`, resultado === 'erro' ? undefined : [rotulo]);
   if (resultado === 'erro' && o.contraAtaque === true) registrar(c, ctx.agora, 'estado', `${alvo.nome} pode contra-atacar (Luta treinada, uma defesa especial por rodada; LR p. 88).`);
 
-  const vitais: MudancaVitais[] = [];
   const d = o.dano && typeof o.dano === 'object' ? (o.dano as Record<string, unknown>) : null;
   if (resultado !== 'erro' && d) aplicarDano(c, alvo, d, ctx, vitais);
   // o dano a mais de outro tipo (ex.: "e 1d8 mental"), contado à parte

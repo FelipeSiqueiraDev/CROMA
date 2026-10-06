@@ -433,7 +433,59 @@ export class CombateScreen {
 
   private armasDe(p: Participante): ArmaOpcao[] {
     const calc = this.calcDe(p.id);
-    if (calc)
+    if (calc) return [...this.armasDaFicha(calc), ...this.jogadasDe(p, calc)];
+    return (this.ameacaDe(p.id)?.ataques ?? []).map((a) => ({
+      nome: a.nome,
+      pericia: a.pericia,
+      dados: a.dados,
+      bonus: a.bonus,
+      dano: a.dano,
+      tipo: a.tipo,
+      margem: a.margem,
+      multiplicador: a.multiplicador,
+      faixa: cb.faixaArma(a.alcance),
+      notas: [],
+      ...(a.vezes ? { vezes: a.vezes } : {}),
+      ...(a.extra ? { extra: a.extra } : {}),
+    }));
+  }
+
+  /**
+   * As jogadas prontas do agente, conferidas agora: o PE que sobra na peça e o já gasto no turno
+   * (LR p. 23). A margem e o crítico são os da arma da jogada; o dano passa pela resistência e
+   * pela RD do alvo como qualquer ataque.
+   */
+  private jogadasDe(p: Participante, calc: regras.Calculado): ArmaOpcao[] {
+    const fs = this.fichaDe(p.id);
+    if (!fs?.jogadas?.length) return [];
+    const gasto = this.combate ? (cb.acoesDe(this.combate, p.id).pe ?? 0) : 0;
+    const peAtual = this.vitais(p.id)?.pe;
+    return fs.jogadas.map((j) => {
+      const r = regras.conferirJogada(fs.ficha, calc, j, { ...(peAtual !== undefined ? { peAtual } : {}), gastoTurno: gasto });
+      const a = r.ataque;
+      const jogada = { nome: j.nome, pe: r.pe, linhas: r.linhas, erros: r.erros, avisos: r.avisos, ...(j.nota ? { nota: j.nota } : {}) };
+      if (!a) return { nome: j.nome, pericia: 'luta' as const, dados: 0, bonus: 0, dano: '—', tipo: 'impacto' as const, margem: 20, multiplicador: 2, faixa: null, notas: [], jogada: { ...jogada, erros: r.erros.length ? r.erros : ['Sem ataque.'] } };
+      return {
+        naMao: a.naMao,
+        ...(a.uid !== undefined ? { uid: a.uid } : {}),
+        nome: `${j.nome} (${a.nome})`,
+        pericia: a.pericia === 'pontaria' ? ('pontaria' as const) : ('luta' as const),
+        dados: a.dados,
+        penalidade: a.penalidadeDados,
+        bonus: a.bonus,
+        dano: a.dano,
+        tipo: a.tipoDano[0] ?? 'impacto',
+        margem: a.critico.margem,
+        multiplicador: a.critico.multiplicador,
+        faixa: cb.faixaArma(a.alcance),
+        notas: a.notas,
+        jogada: a.naMao ? jogada : { ...jogada, erros: [...jogada.erros, `${a.nome} está guardada: saque antes (ação de movimento).`] },
+      };
+    });
+  }
+
+  private armasDaFicha(calc: regras.Calculado): ArmaOpcao[] {
+    {
       // a arma na mão primeiro (e o desarmado); a da mochila por último, para sacar
       return [...calc.ataques].sort((x, y) => Number(y.naMao) - Number(x.naMao)).map((a) => ({
         naMao: a.naMao,
@@ -450,20 +502,7 @@ export class CombateScreen {
         faixa: cb.faixaArma(a.alcance),
         notas: a.notas,
       }));
-    return (this.ameacaDe(p.id)?.ataques ?? []).map((a) => ({
-      nome: a.nome,
-      pericia: a.pericia,
-      dados: a.dados,
-      bonus: a.bonus,
-      dano: a.dano,
-      tipo: a.tipo,
-      margem: a.margem,
-      multiplicador: a.multiplicador,
-      faixa: cb.faixaArma(a.alcance),
-      notas: [],
-      ...(a.vezes ? { vezes: a.vezes } : {}),
-      ...(a.extra ? { extra: a.extra } : {}),
-    }));
+    }
   }
 
   private alvoAtaque(c: Combate, p: Participante): AlvoAtaque {

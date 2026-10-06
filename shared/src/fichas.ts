@@ -6,6 +6,7 @@
  */
 import type { Ficha } from './regras/ficha';
 import { NEX_LISTA } from './regras/tipos';
+import { sanitizarJogadas, type Jogada } from './regras/jogadas';
 
 export interface Companheiro {
   nome: string;
@@ -54,6 +55,8 @@ export interface FichaSalva {
   diario?: NotaDiario[];
   /** os rituais marcados com estrela no celular (ids do catálogo) */
   favoritos?: string[];
+  /** as jogadas prontas do jogador (regras/jogadas.ts) */
+  jogadas?: Jogada[];
   companheiro?: Companheiro;
   /** o tema da interface do agente (sem tema = Ordem) */
   tema?: Tema;
@@ -136,6 +139,8 @@ export function sanitizarFicha(raw: unknown): FichaSalva | null {
     }
     if (diario.length) out.diario = diario;
   }
+  const jogadas = sanitizarJogadas(o.jogadas);
+  if (jogadas) out.jogadas = jogadas;
   const fav = lista(o.favoritos, 60);
   if (fav?.length) out.favoritos = [...new Set(fav.map((x) => x.slice(0, 60)))];
   if (n && typeof n === 'object') out.notas = { anotacoes: texto(n.anotacoes), documentos: texto(n.documentos), pistas: texto(n.pistas) };

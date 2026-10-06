@@ -172,6 +172,8 @@ export interface AtaqueConfirmado {
   contraAtaque?: boolean;
   /** a ação faz este número de ataques (o "×2" da ameaça, LR p. 179) */
   vezes?: number;
+  /** a jogada pronta do agente: o nome e os PE que ela gasta junto com o ataque */
+  jogada?: { nome: string; pe: number };
 }
 
 /** Um lado do teste oposto: dados, bônus, o d20 que ficou e o total. */
