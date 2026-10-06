@@ -466,11 +466,12 @@
   display: none;
 }
 .fx-cantos {
-  inset: 0;
+  /* a moldura inteira, esticada no quadro (o corte em 9 partia o enfeite das laterais, que tem uns 100 px) */
+  inset: -1.2rem -1.4rem;
   z-index: 3;
-  background: none;
-  border: 3rem solid transparent;
-  border-image: var(--ui-fichas-moldura-personagem-fonte) 60 / 3rem stretch;
+  border: 0;
+  background: var(--ui-fichas-moldura-personagem-fonte) center / 100% 100% no-repeat;
+  pointer-events: none;
 }
 
 /* =====================================================================
@@ -791,6 +792,8 @@ select.cb-sel option {
   border-radius: 0;
   background: none;
   box-shadow: none;
+  /* a placa do kit é escura: a letra clara (antes vinha escura e sumia) */
+  color: #efe6d4;
 }
 /* a rolagem das listas */
 :is(.cb, .fx, .fj, .rq, .ui) ::-webkit-scrollbar {
