@@ -1354,16 +1354,19 @@ export class FichasScreen {
     const inf = infoItem(it, c);
     const ed = this.editando;
     const j = janela(inf.nome, 'mochila', () => this.render(), 58);
-    const linhas: Node[] = [
+    // a arte pintada do item ao lado do texto (a mesma da mochila e da requisição)
+    const efeito = [inf.efeito, inf.obs].filter((x) => x && x !== '—');
+    const linhas: Node[] = ([
       h('p', { class: 'fj-texto' }, `${inf.tipo} · categoria ${romano(inf.categoria)} · ${inf.espacos} espaço${inf.espacos === 1 ? '' : 's'}${inf.ref ? ` · ${textoRef(inf.ref)}` : ''}`),
-      h('p', { class: 'fj-texto' }, h('b', null, inf.efeito), inf.obs ? ` · ${inf.obs}` : ''),
-    ];
+      efeito.length ? h('p', { class: 'fj-texto' }, h('b', null, efeito[0]), efeito[1] && efeito[1] !== efeito[0] ? ` · ${efeito[1]}` : '') : null,
+    ] as (HTMLElement | null)[]).filter((x): x is HTMLElement => !!x);
     const base = it.tipo === 'cena' ? undefined : it.tipo === 'arma' ? cat.arma(it.id) : it.tipo === 'protecao' ? cat.protecao(it.id) : it.tipo === 'equipamento' ? cat.equipamento(it.id) : cat.amaldicoado(it.id);
     const resumo = (base as { resumo?: string } | undefined)?.resumo;
     if (resumo) linhas.push(h('p', { class: 'fj-dica' }, resumo));
     const esp = (base as { especial?: string[] } | undefined)?.especial;
-    if (esp?.length) linhas.push(h('p', { class: 'fj-dica' }, esp.join(' · ')));
-    j.corpo.append(...linhas);
+    const espLivre = esp?.filter((x) => !efeito.includes(x));
+    if (espLivre?.length) linhas.push(h('p', { class: 'fj-dica' }, espLivre.join(' · ')));
+    j.corpo.append(h('div', { class: 'fj-item' }, h('div', { class: 'fj-item-arte' }, arteDoItem(it, inf.icone)), h('div', { class: 'fj-item-txt' }, ...linhas)));
     if (!ed) {
       j.rodape.append(h('span', { class: 'fj-esp' }), h('button', { class: 'fx-bt', type: 'button', onclick: () => j.fechar() }, ic('fechar'), h('span', null, 'Fechar')));
       return;
