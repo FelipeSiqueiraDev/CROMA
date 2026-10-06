@@ -205,6 +205,19 @@ Tudo em [`FERRAMENTAS-DA-MESA.md`](FERRAMENTAS-DA-MESA.md). No canto de cima do 
   - O tanque apagado (estado 1) não tem arte.
 - **O chão do píer e da ponte:** o terreno `m` usa os tacos de sala (`taco`). Precisa de um estilo de tábuas (`piso-pier.png`).
 
+## Feito em 06/10: a tela do jogador no celular
+
+- **Modo jogo** (`client/src/ui/jogador.ts`, `jogador.css`; referências `docs/ref-jogador-*.webp`, fora do git): o jogador entra pela conta (ou o link `?ficha=`) e cai nas abas Agente, Mochila, Poderes, Rituais, Docs e Notas; a ficha inteira fica na engrenagem.
+  - **Agente:** os cinco atributos no pentagrama da ficha, em volta do personagem; o Desarmado/Armado empunha a primeira arma ou guarda (a peça no tabuleiro acompanha).
+  - **PV, PE, SAN:** − e + do próprio jogador; as barras correm, o que saiu fica um instante claro e desce, e pulsam com pouco sobrando. Chega na hora ao painel do mestre, à FICHAS e à mesa (`server/test/jogador.test.ts`).
+  - **Mochila:** as casas da FICHAS só com a arte; o toque abre o item (tipo, peso, categoria, onde está, efeito, texto) com empunhar, vestir, usar e entregar à equipe. O jogador mexe só na própria mochila e não larga no chão.
+  - **Docs:** o mestre cria em Configurações → Documentos (título, tipo, filtro, origem, imagem, páginas) e entrega a agentes ou à equipe; o jogador lê, marca e passa para a equipe (`shared/src/documentos.ts`).
+  - **Notas** (fixadas e recentes) e **rituais favoritos** ficam na ficha (`diario`, `favoritos`).
+  - **Combate:** habilidade (`gastarPe`), dano, SAN e ritual já descontavam na peça; o teste confirma que chega ao celular e à mesa.
+- **Ícones pintados que faltam:** `PROMPT-ICONES-CELULAR.txt` (armado, desarmado, docs-todos, docs-evidencias, docs-pistas, notas-recentes, notas-fixadas, carga). Até chegar, cada um usa o mais parecido do kit; os nomes já estão no código e entram sozinhos.
+- **Conta de teste:** `teste` / `teste`, jogador, ligada à ficha da Catarina (a ficha ganhou o link de jogador).
+- **Falta:** a arte de cada ritual (`arte/rituais/<id>.png`); o jogador que entrou na conta antes de ter ficha fica no aviso "sem ficha" até sair e entrar de novo.
+
 ## A fazer (não depende de arte)
 
 - **A parte do jogador** (ainda não começou): o celular com a ficha dele (já existe o link `?ficha=`), o inventário, os rituais e as condições; a jogada continua na mesa, com dados de verdade. Planejar antes de construir (o que ele vê, o que pode fazer e o que fica só com o mestre).

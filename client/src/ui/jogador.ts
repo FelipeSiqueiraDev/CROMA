@@ -42,13 +42,12 @@ const ABAS: { id: Aba; rotulo: string; icone: NomeIcone; pintado?: string }[] = 
   { id: 'mochila', rotulo: 'Mochila', icone: 'mochila', pintado: 'titulo-inventario' },
   { id: 'poderes', rotulo: 'Poderes', icone: 'estrela', pintado: 'titulo-poderes' },
   { id: 'rituais', rotulo: 'Rituais', icone: 'pentagrama', pintado: 'titulo-rituais' },
-  { id: 'docs', rotulo: 'Docs', icone: 'documento' },
+  { id: 'docs', rotulo: 'Docs', icone: 'documento', pintado: 'topo-registro' },
   { id: 'notas', rotulo: 'Notas', icone: 'pena', pintado: 'titulo-anotacoes' },
 ];
 
-/** Os atributos em volta do corpo: três de um lado, dois do outro. */
-const ATR_ESQ: regras.AtributoId[] = ['for', 'agi', 'vig'];
-const ATR_DIR: regras.AtributoId[] = ['int', 'pre'];
+/** As pontas do pentagrama da ficha (em % do quadro): Agilidade em cima, Força e Intelecto dos lados, Vigor e Presença embaixo. */
+const PENTA: Record<regras.AtributoId, [number, number]> = { agi: [50, 13], for: [12, 42], int: [88, 42], vig: [24, 88], pre: [76, 88] };
 const ICONE_ATR: Record<regras.AtributoId, NomeIcone> = { agi: 'correr', for: 'punho', int: 'cerebro', pre: 'olho', vig: 'escudo' };
 
 const ICONE_DOC: Record<TipoDocumento, NomeIcone> = { relatorio: 'documento', mapa: 'mapa', comunicacao: 'email', registro: 'livro', foto: 'imagem', objeto: 'caixa', outro: 'documento' };
@@ -56,11 +55,11 @@ const COR_ELEMENTO: Record<regras.Elemento, string> = { sangue: '#d9302c', morte
 const NOME_TIPO_PODER: Record<regras.OrigemPoder, string> = { classe: 'Poder de classe', habilidade: 'Habilidade de classe', trilha: 'Trilha', origem: 'Origem', paranormal: 'Poder paranormal' };
 
 type FiltroPoder = 'classe' | 'trilha' | 'origem' | 'paranormal';
-const FILTROS_PODER: { id: FiltroPoder; rotulo: string; icone: NomeIcone; tipos: regras.OrigemPoder[] }[] = [
-  { id: 'classe', rotulo: 'Classe', icone: 'espadas', tipos: ['classe', 'habilidade'] },
-  { id: 'trilha', rotulo: 'Trilha', icone: 'pino', tipos: ['trilha'] },
-  { id: 'origem', rotulo: 'Origem', icone: 'ficha', tipos: ['origem'] },
-  { id: 'paranormal', rotulo: 'Paranormal', icone: 'olho', tipos: ['paranormal'] },
+const FILTROS_PODER: { id: FiltroPoder; rotulo: string; icone: NomeIcone; pintado: string; tipos: regras.OrigemPoder[] }[] = [
+  { id: 'classe', rotulo: 'Classe', icone: 'espadas', pintado: 'poder-classe', tipos: ['classe', 'habilidade'] },
+  { id: 'trilha', rotulo: 'Trilha', icone: 'pino', pintado: 'poder-trilha', tipos: ['trilha'] },
+  { id: 'origem', rotulo: 'Origem', icone: 'ficha', pintado: 'poder-origem', tipos: ['origem'] },
+  { id: 'paranormal', rotulo: 'Paranormal', icone: 'olho', pintado: 'poder-paranormal', tipos: ['paranormal'] },
 ];
 
 const agora = () => new Date().toISOString();
@@ -86,7 +85,17 @@ function quando(iso: string): string {
 }
 
 /** O ícone pintado do kit (arte/icones/<nome>.png), com o de linha enquanto não chega. */
-const pintado = (nome: string | undefined, icone: NomeIcone) => (nome ? arteOu([`/arte/icones/${nome}.png`], ic(icone)) : ic(icone));
+const pintado = (nome: string | string[] | undefined, icone: NomeIcone) =>
+  nome ? arteOu((Array.isArray(nome) ? nome : [nome]).map((n) => `/arte/icones/${n}.png`), ic(icone)) : ic(icone);
+/** Os ícones pintados que ainda vão chegar (o pedido ao Códex), com o mais parecido de hoje enquanto isso. */
+const IC = {
+  armado: ['armado', 'combate-atacar'],
+  desarmado: ['desarmado', 'combate-manobra'],
+  docsTodos: ['docs-todos', 'topo-registro'],
+  docsPistas: ['docs-pistas', 'topo-mapa'],
+  notasRecentes: ['notas-recentes', 'combate-atrasar'],
+  carga: ['carga', 'combate-item'],
+};
 
 export class TelaJogador {
   readonly el: HTMLElement;
@@ -97,9 +106,10 @@ export class TelaJogador {
   private aba: Aba = 'agente';
   private corpo = new CorpoView();
   private timer = 0;
+  /** onde cada barra estava (para animar a mudança) */
+  private pctAntes: Partial<Record<'pv' | 'pe' | 'san', number>> = {};
   private retratoTimer = 0;
   // o que fica escolhido em cada aba
-  private itemSel: number | null = null;
   private filtroPoder: FiltroPoder = 'classe';
   private poderSel: string | null = null;
   private ritualSel: string | null = null;
@@ -249,6 +259,8 @@ export class TelaJogador {
       const atual = v[k];
       const max = v[`${k}Max` as const];
       const pct = Math.max(0, Math.min(100, (atual / Math.max(1, max)) * 100));
+      const antes = this.pctAntes[k] ?? pct;
+      this.pctAntes[k] = pct;
       const mudar = (d: number) => {
         sfx.click();
         this.mudar((fs) => {
@@ -257,11 +269,21 @@ export class TelaJogador {
           fs.atual = { pv: vv.pv, pe: vv.pe, san: vv.san, ...fs.atual, [k]: novo };
         });
       };
+      // a tinta corre devagar; o que saiu fica um instante claro (o rastro) e desce atrás
+      const tinta = h('i', { class: 'jg-tinta', style: `width:${antes}%` });
+      const rastro = h('i', { class: 'jg-rastro', style: `width:${Math.max(antes, pct)}%` });
+      const mudou = pct < antes ? ' baixou' : pct > antes ? ' subiu' : '';
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          tinta.style.width = `${pct}%`;
+          rastro.style.width = `${pct}%`;
+        }),
+      );
       return h(
         'div',
-        { class: `jg-vital ${k}` },
-        h('div', { class: 'jg-vital-topo' }, h('b', null, rotulo), h('span', null, h('strong', null, String(atual)), `/${max}`)),
-        h('div', { class: 'jg-barra' }, h('i', { style: `width:${pct}%` })),
+        { class: `jg-vital ${k}${mudou}${pct <= 25 ? ' baixo' : ''}` },
+        h('div', { class: 'jg-vital-topo' }, h('b', null, rotulo), h('span', { class: 'jg-vital-n' }, h('strong', null, String(atual)), `/${max}`)),
+        h('div', { class: 'jg-barra' }, rastro, tinta, h('i', { class: 'jg-brilho' })),
         h(
           'div',
           { class: 'jg-vital-bts' },
@@ -276,12 +298,12 @@ export class TelaJogador {
   private renderNumeros() {
     const c = this.calc;
     if (!c) return this.numeros.replaceChildren();
-    const n = (icone: NomeIcone, pint: string | undefined, rotulo: string, valor: string, dica: string) =>
+    const n = (icone: NomeIcone, pint: string | string[] | undefined, rotulo: string, valor: string, dica: string) =>
       h('div', { class: 'jg-num', title: dica }, pintado(pint, icone), h('span', null, rotulo), h('b', null, valor));
     this.numeros.replaceChildren(
       n('escudo', 'defesa', 'Defesa', String(c.defesa), 'Defesa: 10 + Agilidade + proteção.'),
       n('correr', 'deslocamento', 'Desloc.', `${numero(c.deslocamento)} m`, 'Deslocamento por ação de movimento.'),
-      n('peso', undefined, 'Carga', `${numero(c.carga.usados)}/${c.carga.espacos}`, `Espaços da mochila (até ${c.carga.maximo}, sobrecarregado).`),
+      n('mochila', IC.carga, 'Carga', `${numero(c.carga.usados)}/${c.carga.espacos}`, `Espaços da mochila (até ${c.carga.maximo}, sobrecarregado).`),
       n('raio', 'pe', 'Limite PE', String(c.limitePe), 'PE que dá para gastar por turno.'),
     );
   }
@@ -339,17 +361,26 @@ export class TelaJogador {
     const def = fs.personagem ? this.app.state.characters.find((x) => x.id === fs.personagem) : undefined;
     this.corpo.setPersonagem(def);
     this.corpo.setCondicoes(vitalConditions(this.vit()));
-    const atr = (a: regras.AtributoId) => {
+    // os cinco atributos nas pontas do pentagrama, como na ficha do livro
+    const med = (a: regras.AtributoId) => {
       const v = c.atributos[a];
       return h(
         'div',
-        { class: 'jg-atr', title: `${regras.NOME_ATRIBUTO[a]}: rola ${v > 0 ? `${v}d20 e fica o maior` : '2d20 e fica o menor'}.` },
-        h('span', { class: 'jg-atr-ic' }, arte(`/arte/icones/${a}.png`, ICONE_ATR[a])),
-        h('span', { class: 'jg-atr-n' }, regras.NOME_ATRIBUTO[a].toUpperCase()),
-        h('b', { class: 'jg-atr-v' }, String(v)),
-        h('span', { class: 'jg-atr-d' }, v > 0 ? `${v}d20` : '−2d20'),
+        { class: `jg-med a-${a}`, title: `${regras.NOME_ATRIBUTO[a]}: rola ${v > 0 ? `${v}d20 e fica o maior` : '2d20 e fica o menor'}.` },
+        h('span', { class: 'jg-med-ic' }, arte(`/arte/icones/${a}.png`, ICONE_ATR[a])),
+        h('b', { class: 'jg-med-v' }, String(v)),
+        h('span', { class: 'jg-med-n' }, a.toUpperCase()),
       );
     };
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 100 100');
+    svg.setAttribute('preserveAspectRatio', 'none');
+    svg.setAttribute('class', 'jg-penta-linhas');
+    svg.setAttribute('aria-hidden', 'true');
+    const P = PENTA;
+    svg.innerHTML =
+      `<ellipse cx="50" cy="52" rx="40" ry="38" />` +
+      `<polygon points="${[P.agi, P.pre, P.for, P.int, P.vig].map(([x, y]) => `${x},${y}`).join(' ')}" />`;
     const armado = regras.armado(fs.ficha.inventario);
     const armas = fs.ficha.inventario.filter((it) => it.tipo === 'arma' && regras.maosDoItem(it) > 0 && it.uid);
     const naMao = fs.ficha.inventario.filter((it) => it.tipo === 'arma' && regras.lugarDoItem(it) === 'mao');
@@ -366,16 +397,16 @@ export class TelaJogador {
           else if (armas[0]) this.mochila(armas[0].uid!, 'empunhar', { trocar: true });
         },
       },
-      h('span', { class: 'jg-armado-op des' }, ic('mao'), 'Desarmado'),
-      h('span', { class: 'jg-armado-op arm' }, ic('pistola'), 'Armado'),
+      h('span', { class: 'jg-armado-op des' }, pintado(IC.desarmado, 'mao'), 'Desarmado'),
+      h('span', { class: 'jg-armado-op arm' }, pintado(IC.armado, 'pistola'), 'Armado'),
     );
     return [
       h(
         'div',
-        { class: 'jg-agente' },
-        h('div', { class: 'jg-atr-col' }, ...ATR_ESQ.map(atr)),
+        { class: 'jg-penta' },
         h('div', { class: 'jg-palco' }, h('div', { class: 'jg-palco-fundo' }), this.corpo.el),
-        h('div', { class: 'jg-atr-col' }, ...ATR_DIR.map(atr), h('div', { class: 'jg-atr jg-pe-turno', title: 'PE por turno e a DT dos seus rituais.' }, h('span', { class: 'jg-atr-n' }, 'DT RITUAIS'), h('b', { class: 'jg-atr-v' }, String(c.dtRituais)))),
+        svg,
+        ...(['agi', 'for', 'int', 'pre', 'vig'] as const).map(med),
       ),
       trocar,
       h('p', { class: 'jg-nota-armado' }, armado ? `Na mão: ${naMao.map((x) => regras.nomeDoItem(x)).join(', ')}.` : armas.length ? 'A arma fica guardada; Armado saca a primeira da mochila.' : 'Sem arma na mochila.'),
@@ -388,56 +419,74 @@ export class TelaJogador {
     const fs = this.fs!;
     const c = this.calc!;
     const inv = fs.ficha.inventario.filter((it) => it.uid);
-    if (this.itemSel !== null && !inv.some((x) => x.uid === this.itemSel)) this.itemSel = null;
-    const cards = inv.map((it) => {
+    const casas: HTMLElement[] = inv.map((it) => {
       const inf = infoItem(it, c);
       const lugar = regras.lugarDoItem(it);
       return h(
         'button',
-        { class: `jg-item${this.itemSel === it.uid ? ' on' : ''}`, type: 'button', onclick: () => ((this.itemSel = this.itemSel === it.uid ? null : it.uid!), sfx.click(), this.renderConteudo()) },
-        h('span', { class: 'jg-item-n' }, inf.nome),
-        h('span', { class: 'jg-item-arte' }, arteDoItem(it, inf.icone)),
-        (it.qtd ?? 1) > 1 ? h('span', { class: 'jg-item-q' }, `x${it.qtd}`) : null,
-        lugar !== 'mochila' ? h('span', { class: 'jg-item-lugar', title: lugar === 'mao' ? 'Na mão' : 'Vestido' }, ic(lugar === 'mao' ? 'mao' : 'colete')) : null,
+        { class: `jg-casa${lugar !== 'mochila' ? ' usado' : ''}`, type: 'button', title: inf.nome, 'aria-label': inf.nome, onclick: () => (sfx.paper(), this.abrirItem(it.uid!)) },
+        h('span', { class: 'jg-casa-arte' }, arteDoItem(it, inf.icone)),
+        (it.qtd ?? 1) > 1 ? h('span', { class: 'jg-casa-q' }, `x${it.qtd}`) : null,
+        lugar !== 'mochila' ? h('span', { class: 'jg-casa-lugar', title: lugar === 'mao' ? 'Na mão' : 'Vestido' }, pintado(lugar === 'mao' ? IC.armado : 'protecao', lugar === 'mao' ? 'mao' : 'colete')) : null,
       );
     });
-    const sel = inv.find((x) => x.uid === this.itemSel);
-    return [
-      this.titulo('MOCHILA', 'mochila', h('span', { class: 'jg-tit-extra' }, h('b', null, `${numero(c.carga.usados)}/${c.carga.espacos}`), ' espaços')),
-      inv.length ? h('div', { class: 'jg-itens' }, ...cards) : h('p', { class: 'jg-vazio' }, 'A mochila está vazia. Os itens vêm da requisição (na ficha completa) e do que o mestre entrega.'),
-      sel ? this.detalheItem(sel) : null,
-    ].filter((x): x is HTMLElement => !!x);
+    // as casas vazias completam a fileira (no mínimo três fileiras)
+    const vazias = Math.max(12, Math.ceil((casas.length + 1) / 4) * 4) - casas.length;
+    for (let i = 0; i < vazias; i++) casas.push(h('span', { class: 'jg-casa vazia', 'aria-hidden': 'true' }));
+    const partes: (HTMLElement | null)[] = [
+      this.titulo('MOCHILA', 'mochila', h('span', { class: 'jg-tit-extra' }, pintado(IC.carga, 'mochila'), h('b', null, `${numero(c.carga.usados)}/${c.carga.espacos}`), ' espaços')),
+      h('div', { class: 'jg-casas' }, ...casas),
+      inv.length ? null : h('p', { class: 'jg-vazio' }, 'A mochila está vazia. Os itens vêm da requisição (na ficha completa) e do que o mestre entrega.'),
+    ];
+    return partes.filter((x): x is HTMLElement => !!x);
   }
 
-  private detalheItem(it: regras.ItemFicha): HTMLElement {
+  /** O item num modal: a arte, o nome, o peso, o que faz e o que dá para fazer com ele. */
+  private abrirItem(uid: number) {
+    const it = this.fs?.ficha.inventario.find((x) => x.uid === uid);
+    if (!it) return;
     const inf = infoItem(it, this.calc);
     const lugar = regras.lugarDoItem(it);
-    const uid = it.uid!;
+    const base = it.tipo === 'cena' ? undefined : (regras.baseDoItem(it) as { resumo?: string } | undefined);
+    const resumo = it.descricao || base?.resumo || '';
+    const j = janela(inf.nome.toUpperCase(), 'mochila', () => {}, 46);
+    j.el.classList.add('tela-toda', 'jg-modal-item');
+    const fazer = (fn: () => void) => () => (fn(), j.fechar());
     const acoes: HTMLElement[] = [];
     if (regras.maosDoItem(it) > 0)
-      acoes.push(lugar === 'mao' ? botao('Guardar', 'mochila', '', () => this.mochila(uid, 'guardar')) : botao('Empunhar', 'mao', 'forte', () => this.mochila(uid, 'empunhar', { trocar: true })));
-    else if (regras.vestivel(it)) acoes.push(lugar === 'vestido' ? botao('Tirar', 'colete', '', () => this.mochila(uid, 'tirar')) : botao('Vestir', 'colete', 'forte', () => this.mochila(uid, 'vestir')));
+      acoes.push(lugar === 'mao' ? botao('Guardar', 'mochila', '', fazer(() => this.mochila(uid, 'guardar'))) : botao('Empunhar', 'mao', 'forte', fazer(() => this.mochila(uid, 'empunhar', { trocar: true }))));
+    else if (regras.vestivel(it)) acoes.push(lugar === 'vestido' ? botao('Tirar', 'colete', '', fazer(() => this.mochila(uid, 'tirar'))) : botao('Vestir', 'colete', 'forte', fazer(() => this.mochila(uid, 'vestir'))));
     if (regras.consumivel(it))
       acoes.push(
         botao('Usar', 'kitMedico', 'forte', async () => {
-          if (await confirmar(`USAR ${inf.nome.toUpperCase()}?`, 'O item é gasto, e o mestre vê no registro.', 'Usar')) this.mochila(uid, 'usar');
+          if (!(await confirmar(`USAR ${inf.nome.toUpperCase()}?`, 'O item é gasto, e o mestre vê no registro.', 'Usar'))) return;
+          this.mochila(uid, 'usar');
+          j.fechar();
         }),
       );
-    if (this.equipe.length) acoes.push(botao('Entregar', 'pessoa', '', () => this.entregar(it, inf.nome)));
-    const linhas = [inf.efeito, inf.obs].filter((x) => x && x !== '—');
-    return h(
-      'article',
-      { class: 'jg-det' },
-      h('div', { class: 'jg-det-arte' }, arteDoItem(it, inf.icone)),
+    if (this.equipe.length) acoes.push(botao('Entregar', 'pessoa', '', () => (j.fechar(), this.entregar(it, inf.nome))));
+    const campo = (rot: string, valor: string) => h('div', { class: 'jg-mi-campo' }, h('small', null, rot), h('b', null, valor));
+    const efeito = [inf.efeito, inf.obs].filter((x) => x && x !== '—').join(' · ');
+    j.corpo.append(
       h(
         'div',
-        { class: 'jg-det-txt' },
-        h('h3', null, inf.nome),
-        linhas.length ? h('p', null, linhas.join(' · ')) : null,
-        h('p', { class: 'jg-det-meta' }, `${inf.tipo}${inf.categoria ? ` · categoria ${['0', 'I', 'II', 'III', 'IV'][inf.categoria]}` : ''} · ${numero(inf.espacos * (it.qtd ?? 1))} esp.${lugar === 'mao' ? ' · na mão' : lugar === 'vestido' ? ' · vestido' : ''}`),
+        { class: 'jg-mi' },
+        h('div', { class: 'jg-mi-arte' }, arteDoItem(it, inf.icone)),
+        h(
+          'div',
+          { class: 'jg-mi-campos' },
+          campo('Tipo', inf.tipo),
+          campo('Peso', `${numero(inf.espacos * (it.qtd ?? 1))} esp.${(it.qtd ?? 1) > 1 ? ` (${it.qtd} un.)` : ''}`),
+          campo('Categoria', it.tipo === 'cena' ? 'achado' : ['0', 'I', 'II', 'III', 'IV'][inf.categoria] ?? '—'),
+          campo('Onde', lugar === 'mao' ? 'Na mão' : lugar === 'vestido' ? 'Vestido' : 'Na mochila'),
+        ),
+        efeito ? h('p', { class: 'jg-mi-efeito' }, efeito) : null,
+        resumo ? h('p', { class: 'jg-mi-txt' }, resumo) : null,
+        inf.ref ? h('p', { class: 'jg-det-meta' }, textoRef(inf.ref)) : null,
       ),
-      acoes.length ? h('div', { class: 'jg-det-bts' }, ...acoes) : null,
     );
+    if (acoes.length) j.rodape.append(...acoes);
+    else j.rodape.append(h('span', { class: 'fj-esp' }), botao('Fechar', 'ok', 'forte', () => j.fechar()));
   }
 
   private entregar(it: regras.ItemFicha, nome: string) {
@@ -448,7 +497,7 @@ export class TelaJogador {
         'div',
         { class: 'jg-lista-escolha' },
         ...this.equipe.map((o) =>
-          h('button', { class: 'fx-bt', type: 'button', onclick: () => (this.mochila(it.uid!, 'entregar', { para: o.id }), this.itemSel = null, j.fechar()) }, ic('pessoa'), h('span', null, o.nome)),
+          h('button', { class: 'fx-bt', type: 'button', onclick: () => (this.mochila(it.uid!, 'entregar', { para: o.id }), j.fechar()) }, ic('pessoa'), h('span', null, o.nome)),
         ),
       ),
     );
@@ -468,7 +517,7 @@ export class TelaJogador {
       return h(
         'button',
         { class: `jg-linha${this.poderSel === p.id ? ' on' : ''}`, type: 'button', onclick: () => ((this.poderSel = this.poderSel === p.id ? null : p.id), sfx.click(), this.renderConteudo()) },
-        h('span', { class: 'jg-linha-ic' }, ic(filtro.icone)),
+        h('span', { class: 'jg-linha-ic' }, pintado(filtro.pintado, filtro.icone)),
         h('span', { class: 'jg-linha-txt' }, h('span', { class: 'jg-linha-n' }, p.nome, h('em', { class: `jg-selo${info.custo ? ' pe' : ''}` }, info.custo ? `${info.custo} PE` : 'Passivo')), info.resumo ? h('small', null, info.resumo) : null),
         ic('direita'),
       );
@@ -487,12 +536,12 @@ export class TelaJogador {
             'div',
             { class: 'jg-filtros' },
             ...filtros.map((x) =>
-              h('button', { class: `jg-filtro${x.id === this.filtroPoder ? ' on' : ''}`, type: 'button', onclick: () => ((this.filtroPoder = x.id), (this.poderSel = null), sfx.click(), this.renderConteudo()) }, ic(x.icone), h('span', null, x.rotulo)),
+              h('button', { class: `jg-filtro${x.id === this.filtroPoder ? ' on' : ''}`, type: 'button', onclick: () => ((this.filtroPoder = x.id), (this.poderSel = null), sfx.click(), this.renderConteudo()) }, pintado(x.pintado, x.icone), h('span', null, x.rotulo)),
             ),
           )
         : null,
       lista.length ? h('div', { class: 'jg-lista' }, ...linhas) : h('p', { class: 'jg-vazio' }, 'Sem poderes ainda.'),
-      sel ? this.detalhePoder(sel, nomeGrupo[filtro.id], filtro.icone) : null,
+      sel ? this.detalhePoder(sel, nomeGrupo[filtro.id], filtro.icone, filtro.pintado) : null,
     ].filter((x): x is HTMLElement => !!x);
   }
 
@@ -507,7 +556,7 @@ export class TelaJogador {
     return { resumo, custo, ref, efeitos, notas };
   }
 
-  private detalhePoder(p: regras.PoderObtido, grupo: string, icone: NomeIcone): HTMLElement {
+  private detalhePoder(p: regras.PoderObtido, grupo: string, icone: NomeIcone, pint: string): HTMLElement {
     const info = this.infoPoder(p);
     const bloco = (titulo: string, ico: NomeIcone, ...txt: (string | null | undefined)[]) => {
       const t = txt.filter((x): x is string => !!x);
@@ -516,7 +565,7 @@ export class TelaJogador {
     return h(
       'article',
       { class: 'jg-det jg-det-poder' },
-      h('div', { class: 'jg-det-cab' }, h('span', { class: 'jg-linha-ic grande' }, ic(icone)), h('div', null, h('h3', null, p.nome), h('p', { class: 'jg-det-meta' }, `${NOME_TIPO_PODER[p.tipo]} · ${grupo}`)), h('em', { class: `jg-selo grande${info.custo ? ' pe' : ''}` }, info.custo ? `${info.custo} PE` : 'Passivo')),
+      h('div', { class: 'jg-det-cab' }, h('span', { class: 'jg-linha-ic grande' }, pintado(pint, icone)), h('div', null, h('h3', null, p.nome), h('p', { class: 'jg-det-meta' }, `${NOME_TIPO_PODER[p.tipo]} · ${grupo}`)), h('em', { class: `jg-selo grande${info.custo ? ' pe' : ''}` }, info.custo ? `${info.custo} PE` : 'Passivo')),
       h(
         'div',
         { class: 'jg-blocos' },
@@ -614,10 +663,10 @@ export class TelaJogador {
       .filter((d) => this.filtroDoc === 'todos' || d.grupo === this.filtroDoc)
       .sort((a, b) => b.atualizadoEm.localeCompare(a.atualizadoEm));
     if (this.docSel !== null && !this.docs.some((d) => d.id === this.docSel)) this.docSel = null;
-    const filtros: { id: GrupoDocumento | 'todos'; rotulo: string; icone: NomeIcone }[] = [
-      { id: 'todos', rotulo: 'Todos', icone: 'documento' },
-      { id: 'evidencia', rotulo: 'Evidências', icone: 'lupa' },
-      { id: 'pista', rotulo: 'Pistas', icone: 'mapa' },
+    const filtros: { id: GrupoDocumento | 'todos'; rotulo: string; icone: NomeIcone; pintado: string | string[] }[] = [
+      { id: 'todos', rotulo: 'Todos', icone: 'documento', pintado: IC.docsTodos },
+      { id: 'evidencia', rotulo: 'Evidências', icone: 'lupa', pintado: 'docs-evidencias' },
+      { id: 'pista', rotulo: 'Pistas', icone: 'mapa', pintado: IC.docsPistas },
     ];
     const meta = (d: Documento) => [nomeTipoDocumento(d.tipo), d.origem, `${d.paginas.length} página${d.paginas.length > 1 ? 's' : ''}`].filter(Boolean).join(' · ');
     const linhas = lista.map((d) =>
@@ -636,7 +685,7 @@ export class TelaJogador {
         'div',
         { class: 'jg-filtros' },
         ...filtros.map((x) =>
-          h('button', { class: `jg-filtro${x.id === this.filtroDoc ? ' on' : ''}`, type: 'button', onclick: () => ((this.filtroDoc = x.id), sfx.click(), this.renderConteudo()) }, ic(x.icone), h('span', null, x.rotulo)),
+          h('button', { class: `jg-filtro${x.id === this.filtroDoc ? ' on' : ''}`, type: 'button', onclick: () => ((this.filtroDoc = x.id), sfx.click(), this.renderConteudo()) }, pintado(x.pintado, x.icone), h('span', null, x.rotulo)),
         ),
       ),
       lista.length
@@ -714,11 +763,11 @@ export class TelaJogador {
       ),
     );
     const sel = todas.find((n) => n.id === this.notaSel);
-    const filtro = (fix: boolean, rotulo: string, icone: NomeIcone) =>
-      h('button', { class: `jg-filtro${this.soFixadas === fix ? ' on' : ''}`, type: 'button', onclick: () => ((this.soFixadas = fix), sfx.click(), this.renderConteudo()) }, ic(icone), h('span', null, rotulo));
+    const filtro = (fix: boolean, rotulo: string, icone: NomeIcone, pint: string | string[]) =>
+      h('button', { class: `jg-filtro${this.soFixadas === fix ? ' on' : ''}`, type: 'button', onclick: () => ((this.soFixadas = fix), sfx.click(), this.renderConteudo()) }, pintado(pint, icone), h('span', null, rotulo));
     return [
       this.titulo('NOTAS', 'pena', h('button', { class: 'jg-tit-bt', type: 'button', onclick: () => this.novaNota() }, ic('mais'), h('span', null, 'Nova nota'))),
-      h('div', { class: 'jg-filtros dois' }, filtro(false, 'Recentes', 'documento'), filtro(true, 'Fixadas', 'pino')),
+      h('div', { class: 'jg-filtros dois' }, filtro(false, 'Recentes', 'ampulheta', IC.notasRecentes), filtro(true, 'Fixadas', 'pino', 'notas-fixadas')),
       lista.length ? h('div', { class: 'jg-lista' }, ...linhas) : h('p', { class: 'jg-vazio' }, this.soFixadas ? 'Nenhuma nota fixada.' : 'Nenhuma nota. Anote pistas, nomes e portas trancadas: só você e o mestre veem.'),
       sel ? this.editorNota(sel) : null,
     ].filter((x): x is HTMLElement => !!x);
