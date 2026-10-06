@@ -818,6 +818,10 @@ export class Hotel implements HotelApi {
         const depois = regras.calcular(f.ficha).itens;
         const passou = depois.find((l) => l.usados > l.limite && l.usados > (antes.find((x) => x.categoria === l.categoria)?.usados ?? 0));
         if (passou) return c.send({ t: 'error', msg: `Limite da patente: categoria ${'I'.repeat(passou.categoria === 4 ? 0 : passou.categoria) || 'IV'} já tem ${passou.limite} (LR p. 52). Peça ao mestre.` });
+        // e nenhum erro de regra novo (atributo fora dos pontos, escolha travada...): o jogador não passa por cima do livro
+        const errosAntes = new Set(regras.calcular(antiga.ficha).problemas.filter((p) => p.severidade === 'erro').map((p) => `${p.onde}|${p.texto}`));
+        const novo = regras.calcular(f.ficha).problemas.find((p) => p.severidade === 'erro' && !errosAntes.has(`${p.onde}|${p.texto}`));
+        if (novo) return c.send({ t: 'error', msg: `${novo.onde}: ${novo.texto} Peça ao mestre.` });
       } catch {
         /* ficha que o motor não fecha: o mestre confere */
       }

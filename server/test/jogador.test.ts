@@ -159,6 +159,20 @@ describe('documentos', () => {
     assert.deepEqual(jog.last('docs')!.docs[0].marcadoPor, [cat]);
   });
 
+  test('o jogador não passa por cima do livro: atributo além dos pontos é recusado', () => {
+    const minha = structuredClone(jog.last('fichas')!.fichas[0]);
+    minha.ficha.atributos.for += 2;
+    jog.send({ t: 'fichaSalvar', ficha: minha });
+    assert.match(jog.last('error')!.msg, /Atributos/);
+    assert.equal(ficha('Catarina Albuquerque').ficha.atributos.for, 2, 'não mudou');
+    // o mestre passa
+    const doMestre = structuredClone(hotel.db.fichas!.find((f) => f.nome === 'Catarina Albuquerque')!);
+    doMestre.ficha.atributos.for = 3;
+    doMestre.ficha.atributos.vig = 2;
+    gm.send({ t: 'fichaSalvar', ficha: doMestre });
+    assert.equal(ficha('Catarina Albuquerque').ficha.atributos.for, 3);
+  });
+
   test('notas e favoritos ficam na ficha; o que é estranho não entra', () => {
     const minha = structuredClone(jog.last('fichas')!.fichas[0]);
     minha.diario = [{ id: 'n1', titulo: 'Porta trancada', texto: 'Corredor norte.', fixada: true, em: new Date().toISOString() }, { id: '', titulo: 'sem id', texto: '', em: '' }];

@@ -7,10 +7,9 @@ import type { FichaSalva } from '@crona/shared';
 import type { App } from './app';
 import { h } from './dom';
 import { botao, janela } from './fichaModal';
-import { FichasScreen } from './fichas';
+import { FichaCelular } from './fichaCelular';
 import { TelaJogador } from './jogador';
 import { sfx } from './sfx';
-import { TopBar } from './topbar';
 
 const CHAVE = 'crona.fichaKey';
 
@@ -45,69 +44,46 @@ export function esquecerChaveFicha() {
 
 export class TelaFicha {
   readonly el: HTMLElement;
-  readonly fichas: FichasScreen;
-  /** o modo jogo (abre nele); a ficha inteira fica na engrenagem */
+  /** o modo jogo (abre nele); a ficha fica na engrenagem */
   readonly jogo: TelaJogador;
-  private completa: HTMLElement;
+  readonly ficha: FichaCelular;
   private aviso: HTMLElement;
 
   constructor(app: App, sair: () => void) {
-    this.fichas = new FichasScreen(app, { jogador: true });
-    this.jogo = new TelaJogador(app, { fichaCompleta: () => this.verCompleta(true), menu: () => this.menu(), sair });
-    const topo = new TopBar({
-      abas: [
-        { id: 'JOGO', rotulo: 'JOGO', icone: 'esquerda' },
-        { id: 'FICHAS', rotulo: 'FICHA', icone: 'ficha' },
-      ],
-      ativa: 'FICHAS',
-      aoTrocar: (id) => id === 'JOGO' && this.verCompleta(false),
-      botoes: [
-        { id: 'config', icone: 'engrenagem', titulo: 'Menu', cheio: true, onclick: (e) => (e.stopPropagation(), this.menu()) },
-        { id: 'sair', icone: 'sair', titulo: 'Sair', sair: true, onclick: () => sair() },
-      ],
-    });
-    this.completa = h('div', { class: 'tf-completa hidden' }, topo.el, this.fichas.el);
+    this.jogo = new TelaJogador(app, { fichaCompleta: () => this.verFicha(true), menu: () => this.menu(), sair });
+    this.ficha = new FichaCelular(app, () => this.verFicha(false));
     this.aviso = h('div', { class: 'tf-aviso hidden' });
-    this.el = h('div', { class: 'tela-ficha hidden' }, this.jogo.el, this.completa, this.aviso);
+    this.el = h('div', { class: 'tela-ficha hidden' }, this.jogo.el, this.ficha.el, this.aviso);
   }
 
-  /** As fichas chegaram (só a dele) e a equipe, para entregar itens. */
-  setFichas(fichas: FichaSalva[], nova?: number, equipe?: { id: number; nome: string }[]) {
-    this.fichas.setFichas(fichas, nova);
+  /** A ficha chegou (só a dele) e a equipe, para entregar itens. */
+  setFichas(fichas: FichaSalva[], _nova?: number, equipe?: { id: number; nome: string }[]) {
     this.jogo.setFicha(fichas[0] ?? null);
+    this.ficha.setFicha(fichas[0] ?? null);
     if (equipe) this.jogo.setEquipe(equipe);
   }
 
-  private verCompleta(sim: boolean) {
+  private verFicha(sim: boolean) {
     sfx.paper();
-    this.completa.classList.toggle('hidden', !sim);
+    this.ficha.el.classList.toggle('hidden', !sim);
     this.jogo.el.classList.toggle('hidden', sim);
-    if (sim) this.fichas.show();
   }
 
-  /** A engrenagem: a ficha completa e o som. */
+  /** A engrenagem: a ficha e o som. */
   private menu() {
-    const naFicha = !this.completa.classList.contains('hidden');
+    const naFicha = !this.ficha.el.classList.contains('hidden');
     const j = janela('MENU', 'engrenagem', () => {}, 30);
     const som = botao(sfx.enabled ? 'Sons: ligados' : 'Sons: desligados', 'sol', '', () => {
       sfx.setEnabled(!sfx.enabled);
       som.querySelector('span')!.textContent = sfx.enabled ? 'Sons: ligados' : 'Sons: desligados';
     });
     j.el.classList.add('tela-toda');
-    j.corpo.append(
-      h(
-        'div',
-        { class: 'tf-menu' },
-        botao(naFicha ? 'Voltar ao jogo' : 'Ficha completa', naFicha ? 'esquerda' : 'ficha', 'forte', () => (j.fechar(), this.verCompleta(!naFicha))),
-        som,
-      ),
-    );
+    j.corpo.append(h('div', { class: 'tf-menu' }, botao(naFicha ? 'Voltar ao jogo' : 'Ver a ficha', naFicha ? 'esquerda' : 'ficha', 'forte', () => (j.fechar(), this.verFicha(!naFicha))), som));
   }
 
   show() {
     this.el.classList.remove('hidden');
     this.aviso.classList.add('hidden');
-    this.fichas.show();
   }
 
   /** Link inválido ou conexão perdida. */
