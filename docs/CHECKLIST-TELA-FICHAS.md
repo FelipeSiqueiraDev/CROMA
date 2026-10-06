@@ -83,7 +83,7 @@ Pasta: `client/public/arte/interface/`.
 - [x] Celular: uma coluna na disposição da referência do celular, com os mesmos painéis do computador (atributos e perícias iguais aos do computador)
 - [x] Captura lado a lado com a referência e os ajustes finos
 - [ ] Modo "jogo" do jogador (acesso rápido na mesa: rolar perícia, ataque, ritual)
-- [ ] Criação passo a passo (`docs/CRIACAO-DE-PERSONAGEM.md`); hoje a criação é pela edição, com as pendências
+- [x] Criação passo a passo (`docs/CRIACAO-DE-PERSONAGEM.md`, `client/src/ui/criacao.ts`, 06/10): o + Novo Agente e o Editar do mestre abrem os passos (começo, atributos, origem, classe, perícias, evolução, mochila, toques finais, revisão), com a ficha de trás mudando junto; "Editar na ficha" fecha os passos e continua a edição direta
 
 ## 7. Celular (referência `docs/referencias/fichas-celular.webp`)
 

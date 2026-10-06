@@ -124,6 +124,14 @@ Tudo em [`FERRAMENTAS-DA-MESA.md`](FERRAMENTAS-DA-MESA.md). No canto de cima do 
 
 `npm run crona:link` (`scripts/link.mjs`): túnel da Cloudflare até a porta da rede do jogo, como o do C.R.I.S. Testado: a página abre pelo link e quem entra por lá é jogador (o mestre entra pela conta). O link muda a cada vez que o túnel sobe (fixo é pago). **Falta:** o Felipe decidir se sobe a cada login (`node scripts/link.mjs instalar`).
 
+## Feito em 06/10: requisição, Interlúdio e criação
+
+- **Requisição (item 4):** a perícia do utensílio e da vestimenta e o elemento dos itens "de (Elemento)" escolhidos ao pedir; modificações e maldições pela conta do motor (onde vão, requisitos, as que não combinam, elementos que se oprimem, agente especial, a categoria nova contra a patente), na FICHAS e no "Modificar" da aba ITENS, com o mestre passando por cima; munição empilhada em pacotes; o servidor recusa a ficha do jogador que passa da patente.
+- **Aba INTERLÚDIO (LR p. 92–93, conferido no livro):** o lugar do descanso e até duas ações por agente; Concluir aplica nas fichas e nas peças; os +1d6 de exercício e leitura ficam guardados (`FichaSalva.bonus`), com gastar e "Fim da missão".
+- **Criação passo a passo:** `client/src/ui/criacao.ts`, aberta pelo + Novo Agente e pelo Editar (decisão do Felipe: o mesmo caminho).
+- Testes em `server/test/requisicao.test.ts` (8).
+- **Próximo (decidido em 06/10):** reorganizar MAPA e COMBATE pelas referências novas (`docs/ref-mapa-3.webp`, `docs/ref-combate-2.webp`, fora do git): ferramentas do tabuleiro numa fileira no canto de cima à direita, plaquinha do cômodo, faixa de estado embaixo do tabuleiro (Iluminação, Névoa, Terreno), "Agentes no local", inventário rápido 3 × 2, ações em lista, cena e objeto à esquerda com foto; no COMBATE, os estados na iniciativa, os chips de ação e o alvo com as resistências. Os nomes das peças continuam só com o mouse (decisão do Felipe).
+
 ## Pela metade
 
 - **Ferramentas do mestre para arrumar as salas (05/10):** o botão **Trocar** no painel do móvel (aba Descrição: o catálogo abre na categoria dele e troca no mesmo lugar e giro; `swapItem`); o catálogo mostra a **arte** de cada móvel (`arteDaMiniatura`); **Maior/Menor** nos quadros e tapetes (`resizeItem`, `escala` no item, de 0,5 a 3: o quadro cresce em volta do meio, o tapete em volta do meio da pegada, no tabuleiro e no mapa tático); e o **tapete** (todo móvel `flat`) vai para baixo dos móveis (`canPlace`).

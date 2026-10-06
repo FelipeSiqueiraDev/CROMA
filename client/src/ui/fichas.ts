@@ -17,6 +17,7 @@ import { arteDoItem } from './arteItem';
 import { abrirRequisicao } from './requisicao';
 import { confirmar, escolher, janela, mostrar, perguntarTexto } from './fichaModal';
 import { opcoesMelhoria } from './melhorias';
+import { abrirCriacao, type Assistente } from './criacao';
 import {
   escolherCampo,
   escolherPendencia,
@@ -303,13 +304,35 @@ export class FichasScreen {
 
   // ================================================================ modos
 
-  private entrarEdicao() {
+  private entrarEdicao(passos = true) {
     const fs = this.atual();
     if (!fs || this.editando) return;
     this.rascunho = clone(fs);
     this.modo = 'editar';
     sfx.paper();
     this.render();
+    // o Editar do mestre abre os passos da criação (a ficha de trás muda junto)
+    if (passos && this.gm) this.abrirAssistente(false);
+  }
+
+  /** A criação passo a passo, no rascunho (docs/CRIACAO-DE-PERSONAGEM.md). */
+  private assistente: Assistente | null = null;
+  private abrirAssistente(nova: boolean) {
+    if (this.assistente || !this.rascunho) return;
+    this.assistente = abrirCriacao({
+      fs: () => this.rascunho,
+      gm: this.gm,
+      nova,
+      pericias: (alvo) => this.editarPericias(alvo),
+      escolha: (e) => this.abrirEscolha(e),
+      item: (i) => this.detalheItem(i),
+      requisicao: () => this.adicionarItem(),
+      tema: () => this.escolherTema(),
+      render: () => this.render(),
+      salvar: () => this.salvarEdicao(),
+      cancelar: () => this.cancelarEdicao(),
+      fechou: () => (this.assistente = null),
+    });
   }
 
   private cancelarEdicao() {
@@ -348,6 +371,7 @@ export class FichasScreen {
     this.selId = null;
     sfx.paper();
     this.render();
+    this.abrirAssistente(true);
   }
 
   private selecionar(id: number) {
@@ -373,6 +397,12 @@ export class FichasScreen {
   }
 
   private render() {
+    this.renderTela();
+    // os passos da criação, abertos por cima, acompanham
+    this.assistente?.atualizar();
+  }
+
+  private renderTela() {
     const fs = this.atual();
     this.calc = fs ? regras.calcular(fs.ficha) : null;
     this.el.classList.toggle('editando', this.editando);
@@ -887,13 +917,15 @@ export class FichasScreen {
   }
 
   /** Perícias da criação: as da origem, as fixas e os grupos da classe, e as livres. */
-  private editarPericias() {
+  /** As perícias da criação: numa janela ou, no assistente, dentro de `alvo`. */
+  private editarPericias(alvo?: HTMLElement) {
     const fs = this.rascunho;
     if (!fs) return;
     const f = fs.ficha;
     const info = periciasCriacao(f);
-    const j = janela('Perícias treinadas (criação)', 'dados', () => this.render(), 72);
-    const corpo = h('div', { class: 'fj-per' });
+    const j = alvo ? null : janela('Perícias treinadas (criação)', 'dados', () => this.render(), 72);
+    const corpo = alvo ?? h('div', { class: 'fj-per' });
+    if (alvo) corpo.classList.add('fj-per');
     const desenhar = () => {
       const info2 = periciasCriacao(f);
       const livres = new Set(f.pericias.livres);
@@ -989,6 +1021,7 @@ export class FichasScreen {
     };
     void info;
     desenhar();
+    if (!j) return;
     j.corpo.append(corpo);
     j.rodape.append(h('span', { class: 'fj-esp' }), h('button', { class: 'fx-bt forte', type: 'button', onclick: () => j.fechar() }, ic('ok'), h('span', null, 'Pronto')));
   }
