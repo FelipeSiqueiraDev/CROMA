@@ -49,7 +49,7 @@ const ABAS: { id: Aba; rotulo: string; icone: NomeIcone; pintado?: string }[] = 
 ];
 
 /** As pontas do pentagrama da ficha (em % do quadro): Agilidade em cima, Força e Intelecto dos lados, Vigor e Presença embaixo. */
-const PENTA: Record<regras.AtributoId, [number, number]> = { agi: [50, 13], for: [12, 42], int: [88, 42], vig: [24, 88], pre: [76, 88] };
+const PENTA: Record<regras.AtributoId, [number, number]> = { agi: [50, 14], for: [12, 42], int: [88, 42], vig: [25, 84], pre: [75, 84] };
 const ICONE_ATR: Record<regras.AtributoId, NomeIcone> = { agi: 'correr', for: 'punho', int: 'cerebro', pre: 'olho', vig: 'escudo' };
 
 const ICONE_DOC: Record<TipoDocumento, NomeIcone> = { relatorio: 'documento', mapa: 'mapa', comunicacao: 'email', registro: 'livro', foto: 'imagem', objeto: 'caixa', outro: 'documento' };
@@ -97,6 +97,8 @@ const IC = {
   docsPistas: ['docs-pistas', 'topo-mapa'],
   notasRecentes: ['notas-recentes', 'combate-atrasar'],
   carga: ['carga', 'combate-item'],
+  docsEvidencias: ['docs-evidencias', 'pre'],
+  notasFixadas: ['notas-fixadas', 'titulo-anotacoes'],
 };
 
 export class TelaJogador {
@@ -133,7 +135,7 @@ export class TelaJogador {
     const topo = h(
       'header',
       { class: 'jg-topo' },
-      h('div', { class: 'jg-marca' }, h('b', null, 'ORDO REALITAS'), h('span', null, 'SEDE DA ORDEM')),
+      h('div', { class: 'jg-marca' }, h('b', null, 'ORDO REALITAS'), h('span', null, 'Sede da Ordem')),
       h(
         'div',
         { class: 'jg-topo-bts' },
@@ -240,9 +242,9 @@ export class TelaJogador {
       ...(fs.condicoes ?? []).map((k) => cat.condicao(k)?.nome ?? k),
     ];
     const chips = nomes.length
-      ? nomes.slice(0, 3).map((n) => h('span', { class: 'jg-chip ruim' }, ic('alerta'), n))
-      : [h('span', { class: 'jg-chip ok' }, ic('pulso'), 'Normal')];
-    if (regras.armado(f.inventario)) chips.push(h('span', { class: 'jg-chip arma' }, ic('pistola'), 'Armado'));
+      ? nomes.slice(0, 3).map((n) => h('span', { class: 'jg-chip ruim' }, n))
+      : [h('span', { class: 'jg-chip ok' }, 'Normal')];
+    if (regras.armado(f.inventario)) chips.push(h('span', { class: 'jg-chip arma' }, 'Armado'));
     this.perfil.replaceChildren(
       h('div', { class: 'jg-foto' }, look ? portraitCanvas(look, 120) : ic('pessoa')),
       h(
@@ -301,7 +303,7 @@ export class TelaJogador {
     const c = this.calc;
     if (!c) return this.numeros.replaceChildren();
     const n = (icone: NomeIcone, pint: string | string[] | undefined, rotulo: string, valor: string, dica: string) =>
-      h('div', { class: 'jg-num', title: dica }, pintado(pint, icone), h('span', null, rotulo), h('b', null, valor));
+      h('div', { class: 'jg-num', title: dica }, h('span', { class: 'jg-num-ic' }, pintado(pint, icone)), h('b', null, valor), h('span', null, rotulo));
     this.numeros.replaceChildren(
       n('escudo', 'defesa', 'Defesa', String(c.defesa), 'Defesa: 10 + Agilidade + proteção.'),
       n('correr', 'deslocamento', 'Desloc.', `${numero(c.deslocamento)} m`, 'Deslocamento por ação de movimento.'),
@@ -349,11 +351,13 @@ export class TelaJogador {
       notas: () => this.abaNotas(),
     };
     this.conteudo.dataset.aba = this.aba;
+    this.el.dataset.aba = this.aba;
     this.conteudo.replaceChildren(...partes[this.aba]());
   }
 
-  private titulo(texto: string, icone: NomeIcone, extra?: Node | null) {
-    return h('div', { class: 'jg-tit' }, ic(icone), h('h2', null, texto), extra ?? null);
+  /** O título de uma seção: o nome em pixel e, à direita, um extra (contagem ou botão). */
+  private titulo(texto: string, _icone: NomeIcone, extra?: Node | null) {
+    return h('div', { class: 'jg-tit' }, h('h2', null, texto), h('i', { class: 'jg-tit-linha', 'aria-hidden': 'true' }), extra ?? null);
   }
 
   // ---------------------------------------------------------------- Agente
@@ -879,7 +883,7 @@ export class TelaJogador {
     if (this.docSel !== null && !this.docs.some((d) => d.id === this.docSel)) this.docSel = null;
     const filtros: { id: GrupoDocumento | 'todos'; rotulo: string; icone: NomeIcone; pintado: string | string[] }[] = [
       { id: 'todos', rotulo: 'Todos', icone: 'documento', pintado: IC.docsTodos },
-      { id: 'evidencia', rotulo: 'Evidências', icone: 'lupa', pintado: 'docs-evidencias' },
+      { id: 'evidencia', rotulo: 'Evidências', icone: 'lupa', pintado: IC.docsEvidencias },
       { id: 'pista', rotulo: 'Pistas', icone: 'mapa', pintado: IC.docsPistas },
     ];
     const meta = (d: Documento) => [nomeTipoDocumento(d.tipo), d.origem, `${d.paginas.length} página${d.paginas.length > 1 ? 's' : ''}`].filter(Boolean).join(' · ');
@@ -981,7 +985,7 @@ export class TelaJogador {
       h('button', { class: `jg-filtro${this.soFixadas === fix ? ' on' : ''}`, type: 'button', onclick: () => ((this.soFixadas = fix), sfx.click(), this.renderConteudo()) }, pintado(pint, icone), h('span', null, rotulo));
     return [
       this.titulo('NOTAS', 'pena', h('button', { class: 'jg-tit-bt', type: 'button', onclick: () => this.novaNota() }, ic('mais'), h('span', null, 'Nova nota'))),
-      h('div', { class: 'jg-filtros dois' }, filtro(false, 'Recentes', 'ampulheta', IC.notasRecentes), filtro(true, 'Fixadas', 'pino', 'notas-fixadas')),
+      h('div', { class: 'jg-filtros dois' }, filtro(false, 'Recentes', 'ampulheta', IC.notasRecentes), filtro(true, 'Fixadas', 'pino', IC.notasFixadas)),
       lista.length ? h('div', { class: 'jg-lista' }, ...linhas) : h('p', { class: 'jg-vazio' }, this.soFixadas ? 'Nenhuma nota fixada.' : 'Nenhuma nota. Anote pistas, nomes e portas trancadas: só você e o mestre veem.'),
       sel ? this.editorNota(sel) : null,
     ].filter((x): x is HTMLElement => !!x);
