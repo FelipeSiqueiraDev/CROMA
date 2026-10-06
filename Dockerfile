@@ -14,6 +14,9 @@ COPY shared shared
 COPY server server
 COPY client client
 RUN npm run build
+# a arte mais leve para quem joga pelo link: uma cópia em WebP de cada PNG (o servidor escolhe)
+COPY scripts/webp.mjs scripts/
+RUN npm i --no-save --no-audit --no-fund sharp && node scripts/webp.mjs client/dist/arte
 
 # ---------- o que roda: o servidor (tsx) servindo a interface e a arte
 FROM node:24-alpine

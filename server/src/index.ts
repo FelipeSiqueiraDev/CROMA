@@ -71,6 +71,14 @@ function serveFile(res: http.ServerResponse, file: string, cache = false, req?: 
       'Cache-Control': cache ? 'public, max-age=31536000, immutable' : arte ? 'public, max-age=3600' : 'no-cache',
       ETag: etag,
     };
+    // a cópia em WebP da arte (scripts/webp.mjs), para o navegador que aceita: bem menor que o PNG
+    if (arte && ext === '.png' && /image\/webp/.test(String(req?.headers.accept ?? '')) && !file.endsWith('.webp')) {
+      const leve = `${file}.webp`;
+      if (fs.existsSync(leve)) {
+        res.setHeader('Vary', 'Accept');
+        return serveFile(res, leve, cache, req);
+      }
+    }
     if (req?.headers['if-none-match'] === etag) {
       res.writeHead(304, headers);
       res.end();

@@ -6,6 +6,7 @@
 _entregas
 docs
 scripts
+!scripts/webp.mjs
 server/data
 server/.env
 **/*.log
