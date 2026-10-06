@@ -4,6 +4,7 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import zlib from 'node:zlib';
 import { WebSocketServer } from 'ws';
 import { abrirBanco } from './banco';
 import { fecharBanco, UPLOAD_DIR } from './db';
@@ -45,18 +46,48 @@ function sendJson(res: http.ServerResponse, status: number, body: unknown) {
   res.end(JSON.stringify(body));
 }
 
-function serveFile(res: http.ServerResponse, file: string, cache = false) {
+/** Texto que vale comprimir (o JS de 1 MB vira ~300 kB). */
+const COMPRIME = new Set(['.js', '.css', '.html', '.json', '.svg', '.txt']);
+/** O arquivo já comprimido, por caminho e data (o build não muda com o jogo no ar). */
+const gzCache = new Map<string, { mtime: number; buf: Buffer }>();
+
+/**
+ * Entrega um arquivo com ETag (o navegador pergunta "mudou?" e ganha um 304 vazio, sem baixar de
+ * novo) e com gzip nos textos. `cache`: o arquivo nunca muda (o nome tem o hash) e fica um ano.
+ * A arte (`/arte`) fica uma hora sem nem perguntar, e depois pergunta; o resto sempre pergunta.
+ */
+function serveFile(res: http.ServerResponse, file: string, cache = false, req?: http.IncomingMessage) {
   fs.stat(file, (err, st) => {
     if (err || !st.isFile()) {
       res.writeHead(404);
       res.end('Não encontrado');
       return;
     }
-    res.writeHead(200, {
-      'Content-Type': MIME[path.extname(file).toLowerCase()] ?? 'application/octet-stream',
-      'Content-Length': st.size,
-      'Cache-Control': cache ? 'public, max-age=31536000, immutable' : 'no-cache',
-    });
+    const ext = path.extname(file).toLowerCase();
+    const etag = `"${st.size.toString(36)}-${Math.floor(st.mtimeMs).toString(36)}"`;
+    const arte = file.includes(`${path.sep}arte${path.sep}`);
+    const headers: http.OutgoingHttpHeaders = {
+      'Content-Type': MIME[ext] ?? 'application/octet-stream',
+      'Cache-Control': cache ? 'public, max-age=31536000, immutable' : arte ? 'public, max-age=3600' : 'no-cache',
+      ETag: etag,
+    };
+    if (req?.headers['if-none-match'] === etag) {
+      res.writeHead(304, headers);
+      res.end();
+      return;
+    }
+    const gz = COMPRIME.has(ext) && /gzip/.test(String(req?.headers['accept-encoding'] ?? ''));
+    if (gz) {
+      let c = gzCache.get(file);
+      if (!c || c.mtime !== st.mtimeMs) {
+        c = { mtime: st.mtimeMs, buf: zlib.gzipSync(fs.readFileSync(file)) };
+        gzCache.set(file, c);
+      }
+      res.writeHead(200, { ...headers, 'Content-Encoding': 'gzip', 'Content-Length': c.buf.length, Vary: 'Accept-Encoding' });
+      res.end(c.buf);
+      return;
+    }
+    res.writeHead(200, { ...headers, 'Content-Length': st.size });
     const stream = fs.createReadStream(file);
     stream.on('error', () => res.destroy());
     stream.pipe(res);
@@ -156,7 +187,7 @@ function route(req: http.IncomingMessage, res: http.ServerResponse) {
   if (url.pathname === '/api/mapas' && req.method === 'POST') return handleUpload(req, res, url, true);
   if (url.pathname.startsWith('/uploads/')) {
     const file = path.join(UPLOAD_DIR, path.basename(url.pathname));
-    return serveFile(res, file, true);
+    return serveFile(res, file, true, req);
   }
   if (url.pathname === '/api/health') return sendJson(res, 200, { ok: true });
   if (url.pathname === '/api/arte') return sendJson(res, 200, { arquivos: listarArte() });
@@ -183,7 +214,7 @@ function route(req: http.IncomingMessage, res: http.ServerResponse) {
     return;
   }
   if (!fs.existsSync(file) || fs.statSync(file).isDirectory()) file = path.join(CLIENT_DIST, 'index.html');
-  serveFile(res, file, file.includes(`${path.sep}assets${path.sep}`));
+  serveFile(res, file, file.includes(`${path.sep}assets${path.sep}`), req);
 }
 
 const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);

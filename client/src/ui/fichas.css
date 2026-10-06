@@ -2912,3 +2912,98 @@ select.fx-inp {
     display: none;
   }
 }
+
+/* =====================================================================
+   ACABAMENTO (06/10): o nome em cima da placa, as placas que sempre cabem,
+   os números do combate compactos e o "+ Novo" dentro da carta
+   ===================================================================== */
+@media (min-width: 821px), (orientation: landscape) and (min-width: 561px) {
+  /* as placas (derivados e recursos): o nome fica em cima, fora da moldura */
+  .fx .fx-dv {
+    justify-content: center;
+    gap: 0.6rem;
+    height: 4.2rem;
+    padding: 0 0.8rem;
+  }
+  .fx .fx-dv .fx-dv-t {
+    position: static;
+  }
+  .fx .fx-dv .fx-dv-r {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 100%;
+    margin-bottom: 0.25rem;
+    overflow: hidden;
+    text-align: center;
+    text-overflow: ellipsis;
+    font-size: 1.05rem;
+    letter-spacing: 0;
+    font-variation-settings: 'wdth' 50;
+    color: #3a2f24;
+  }
+  .fx .fx-dv .fx-dv-v {
+    font-size: 2.1rem;
+  }
+  .fx .fx-dv-ic,
+  .fx .fx-dv-ic .ic,
+  .fx .fx-dv-ic img {
+    width: 2.6rem;
+    height: 2.6rem;
+  }
+  /* as quatro placas em colunas iguais: sempre cabem no papel */
+  .fx-g-comb > .fx-deriv {
+    padding-top: 3.4rem;
+  }
+  .fx-g-comb .fx-deriv .fx-corpo-p {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.8rem;
+    padding: 1.7rem 0.6rem 0.4rem;
+  }
+  .fx-g-comb .fx-dv .fx-dv-l {
+    font-size: 1.2rem;
+  }
+  .fx:not(.jogador) .fx-rec .fx-corpo-p {
+    padding-top: 1.9rem;
+  }
+  /* os números do combate: linhas baixas, no meio do espaço */
+  .fx-g-comb > .fx-tat .fx-tat-corpo {
+    grid-template-rows: none;
+    grid-auto-rows: 3.6rem;
+    align-content: center;
+    gap: 0.4rem;
+  }
+  .fx-g-comb .fx-tc {
+    padding: 0.1rem 0.7rem;
+  }
+  .fx-g-comb .fx-tc span {
+    font-size: 0.9rem;
+  }
+  .fx-g-comb .fx-tc b {
+    font-size: 1.35rem;
+    line-height: 1.2;
+  }
+  .fx-g-comb .fx-tc.largo b {
+    font-size: 1.1rem;
+    white-space: nowrap;
+  }
+  /* "+ Novo Agente": o + na carta e o texto na faixa de baixo dela */
+  .fx-ag.novo {
+    justify-content: flex-end;
+    gap: 0;
+    padding: 0;
+  }
+  .fx-ag.novo .ic {
+    margin: auto 0;
+  }
+  .fx-ag.novo > span {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    height: 4rem;
+    font-size: 1.25rem;
+    line-height: 1.1;
+    text-align: center;
+  }
+}
