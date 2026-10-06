@@ -506,10 +506,11 @@ export class Shell {
     this.ferramentas.aoMudar = (tipo) => this.combate.marcarFerramentaMesa(tipo);
     // a disposição de 06/10 (docs/ref-mapa-3.webp): as ferramentas numa fileira no canto de cima à direita,
     // a plaquinha do cômodo à esquerda e, embaixo, a faixa do estado da cena
+    // (a faixa do estado embaixo saiu a pedido do Felipe; ISO e TÁTICA voltaram para o canto de baixo)
     this.placaEl = h('div', { class: 'board-placa' });
-    this.estadoEl = h('div', { class: 'board-estado' });
-    const ferr = h('div', { class: 'board-ferr' }, this.ferramentas.el, this.vistaEl, centro);
-    this.board = h('main', { class: 'board' }, moldura, this.placeBar, zoom, this.placaEl, ferr, this.estadoEl, this.tabOverlay, this.teclado.el);
+    this.estadoEl = h('div', { class: 'board-estado hidden' });
+    const ferr = h('div', { class: 'board-ferr' }, this.ferramentas.el, centro);
+    this.board = h('main', { class: 'board' }, moldura, this.placeBar, zoom, this.placaEl, ferr, this.vistaEl, this.tabOverlay, this.teclado.el);
 
     // ================= direita =================
     const backboard = h('div', { class: 'backboard', 'aria-hidden': 'true' });
@@ -679,7 +680,10 @@ export class Shell {
     const part = r.particles?.length ? `${r.particles.length === 1 ? ({ dust: 'poeira', smoke: 'fumaça', embers: 'brasas' } as Record<string, string>)[r.particles[0]] ?? r.particles[0] : `${r.particles.length} tipos`}` : 'nenhuma';
     const cel = (icone: string, rot: string, val: string) =>
       h('button', { class: 'be-cel', type: 'button', title: 'Clima da cena', disabled: !r.isOwner, onclick: () => (sfx.click(), this.actions.fx()) }, ic(icone), h('span', null, `${rot}: `), h('b', null, val));
-    this.estadoEl.replaceChildren(cel('sol', 'Iluminação', luz), cel('vento', 'Névoa', nevoa), cel('chama', 'Partículas', part));
+    void cel;
+    void luz;
+    void nevoa;
+    void part;
   }
 
   private marcarVista() {

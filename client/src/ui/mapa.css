@@ -1802,3 +1802,37 @@
   right: 2.6rem;
   bottom: 6.6rem;
 }
+/* ajustes do Felipe (06/10): sem a faixa de estado; ISO e TÁTICA no canto de baixo; as ferramentas
+   de cima sem o fundo escuro atrás; a fonte pixelada da tela de entrada no título e nos botões */
+.board-estado {
+  display: none;
+}
+.board-ferr .bm-botoes,
+.board-ferr .board-mesa {
+  border: 0;
+  background: none;
+  box-shadow: none;
+  padding: 0;
+}
+.shell .board-vista {
+  left: 2.6rem;
+  bottom: 2.2rem;
+}
+.shell .board-zoom {
+  bottom: 2.4rem;
+}
+.board-placa,
+.board-ferr .bv span,
+.shell .board-vista .bv span {
+  font-family: 'Pixelify Sans', 'Ubuntu Mono', monospace;
+  letter-spacing: 0.04em;
+}
+.board-placa {
+  font-weight: 600;
+  font-size: 1.7rem;
+}
+.board-ferr .bv span,
+.shell .board-vista .bv span {
+  font-size: 1.25rem;
+  font-weight: 500;
+}
