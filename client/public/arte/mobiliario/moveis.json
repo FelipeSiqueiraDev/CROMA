@@ -1186,12 +1186,12 @@
    "r": {
     "arquivo": "clock/parede-r.png",
     "ax": 19.8,
-    "ay": 22.0
+    "ay": 21.5
    },
    "l": {
     "arquivo": "clock/parede-l.png",
     "ax": 16.2,
-    "ay": 22.0
+    "ay": 21.5
    }
   }
  },
@@ -1764,23 +1764,23 @@
   "parede": {
    "r": {
     "arquivo": "emergency_light/parede-r.png",
-    "ax": 17.0,
-    "ay": 21.8
+    "ax": 18.0,
+    "ay": 31.2
    },
    "r-1": {
     "arquivo": "emergency_light/parede-r-1.png",
-    "ax": 17.0,
-    "ay": 23.4
+    "ax": 18.0,
+    "ay": 31.2
    },
    "l": {
     "arquivo": "emergency_light/parede-l.png",
-    "ax": 17.0,
-    "ay": 23.4
+    "ax": 18.0,
+    "ay": 31.2
    },
    "l-1": {
     "arquivo": "emergency_light/parede-l-1.png",
-    "ax": 17.0,
-    "ay": 21.8
+    "ax": 18.0,
+    "ay": 31.2
    }
   }
  },
@@ -3799,12 +3799,12 @@
    "r": {
     "arquivo": "ac_wall/parede-r.png",
     "ax": 45.0,
-    "ay": 42.5
+    "ay": 34.5
    },
    "l": {
     "arquivo": "ac_wall/parede-l.png",
     "ax": 45.0,
-    "ay": 42.0
+    "ay": 34.5
    }
   }
  },
@@ -5739,5 +5739,95 @@
    0.7,
    1.2
   ]
+ },
+ "hospital_bed~b": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "hospital_bed~b/giro-4.png",
+    "ax": 62.0,
+    "ay": 234.6
+   },
+   "6": {
+    "arquivo": "hospital_bed~b/giro-6.png",
+    "ax": 188.3,
+    "ay": 234.2
+   },
+   "0": {
+    "arquivo": "hospital_bed~b/giro-0.png",
+    "ax": 60.4,
+    "ay": 232.5
+   },
+   "2": {
+    "arquivo": "hospital_bed~b/giro-2.png",
+    "ax": 188.3,
+    "ay": 234.3
+   }
+  },
+  "real": [
+   0.8,
+   2.04,
+   1.0
+  ]
+ },
+ "hospital_bed~c": {
+  "escala": 0.5,
+  "giros": {
+   "4": {
+    "arquivo": "hospital_bed~c/giro-4.png",
+    "ax": 61.7,
+    "ay": 234.3
+   },
+   "6": {
+    "arquivo": "hospital_bed~c/giro-6.png",
+    "ax": 188.1,
+    "ay": 233.9
+   },
+   "0": {
+    "arquivo": "hospital_bed~c/giro-0.png",
+    "ax": 63.8,
+    "ay": 231.0
+   },
+   "2": {
+    "arquivo": "hospital_bed~c/giro-2.png",
+    "ax": 188.1,
+    "ay": 234.0
+   }
+  },
+  "real": [
+   0.8,
+   2.04,
+   1.0
+  ]
+ },
+ "painting~b": {
+  "escala": 0.5,
+  "parede": {
+   "r": {
+    "arquivo": "painting~b/parede-r.png",
+    "ax": 40.5,
+    "ay": 50.5
+   },
+   "l": {
+    "arquivo": "painting~b/parede-l.png",
+    "ax": 40.5,
+    "ay": 50.0
+   }
+  }
+ },
+ "painting~c": {
+  "escala": 0.5,
+  "parede": {
+   "r": {
+    "arquivo": "painting~c/parede-r.png",
+    "ax": 40.5,
+    "ay": 50.5
+   },
+   "l": {
+    "arquivo": "painting~c/parede-l.png",
+    "ax": 40.5,
+    "ay": 50.0
+   }
+  }
  }
 }
