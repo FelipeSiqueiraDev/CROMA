@@ -383,7 +383,9 @@ export type ClientMsg =
   /** mexe num item da mochila (só o mestre): mão, roupa, usar, entregar a outra ficha ou largar no chão */
   | { t: 'mochila'; fichaId: number; uid: number; acao: AcaoMochila; para?: number; trocar?: boolean }
   /** item do catálogo novo na mochila (só o mestre): requisitado à Ordem, conta na patente */
-  | { t: 'mochilaNova'; fichaId: number; tipo: TipoItemCatalogo; id: string }
+  | { t: 'mochilaNova'; fichaId: number; tipo: TipoItemCatalogo; id: string; escolha?: { pericia?: string; elemento?: string } }
+  /** põe ou tira uma modificação ou maldição de um item da mochila (só o mestre; LR p. 60 e 144) */
+  | { t: 'mochilaMelhorar'; fichaId: number; uid: number; tipo: 'modificacao' | 'maldicao'; id: string; por: boolean }
   | { t: 'fichaApagar'; id: number }
   /** gera (ou troca) o link do jogador para a ficha (só o mestre) */
   | { t: 'fichaLink'; id: number }

@@ -73,6 +73,11 @@ export interface ItemFicha {
   vestido?: boolean;
   /** nome próprio (ex.: "Katana do avô") */
   apelido?: string;
+  /**
+   * o que se escolhe ao requisitar o item (LR p. 63 e 66): a perícia do utensílio e da vestimenta
+   * (fora Luta e Pontaria) e o elemento dos itens "de (Elemento)" e do catalisador
+   */
+  escolha?: { pericia?: PericiaId; elemento?: Elemento };
   /** achado na missão: não ocupa vaga da patente, que limita o que a Ordem fornece (LR p. 53) */
   achado?: boolean;
   /** item do cenário: nome, espaços, tipo (o ícone) e o texto do mestre */

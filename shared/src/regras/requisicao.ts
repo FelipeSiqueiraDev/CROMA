@@ -5,11 +5,11 @@
  * 62), a munição que a arma usa (LR p. 59) e os itens amaldiçoados (só de agente especial em diante).
  * A janela de escolha (client/src/ui/requisicao.ts) desenha isto; o mestre pode passar por cima.
  */
-import { calcular, proficiente, type Calculado } from './calcular';
+import { alvoModificacao, calcular, categoriaDoItem, proficiente, type Calculado } from './calcular';
 import * as cat from './dados';
 import { MALDICAO_PP_MINIMO } from './dados';
-import type { Ficha, TipoItemCatalogo } from './ficha';
-import type { Categoria, GrupoItem, Proficiencia, Ref } from './tipos';
+import type { Ficha, ItemFicha, TipoItemCatalogo } from './ficha';
+import type { Categoria, Elemento, GrupoItem, PericiaId, Proficiencia, Ref } from './tipos';
 
 /** As seções da requisição: como o agente procura o item. */
 export type SecaoItem = 'corpoACorpo' | 'disparo' | 'fogo' | 'municao' | 'protecao' | 'explosivo' | 'acessorio' | 'operacional' | 'medicamento' | 'paranormal' | 'amaldicoado' | 'outro';
@@ -128,3 +128,113 @@ export function opcoesDeItens(f: Ficha, c: Calculado = calcular(f)): OpcaoItem[]
   }
   return out;
 }
+
+// ---------------------------------------------------------------------------
+// o que se escolhe dentro do item
+
+/** O que se escolhe ao requisitar o item: a perícia (utensílio, vestimenta, manual) ou o elemento (LR p. 63 e 66). */
+export function escolhaDoItem(tipo: TipoItemCatalogo, id: string): 'pericia' | 'elemento' | null {
+  if (tipo !== 'equipamento') return null;
+  const e = cat.equipamento(id);
+  if (!e) return null;
+  if (e.efeitos?.some((x) => (x.alvo === 'pericia' || x.alvo === 'treino') && x.pericia === 'escolhida')) return 'pericia';
+  if (/\(Elemento\)/.test(e.nome) || e.especial?.some((s) => /elemento à escolha/.test(s))) return 'elemento';
+  return null;
+}
+
+/** As perícias que um utensílio ou uma vestimenta podem melhorar (todas, fora Luta e Pontaria; LR p. 63). */
+export function periciasDoItem(): { id: PericiaId; nome: string }[] {
+  return cat.CATALOGO.pericias.filter((p) => p.id !== 'luta' && p.id !== 'pontaria').map((p) => ({ id: p.id, nome: p.nome }));
+}
+
+// ---------------------------------------------------------------------------
+// modificações e maldições num item da mochila
+
+export interface OpcaoMelhoria {
+  tipo: 'modificacao' | 'maldicao';
+  id: string;
+  nome: string;
+  ref: Ref;
+  resumo?: string;
+  elemento?: Elemento;
+  /** o item já tem */
+  tem: boolean;
+  /** pode pôr (ou tirar, se já tem); o mestre passa por cima */
+  ok: boolean;
+  motivos: string[];
+  avisos: string[];
+  /** a categoria do item com ela */
+  categoria: number;
+}
+
+/** Requisitos das modificações que vêm escritos (LR p. 60–64): os que o jogo sabe conferir; o resto, o mestre. */
+function confereRequisito(texto: string, it: ItemFicha): boolean | null {
+  if (texto === 'só em proteção pesada') return it.tipo === 'protecao' && cat.protecao(it.id)?.tipo === 'pesada';
+  if (texto === 'só em proteção leve') return it.tipo === 'protecao' && cat.protecao(it.id)?.tipo === 'leve';
+  if (texto === 'só em balas curtas ou balas longas') return it.tipo === 'equipamento' && (it.id === 'balas-curtas' || it.id === 'balas-longas');
+  if (texto === 'só em arma automática') return it.tipo === 'arma' && !!cat.arma(it.id)?.automatica;
+  return null;
+}
+
+/**
+ * As modificações e as maldições que cabem no item `i` da mochila (as que não servem para ele nem
+ * aparecem), cada uma com o que acontece se entrar: a categoria nova contra o limite da patente
+ * (LR p. 52 e 60), os requisitos, as que não combinam, os elementos que se oprimem e a patente
+ * mínima das maldições (LR p. 144). A conta é a do motor: a ficha com ela, comparada à de agora.
+ */
+export function opcoesDeMelhoria(f: Ficha, i: number): OpcaoMelhoria[] {
+  const it = f.inventario[i];
+  if (!it || it.tipo === 'cena' || it.tipo === 'amaldicoado') return [];
+  const c0 = calcular(f);
+  const erros0 = new Set(c0.problemas.filter((p) => p.severidade === 'erro').map((p) => p.texto));
+  const alvo = alvoModificacao(it);
+  const grupo = it.tipo === 'equipamento' ? cat.equipamento(it.id)?.grupo : undefined;
+  const alvoMald = it.tipo === 'arma' ? 'arma' : it.tipo === 'protecao' ? 'protecao' : grupo && ['acessorio', 'utensilio', 'vestimenta'].includes(grupo) ? 'acessorio' : null;
+  const out: OpcaoMelhoria[] = [];
+  const simular = (o: OpcaoMelhoria, mudar: (x: ItemFicha) => void) => {
+    const novo: ItemFicha = { ...it, modificacoes: [...(it.modificacoes ?? [])], maldicoes: [...(it.maldicoes ?? [])] };
+    mudar(novo);
+    const inv = [...f.inventario];
+    inv[i] = novo;
+    const c1 = calcular({ ...f, inventario: inv });
+    o.categoria = categoriaDoItem(novo);
+    if (o.tem) return;
+    for (const p of c1.problemas) if (p.severidade === 'erro' && !erros0.has(p.texto)) o.motivos.push(p.texto);
+    // o limite da patente com a categoria nova (o achado na missão não conta)
+    if (!it.achado)
+      for (const l of c1.itens) {
+        const antes = c0.itens.find((x) => x.categoria === l.categoria)?.usados ?? 0;
+        if (l.usados > antes && l.usados > l.limite) o.motivos.push(`O item vira categoria ${romano(o.categoria)}, e a patente leva ${l.limite} de categoria ${romano(l.categoria)} (LR p. 52).`);
+      }
+    const e0 = c0.carga.usados;
+    if (c1.carga.usados !== e0) o.avisos.push(`Espaços: ${num(e0)} → ${num(c1.carga.usados)}.`);
+  };
+  for (const m of cat.CATALOGO.modificacoes) {
+    if (!alvo || !m.para.includes(alvo) || !cat.disponivel(m, f.regras)) continue;
+    const tem = !!it.modificacoes?.includes(m.id);
+    const o: OpcaoMelhoria = { tipo: 'modificacao', id: m.id, nome: m.nome, ref: m.ref, resumo: m.resumo, tem, ok: true, motivos: [], avisos: [], categoria: 0 };
+    for (const r of m.requisitos ?? []) {
+      if (r.tipo !== 'texto') continue;
+      const v = confereRequisito(r.texto, it);
+      if (v === false) o.motivos.push(`Requisito: ${r.texto}.`);
+      else if (v === null) o.avisos.push(`O mestre confere: ${r.texto}.`);
+    }
+    simular(o, (x) => (tem ? (x.modificacoes = x.modificacoes!.filter((y) => y !== m.id)) : x.modificacoes!.push(m.id)));
+    o.ok = o.motivos.length === 0;
+    out.push(o);
+  }
+  for (const m of cat.CATALOGO.maldicoes) {
+    if (!alvoMald || !m.para.includes(alvoMald) || !cat.disponivel(m, f.regras)) continue;
+    if (m.id === 'empuxo' && !(it.tipo === 'arma' && cat.arma(it.id)?.tipo === 'corpoACorpo')) continue;
+    const tem = !!it.maldicoes?.includes(m.id);
+    const o: OpcaoMelhoria = { tipo: 'maldicao', id: m.id, nome: m.nome, ref: m.ref, elemento: m.elemento, tem, ok: true, motivos: [], avisos: [], categoria: 0 };
+    if (!tem && c0.nex > 0 && f.pp < MALDICAO_PP_MINIMO) o.motivos.push(`Maldições: só a partir de agente especial (${MALDICAO_PP_MINIMO} PP).`);
+    simular(o, (x) => (tem ? (x.maldicoes = x.maldicoes!.filter((y) => y !== m.id)) : x.maldicoes!.push(m.id)));
+    if (!tem) o.avisos.push(`Preço: −2 SAN ao falhar em teste de ${NOME_PRECO[m.elemento] ?? 'atributo do elemento'} (LR p. 145).`);
+    o.ok = o.motivos.length === 0;
+    out.push(o);
+  }
+  return out;
+}
+
+const NOME_PRECO: Partial<Record<Elemento, string>> = { conhecimento: 'Intelecto', energia: 'Agilidade', morte: 'Presença', sangue: 'Força ou Vigor' };

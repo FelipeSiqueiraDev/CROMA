@@ -5,6 +5,8 @@
  * (nas mãos e vestido), a mochila em grade e o item selecionado, com Usar,
  * Entregar para…, Mover e Descartar. Cada ação vai para o servidor (`mochila`).
  */
+import { opcoesMelhoria } from './melhorias';
+import { escolher } from './fichaModal';
 import { regras, vitalConditions, type AcaoMochila, type FichaSalva, type LootKind, type PartyMember } from '@crona/shared';
 import { portraitCanvas } from '../render/portrait';
 import type { App } from './app';
@@ -264,12 +266,39 @@ export class AbaItens {
       bt(principal.rotulo, principal.icone, () => (sfx.click(), principal.fazer()), ' forte'),
       bt('Entregar para…', 'pessoa', (e) => this.abrirMenu(e.currentTarget as HTMLElement, outros.map((o) => ({ rotulo: o.f!.ficha.nome || o.p.name, fazer: () => enviar('entregar', { para: o.f!.id }) }))), '', !outros.length),
       bt('Mover', 'mover', (e) => this.abrirMenu(e.currentTarget as HTMLElement, this.opcoesMover(f, it, enviar))),
+      // modificações e maldições (o motor diz o que cabe; o mestre passa por cima)
+      it.tipo === 'cena' || it.tipo === 'amaldicoado' ? null : bt('Modificar', 'engrenagem', () => (sfx.click(), this.modificar(f, it))),
       bt('Descartar', 'lixo', async () => {
         sfx.click();
         if (await askNote(`LARGAR ${inf.nome.toUpperCase()}?`, `Fica no chão do cômodo, onde ${f.ficha.nome || a.p.name} está. Qualquer um pode pegar de volta.`, 'Largar no chão', true)) enviar('largar');
       }),
     );
     return h('div', { class: 'it-sel' }, caixa, acoes);
+  }
+
+  /** Modificações e maldições do item: liga e desliga cada uma, e o servidor guarda. */
+  private modificar(f: FichaSalva, it: regras.ItemFicha) {
+    const i = f.ficha.inventario.indexOf(it);
+    const tem = [...(it.modificacoes ?? []).map((m) => `modificacao:${m}`), ...(it.maldicoes ?? []).map((m) => `maldicao:${m}`)];
+    void escolher(
+      {
+        titulo: `Modificar: ${regras.nomeDoItem(it)}`,
+        dica: 'Cada modificação sobe a categoria em I; a primeira maldição em II, as outras em I (LR p. 60 e 144).',
+        qtd: 20,
+        podeVazio: true,
+        opcoes: () => opcoesMelhoria(f.ficha, i, 'todas', true),
+        atual: () => tem,
+        aplicar: (ids) => {
+          for (const id of new Set([...tem, ...ids])) {
+            const por = ids.includes(id);
+            if (por === tem.includes(id)) continue;
+            const [tipo, mid] = id.split(':') as ['modificacao' | 'maldicao', string];
+            this.app.net.send({ t: 'mochilaMelhorar', fichaId: f.id, uid: it.uid!, tipo, id: mid, por });
+          }
+        },
+      },
+      () => {},
+    );
   }
 
   /**
@@ -390,7 +419,7 @@ export class AbaItens {
       nome: f.ficha.nome,
       tema: f.tema,
       mestre: true,
-      aoAdicionar: (it) => it.tipo !== 'cena' && this.app.net.send({ t: 'mochilaNova', fichaId: f.id, tipo: it.tipo, id: it.id }),
+      aoAdicionar: (it) => it.tipo !== 'cena' && this.app.net.send({ t: 'mochilaNova', fichaId: f.id, tipo: it.tipo, id: it.id, escolha: it.escolha }),
       aoFechar: () => {},
     });
   }

@@ -80,6 +80,7 @@ const GM_ONLY = new Set([
   'fichaLink',
   'mochila',
   'mochilaNova',
+  'mochilaMelhorar',
   'place',
   'placeWall',
   'moveItem',
@@ -582,9 +583,36 @@ export class Hotel implements HotelApi {
     const f = (this.db.fichas ?? []).find((x) => x.id === m.fichaId);
     if (!f || !noCatalogo(m.tipo, m.id)) return c.send({ t: 'error', msg: 'Item não encontrado.' });
     const it: regras.ItemFicha = { id: m.id as string, tipo: m.tipo, uid: this.nextItemId() };
+    // o que se escolhe dentro do item (a perícia do utensílio, o elemento das amarras)
+    const qual = regras.escolhaDoItem(m.tipo, m.id as string);
+    const esc = (m.escolha ?? {}) as Record<string, unknown>;
+    if (qual === 'pericia' && regras.periciasDoItem().some((p) => p.id === esc.pericia)) it.escolha = { pericia: esc.pericia as regras.PericiaId };
+    if (qual === 'elemento' && ['sangue', 'morte', 'conhecimento', 'energia'].includes(esc.elemento as string)) it.escolha = { elemento: esc.elemento as regras.Elemento };
     const erro = this.naoCabe(f, it);
     if (erro) return c.send({ t: 'error', msg: erro });
-    this.trocarMochila(f, [...f.ficha.inventario, it]);
+    // munição: mais um pacote na pilha que já está na mochila (o mesmo, sem modificação)
+    const pilha = regras.catalogo.equipamento(it.id)?.grupo === 'municao' && it.tipo === 'equipamento'
+      ? f.ficha.inventario.find((x) => x.tipo === 'equipamento' && x.id === it.id && !x.achado && !x.modificacoes?.length)
+      : undefined;
+    if (pilha) this.trocarMochila(f, f.ficha.inventario.map((x) => (x === pilha ? { ...x, qtd: (x.qtd ?? 1) + 1 } : x)));
+    else this.trocarMochila(f, [...f.ficha.inventario, it]);
+    this.fichaMudou(f);
+  }
+
+  /** Põe ou tira uma modificação ou maldição (o mestre passa por cima dos limites, como na requisição). */
+  private mochilaMelhorar(c: Client, m: Record<string, unknown>) {
+    const f = (this.db.fichas ?? []).find((x) => x.id === m.fichaId);
+    const i = f ? f.ficha.inventario.findIndex((x) => x.uid === m.uid) : -1;
+    if (!f || i < 0 || (m.tipo !== 'modificacao' && m.tipo !== 'maldicao') || typeof m.id !== 'string') return c.send({ t: 'error', msg: 'Item não encontrado.' });
+    // só o que serve para o item (a lista do motor)
+    if (!regras.opcoesDeMelhoria(f.ficha, i).some((o) => o.tipo === m.tipo && o.id === m.id)) return c.send({ t: 'error', msg: 'Isso não vai neste item.' });
+    const it = f.ficha.inventario[i];
+    const campo = m.tipo === 'modificacao' ? 'modificacoes' : 'maldicoes';
+    const lista = (it[campo] ?? []).filter((x) => x !== m.id);
+    if (m.por === true) lista.push(m.id);
+    const novo: regras.ItemFicha = { ...it, [campo]: lista };
+    if (!lista.length) delete novo[campo];
+    this.trocarMochila(f, f.ficha.inventario.map((x, j) => (j === i ? novo : x)));
     this.fichaMudou(f);
   }
 
@@ -635,6 +663,15 @@ export class Hotel implements HotelApi {
       f.ficha.regras = antiga.ficha.regras;
       f.personagem = antiga.personagem;
       f.campanha = antiga.campanha;
+      // a requisição do jogador respeita a patente: nenhuma categoria acima do limite a mais que antes (LR p. 52)
+      try {
+        const antes = regras.calcular(antiga.ficha).itens;
+        const depois = regras.calcular(f.ficha).itens;
+        const passou = depois.find((l) => l.usados > l.limite && l.usados > (antes.find((x) => x.categoria === l.categoria)?.usados ?? 0));
+        if (passou) return c.send({ t: 'error', msg: `Limite da patente: categoria ${'I'.repeat(passou.categoria === 4 ? 0 : passou.categoria) || 'IV'} já tem ${passou.limite} (LR p. 52). Peça ao mestre.` });
+      } catch {
+        /* ficha que o motor não fecha: o mestre confere */
+      }
     }
     if (antiga) f.chave = antiga.chave;
     else delete f.chave;
@@ -1395,6 +1432,9 @@ export class Hotel implements HotelApi {
         return;
       case 'mochila':
         this.mochila(c, m);
+        return;
+      case 'mochilaMelhorar':
+        this.mochilaMelhorar(c, m);
         return;
       case 'mochilaNova':
         this.mochilaNova(c, m);

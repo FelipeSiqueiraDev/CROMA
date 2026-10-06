@@ -218,6 +218,7 @@ export function abrirRequisicao(r: Requisicao) {
         class: `rq-card${o.ok ? '' : ' travado'}${on ? ' on' : ''}`,
         type: 'button',
         role: 'listitem',
+        'data-chave': `${o.tipo}:${o.id}`,
         'aria-pressed': String(on),
         'aria-label': `${o.nome}, categoria ${o.categoria === 0 ? '0' : romano(o.categoria)}${o.ok ? '' : `, travado: ${o.motivos[0]}`}`,
         // escolher só troca o destaque (sem refazer a grade: o clique duplo cai no mesmo cartão e pede direto)
@@ -289,11 +290,28 @@ export function abrirRequisicao(r: Requisicao) {
       h('dl', { class: 'rq-det-num' }, ...nums),
       base?.resumo ? h('p', { class: 'rq-det-resumo' }, base.resumo) : null,
       base?.especial?.length ? h('p', { class: 'rq-det-esp' }, base.especial.filter((x) => !/^\(/.test(x)).join(' · ')) : null,
+      seletorDaEscolha(o),
       h('ul', { class: 'rq-checks' }, ...checks.map((c) => h('li', { class: c.tom }, ic(icTom[c.tom]), h('span', null, c.texto)))),
       o.naMochila ? h('p', { class: 'rq-det-tem' }, `Já tem ${o.naMochila} na mochila.`) : null,
       h('div', { class: 'rq-det-acoes' }, ...acoes),
     ];
     det.replaceChildren(...partes.filter((x): x is Node => !!x));
+  };
+
+  /** A perícia do utensílio ou o elemento das amarras: escolhido aqui, antes de pedir (LR p. 63 e 66). */
+  const escolhas = new Map<string, string>();
+  const seletorDaEscolha = (o: regras.OpcaoItem): HTMLElement | null => {
+    const qual = regras.escolhaDoItem(o.tipo, o.id);
+    if (!qual) return null;
+    const chave = `${o.tipo}:${o.id}`;
+    const lista = qual === 'pericia' ? regras.periciasDoItem() : (['sangue', 'morte', 'conhecimento', 'energia'] as const).map((id) => ({ id, nome: regras.NOME_ELEMENTO[id] }));
+    const sel = h('select', { class: 'fx-inp' }, h('option', { value: '' }, qual === 'pericia' ? 'Escolha a perícia…' : 'Escolha o elemento…'), ...lista.map((x) => h('option', { value: x.id, selected: escolhas.get(chave) === x.id }, x.nome))) as HTMLSelectElement;
+    sel.addEventListener('change', () => (sel.value ? escolhas.set(chave, sel.value) : escolhas.delete(chave)));
+    return h('label', { class: 'fj-campo rq-escolha' }, h('span', null, qual === 'pericia' ? 'Perícia que ele melhora (fora Luta e Pontaria)' : 'Elemento'), sel);
+  };
+  const selecionarPorId = (o: regras.OpcaoItem) => {
+    const el = [...grade.querySelectorAll<HTMLElement>('.rq-card')].find((c) => c.dataset.chave === `${o.tipo}:${o.id}`);
+    if (el && (sel?.tipo !== o.tipo || sel?.id !== o.id)) selecionar(o, el);
   };
 
   const selecionar = (o: regras.OpcaoItem, el: HTMLElement) => {
@@ -313,9 +331,24 @@ export function abrirRequisicao(r: Requisicao) {
       sfx.denied();
       return;
     }
+    // o que se escolhe dentro do item: sem escolher, não entra
+    const qual = regras.escolhaDoItem(o.tipo, o.id);
+    const esc = escolhas.get(`${o.tipo}:${o.id}`);
+    if (qual && !esc) {
+      sfx.denied();
+      selecionarPorId(o);
+      det.querySelector<HTMLSelectElement>('.rq-escolha select')?.focus();
+      return;
+    }
+    const municao = o.tipo === 'equipamento' && cat.equipamento(o.id)?.grupo === 'municao';
     for (let i = 0; i < qtd; i++) {
       const it: regras.ItemFicha = { id: o.id, tipo: o.tipo };
-      f.inventario.push(it);
+      if (qual === 'pericia') it.escolha = { pericia: esc as regras.PericiaId };
+      if (qual === 'elemento') it.escolha = { elemento: esc as regras.Elemento };
+      // munição: mais um pacote na pilha que já está na mochila
+      const pilha = municao ? f.inventario.find((x) => x.tipo === 'equipamento' && x.id === o.id && !x.achado && !x.modificacoes?.length) : undefined;
+      if (pilha) pilha.qtd = (pilha.qtd ?? 1) + 1;
+      else f.inventario.push(it);
       r.aoAdicionar(it);
     }
     pedidos += qtd;

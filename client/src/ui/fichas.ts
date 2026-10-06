@@ -16,6 +16,7 @@ import { h, toast } from './dom';
 import { arteDoItem } from './arteItem';
 import { abrirRequisicao } from './requisicao';
 import { confirmar, escolher, janela, mostrar, perguntarTexto } from './fichaModal';
+import { opcoesMelhoria } from './melhorias';
 import {
   escolherCampo,
   escolherPendencia,
@@ -1346,6 +1347,18 @@ export class FichasScreen {
       const cb = h('input', { type: 'checkbox', checked: it.vestido !== false, onchange: (e: Event) => (it.vestido = (e.target as HTMLInputElement).checked ? undefined : false) });
       j.corpo.append(h('label', { class: 'fj-check' }, cb, 'Vestido'));
     }
+    // a perícia do utensílio ou o elemento das amarras (LR p. 63 e 66)
+    const qual = it.tipo === 'cena' ? null : regras.escolhaDoItem(it.tipo, it.id);
+    if (qual) {
+      const lista = qual === 'pericia' ? regras.periciasDoItem() : (['sangue', 'morte', 'conhecimento', 'energia'] as const).map((id) => ({ id, nome: NOME_ELEMENTO[id] }));
+      const atual = qual === 'pericia' ? it.escolha?.pericia : it.escolha?.elemento;
+      const sel = h('select', { class: 'fx-inp' }, h('option', { value: '' }, '—'), ...lista.map((x) => h('option', { value: x.id, selected: atual === x.id }, x.nome))) as HTMLSelectElement;
+      sel.addEventListener('change', () => {
+        if (!sel.value) delete it.escolha;
+        else it.escolha = qual === 'pericia' ? { pericia: sel.value as regras.PericiaId } : { elemento: sel.value as regras.Elemento };
+      });
+      j.corpo.append(h('label', { class: 'fj-campo' }, h('span', null, qual === 'pericia' ? 'Perícia que ele melhora' : 'Elemento'), sel));
+    }
     if (it.tipo !== 'cena') {
       const cb = h('input', { type: 'checkbox', checked: !!it.achado, onchange: (e: Event) => (it.achado = (e.target as HTMLInputElement).checked || undefined) });
       j.corpo.append(h('label', { class: 'fj-check' }, cb, 'Achado na missão (não ocupa vaga da patente)'));
@@ -1388,33 +1401,19 @@ export class FichasScreen {
             titulo: 'Modificação',
             dica: 'Cada modificação sobe a categoria do item em I (LR p. 60).',
             qtd: 1,
-            opcoes: () =>
-              cat.CATALOGO.modificacoes
-                .filter((m) => cat.disponivel(m, f.regras))
-                .map((m) => {
-                  const motivos: string[] = [];
-                  if (alvo && !m.para.includes(alvo)) motivos.push('Não serve para este item.');
-                  if ((it.modificacoes ?? []).includes(m.id)) motivos.push('Já está no item.');
-                  if (m.incompativel?.some((x) => (it.modificacoes ?? []).includes(x))) motivos.push('Não combina com outra modificação do item.');
-                  return { id: m.id, nome: m.nome, ref: m.ref, resumo: m.resumo, ok: !motivos.length, motivos, avisos: [] };
-                }),
+            // o motor confere: onde vai, requisitos, as que não combinam e a categoria contra a patente
+            opcoes: () => opcoesMelhoria(f, f.inventario.indexOf(it), 'modificacao', this.gm).filter((o) => !(it.modificacoes ?? []).includes(o.id.split(':')[1])),
             atual: () => [],
-            aplicar: (ids) => ids[0] && (it.modificacoes = [...(it.modificacoes ?? []), ids[0]]),
+            aplicar: (ids) => ids[0] && (it.modificacoes = [...(it.modificacoes ?? []), ids[0].split(':')[1]]),
           }
         : {
             titulo: 'Maldição',
             dica: 'A primeira maldição sobe a categoria em II; cada outra, em I (LR p. 144).',
             qtd: 1,
-            opcoes: () =>
-              cat.CATALOGO.maldicoes.map((m) => {
-                const motivos: string[] = [];
-                const tipoItem = it.tipo === 'arma' ? 'arma' : it.tipo === 'protecao' ? 'protecao' : 'acessorio';
-                if (!m.para.includes(tipoItem)) motivos.push('Não serve para este item.');
-                if ((it.maldicoes ?? []).includes(m.id)) motivos.push('Já está no item.');
-                return { id: m.id, nome: `${m.nome} (${NOME_ELEMENTO[m.elemento]})`, ref: m.ref, ok: !motivos.length, motivos, avisos: [] };
-              }),
+            // e nas maldições: os elementos que se oprimem e só de agente especial em diante
+            opcoes: () => opcoesMelhoria(f, f.inventario.indexOf(it), 'maldicao', this.gm).filter((o) => !(it.maldicoes ?? []).includes(o.id.split(':')[1])),
             atual: () => [],
-            aplicar: (ids) => ids[0] && (it.maldicoes = [...(it.maldicoes ?? []), ids[0]]),
+            aplicar: (ids) => ids[0] && (it.maldicoes = [...(it.maldicoes ?? []), ids[0].split(':')[1]]),
           },
       () => depois(),
     );

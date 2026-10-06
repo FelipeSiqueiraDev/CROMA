@@ -7,6 +7,7 @@
  */
 import * as cat from './dados';
 import type { ItemFicha } from './ficha';
+import { NOME_ELEMENTO } from './requisitos';
 
 /** Mãos de um agente. */
 export const MAOS = 2;
@@ -29,7 +30,12 @@ export function nomeDoItem(it: ItemFicha): string {
   if (it.apelido) return it.apelido;
   if (it.tipo === 'cena') return it.nome || it.id;
   const b = it.tipo === 'arma' ? cat.arma(it.id) : it.tipo === 'protecao' ? cat.protecao(it.id) : it.tipo === 'equipamento' ? cat.equipamento(it.id) : cat.amaldicoado(it.id);
-  return b?.nome ?? it.id;
+  let nome = b?.nome ?? it.id;
+  // o que se escolheu ao requisitar: "Amarras de Sangue", "Utensílio (Investigação)"
+  const el = it.escolha?.elemento;
+  if (el) nome = /\(Elemento\)/.test(nome) ? nome.replace('(Elemento)', NOME_ELEMENTO[el]) : `${nome} (${NOME_ELEMENTO[el]})`;
+  if (it.escolha?.pericia) nome = `${nome} (${cat.pericia(it.escolha.pericia).nome})`;
+  return nome;
 }
 
 /** Quantas mãos o item ocupa na mão (0 = não se empunha). */

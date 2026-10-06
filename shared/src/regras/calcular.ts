@@ -493,8 +493,10 @@ export function calcular(f: Ficha): Calculado {
     // o bônus do item mais o das modificações dele (Aprimorado: +2 → +5)
     const doItem: Partial<Record<PericiaId, number>> = {};
     for (const e of eq?.efeitos ?? []) {
-      if (e.alvo !== 'pericia' || e.condicional || e.pericia === 'todas' || e.pericia === 'escolhida') continue;
-      doItem[e.pericia] = (doItem[e.pericia] ?? 0) + valor(e.valor, atr);
+      if (e.alvo !== 'pericia' || e.condicional || e.pericia === 'todas') continue;
+      // a perícia escolhida ao requisitar (utensílio, vestimenta); sem ela, ainda não ajuda
+      const p = e.pericia === 'escolhida' ? it.escolha?.pericia : e.pericia;
+      if (p) doItem[p] = (doItem[p] ?? 0) + valor(e.valor, atr);
     }
     const principal = Object.keys(doItem)[0] as PericiaId | undefined;
     for (const m of it.modificacoes ?? [])
@@ -731,7 +733,7 @@ function creditoCom(base: string, passos: number): string {
 }
 
 /** A que tipo de modificação o item aceita (LR p. 60). */
-function alvoModificacao(it: ItemFicha): AlvoModificacao | null {
+export function alvoModificacao(it: ItemFicha): AlvoModificacao | null {
   if (it.tipo === 'protecao') return 'protecao';
   if (it.tipo === 'arma') {
     const a = cat.arma(it.id);
