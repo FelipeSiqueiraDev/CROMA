@@ -1601,3 +1601,204 @@
 .il-nada {
   color: #7a6a56;
 }
+
+/* =====================================================================
+   DISPOSIÇÃO DE 06/10 (docs/ref-mapa-3.webp, fora do git; 1rem = 10 px da referência):
+   as colunas dos lados mais largas, até embaixo; o tabuleiro no meio, com as ferramentas numa
+   fileira no canto de cima à direita, a plaquinha do cômodo e a faixa do estado; embaixo dele,
+   os agentes, o inventário rápido (3 × 2) e as ações em lista
+   ===================================================================== */
+.shell .col-map {
+  left: 1rem;
+  width: 37.4rem;
+  top: 9rem;
+  bottom: 1rem;
+}
+.shell .col-map .p-plan.wide {
+  height: 31rem;
+}
+.shell .col-rpg {
+  right: 1rem;
+  width: 36rem;
+  top: 9rem;
+  bottom: 1rem;
+}
+.shell .board {
+  left: 39.6rem;
+  right: 38.2rem;
+  top: 9rem;
+  bottom: 26.2rem;
+}
+.shell .bottom {
+  position: absolute;
+  left: 39.6rem;
+  right: 38.2rem;
+  bottom: 1rem;
+  height: 24.2rem;
+  display: grid;
+  grid-template-columns: 36fr 34fr 19fr;
+  align-items: stretch;
+  gap: 1.2rem;
+  padding: 0;
+}
+.shell .bottom > .sheet {
+  position: relative;
+  left: auto;
+  top: auto;
+  width: auto;
+  height: auto;
+  transform: none;
+  min-width: 0;
+}
+/* os agentes: as polaroides dentro de um papel com título */
+.p-agentes {
+  padding: 1.5rem 1.4rem 1rem;
+}
+.p-agentes .p-title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  font-size: 1.4rem;
+  letter-spacing: 0.1em;
+  color: #1c1915;
+  -webkit-text-stroke: 0;
+}
+.p-agentes .party {
+  margin-top: 1.4rem;
+  padding: 0;
+  gap: 1rem;
+  --cw: min(7.8rem, calc((33rem - (var(--n, 4) - 1) * 1rem) / var(--n, 4)));
+}
+/* o inventário rápido: 3 × 2 */
+.shell .p-quick {
+  padding: 1.5rem 1.6rem 1rem;
+}
+.shell .quick-slots {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: 7.6rem;
+  gap: 0.8rem;
+}
+.shell .qslot {
+  height: auto;
+}
+/* as ações: uma lista, o ícone e o nome lado a lado */
+.shell .p-acoes {
+  padding: 1.5rem 1.4rem 1rem;
+}
+.shell .acoes {
+  grid-template-columns: 1fr;
+  gap: 0.6rem;
+  margin-top: 1.3rem;
+}
+.shell .acao {
+  height: 3.8rem;
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: 1rem;
+  padding: 0 1.2rem;
+  font-size: 1.3rem;
+}
+.shell .acao .ic {
+  width: 2rem;
+  height: 2rem;
+}
+/* o tabuleiro: as ferramentas numa fileira só, no canto de cima à direita */
+.board-ferr {
+  position: absolute;
+  top: 2.2rem;
+  right: 2.6rem;
+  z-index: 3;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+.board-ferr > * {
+  position: relative;
+  inset: auto;
+}
+.board-ferr .board-mesa {
+  flex-direction: row-reverse;
+}
+.board-ferr .board-mesa .bm-botoes {
+  flex-direction: row;
+}
+.board-ferr .board-mesa .bm-opcoes {
+  position: absolute;
+  top: calc(100% + 0.6rem);
+  right: 0;
+}
+.board-ferr .board-centro {
+  width: 3.6rem;
+  height: 3.6rem;
+}
+.board-ferr .bv span {
+  font-size: 1rem;
+}
+/* a plaquinha do cômodo */
+.board-placa {
+  position: absolute;
+  top: 2.2rem;
+  left: 2.6rem;
+  z-index: 3;
+  max-width: 34%;
+  padding: 0.8rem 1.4rem;
+  border: 0.1rem solid rgba(143, 176, 210, 0.45);
+  border-radius: 0.3rem;
+  background: rgba(9, 12, 18, 0.82);
+  color: #e2eefa;
+  font: 600 1.5rem/1.1 var(--f-titulo, serif);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+/* a faixa do estado, embaixo */
+.board-estado {
+  position: absolute;
+  left: 2.6rem;
+  right: 2.6rem;
+  bottom: 2rem;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+  pointer-events: none;
+}
+.be-cel {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  height: 3.4rem;
+  padding: 0 1.2rem;
+  border: 0.1rem solid rgba(143, 176, 210, 0.4);
+  border-radius: 0.3rem;
+  background: rgba(9, 12, 18, 0.82);
+  color: #b4cbe2;
+  font: 400 1.25rem var(--f-maquina);
+  pointer-events: auto;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.be-cel:disabled {
+  cursor: default;
+}
+.be-cel:not(:disabled):hover {
+  border-color: rgba(190, 215, 245, 0.85);
+}
+.be-cel .ic {
+  width: 1.8rem;
+  height: 1.8rem;
+  flex: none;
+}
+.be-cel b {
+  color: #f0c46a;
+  font-weight: 700;
+}
+/* o zoom, que aparece com o mouse: acima da faixa, à direita */
+.shell .board-zoom {
+  top: auto;
+  right: 2.6rem;
+  bottom: 6.6rem;
+}

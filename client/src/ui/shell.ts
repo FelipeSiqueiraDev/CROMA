@@ -260,6 +260,9 @@ export class Shell {
   readonly board: HTMLElement;
   /** os botões da câmera do tabuleiro (isométrica ou tática) */
   private vistaEl: HTMLElement;
+  /** a plaquinha do cômodo e a faixa do estado (luz, névoa, partículas) do tabuleiro */
+  private placaEl!: HTMLElement;
+  private estadoEl!: HTMLElement;
   /** Apontar, Desenhar e Névoa: o que o mestre mostra na mesa */
   readonly ferramentas: FerramentasMesa;
   /** a aba INTERLÚDIO (LR p. 92–93) */
@@ -501,7 +504,12 @@ export class Shell {
     this.abaInterludio = new AbaInterludio(app);
     this.combate.aoFerramentaMesa = (tipo) => this.ferramentas.alternar(tipo, false);
     this.ferramentas.aoMudar = (tipo) => this.combate.marcarFerramentaMesa(tipo);
-    this.board = h('main', { class: 'board' }, moldura, this.placeBar, zoom, centro, this.vistaEl, this.ferramentas.el, this.tabOverlay, this.teclado.el);
+    // a disposição de 06/10 (docs/ref-mapa-3.webp): as ferramentas numa fileira no canto de cima à direita,
+    // a plaquinha do cômodo à esquerda e, embaixo, a faixa do estado da cena
+    this.placaEl = h('div', { class: 'board-placa' });
+    this.estadoEl = h('div', { class: 'board-estado' });
+    const ferr = h('div', { class: 'board-ferr' }, this.ferramentas.el, this.vistaEl, centro);
+    this.board = h('main', { class: 'board' }, moldura, this.placeBar, zoom, this.placaEl, ferr, this.estadoEl, this.tabOverlay, this.teclado.el);
 
     // ================= direita =================
     const backboard = h('div', { class: 'backboard', 'aria-hidden': 'true' });
@@ -532,7 +540,7 @@ export class Shell {
     // ================= baixo =================
     this.partyEl = h('div', { class: 'party' });
     this.quickEl = h('div', { class: 'quick-slots' });
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 6; i++) {
       const el = h('button', { class: 'qslot empty', disabled: true, style: `--i:${i}`, onclick: () => this.pickSlot(i) });
       this.slots.push({ el, key: '' });
       this.quickEl.append(el);
@@ -555,7 +563,10 @@ export class Shell {
     const pilha = h('div', { class: 'pilha-mapa', 'aria-hidden': 'true' }, h('span', { class: 'pm-a' }), h('span', { class: 'pm-b' }), h('span', { class: 'pm-c' }));
     for (const [i, x] of [...pilha.children].entries()) paperize(x as HTMLElement, { kit: false, seed: 150 + i, tone: i === 1 ? '#cdbb99' : '#c4b08e', burn: 1.2, torn: 2, stains: 1.4, pad: 12 });
     void log;
-    const bottom = h('footer', { class: 'bottom' }, this.partyEl, quick, acoes, pilha);
+    // os agentes num papel com título, como o inventário e as ações
+    const agentes = h('section', { class: 'sheet p-agentes' }, h('h3', { class: 'p-title' }, h('i', { class: 'losango', 'aria-hidden': 'true' }), 'AGENTES'), this.partyEl);
+    paperize(agentes, { seed: 23, tone: '#cbb69a', burn: 1, backs: [{ dx: 3, dy: 4, rot: 0.6 }] });
+    const bottom = h('footer', { class: 'bottom' }, agentes, quick, acoes, pilha);
 
     this.mapLayer = h('div', { class: 'map-layer' }, h('div', { class: 'map-fx', 'aria-hidden': 'true' }));
     void note;
@@ -657,7 +668,22 @@ export class Shell {
   }
 
   /** Os botões da câmera mostram a vista de agora. */
+  /** A plaquinha do cômodo e a faixa do estado da cena (a luz, a névoa do ar e as partículas); clicar abre o ☀. */
+  private renderEstado() {
+    const r = this.app.state.room;
+    if (!this.placaEl || !r) return;
+    const nome = r.name.split('·').pop()?.trim() ?? r.name;
+    this.placaEl.textContent = `${nome}${r.floor ? ` — ${r.floor}` : ''}`;
+    const luz = r.lightMode === 'blackout' ? 'apagão' : r.lightMode === 'flicker' ? 'piscando' : r.darkness >= 0.6 ? 'baixa' : r.darkness >= 0.3 ? 'média' : 'alta';
+    const nevoa = (r.fog ?? 0) < 0.05 ? 'nenhuma' : (r.fog ?? 0) < 0.4 ? 'leve' : 'densa';
+    const part = r.particles?.length ? `${r.particles.length === 1 ? ({ dust: 'poeira', smoke: 'fumaça', embers: 'brasas' } as Record<string, string>)[r.particles[0]] ?? r.particles[0] : `${r.particles.length} tipos`}` : 'nenhuma';
+    const cel = (icone: string, rot: string, val: string) =>
+      h('button', { class: 'be-cel', type: 'button', title: 'Clima da cena', disabled: !r.isOwner, onclick: () => (sfx.click(), this.actions.fx()) }, ic(icone), h('span', null, `${rot}: `), h('b', null, val));
+    this.estadoEl.replaceChildren(cel('sol', 'Iluminação', luz), cel('vento', 'Névoa', nevoa), cel('chama', 'Partículas', part));
+  }
+
   private marcarVista() {
+    this.renderEstado();
     const tat = this.app.view.tatico;
     for (const b of this.vistaEl.querySelectorAll<HTMLElement>('.bv')) b.classList.toggle('on', (b.dataset.tatico === 'sim') === tat);
     this.vistaEl.classList.toggle('hidden', !this.app.state.room?.isOwner);
