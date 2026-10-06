@@ -1,7 +1,7 @@
 /**
  * A tela do jogador no celular ("modo jogo", referências docs/ref-jogador-*.webp; o plano em
  * docs/TELA-DO-JOGADOR.md). Em cima, quem ele é, PV/PE/SAN (com − e +, ele mexe nos dele) e os
- * números da rodada; embaixo, as abas: Agente (os atributos em d20, os números e o Armado),
+ * números da rodada; embaixo, as abas: Agente (os atributos, os números e o Armado),
  * Mochila, Poderes, Rituais, Docs (o que o mestre entregou) e Notas. A ficha inteira fica na
  * engrenagem.
  *
@@ -366,14 +366,14 @@ export class TelaJogador {
   private abaAgente(): Node[] {
     const fs = this.fs!;
     const c = this.calc!;
-    // os atributos: o ícone, o d20 com o número (quantos d20 rola, LR p. 11) e o nome; o toque gira o dado e diz o que rola
+    // os atributos, no mesmo jeito dos números: o ícone, o valor (quantos d20 rola, LR p. 11) e o nome; o toque diz o que rola
     const atr = (a: regras.AtributoId) => {
       const v = c.atributos[a];
       const rola = v > 0 ? `rola ${v}d20, fica o maior` : 'rola 2d20, fica o menor';
       const el: HTMLButtonElement = h(
         'button',
         {
-          class: `jg-atr a-${a}`,
+          class: `jg-num jg-atr a-${a}`,
           type: 'button',
           'aria-label': `${regras.NOME_ATRIBUTO[a]} ${v}: ${rola}`,
           onclick: () => {
@@ -387,9 +387,9 @@ export class TelaJogador {
             window.setTimeout(() => dica.remove(), 2600);
           },
         },
-        h('span', { class: 'jg-atr-ic' }, pintado(a, 'pulso')),
-        h('span', { class: 'jg-atr-dado' }, dadoD20(), h('b', null, String(v))),
-        h('span', { class: 'jg-atr-n' }, regras.NOME_ATRIBUTO[a]),
+        h('span', { class: 'jg-num-ic' }, pintado(a, 'pulso')),
+        h('b', null, String(v)),
+        h('span', null, regras.NOME_ATRIBUTO[a]),
       ) as HTMLButtonElement;
       return el;
     };
@@ -413,8 +413,7 @@ export class TelaJogador {
       h('span', { class: 'jg-armado-op arm' }, pintado(IC.armado, 'pistola'), 'Armado'),
     );
     return [
-      this.titulo('ATRIBUTOS', 'pulso'),
-      h('div', { class: 'jg-atrs' }, ...(['agi', 'for', 'int', 'pre', 'vig'] as const).map(atr)),
+      h('div', { class: 'jg-numeros jg-atrs' }, ...(['agi', 'for', 'int', 'pre', 'vig'] as const).map(atr)),
       this.numeros,
       trocar,
       h('p', { class: 'jg-nota-armado' }, armado ? `Na mão: ${naMao.map((x) => regras.nomeDoItem(x)).join(', ')}.` : armas.length ? 'A arma fica guardada; Armado saca a primeira da mochila.' : 'Sem arma na mochila.'),
@@ -1061,40 +1060,6 @@ function buscaHabilidade(id: string): regras.Habilidade | undefined {
   return undefined;
 }
 
-
-/**
- * Um d20 visto de frente (a silhueta do icosaedro): a face do meio, as três que encostam nela e
- * as seis da borda, sombreadas como se a luz viesse de cima. As cores e as arestas vêm do CSS.
- */
-function dadoD20(): SVGSVGElement {
-  const T = '50,3';
-  const UR = '91,26.5';
-  const LR = '91,73.5';
-  const B = '50,97';
-  const LL = '9,73.5';
-  const UL = '9,26.5';
-  const t = '50,21';
-  const r = '77.7,69';
-  const l = '22.3,69';
-  const face = (cls: string, ...p: string[]) => `<polygon class="${cls}" points="${p.join(' ')}" />`;
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', '0 0 100 100');
-  svg.setAttribute('class', 'jg-d20');
-  svg.setAttribute('aria-hidden', 'true');
-  svg.innerHTML =
-    face('d20-cima', T, UL, t) +
-    face('d20-cima', T, t, UR) +
-    face('d20-meio', t, l, UL) +
-    face('d20-meio', t, r, UR) +
-    face('d20-lado', UR, r, LR) +
-    face('d20-lado', LL, l, UL) +
-    face('d20-baixo', LR, r, B) +
-    face('d20-baixo', B, l, LL) +
-    face('d20-baixo', l, r, B) +
-    face('d20-frente', t, r, l) +
-    face('d20-contorno', T, UR, LR, B, LL, UL);
-  return svg;
-}
 
 /** "4d20+5" (com a penalidade de dados, "2d20 (pior)"). */
 function textoTesteAtaque(a: regras.Ataque): string {
