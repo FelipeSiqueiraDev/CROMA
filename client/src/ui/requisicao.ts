@@ -13,7 +13,7 @@ import { arteDoItem } from './arteItem';
 import { h } from './dom';
 import { janela } from './fichaModal';
 import { infoItem, romano, textoRef } from './fichaRegras';
-import { ic } from './icons';
+import { arteOu, ic } from './icons';
 import { sfx } from './sfx';
 import { vestirTema } from './temaUi';
 
@@ -49,6 +49,22 @@ const ICONE_SECAO: Record<Secao, string> = {
   paranormal: 'olho',
   amaldicoado: 'caveiraItem',
   outro: 'caixa',
+};
+/** O ícone pintado de cada seção: o da categoria (kit do Códex, Parte 4) e, enquanto não chega, a arte de um item da seção. */
+const PINTADO_SECAO: Record<Secao, string[]> = {
+  todas: ['/arte/icones/titulo-inventario.png'],
+  corpoACorpo: ['/arte/icones/cat-corpo-a-corpo.png', '/arte/itens/pintados/katana.png'],
+  disparo: ['/arte/icones/cat-disparo.png', '/arte/itens/pintados/arco.png'],
+  fogo: ['/arte/icones/cat-fogo.png', '/arte/itens/pintados/revolver.png'],
+  municao: ['/arte/icones/cat-municao.png', '/arte/itens/pintados/balas-curtas.png'],
+  protecao: ['/arte/icones/cat-protecao.png', '/arte/itens/pintados/protecao-leve.png'],
+  explosivo: ['/arte/icones/cat-explosivo.png', '/arte/itens/pintados/granada-de-fragmentacao.png'],
+  acessorio: ['/arte/icones/cat-acessorio.png', '/arte/itens/pintados/kit-de-ladrao.png'],
+  operacional: ['/arte/icones/cat-utensilio.png', '/arte/itens/pintados/lanterna-tatica.png'],
+  medicamento: ['/arte/icones/cat-medicamento.png', '/arte/itens/pintados/kit-de-medicina.png'],
+  paranormal: ['/arte/icones/cat-paranormal.png', '/arte/itens/pintados/vela.png'],
+  amaldicoado: ['/arte/icones/cat-amaldicoado.png', '/arte/itens/pintados/cranio-espiral.png'],
+  outro: ['/arte/icones/cat-vestimenta.png', '/arte/itens/pintados/mochila-militar.png'],
 };
 const ALCANCE: Record<string, string> = { curto: 'curto', medio: 'médio', longo: 'longo', extremo: 'extremo' };
 const PROFICIENCIA: Record<string, string> = { simples: 'simples', tatica: 'tática', pesada: 'pesada' };
@@ -180,7 +196,7 @@ export function abrirRequisicao(r: Requisicao) {
           h(
             'button',
             { class: `rq-secao${secao === s ? ' on' : ''}`, type: 'button', 'aria-pressed': String(secao === s), onclick: () => (sfx.click(), (secao = s), desenhar()) },
-            ic(ICONE_SECAO[s]),
+            arteOu(PINTADO_SECAO[s], ic(ICONE_SECAO[s])),
             h('span', null, s === 'todas' ? 'Tudo' : regras.SECOES_ITEM.find((x) => x.id === s)!.nome),
             h('small', null, String(conta(s))),
           ),
@@ -366,7 +382,7 @@ export function abrirRequisicao(r: Requisicao) {
     desenharFiltros();
     desenharGrade();
     desenharDetalhe();
-    contador.textContent = pedidos ? `${pedidos} ${pedidos === 1 ? 'item pedido' : 'itens pedidos'} nesta requisição` : 'Clique duas vezes num cartão para pedir direto.';
+    contador.textContent = pedidos ? `${pedidos} ${pedidos === 1 ? 'item pedido' : 'itens pedidos'} nesta requisição` : (matchMedia('(pointer: coarse)').matches ? 'Toque num item para ver o que ele faz e pedir.' : 'Clique duas vezes num cartão para pedir direto.');
   };
 
   let espera = 0;
