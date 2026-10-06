@@ -53,6 +53,7 @@ import { infoItem, romano, textoRef } from './fichaRegras';
 import { doCatalogoPeloNome, listaDoCatalogo } from './catalogoItens';
 import { TecladoSenha } from './teclado';
 import { FerramentasMesa } from './ferramentasMesa';
+import { AbaInterludio } from './interludio';
 import { TopBar } from './topbar';
 import { escolher } from './fichaModal';
 import { existeArte, ic } from './icons';
@@ -261,6 +262,8 @@ export class Shell {
   private vistaEl: HTMLElement;
   /** Apontar, Desenhar e Névoa: o que o mestre mostra na mesa */
   readonly ferramentas: FerramentasMesa;
+  /** a aba INTERLÚDIO (LR p. 92–93) */
+  private abaInterludio: AbaInterludio;
   private app: App;
   private campaign: CampaignState | null = null;
   private tokenWin: TokenWin;
@@ -491,6 +494,7 @@ export class Shell {
       h('button', { class: 'bv', type: 'button', 'data-tatico': 'sim', title: 'Vista tática: a sala de cima, como mapa de batalha (T)', onclick: () => this.trocarVista(true) }, ic('tatico'), h('span', null, 'TÁTICA')),
     );
     this.ferramentas = new FerramentasMesa(app);
+    this.abaInterludio = new AbaInterludio(app);
     this.combate.aoFerramentaMesa = (tipo) => this.ferramentas.alternar(tipo, false);
     this.ferramentas.aoMudar = (tipo) => this.combate.marcarFerramentaMesa(tipo);
     this.board = h('main', { class: 'board' }, moldura, this.placeBar, zoom, centro, this.vistaEl, this.ferramentas.el, this.tabOverlay, this.teclado.el);
@@ -1040,8 +1044,8 @@ export class Shell {
       this.abaItens.render(body, party, this.fichasMapa, this.gm);
       return;
     }
-    if (this.rpgTab !== 'PLAYERS') {
-      body.append(h('p', { class: 'empty' }, `${this.rpgTab[0]}${this.rpgTab.slice(1).toLowerCase()}: chega nas próximas etapas.`));
+    if (this.rpgTab === 'INTERLÚDIO') {
+      this.abaInterludio.render(body, party, this.fichasMapa, this.gm, () => this.renderRpg(true));
       return;
     }
     if (!party.length) {

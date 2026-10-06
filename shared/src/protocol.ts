@@ -384,6 +384,10 @@ export type ClientMsg =
   | { t: 'mochila'; fichaId: number; uid: number; acao: AcaoMochila; para?: number; trocar?: boolean }
   /** item do catálogo novo na mochila (só o mestre): requisitado à Ordem, conta na patente */
   | { t: 'mochilaNova'; fichaId: number; tipo: TipoItemCatalogo; id: string; escolha?: { pericia?: string; elemento?: string } }
+  /** o interlúdio (só o mestre; LR p. 92–93): o lugar e as ações de cada ficha; o servidor aplica tudo */
+  | { t: 'interludio'; lugar: string; escolhas: { fichaId: number; acoes: string[]; prato?: string }[] }
+  /** gasta (delta −1) ou zera (fim da missão) os +1d6 guardados de uma ficha */
+  | { t: 'bonusInterludio'; fichaId: number; tipo: 'exercicio' | 'leitura' | 'todos'; delta: number }
   /** põe ou tira uma modificação ou maldição de um item da mochila (só o mestre; LR p. 60 e 144) */
   | { t: 'mochilaMelhorar'; fichaId: number; uid: number; tipo: 'modificacao' | 'maldicao'; id: string; por: boolean }
   | { t: 'fichaApagar'; id: number }

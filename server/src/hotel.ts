@@ -81,6 +81,8 @@ const GM_ONLY = new Set([
   'mochila',
   'mochilaNova',
   'mochilaMelhorar',
+  'interludio',
+  'bonusInterludio',
   'place',
   'placeWall',
   'moveItem',
@@ -597,6 +599,72 @@ export class Hotel implements HotelApi {
     if (pilha) this.trocarMochila(f, f.ficha.inventario.map((x) => (x === pilha ? { ...x, qtd: (x.qtd ?? 1) + 1 } : x)));
     else this.trocarMochila(f, [...f.ficha.inventario, it]);
     this.fichaMudou(f);
+  }
+
+  /**
+   * O interlúdio (LR p. 92–93): as ações de cada ficha, todas de uma vez (o relaxar conta quem relaxa
+   * junto). Os PV, PE e SAN entram na ficha e nas peças dela; os +1d6 ficam guardados; o registro conta.
+   */
+  private interludio(c: Client, m: Record<string, unknown>) {
+    const lugar = regras.LUGARES_DESCANSO.find((l) => l.id === m.lugar);
+    if (!lugar || !Array.isArray(m.escolhas)) return c.send({ t: 'error', msg: 'Interlúdio inválido.' });
+    const acoes = new Set(regras.ACOES_INTERLUDIO.map((a) => a.id));
+    const pratos = new Set(regras.PRATOS.map((p) => p.id));
+    const grupo: { f: FichaSalva; n: regras.NoInterludio }[] = [];
+    for (const raw of m.escolhas as Record<string, unknown>[]) {
+      const f = (this.db.fichas ?? []).find((x) => x.id === raw?.fichaId);
+      if (!f || grupo.some((g) => g.f === f) || !Array.isArray(raw.acoes)) continue;
+      const escolha: regras.EscolhaInterludio = { acoes: (raw.acoes as unknown[]).filter((a): a is regras.AcaoInterludio => acoes.has(a as regras.AcaoInterludio)) };
+      if (pratos.has(raw.prato as regras.Prato)) escolha.prato = raw.prato as regras.Prato;
+      if (!escolha.acoes.length) continue;
+      const erros = regras.errosDaEscolha(escolha);
+      if (erros.length) return c.send({ t: 'error', msg: `${f.nome}: ${erros[0]}` });
+      const calc = regras.calcular(f.ficha);
+      const a = f.atual ?? { pv: calc.pv, pe: calc.pe, san: calc.san };
+      grupo.push({
+        f,
+        n: {
+          id: f.id,
+          limitePe: calc.limitePe,
+          vigor: calc.atributos.vig,
+          intelecto: calc.atributos.int,
+          atual: { pv: Math.min(a.pv, calc.pv), pe: Math.min(a.pe, calc.pe), san: Math.min(a.san, calc.san) },
+          max: { pv: calc.pv, pe: calc.pe, san: calc.san },
+          bonus: { exercicio: f.bonus?.exercicio ?? 0, leitura: f.bonus?.leitura ?? 0 },
+          escolha,
+        },
+      });
+    }
+    if (!grupo.length) return c.send({ t: 'error', msg: 'Ninguém fez nada no interlúdio.' });
+    const sala = c.room?.data.id;
+    for (const r of regras.resolverInterludio(lugar.id, grupo.map((g) => g.n))) {
+      const { f, n } = grupo.find((g) => g.n.id === r.id)!;
+      f.atual = { ...(f.atual ?? n.atual), pv: n.atual.pv + r.pv, pe: n.atual.pe + r.pe, san: n.atual.san + r.san };
+      const bonus = { ...(r.bonus.exercicio ? { exercicio: r.bonus.exercicio } : {}), ...(r.bonus.leitura ? { leitura: r.bonus.leitura } : {}) };
+      if (Object.keys(bonus).length) f.bonus = bonus;
+      else delete f.bonus;
+      f.atualizadaEm = new Date().toISOString();
+      if (f.personagem) this.fichaParaPecas(f);
+      const nomes = n.escolha.acoes.map((a) => regras.ACOES_INTERLUDIO.find((x) => x.id === a)!.nome.toLowerCase());
+      const ganhos = [r.pv && `+${r.pv} PV`, r.pe && `+${r.pe} PE`, r.san && `+${r.san} SAN`].filter(Boolean).join(', ');
+      const texto = `Interlúdio (${lugar.nome.toLowerCase()}): ${f.nome} — ${nomes.join(' e ')}${ganhos ? `: ${ganhos}` : ''}${r.notas.length ? ` (${r.notas.join('; ')})` : ''}.`;
+      if (sala) this.log(sala, 'scene', texto);
+    }
+    this.save();
+    this.enviarFichas();
+    this.touch();
+  }
+
+  /** Gasta um +1d6 guardado (delta −1) ou zera os da ficha (fim da missão). */
+  private bonusInterludio(m: Record<string, unknown>) {
+    const f = (this.db.fichas ?? []).find((x) => x.id === m.fichaId);
+    if (!f || typeof m.delta !== 'number' || !Number.isFinite(m.delta)) return;
+    const b = { exercicio: f.bonus?.exercicio ?? 0, leitura: f.bonus?.leitura ?? 0 };
+    for (const k of ['exercicio', 'leitura'] as const) if (m.tipo === k || m.tipo === 'todos') b[k] = Math.max(0, Math.min(10, b[k] + Math.round(m.delta)));
+    if (b.exercicio || b.leitura) f.bonus = { ...(b.exercicio ? { exercicio: b.exercicio } : {}), ...(b.leitura ? { leitura: b.leitura } : {}) };
+    else delete f.bonus;
+    this.save();
+    this.enviarFichas();
   }
 
   /** Põe ou tira uma modificação ou maldição (o mestre passa por cima dos limites, como na requisição). */
@@ -1435,6 +1503,12 @@ export class Hotel implements HotelApi {
         return;
       case 'mochilaMelhorar':
         this.mochilaMelhorar(c, m);
+        return;
+      case 'interludio':
+        this.interludio(c, m);
+        return;
+      case 'bonusInterludio':
+        this.bonusInterludio(m);
         return;
       case 'mochilaNova':
         this.mochilaNova(c, m);

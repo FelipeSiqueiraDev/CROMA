@@ -127,3 +127,44 @@ describe('requisição no servidor', () => {
     assert.ok(!salva().ficha.inventario.some((x) => x.id === 'submetralhadora'));
   });
 });
+
+describe('interlúdio (LR p. 92–93)', () => {
+  test('as contas: dormir pelo limite de PE e o lugar, o prato, o relaxar em grupo e os bônus guardados', () => {
+    const no = (id: number, acoes: regras.AcaoInterludio[], prato?: regras.Prato): regras.NoInterludio => ({
+      id,
+      limitePe: 4,
+      vigor: 2,
+      intelecto: 1,
+      atual: { pv: 1, pe: 1, san: 1 },
+      max: { pv: 40, pe: 40, san: 40 },
+      bonus: { exercicio: 0, leitura: 1 },
+      escolha: { acoes, prato },
+    });
+    const [a, b, c] = regras.resolverInterludio('confortavel', [no(1, ['dormir', 'alimentar'], 'nutritivo'), no(2, ['relaxar', 'ler']), no(3, ['relaxar', 'exercitar'])]);
+    assert.deepEqual([a.pv, a.pe], [12, 8], 'confortável ×2; o prato nutritivo sobe o PV para ×3');
+    assert.equal(b.san, 8 + 2, 'relaxar: 4 × 2, mais 1 por quem relaxou (2)');
+    assert.equal(b.bonus.leitura, 1, 'leitura já no máximo (Intelecto 1)');
+    assert.equal(c.bonus.exercicio, 1);
+    assert.deepEqual(regras.errosDaEscolha({ acoes: ['dormir', 'dormir'] }).length, 1);
+    assert.equal(regras.resolverInterludio('precario', [no(1, ['dormir'])])[0].pv, 2, 'precária: metade');
+  });
+
+  test('o servidor aplica na ficha, guarda os bônus e gasta', () => {
+    const db = seedDb();
+    upgradeDb(db);
+    const hotel = new Hotel({ db, persist: false, timers: false });
+    const gm = new Peer(hotel, true);
+    gm.send({ t: 'login', name: 'Mestre', look });
+    const agora = new Date().toISOString();
+    gm.send({ t: 'fichaSalvar', ficha: { id: 0, nome: 'Teste', ficha: ficha(), criadaEm: agora, atualizadaEm: agora, atual: { pv: 1, pe: 0, san: 3 } } as FichaSalva });
+    const id = gm.last('fichas')!.nova!;
+    gm.send({ t: 'interludio', lugar: 'normal', escolhas: [{ fichaId: id, acoes: ['dormir', 'exercitar'] }] });
+    const f = hotel.db.fichas!.find((x) => x.id === id)!;
+    const lim = regras.calcular(f.ficha).limitePe;
+    assert.equal(f.atual?.pv, 1 + lim);
+    assert.equal(f.atual?.pe, lim);
+    assert.equal(f.bonus?.exercicio, 1);
+    gm.send({ t: 'bonusInterludio', fichaId: id, tipo: 'exercicio', delta: -1 });
+    assert.equal(hotel.db.fichas!.find((x) => x.id === id)!.bonus, undefined);
+  });
+});

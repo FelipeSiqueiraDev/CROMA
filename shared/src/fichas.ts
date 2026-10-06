@@ -53,6 +53,8 @@ export interface FichaSalva {
   companheiro?: Companheiro;
   /** o tema da interface do agente (sem tema = Ordem) */
   tema?: Tema;
+  /** os +1d6 guardados no interlúdio até o fim da missão: exercício (Agi, For, Vig) e leitura (Int, Pre); LR p. 92 */
+  bonus?: { exercicio?: number; leitura?: number };
   /** chave do link do jogador (`?ficha=CHAVE`); só o mestre vê e gera */
   chave?: string;
   criadaEm: string;
@@ -88,6 +90,12 @@ export function sanitizarFicha(raw: unknown): FichaSalva | null {
     criadaEm: texto(o.criadaEm, 40) ?? new Date().toISOString(),
     atualizadaEm: new Date().toISOString(),
   };
+  const b = o.bonus as Record<string, unknown> | undefined;
+  if (b && typeof b === 'object') {
+    const ex = inteiro(b.exercicio, 0, 10);
+    const le = inteiro(b.leitura, 0, 10);
+    if (ex || le) out.bonus = { ...(ex ? { exercicio: ex } : {}), ...(le ? { leitura: le } : {}) };
+  }
   const campanha = inteiro(o.campanha, 0, 1e9);
   if (campanha) out.campanha = campanha;
   const personagem = inteiro(o.personagem, 0, 1e9);

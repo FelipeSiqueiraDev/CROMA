@@ -11,3 +11,4 @@ export * from './opcoes';
 export * from './requisicao';
 export * from './rolagem';
 export * as catalogo from './dados';
+export * from './interludio';
