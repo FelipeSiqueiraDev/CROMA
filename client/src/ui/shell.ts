@@ -55,8 +55,8 @@ import { TecladoSenha } from './teclado';
 import { FerramentasMesa } from './ferramentasMesa';
 import { AbaInterludio } from './interludio';
 import { TopBar } from './topbar';
-import { escolher } from './fichaModal';
-import { existeArte, ic } from './icons';
+import { botao, escolher, janela } from './fichaModal';
+import { existeArte, ic, type NomeIcone } from './icons';
 
 export interface ShellActions {
   fx(): void;
@@ -365,7 +365,11 @@ export class Shell {
   /** as ações da tela (o catálogo, o inventário...) */
   private acts: ShellActions;
 
+  /** o que os menus abrem (as janelas de construir, configurar, ajuda) */
+  private actions: ShellActions;
+
   constructor(app: App, act: ShellActions) {
+    this.actions = act;
     this.acts = act;
     this.app = app;
     this.tokenWin = new TokenWin(app);
@@ -735,27 +739,49 @@ export class Shell {
     this.topo.setOperacao(this.campaign.operacao ? `Operação ${this.campaign.operacao}` : null);
   }
 
+  /** Configurações (a engrenagem do topo): uma janela de papel com as opções em cartões. */
   private toggleMenu() {
-    this.registro.classList.add('hidden');
-    const open = this.menu.classList.toggle('hidden') === false;
-    if (!open) return;
     sfx.paper();
-    if (reduced()) return;
-    this.menu.animate([{ transform: 'translateY(-0.8rem)', opacity: 0 }, { transform: 'translateY(0)', opacity: 1 }], { duration: 180, easing: 'ease-out' });
+    const act = this.actions;
+    const j = janela('Configurações', 'engrenagem', () => {}, 96);
+    j.el.classList.add('tela-toda');
+    const opcoes: [NomeIcone, string, string, () => void][] = [
+      ['pessoa', 'Novo personagem', 'Uma peça nova no tabuleiro (agente, NPC ou ameaça).', () => this.tokenWin.open()],
+      ['caixa', 'Construir', 'O catálogo de móveis: pôr na cena, girar e mover.', act.catalog],
+      ['engrenagem', 'Configurar cena', 'Nome, descrição, andar, piso, cor do ambiente e partículas.', act.settings],
+      ['mochila', 'Mobis guardados', 'Os móveis tirados da cena, para pôr de novo.', act.inventory],
+      ['ficha', 'Sprites dos personagens', 'As folhas de cada personagem e as poses.', act.characters],
+      ['mapa', 'Todas as cenas', 'Abrir qualquer cena, de qualquer campanha.', act.navigator],
+      ['livro', 'Como usar', 'Os atalhos e as ferramentas do mestre.', act.help],
+    ];
+    const cartao = (icone: NomeIcone, nome: string, texto: string, fazer: () => void) =>
+      h('button', { class: 'cfg-carta', type: 'button', onclick: () => (sfx.click(), j.fechar(), fazer()) }, ic(icone), h('b', null, nome), h('span', null, texto));
+    const som = h(
+      'button',
+      { class: `cfg-carta cfg-som${sfx.enabled ? ' on' : ''}`, type: 'button', role: 'switch', 'aria-checked': String(sfx.enabled), onclick: () => (this.toggleSound(), som.classList.toggle('on', sfx.enabled), som.setAttribute('aria-checked', String(sfx.enabled)), (som.querySelector('span')!.textContent = sfx.enabled ? 'Ligados: clique para desligar.' : 'Desligados: clique para ligar.')) },
+      ic('radio'),
+      h('b', null, 'Sons da interface'),
+      h('span', null, sfx.enabled ? 'Ligados: clique para desligar.' : 'Desligados: clique para ligar.'),
+    );
+    j.corpo.append(h('div', { class: 'cfg-grade' }, ...opcoes.map(([i, n, t, f]) => cartao(i, n, t, f)), som));
+    j.rodape.append(h('span', { class: 'fj-esp' }), botao('Fechar', 'fechar', '', () => j.fechar()));
   }
 
-  /** Registro da sessão (as últimas ações), no botão de documento do topo. */
+  /** Registro da sessão (objetivos e as últimas ações), no botão de documento do topo: uma janela de papel. */
   private toggleRegistro() {
-    this.menu.classList.add('hidden');
-    const open = this.registro.classList.toggle('hidden') === false;
-    if (!open) return;
     sfx.paper();
-    const log = [...(this.campaign?.log ?? [])].reverse().slice(0, 40);
+    const j = janela('Registro da sessão', 'documento', () => this.registro.remove(), 80);
+    j.el.classList.add('tela-toda');
+    const log = [...(this.campaign?.log ?? [])].reverse().slice(0, 60);
     this.registroLog.replaceChildren(
       ...(log.length
         ? log.map((e) => h('div', { class: 'tb2-reg' }, h('time', null, new Date(e.at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })), logIcon(e.icon, 15), h('span', null, e.text)))
         : [h('p', null, 'Nada ainda nesta sessão.')]),
     );
+    this.registro.classList.remove('hidden', 'tb2-menu');
+    this.registro.classList.add('reg-janela');
+    j.corpo.append(this.registro);
+    j.rodape.append(h('span', { class: 'fj-esp' }), botao('Fechar', 'fechar', '', () => j.fechar()));
   }
 
   private toggleSound() {
