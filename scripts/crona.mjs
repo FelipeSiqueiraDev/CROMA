@@ -53,5 +53,10 @@ if (cmd === 'subir') {
   console.log(`[crona] mesa (tablet):            http://${ip}:${porta}/?mesa`);
   if (chave) console.log(`[crona] mestre em outro aparelho: http://${ip}:${porta}/?mestre=${chave}`);
 } else if (cmd === 'parar') process.exit(docker('stop', 'jogo'));
-else if (cmd === 'logs') process.exit(docker('logs', '-f', '--tail', '80', 'jogo'));
+else if (cmd === 'logs') {
+  // o link de fora (npm run crona:link), se o túnel estiver no ar
+  const link = path.join(REPO, 'server', 'data', 'link.txt');
+  if (fs.existsSync(link)) console.log(`[crona] de qualquer lugar:          ${fs.readFileSync(link, 'utf8').trim()}`);
+  process.exit(docker('logs', '-f', '--tail', '80', 'jogo'));
+}
 else console.log('uso: node scripts/crona.mjs subir | parar | logs');

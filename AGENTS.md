@@ -20,9 +20,11 @@ Ao terminar um bloco de trabalho, atualize o `EM-ABERTO.md`.
 npm run crona        # monta a imagem e sobe o jogo e o banco (voltam sozinhos com o Docker)
 npm run crona:parar  # desliga o jogo (o banco continua)
 npm run crona:logs   # os links do mestre, da mesa e do mestre em outro aparelho
+npm run crona:link   # o link de qualquer lugar (túnel da Cloudflare, grátis); `node scripts/link.mjs instalar` sobe a cada login
 ```
 
 - **Mestre (este computador):** `http://localhost:8080`. **Mesa e celulares:** `http://IP-da-rede:8080/?mesa` (o `npm run crona` acha o IP e grava no `.env` da raiz). A mesma porta atende os dois: em 127.0.0.1 entra como mestre (porta local do container, `CRONA_PORTA_LOCAL`), no IP da rede não.
+- **De qualquer lugar (06/10):** `npm run crona:link` abre um túnel da Cloudflare (`cloudflared`, como o do C.R.I.S) até a porta da rede do jogo e volta sozinho se cair. O link (`https://<palavras>.trycloudflare.com`) muda a cada vez que o túnel sobe; o de agora fica em `server/data/link.txt` e aparece no `npm run crona:logs`. O túnel vai para a porta da mesa, nunca para a 127.0.0.1 (lá todo mundo é mestre): de fora, o mestre entra pela conta.
 - Mudou a arte ou o código? `npm run crona` de novo (monta a imagem nova). Os arquivos enviados pelo jogo ficam no volume `crona_crona-arquivos`.
 - **Um servidor por banco:** o servidor trava o banco (`pg_try_advisory_lock`). Com o jogo do Docker no ar, o `npm run dev` no banco `crona` recusa; para desenvolver, use a cópia (`node scripts/dev/visual.mjs subir`, banco `crona_visual`, que sai do `crona` por `pg_dump`). O banco de antes do Docker ficou inteiro como `crona_antes_docker`.
 

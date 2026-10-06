@@ -20,6 +20,7 @@
     "crona": "node scripts/crona.mjs subir",
     "crona:parar": "node scripts/crona.mjs parar",
     "crona:logs": "node scripts/crona.mjs logs",
+    "crona:link": "node scripts/link.mjs",
     "banco": "docker compose up -d --wait banco",
     "banco:parar": "docker compose stop banco",
     "banco:backup": "node scripts/banco.mjs backup",

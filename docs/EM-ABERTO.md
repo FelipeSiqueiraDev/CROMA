@@ -120,6 +120,10 @@ Tudo em [`FERRAMENTAS-DA-MESA.md`](FERRAMENTAS-DA-MESA.md). No canto de cima do 
 - Testes em `server/test/mesa.test.ts` (9). Visto no navegador, na prévia, com a mesa aberta ao lado.
 - **Falta:** a arte (`PROMPT-FERRAMENTAS-MESA.txt`: os 4 ícones e a textura da névoa); apagar o mapa improvisado pela tela; ver no tablet de verdade. Na prévia (`crona_visual`) ficou a cena de teste "Sede · armazem do porto".
 
+## Feito em 06/10: o link de qualquer lugar
+
+`npm run crona:link` (`scripts/link.mjs`): túnel da Cloudflare até a porta da rede do jogo, como o do C.R.I.S. Testado: a página abre pelo link e quem entra por lá é jogador (o mestre entra pela conta). O link muda a cada vez que o túnel sobe (fixo é pago). **Falta:** o Felipe decidir se sobe a cada login (`node scripts/link.mjs instalar`).
+
 ## Pela metade
 
 - **Ferramentas do mestre para arrumar as salas (05/10):** o botão **Trocar** no painel do móvel (aba Descrição: o catálogo abre na categoria dele e troca no mesmo lugar e giro; `swapItem`); o catálogo mostra a **arte** de cada móvel (`arteDaMiniatura`); **Maior/Menor** nos quadros e tapetes (`resizeItem`, `escala` no item, de 0,5 a 3: o quadro cresce em volta do meio, o tapete em volta do meio da pegada, no tabuleiro e no mapa tático); e o **tapete** (todo móvel `flat`) vai para baixo dos móveis (`canPlace`).
