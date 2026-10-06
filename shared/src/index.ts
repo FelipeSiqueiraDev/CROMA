@@ -12,6 +12,7 @@ export * from './session';
 export * from './vitals';
 export * from './fichas';
 export * from './itens';
+export * from './mesa';
 /** Regras de Ordem Paranormal: catálogos, ficha, criação de NEX 0% a 99% (ver docs/REGRAS.md). */
 export * as regras from './regras';
 /** Combate: ordem de iniciativa, rodadas, turnos e registro (ver docs/COMBATE.md). */

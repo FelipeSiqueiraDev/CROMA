@@ -822,3 +822,31 @@ select.cb-sel option {
   object-fit: contain;
   filter: drop-shadow(0 0.1rem 0.15rem #000);
 }
+
+/* ---------- as ferramentas da mesa (Apontar, Desenhar, Névoa): os botões do HUD ---------- */
+.board-mesa .bm-botoes {
+  border: 0;
+  background: none;
+  box-shadow: none;
+  padding: 0;
+  gap: 0.6rem;
+}
+.board-mesa .bv {
+  height: 3.6rem;
+  padding: 0 0.8rem 0 0.6rem;
+  border: 1rem solid transparent;
+  border-image: var(--ui-tabuleiro-botao-hud-normal) 20 fill / 1rem stretch;
+  border-radius: 0;
+  background: none;
+  opacity: 1;
+  color: #a9c6e4;
+}
+.board-mesa .bv:hover {
+  border-image-source: var(--ui-tabuleiro-botao-hud-foco);
+}
+.board-mesa .bv.on {
+  border-image-source: var(--ui-tabuleiro-botao-hud-ativo);
+  background: none;
+  box-shadow: none;
+  color: #eef6ff;
+}

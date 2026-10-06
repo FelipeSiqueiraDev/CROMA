@@ -1,4 +1,4 @@
-import type { AvatarLook, CharacterDef, combate, Door, FichaSalva, FloorItem, FloorStyle, InvItem, LightMode, LogEntry, NotaPlanta, Objective, ParticleKind, Vitals, WallItem } from '@crona/shared';
+import type { AvatarLook, CharacterDef, combate, Door, FichaSalva, FloorItem, FloorStyle, InvItem, LightMode, LogEntry, NevoaCena, NotaPlanta, Objective, ParticleKind, Vitals, WallItem } from '@crona/shared';
 import type { Banco } from './banco';
 import { BancoJson } from './banco/json';
 import type { Conta } from './contas';
@@ -40,6 +40,10 @@ export interface RoomData {
   montagem?: string;
   /** vista tática ligada (a câmera do tabuleiro em cima) */
   tatico?: boolean;
+  /** a névoa revelada aos poucos: as casas que a mesa vê (sem ela, a mesa vê tudo) */
+  nevoa?: NevoaCena;
+  /** mapa improvisado: a imagem enviada pelo mestre, no chão inteiro da cena */
+  mapa?: string;
 }
 
 export interface TokenData {

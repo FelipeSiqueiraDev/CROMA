@@ -214,7 +214,11 @@ export class CombateScreen {
   private btTatico: HTMLButtonElement;
   private btMedir: HTMLButtonElement;
   private btArea: HTMLButtonElement;
+  private btApontar: HTMLButtonElement;
+  private btDesenhar: HTMLButtonElement;
   private alvoExtra: HTMLElement;
+  /** Apontar e Desenhar (as ferramentas da mesa, as mesmas do MAPA): a tela MAPA liga e desliga */
+  aoFerramentaMesa: ((tipo: 'ponto' | 'traco') => void) | null = null;
 
   constructor(app: App) {
     this.app = app;
@@ -235,7 +239,10 @@ export class CombateScreen {
     this.btArea = botao('Área', 'area', () => this.ferramentaArea(), 'cb-ferr', 'Área de ritual ou granada: escolha o formato e clique no tabuleiro (Esc sai)');
     // a vista tática: a câmera sobe e mostra a sala de cima (a mesa acompanha)
     this.btTatico = botao('Tática', 'tatico', () => this.trocarVista(), 'cb-ferr', 'Vista tática: a sala de cima, como mapa de batalha (T); de novo volta ao isométrico');
-    const ferr = h('div', { class: 'cb-tab-ferr' }, this.btAlcance, this.btMedir, this.btArea, this.btTatico, botao('Centralizar', 'centralizar', () => this.centralizar(), 'cb-ferr', 'Centralizar em quem está na vez'));
+    // o que o mestre mostra na mesa: o ponto de atenção e o desenho rápido (docs/FERRAMENTAS-DA-MESA.md)
+    this.btApontar = botao('Apontar', 'apontar', () => this.aoFerramentaMesa?.('ponto'), 'cb-ferr', 'Apontar: clique num lugar e a mesa pisca ali (P). Alt + clique aponta sem ligar');
+    this.btDesenhar = botao('Desenhar', 'giz', () => this.aoFerramentaMesa?.('traco'), 'cb-ferr', 'Desenhar: arraste no tabuleiro; some sozinho (D). Formato e cor na aba MAPA');
+    const ferr = h('div', { class: 'cb-tab-ferr' }, this.btAlcance, this.btMedir, this.btArea, this.btTatico, this.btApontar, this.btDesenhar, botao('Centralizar', 'centralizar', () => this.centralizar(), 'cb-ferr', 'Centralizar em quem está na vez'));
     this.quadro = h('section', { class: 'cb-tab' }, this.tabCena, ferr, this.tabArea, this.tabClima);
     // ---------- resolução da ação ----------
     this.resCorpo = h('div', { class: 'cb-res-corpo' });
@@ -717,6 +724,12 @@ export class CombateScreen {
     sfx.click();
     this.render();
     return true;
+  }
+
+  /** A ferramenta da mesa ligada (o MAPA avisa). */
+  marcarFerramentaMesa(tipo: string | null) {
+    this.btApontar.classList.toggle('on', tipo === 'ponto');
+    this.btDesenhar.classList.toggle('on', tipo === 'traco');
   }
 
   private pintarFerramentas() {

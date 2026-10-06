@@ -61,7 +61,8 @@ export function janela(titulo: string, icone: NomeIcone, aoFechar: () => void, l
   return j;
 }
 
-function botao(rotulo: string, icone: NomeIcone | null, cls: string, onclick: () => void): HTMLButtonElement {
+/** Botão do rodapé das janelas de papel. */
+export function botao(rotulo: string, icone: NomeIcone | null, cls: string, onclick: () => void): HTMLButtonElement {
   return h('button', { class: `fx-bt ${cls}`, type: 'button', onclick }, icone ? ic(icone) : null, h('span', null, rotulo));
 }
 

@@ -21,6 +21,10 @@ import {
   type WallItem,
   type WallSeg,
   ESCALA_ARTE_PESSOA,
+  casasEmVolta,
+  type CorGiz,
+  type FormaTraco,
+  type MarcaMesa,
 } from '@crona/shared';
 import { drawPixelAvatar, PIXEL_AVATAR_HEIGHT, type Pose } from '../render/avatarPixel';
 import { Bubbles, UI_FONT } from '../render/bubbles';
@@ -29,8 +33,11 @@ import { desenharParedeComArte, visualComArte } from '../render/furniArte';
 import { furniVisual } from '../render/furniFloor';
 import { drawWallFurni, wallLights } from '../render/furniWall';
 import { drawHintGlyph, drawHintIcon } from '../render/hints';
-import { iso } from '../render/iso';
-import { cameraVoo, casaNoPonto, desenharMesa, enquadrar, marcasNoChao, marcasPorCima, matrizNaAltura, passo, type CameraVoo, type Enquadre, type PecaTatica } from '../render/mapaTatico';
+import { iso, unIso } from '../render/iso';
+import { MarcasMesa } from '../render/marcasMesa';
+import { NevoaMesa } from '../render/nevoaMesa';
+import { imagemDoMapa } from '../render/mapaImagem';
+import { cameraVoo, casaNoPonto, desenharMesa, enquadrar, marcasNoChao, marcasPorCima, matrizNaAltura, passo, projetar, type CameraVoo, type Enquadre, type PecaTatica } from '../render/mapaTatico';
 import { portraitCanvas } from '../render/portrait';
 import { hash, hexToRgb, rgba } from '../render/color';
 import { Fog } from '../render/fog';
@@ -58,6 +65,15 @@ import {
   type SpriteFrame,
 } from '../render/sprites';
 import { sfx } from '../ui/sfx';
+
+/**
+ * Ferramenta do mestre no tabuleiro (docs/FERRAMENTAS-DA-MESA.md): com ela ligada, o clique e o
+ * arrasto vão para ela (o arrasto não mexe a câmera).
+ */
+export type FerramentaMesa =
+  | { tipo: 'ponto' }
+  | { tipo: 'traco'; forma: FormaTraco; cor: CorGiz }
+  | { tipo: 'nevoa'; vista: boolean; raio: number };
 
 export interface ClientUser {
   id: number;
@@ -380,6 +396,20 @@ export class RoomView {
   private tatZoom = { k: 1, dx: 0, dy: 0 };
   /** o retrato de cada peça para a ficha do mapa tático */
   private retratos = new Map<number, { chave: string; c: HTMLCanvasElement }>();
+  /** o ponto de atenção e os desenhos do mestre (chegam do servidor) */
+  readonly marcasMesa = new MarcasMesa();
+  /** a névoa revelada aos poucos */
+  private nevoaView = new NevoaMesa();
+  /** a ferramenta do mestre ligada (null = o clique de sempre) */
+  ferramenta: FerramentaMesa | null = null;
+  /** o mestre marcou o tabuleiro (ponto ou desenho): a tela manda para o servidor */
+  aoMarcar: ((m: MarcaMesa) => void) | null = null;
+  /** o mestre pintou a névoa (mostrar ou esconder as casas) */
+  aoPintarNevoa: ((casas: { x: number; y: number }[], vista: boolean) => void) | null = null;
+  /** o risco em andamento (desenho ou pincel da névoa) */
+  private risco: { ferr: FerramentaMesa; pintadas: Set<string> } | null = null;
+  /** a câmera da mesa foi até o ponto de atenção: a de seguir as peças espera até lá */
+  private pontoAte = 0;
 
   /** A vista tática está ligada (ou indo para lá). */
   get tatico(): boolean {
@@ -475,13 +505,17 @@ export class RoomView {
     const now = performance.now();
     let sx = 0;
     let sy = 0;
+    let n = 0;
     for (const u of this.users.values()) {
       const p = this.userPos(u, now);
+      // a câmera da mesa não vai atrás de quem está na névoa
+      if (this.escondeNevoa && NevoaMesa.escondida(this.info?.nevoa, p.x + 0.5, p.y + 0.5)) continue;
       const [x, y] = iso(p.x + 0.5, p.y + 0.5, p.z);
       sx += x;
       sy += y - 40;
+      n++;
     }
-    const n = this.users.size;
+    if (!n) return null;
     const b = roomBounds(this.map, !!this.info?.aberto);
     const f = this.frame_();
     const hw = f.w / 2 / this.zoom;
@@ -834,11 +868,21 @@ export class RoomView {
       }
       if (e.button !== 0) return;
       c.setPointerCapture(e.pointerId);
+      // a ferramenta do mestre (ou o Alt, que aponta sem ligar nada)
+      if ((this.ferramenta || e.altKey) && !this.placement && this.info?.isOwner) {
+        this.comecarRisco(this.ferramenta ?? { tipo: 'ponto' });
+        return;
+      }
       this.drag = { sx: e.offsetX, sy: e.offsetY, cx: this.cam.x, cy: this.cam.y, tx: this.tatZoom.dx, ty: this.tatZoom.dy, moved: false };
     });
     c.addEventListener('pointermove', (e) => {
       if (this.watchOnly) return;
       this.mouse = { x: e.offsetX, y: e.offsetY, inside: true };
+      if (this.risco) {
+        this.updateHover();
+        this.seguirRisco();
+        return;
+      }
       const d = this.drag;
       if (d) {
         const dx = e.offsetX - d.sx;
@@ -860,6 +904,11 @@ export class RoomView {
       this.updateHover();
     });
     c.addEventListener('pointerup', (e) => {
+      if (this.risco) {
+        this.mouse = { x: e.offsetX, y: e.offsetY, inside: true };
+        this.acabarRisco();
+        return;
+      }
       const d = this.drag;
       this.drag = null;
       if (d && !d.moved && e.button === 0) {
@@ -882,6 +931,99 @@ export class RoomView {
       },
       { passive: false },
     );
+  }
+
+  /** O ponto do chão embaixo do mouse, em casas (com fração), no isométrico ou no mapa tático. */
+  private pontoNoChao(): [number, number] | null {
+    if (!this.map || !this.mouse.inside) return null;
+    if (this.tat.t > 0) {
+      const e = this.tat.e;
+      if (this.tat.t < 1 || !e) return null;
+      return [(this.mouse.x * this.dpr - e.x) / e.casa, (this.mouse.y * this.dpr - e.y) / e.casa];
+    }
+    const [wx, wy] = this.toWorld(this.mouse.x, this.mouse.y);
+    let [x, y] = unIso(wx, wy, 0);
+    const h = this.map.floorHeight(Math.floor(x), Math.floor(y));
+    if (h) [x, y] = unIso(wx, wy, h);
+    return [x, y];
+  }
+
+  /** As casas do pincel da névoa em volta da casa do mouse. */
+  private casasDoPincel(raio: number): { x: number; y: number }[] {
+    const t = this.hoverTile;
+    const map = this.map;
+    if (!t || !map) return [];
+    return casasEmVolta(t.x, t.y, raio).filter((c) => map.floorHeight(c.x, c.y) !== null);
+  }
+
+  private comecarRisco(ferr: FerramentaMesa) {
+    this.risco = { ferr, pintadas: new Set() };
+    const p = this.pontoNoChao();
+    if (ferr.tipo === 'traco' && p) this.marcasMesa.rascunho = { forma: ferr.forma, cor: ferr.cor, pts: [p, p] };
+    if (ferr.tipo === 'nevoa') this.pintar();
+  }
+
+  private seguirRisco() {
+    const r = this.risco;
+    if (!r) return;
+    if (r.ferr.tipo === 'nevoa') return this.pintar();
+    const rasc = this.marcasMesa.rascunho;
+    const p = this.pontoNoChao();
+    if (!rasc || !p) return;
+    if (rasc.forma === 'livre') {
+      const u = rasc.pts[rasc.pts.length - 1];
+      if (Math.hypot(p[0] - u[0], p[1] - u[1]) > 0.12 && rasc.pts.length < 400) rasc.pts.push(p);
+      // o primeiro par era o ponto repetido
+      if (rasc.pts.length === 3 && rasc.pts[0][0] === rasc.pts[1][0] && rasc.pts[0][1] === rasc.pts[1][1]) rasc.pts.splice(1, 1);
+    } else rasc.pts[1] = p;
+  }
+
+  private acabarRisco() {
+    const r = this.risco;
+    this.risco = null;
+    if (!r) return;
+    if (r.ferr.tipo === 'ponto') {
+      const p = this.pontoNoChao();
+      if (p) this.aoMarcar?.({ tipo: 'ponto', x: p[0], y: p[1] });
+      return;
+    }
+    if (r.ferr.tipo === 'traco') {
+      const rasc = this.marcasMesa.rascunho;
+      this.marcasMesa.rascunho = null;
+      if (!rasc) return;
+      const [a, b] = [rasc.pts[0], rasc.pts[rasc.pts.length - 1]];
+      // um clique sem arrastar não desenha nada
+      if (Math.hypot(b[0] - a[0], b[1] - a[1]) < 0.2 && rasc.pts.length < 4) return;
+      this.aoMarcar?.({ tipo: 'traco', forma: rasc.forma, cor: rasc.cor, pts: rasc.pts.map(([x, y]) => [Math.round(x * 100) / 100, Math.round(y * 100) / 100]) });
+    }
+  }
+
+  /** O pincel da névoa: as casas debaixo dele que ainda não foram pintadas neste risco. */
+  private pintar() {
+    const r = this.risco;
+    if (!r || r.ferr.tipo !== 'nevoa') return;
+    const novas = this.casasDoPincel(r.ferr.raio).filter((c) => !r.pintadas.has(`${c.x},${c.y}`));
+    if (!novas.length) return;
+    for (const c of novas) r.pintadas.add(`${c.x},${c.y}`);
+    this.aoPintarNevoa?.(novas, r.ferr.vista);
+  }
+
+  /** Chegou um ponto de atenção ou um desenho. Na mesa, com o cômodo grande, a câmera vai até o ponto. */
+  receberMarca(m: MarcaMesa) {
+    this.marcasMesa.add(m);
+    if (m.tipo !== 'ponto' || !this.watchOnly || !this.follow || this.tat.t > 0) return;
+    const h = this.map?.floorHeight(Math.floor(m.x), Math.floor(m.y)) ?? 0;
+    const [wx, wy] = iso(m.x, m.y, h);
+    const f = this.frame_();
+    const tx = Math.round(f.x + f.w / 2 - wx * this.zoom);
+    const ty = Math.round(f.y + f.h / 2 - (wy - 30) * this.zoom);
+    this.pontoAte = performance.now() + 4000;
+    this.camAnim = { fx: this.cam.x, fy: this.cam.y, tx, ty, t0: performance.now(), dur: 700 };
+  }
+
+  /** A mesa não vê o que está na névoa (o mestre vê tudo). */
+  private get escondeNevoa(): boolean {
+    return !!this.info?.nevoa && !this.info.isOwner;
   }
 
   private tileAt(wx: number, wy: number): { x: number; y: number } | null {
@@ -928,9 +1070,9 @@ export class RoomView {
       this.wallTarget = null;
       const pronto = this.tat.t >= 1;
       this.hoverTile = pronto ? this.casaTatica() : null;
-      const hit = pronto && !this.placement ? this.pickTatico() : null;
+      const hit = pronto && !this.placement && !this.ferramenta ? this.pickTatico() : null;
       this.hoverKey = hit ? hit.kind + hit.id : '';
-      this.canvas.style.cursor = this.placement ? 'crosshair' : hit ? 'pointer' : 'default';
+      this.canvas.style.cursor = this.placement || this.ferramenta ? 'crosshair' : hit ? 'pointer' : 'default';
       return;
     }
     const [wx, wy] = this.toWorld(this.mouse.x, this.mouse.y);
@@ -940,6 +1082,12 @@ export class RoomView {
       const def = getWallFurni(p.defId);
       this.wallTarget = def ? this.computeWallTarget(wx, wy, def) : null;
     } else this.wallTarget = null;
+    if (this.ferramenta) {
+      this.hoverKey = '';
+      this.cursorPorCima = false;
+      this.canvas.style.cursor = 'crosshair';
+      return;
+    }
     const hint = this.hintAt(this.mouse.x, this.mouse.y);
     let hit = hint ? null : this.pickAt(wx, wy);
     this.cursorPorCima = this.cobreChaoLivre(hit, this.hoverTile);
@@ -1154,6 +1302,8 @@ export class RoomView {
       const u = this.users.get(id);
       if (!u) return null;
       const p = this.userPos(u, now);
+      // a peça na névoa: a mesa não vê as marcas do combate dela
+      if (this.escondeNevoa && NevoaMesa.escondida(info.nevoa, p.x + 0.5, p.y + 0.5)) return null;
       return { x: p.x, y: p.y };
     };
     const mouse = t >= 1 && this.mouse.inside && !this.watchOnly ? this.hoverTile : null;
@@ -1165,14 +1315,25 @@ export class RoomView {
       ctx.rect(quadro.x, quadro.y, quadro.w, quadro.h);
       ctx.clip();
     }
-    desenharMesa(ctx, map, info.floorStyle, this.pecasTaticas(now), v, {
+    const nv = info.nevoa;
+    const esconde = this.escondeNevoa;
+    const pecas = this.pecasTaticas(now).filter((p) => !esconde || !NevoaMesa.escondida(nv, p.x + 0.5, p.y + 0.5));
+    desenharMesa(ctx, map, info.floorStyle, pecas, v, {
+      mostrarItem: esconde ? (it) => !this.itemOculto(it) : undefined,
+      imagemChao: imagemDoMapa(info.mapa),
       // no começo do caminho, o escuro da sala (como no isométrico); em cima, o mapa claro
       escuro: Math.min(0.5, info.darkness * 0.7) * (1 - passo(0.15, 1, t)),
       celas: celas?.casa,
       noChao: (c) => marcasNoChao(c, marcas, pos, mouse, now),
       porCima: (c, vv) => {
+        if (nv) this.nevoaView.desenharTatico(c, map, nv, `${info.id}|${info.heightmap}`, esconde, vv, now);
         marcasPorCima(c, vv, marcas, pos, mouse);
         this.edicaoTatica(c, vv);
+        c.save();
+        c.setTransform(1, 0, 0, 1, 0, 0);
+        if (this.ferramenta?.tipo === 'nevoa' && this.mouse.inside && vv.t >= 1) this.desenharPincel(c, (x, y) => projetar(vv, x, y, 0), this.dpr);
+        this.marcasMesa.desenhar(c, { proj: (x, y) => projetar(vv, x, y, 0), px: this.dpr, dpr: this.dpr }, now);
+        c.restore();
       },
     });
     if (recorta) ctx.restore();
@@ -1318,7 +1479,7 @@ export class RoomView {
   private frameIso() {
     this.resize();
     // cômodo grande: de tempos em tempos a câmera vai atrás das peças
-    if (this.follow && (this.autoFit || this.watchOnly) && !this.camAnim) {
+    if (this.follow && (this.autoFit || this.watchOnly) && !this.camAnim && performance.now() > this.pontoAte) {
       const n = performance.now();
       if (n - this.followAt > 350) {
         this.followAt = n;
@@ -1362,16 +1523,36 @@ export class RoomView {
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(st.canvas, st.x, st.y, st.w, st.h);
     ctx.imageSmoothingEnabled = true;
+    // mapa improvisado: a imagem deitada no chão inteiro (a casa x, y vai para o losango dela)
+    const imgMapa = imagemDoMapa(this.info.mapa);
+    if (imgMapa) {
+      ctx.save();
+      ctx.transform(32, 16, -32, 16, 0, 0);
+      ctx.drawImage(imgMapa, 0, 0, map.width, map.height);
+      ctx.restore();
+    }
     this.drawMarks(ctx, now);
     // celas fechadas: o chão de dentro no escuro (o que fica em pé lá dentro escurece ao ser desenhado)
     const celas = this.celas.quadro(map, now);
     if (celas) escurecerChao(ctx, map, celas);
 
     const lights: Light[] = [];
+    // a névoa: na mesa, o que está escondido não é desenhado, e o chão e as paredes de lá ficam debaixo
+    // da fumaça (antes dos móveis: o que está à vista na frente passa por cima dela)
+    const nv = this.info.nevoa;
+    const esconde = this.escondeNevoa;
+    const oculta = (x: number, y: number) => esconde && NevoaMesa.escondida(nv, x, y);
+    const mundo = new DOMMatrix([scale, 0, 0, scale, this.cam.x * dpr, this.cam.y * dpr]);
+    if (nv && esconde) {
+      this.nevoaView.desenharIso(ctx, map, nv, this.staticKey, true, mundo, scale, now);
+      ctx.setTransform(mundo);
+    }
     const marcas = this.combate;
+    // a peça na névoa não aparece na mesa, nem as marcas do combate dela
     const posPeca = (id: number) => {
       const u = this.users.get(id);
-      return u ? this.userPos(u, now) : null;
+      const p = u ? this.userPos(u, now) : null;
+      return p && !oculta(p.x + 0.5, p.y + 0.5) ? p : null;
     };
     const alturaCasa = (c: { x: number; y: number }) => map.standHeight(c.x, c.y);
     if (marcas) desenharChao(ctx, marcas, posPeca, alturaCasa, now, lights);
@@ -1387,6 +1568,7 @@ export class RoomView {
     for (const it of map.allWallItems()) {
       const def = getWallFurni(it.defId);
       if (!def) continue;
+      if (esconde && (it.wall === 'l' ? oculta(it.plane, it.pos) : oculta(it.pos, it.plane))) continue;
       const moving = place?.kind === 'wall' && place.moveId === it.id;
       const { ox, oy, k, px, py, e } = this.drawWallItem(it, def, t, lights, moving ? 0.35 : 1, sel?.kind === 'wall' && sel.id === it.id ? AMBER : null);
       // na parede de dentro de uma cela fechada (a lâmpada de grade, os riscos): no escuro também
@@ -1435,6 +1617,7 @@ export class RoomView {
     const raioX: { box: WBox; rect: [number, number, number, number] }[] = [];
     for (const u of this.users.values()) {
       const p = this.userPos(u, now);
+      if (oculta(p.x + 0.5, p.y + 0.5)) continue;
       // quem está numa cela fechada não deixa a parede transparente (a cela não se entrega)
       if (escuroEm(celas, p.x + 0.5, p.y + 0.5) > 0.5) continue;
       const [mx, my] = iso(p.x + 0.5, p.y + 0.5, p.z);
@@ -1512,6 +1695,7 @@ export class RoomView {
     };
 
     for (const real of map.allItems()) {
+      if (esconde && this.itemOculto(real)) continue;
       const it = this.slides.size ? this.slidPos(real, now) : real;
       const moving = place?.kind === 'floor' && place.moveId === it.id;
       const topZ = addFurni(it, moving ? 0.35 : 1, sel?.kind === 'floor' && sel.id === it.id, false);
@@ -1566,6 +1750,7 @@ export class RoomView {
     // avatares
     for (const u of this.users.values()) {
       const p = this.userPos(u, now);
+      if (oculta(p.x + 0.5, p.y + 0.5)) continue;
       const cx = p.x + 0.5;
       const cy = p.y + 0.5;
       const sp = u.look.charId ? sprites.get(u.look.charId) : null;
@@ -1829,7 +2014,7 @@ export class RoomView {
 
     // cursor do piso
     const ht = this.hoverTile;
-    if (ht && this.mouse.inside && !place && !map.isDoor(ht.x, ht.y)) {
+    if (ht && this.mouse.inside && !place && !this.ferramenta && !map.isDoor(ht.x, ht.y)) {
       const h = map.walkState(ht.x, ht.y) === 'blocked' ? map.floorHeight(ht.x, ht.y) ?? 0 : map.standHeight(ht.x, ht.y);
       const box: WBox = { x0: ht.x, x1: ht.x + 1, y0: ht.y, y1: ht.y + 1, z0: h, z1: h };
       const pts = [iso(ht.x, ht.y, h), iso(ht.x + 1, ht.y, h), iso(ht.x + 1, ht.y + 1, h), iso(ht.x, ht.y + 1, h)];
@@ -1933,11 +2118,20 @@ export class RoomView {
       this.particles.draw(ctx, now, active, this.info.particleLevel ?? DEFAULT_PARTICLE_LEVEL);
     }
 
+    // a névoa para o mestre: o que a mesa não vê fica riscado, por cima de tudo
+    if (nv && !esconde) this.nevoaView.desenharIso(ctx, map, nv, this.staticKey, false, mundo, scale, now);
+
     // combate: anel de alcance, linha até o alvo, mira, medida (depois da luz: sempre à vista)
     if (marcas) {
       ctx.setTransform(scale, 0, 0, scale, this.cam.x * dpr, this.cam.y * dpr);
       desenharCima(ctx, marcas, posPeca, alturaCasa, this.casaDoMouse, now);
     }
+
+    // as ferramentas do mestre: o pincel da névoa embaixo do mouse, o ponto de atenção e os desenhos
+    ctx.setTransform(scale, 0, 0, scale, this.cam.x * dpr, this.cam.y * dpr);
+    if (this.ferramenta?.tipo === 'nevoa' && this.mouse.inside) this.desenharPincel(ctx, (x, y, h) => iso(x, y, h), 1 / z);
+    const chaoEm = (x: number, y: number) => map.floorHeight(Math.floor(x), Math.floor(y)) ?? 0;
+    this.marcasMesa.desenhar(ctx, { proj: (x, y) => iso(x, y, chaoEm(x, y)), px: 1 / z, dpr, alto: 120 }, now);
 
     this.vinheta(ctx);
 
@@ -1957,6 +2151,7 @@ export class RoomView {
           const u = this.users.get(id);
           if (!u) return null;
           const p = this.userPos(u, now);
+          if (oculta(p.x + 0.5, p.y + 0.5)) return null;
           const [wx, wy] = iso(p.x + 0.5, p.y + 0.5, p.z);
           return marcas.deitadas.has(id) ? [wx, wy - 14] : [wx, wy - this.avatarHeight(u)];
         },
@@ -1982,6 +2177,40 @@ export class RoomView {
     }
 
     this.bubbles.draw(ctx, (wx) => wx * z + this.cam.x, this.vw);
+  }
+
+  /** O móvel some na mesa quando todas as casas dele estão na névoa. */
+  private itemOculto(it: FloorItem): boolean {
+    const nv = this.info?.nevoa;
+    const def = getFurni(it.defId);
+    if (!nv || !def) return false;
+    const fp = footprint(def, it.rot);
+    for (let y = it.y; y < it.y + fp.sy; y++) for (let x = it.x; x < it.x + fp.sx; x++) if (!NevoaMesa.escondida(nv, x, y)) return false;
+    return true;
+  }
+
+  /** O pincel da névoa: as casas que ele pinta, verdes (mostrar) ou vermelhas (esconder). */
+  private desenharPincel(ctx: CanvasRenderingContext2D, proj: (x: number, y: number, h: number) => [number, number], px: number) {
+    const f = this.ferramenta;
+    const map = this.map;
+    if (f?.tipo !== 'nevoa' || !map) return;
+    const casas = this.casasDoPincel(f.raio);
+    if (!casas.length) return;
+    ctx.save();
+    ctx.beginPath();
+    for (const c of casas) {
+      const h = map.floorHeight(c.x, c.y) ?? 0;
+      const q = [proj(c.x, c.y, h), proj(c.x + 1, c.y, h), proj(c.x + 1, c.y + 1, h), proj(c.x, c.y + 1, h)];
+      ctx.moveTo(q[0][0], q[0][1]);
+      for (const p of q.slice(1)) ctx.lineTo(p[0], p[1]);
+      ctx.closePath();
+    }
+    ctx.fillStyle = f.vista ? 'rgba(120, 230, 160, 0.16)' : 'rgba(240, 90, 80, 0.18)';
+    ctx.fill();
+    ctx.lineWidth = 1.2 * px;
+    ctx.strokeStyle = f.vista ? 'rgba(140, 255, 180, 0.7)' : 'rgba(255, 110, 100, 0.75)';
+    ctx.stroke();
+    ctx.restore();
   }
 
   /** A vinheta: as bordas do quadro escurecem. */

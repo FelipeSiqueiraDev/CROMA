@@ -7,12 +7,15 @@ O que está pela metade, o que falta e o que o Códex ainda vai entregar. Leia j
 O Felipe trocou de conta do Claude em 06/10. Tudo do CRONA está em `F:\Dhellow\CRONA` (a tabela "Onde está cada coisa", abaixo); abra a conversa na pasta `F:\Dhellow\CRONA\projeto`. O jogo de verdade roda no Docker (`npm run crona`, `http://localhost:8080`); o banco `crona` fica preso a ele, e a prévia do Claude usa o `crona_visual` (preset `crona-visual` do `.claude/launch.json`).
 
 Na primeira conversa nova:
-1. **Teste a lista vazia das condições.** No cartão do agente (PLAYERS do MAPA), "+ Condição": marcar funciona; tirar a última e Gravar foi corrigido em 05/10 (`podeVazio` na janela de escolha) e ainda não foi visto no navegador.
-2. **Apague a pasta antiga** `...\OneDrive\Área de Trabalho\Dhellow\MEUS PROJETOS\CROMA`, se o Felipe ainda não apagou: é a cópia de antes da troca de nome, onde rodou a conversa de 05/10. Nada de lá falta no F:.
-3. Pergunte o que vem primeiro: o PR da `claude/personagens-3d` para a `main` e o nome do repositório (os dois esperam o login no GitHub), as entregas do Códex na fila, ou a parte do jogador.
+1. ~~Teste a lista vazia das condições.~~ **Visto em 06/10 na prévia:** no cartão do agente (PLAYERS do MAPA), "+ Condição" marca, e tirar a última e Gravar deixa a lista vazia (o Gravar fica liberado com 0 de 40); depois de recarregar, continua vazia.
+2. ~~Apague a pasta antiga `MEUS PROJETOS\CROMA`.~~ **Feito em 06/10:** conferida (o commit `74b39e6`, mais velho que o daqui; nada faltava no F:) e mandada para a Lixeira, a pedido do Felipe.
+3. ~~Pergunte o que vem primeiro.~~ O Felipe escolheu as **ferramentas da mesa** (feitas em 06/10, abaixo). Continuam esperando: o PR para a `main` e o nome do repositório (o login no GitHub), as entregas do Códex e a parte do jogador.
+
+A conversa de 06/10 abriu na pasta `F:\Dhellow\CRONA` (não na `projeto`): o painel do navegador procura o `.claude/launch.json` na pasta da conversa, e por isso existe um `F:\Dhellow\CRONA\.claude\launch.json` com o `crona-visual` apontando para `projeto/scripts/dev/visual.mjs`.
 
 ## O git agora
 
+- **Branch de 06/10:** `claude/ferramentas-mesa`, aberta a partir da `claude/personagens-3d` (que ainda não entrou na `main`): as ferramentas da mesa. Quando a `personagens-3d` entrar, esta vai junto ou logo depois.
 - **Branch:** `claude/personagens-3d`, com tudo de 30/09 a 03/10. Em 03/10 o Felipe mandou abrir o PR e juntar na `main`.
   - Confira no GitHub se o PR entrou.
   - Se entrou, a próxima branch sai da `main` atualizada. Se não, continue nesta branch ou abra a próxima a partir dela. Nunca parta da `main` velha.
@@ -47,7 +50,7 @@ O C: encheu em 05/10 (0 bytes livres, o Docker parou). A pedido do Felipe, tudo 
 | O Blender (personagens 3D) | `F:\Dhellow\CRONA\3d` |
 | O disco do Docker (o jogo, o banco e os volumes) | `F:\Dhellow\CRONA\docker\DockerDesktopWSL` (movido pelo Felipe em 05/10, pela tela do Docker). Guarda também os containers dos outros projetos dele (o C.R.I.S e outros). |
 | As entregas do Códex | Ainda em `C:\Users\felip\Documents\Codex` (2,3 GB): o Códex retoma a interface lá em 06/10. Depois da entrega, mover para `F:\Dhellow\CRONA\arte`. |
-| A pasta antiga `MEUS PROJETOS\CROMA` (cópia de antes da troca de nome) | Apagar quando esta conversa fechar (a conversa roda nela). |
+| A pasta antiga `MEUS PROJETOS\CROMA` (cópia de antes da troca de nome) | Na Lixeira desde 06/10 (conferida antes: nada faltava no F:). |
 
 **O nome:** é CRONA em todo lugar. Em 05/10 saíram a compatibilidade com o nome antigo (as variáveis `CROMA_*`, a migração das chaves `croma.*` do navegador e dos nomes das salas no banco), a pasta `CROMA-3D` e o banco antigo (`croma-postgres` e o volume `croma_croma-dados`; a cópia dele fica em `server/data/backups/croma_2026-10-03_20-00-07.dump`). Falta só o nome do repositório no GitHub (`FelipeSiqueiraDev/CROMA`), que espera o login. O `filmar.py` ainda lê `croma_vistas` nos `.blend` antigos.
 
@@ -106,6 +109,16 @@ O C: encheu em 05/10 (0 bytes livres, o Docker parou). A pedido do Felipe, tudo 
   - **Passagem secreta:** o mestre abre a qualquer hora (antes, a senha era recusada com a sala sem peça); ela se fecha sozinha quando não sobra peça e o mestre sai da cena (`temAlguem` em `roomInstance.ts`). Vale para a geladeira e para o feno do alçapão.
   - **Vista tática:** "Mover" um móvel funciona lá em cima (antes o clique ignorava): o fantasma verde ou vermelho na casa do mouse, com a frente marcada, e o móvel escolhido com o contorno tracejado.
   - **Entrada:** entra com o e-mail ou com o nome da conta; a regra dos 6 caracteres vale só para criar. `scripts/dev/conta.mts` cria uma conta direto no banco (servidor parado). A prévia (`crona_visual`) tem a conta `admin`, de mestre, para o Felipe ver a tela.
+
+## Feito em 06/10: as ferramentas da mesa
+
+Tudo em [`FERRAMENTAS-DA-MESA.md`](FERRAMENTAS-DA-MESA.md). No canto de cima do tabuleiro do MAPA (e Apontar e Desenhar no COMBATE), só o mestre:
+- **Apontar (P, ou Alt + clique):** a mesa pisca no lugar (anéis dourados, feixe de luz).
+- **Desenhar (D):** giz à mão livre, seta ou círculo, em três cores; some em 9 s.
+- **Névoa (N):** cobrir a sala; o pincel mostra e esconde; abre sozinha em volta dos agentes que andam (decisão do Felipe: pincel e automática). Na mesa, o escondido some debaixo de uma fumaça; o mestre vê riscado.
+- **Mapa:** a imagem vira uma cena vista de cima (decisão do Felipe: na vista tática), do tamanho em quadrados de 1,5 m, ligada à cena de agora por uma Entrada, levando os agentes.
+- Testes em `server/test/mesa.test.ts` (9). Visto no navegador, na prévia, com a mesa aberta ao lado.
+- **Falta:** a arte (`PROMPT-FERRAMENTAS-MESA.txt`: os 4 ícones e a textura da névoa); apagar o mapa improvisado pela tela; ver no tablet de verdade. Na prévia (`crona_visual`) ficou a cena de teste "Sede · armazem do porto".
 
 ## Pela metade
 
@@ -175,11 +188,6 @@ O C: encheu em 05/10 (0 bytes livres, o Docker parou). A pedido do Felipe, tudo 
 
 ## A fazer (não depende de arte)
 
-- **Ferramentas do mestre para mostrar na mesa** (ideias vindas do Owlbear Rodeo, 04/10; o Felipe gostou). O Owlbear é mesa online; o CRONA é presencial, então só vale o que ajuda o mestre a mostrar a cena no tablet:
-  - **Ponto de atenção:** o mestre toca num lugar do mapa e a mesa pisca ali ("a porta é essa aqui").
-  - **Névoa revelada aos poucos:** a sala começa no escuro e o mestre vai mostrando o que os personagens veem ou exploram (hoje a névoa é do cômodo inteiro).
-  - **Desenho rápido por cima do mapa:** seta, círculo ou rota, que a mesa mostra e some sozinho depois de uns segundos.
-  - **Mapa improvisado:** subir uma imagem como cena, para o lugar que ainda não foi montado em cômodos (os jogadores foram para onde ninguém esperava).
 - **A parte do jogador** (ainda não começou): o celular com a ficha dele (já existe o link `?ficha=`), o inventário, os rituais e as condições; a jogada continua na mesa, com dados de verdade. Planejar antes de construir (o que ele vê, o que pode fazer e o que fica só com o mestre).
 
 - **Aba INTERLÚDIO** do MAPA.
@@ -203,6 +211,7 @@ Todos os pedidos estão na pasta da arte do GPT. O Felipe cola no Códex: *"Leia
 | `PROMPT-ICONES-ITENS.txt` | — | **Completo (05/10): 244 ícones no jogo**, as 5 partes (armas; proteções, munição e explosivos; equipamentos; paranormais e amaldiçoados; itens do cenário, por nome e por tipo). |
 | `PROMPT-INTERFACE-GAME.txt` | `interface-teste.zip` primeiro; depois `interface-menus`, `-fichas`, `-combate`, `-modal-itens`, `-celular` e `retratos-agentes` | **O teste chegou em 05/10** (`interface-teste-revisado.zip`, na raiz da pasta da arte): 36 peças em Sangue e amostras dos outros temas, com uma prévia (só os PNGs entram; o CSS e o JS do Códex, não). **Decidido em 05/10: a interface tem tema por elemento, escolhido na criação do personagem** (Tepes Sangue, Catarina Morte, Alosi Conhecimento, Cora Energia; Medo não tem), mais o tema **Ordem**, neutro e padrão: telas gerais do mestre, a mesa, NPCs, ameaças e agente sem elemento escolhido. As peças que mudam com o tema vêm em `temas/<ordem|sangue|morte|conhecimento|energia>/interface/...`. No código falta: um campo `tema` no personagem (não é a `afinidade` do NEX 50%, que vem depois), a escolha na criação e na ficha, e a interface trocando as peças pelo tema do agente aberto. **Estilo aprovado em 05/10:** o Códex segue com as Partes 1 a 6 de uma vez, nos 5 temas (o Energia mais contido); o pedido diz o que muda e o que não muda com o tema. |
 | `PROMPT-PRISAO-CELAS.txt` | `prisao-celas.zip` | Nada entregue. |
+| `PROMPT-FERRAMENTAS-MESA.txt` (06/10) | `ferramentas-mesa-teste.zip` (o ícone de Apontar) primeiro; depois `ferramentas-mesa-icones.zip` e `ferramentas-mesa-nevoa.zip` | Novo. Os 4 ícones dos botões e a textura da névoa (que repete). |
 | `PROMPT-VISTA-DE-CIMA.txt` | Partes 2 a 12, um `vista-de-cima-<sala>.zip` por sala | **No jogo (05/10):** o Bar e as outras 10 salas (64 móveis, as 10 paredes por piso e os estados abertos do baú e do armário de munição), pelo `cima.py`. Falta só a Prisão (Parte 11), que vem com o lote da prisão. |
 | `PROMPT-VARIACOES-E-ARSENAL.txt` | `variacoes-e-arsenal.zip` | **No jogo (05/10):** as 30 variações viraram `<id>~b`/`~c` em 13 móveis (gun_table, weapon_rack, locker_ammo, bar_shelf, plant, hospital_bed, lab_bench, cabinet_file, painting, tally_marks, table_work, board_investigation, console; cada peça sorteia o seu) e o teclado foi para `interface/teclado-geladeira/`. |
 | `LISTA-REFAZER.txt` | `bau-militar-aberto.png` | **No jogo (05/10):** as 4 vistas abertas de verdade (saiu o `espelhar_estado`). |
@@ -223,6 +232,7 @@ Todos os pedidos estão na pasta da arte do GPT. O Felipe cola no Códex: *"Leia
 | `icones-*.zip` | `python scripts/icones.py <zip>` |
 | `interface-*.zip` | Ligar os ganchos de cada peça (só o alfinete e o teclado da geladeira já têm). |
 | `retratos-agentes.zip` | Entram sozinhos. |
+| `ferramentas-mesa-*.zip` | Entram sozinhos: os ícones em `client/public/arte/icones/mesa-*.png`, a névoa em `client/public/arte/texturas/nevoa-mesa.png`. Conferir a emenda da névoa (2×2) e a leitura dos ícones a 20 px. |
 | `prisao-celas.zip` | Fichas no `moveis-prisao.json`: `cell_front`, `cell_front~b`/`~c` e o `cell_door_steel` com estados. A parte de cima vai pelo `cima.py`. |
 | `vista-de-cima-<sala>.zip` | `python scripts/3d/cima.py <pasta>` |
 | `variacoes-e-arsenal.zip` | As variações como `"def": "<id>~b"`; o teclado em `interface/teclado-geladeira/`. |

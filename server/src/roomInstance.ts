@@ -35,6 +35,15 @@ import {
   validateHeightmap,
   sanitizeVitals,
   VITAL_KEYS,
+  casasEmVolta,
+  MAX_CASAS_PINCEL,
+  NEVOA_RAIO_MAX,
+  NEVOA_RAIO_PADRAO,
+  nevoaNova,
+  nevoaServe,
+  pintarNevoa,
+  sanitizeMarca,
+  type NevoaCena,
   type AvatarLook,
   type Door,
   type FloorItem,
@@ -124,6 +133,8 @@ export interface HotelApi {
   pegarItem(roomId: number, nome: string, loot: Loot, quem: string, deOnde: string): boolean | string;
   /** Armado de uma peça com ficha: empunha ou guarda a arma na mochila. true = a ficha cuidou */
   armarPelaPeca(personagem: number | null | undefined, armado: boolean, c: Client): boolean;
+  /** a peça é de um agente (o personagem tem ficha): a névoa abre em volta dela */
+  ehAgente(personagem: number | null | undefined): boolean;
 }
 
 interface RoomUser {
@@ -309,6 +320,7 @@ export class RoomInstance {
   putToken(t: TokenData, fromRoomId: number | null) {
     if (fromRoomId) this.openFromInside(fromRoomId);
     const u = this.spawnToken(t, fromRoomId);
+    this.nevoaAutomatica([u]);
     this.broadcast({ t: 'userJoin', user: this.userInfo(u) });
     this.saveTokens();
   }
@@ -431,6 +443,8 @@ export class RoomInstance {
       particles: this.data.particles,
       particleLevel: this.data.particleLevel,
       tatico: this.data.tatico,
+      nevoa: this.nevoaAtual() ?? undefined,
+      mapa: this.data.mapa,
       canBuild: this.canBuild(c),
       isOwner: this.isOwner(c),
     };
@@ -598,6 +612,8 @@ export class RoomInstance {
         updates.push(this.status(u));
       }
     }
+    // a névoa abre antes de a peça chegar: a mesa vê o agente entrando na casa nova
+    if (updates.length) this.nevoaAutomatica(updates.map((s) => this.users.get(s.id)!).filter(Boolean));
     if (updates.length) {
       this.broadcast({ t: 'status', updates });
       this.broadcast({ t: 'tokens', sceneId: this.data.id, tokens: updates.map((s) => this.tokenState(this.users.get(s.id)!)) });
@@ -695,6 +711,12 @@ export class RoomInstance {
         break;
       case 'roomFx':
         this.fx(u, m);
+        break;
+      case 'marca':
+        this.marca(u, m.marca);
+        break;
+      case 'nevoa':
+        this.nevoa(u, m);
         break;
       case 'setLink':
         if (isInt(m.id)) this.setLink(u, m.id, m.roomId);
@@ -1408,7 +1430,103 @@ export class RoomInstance {
       else delete this.data.tatico;
     }
     this.hotel.save();
+    this.enviarInfo();
+  }
+
+  /** O cômodo mudou (clima, vista, névoa): cada um que olha recebe o dele. */
+  private enviarInfo() {
     for (const o of this.viewers.values()) o.send({ t: 'roomUpdate', room: this.info(o) });
+  }
+
+  /** Ponto de atenção ou desenho rápido do mestre: vai para todos que olham a cena (a mesa também) e não fica guardado. */
+  private marca(u: RoomUser, raw: unknown) {
+    const c = u.client;
+    if (!this.isOwner(c)) return this.err(c, 'Só o mestre marca o tabuleiro.');
+    const marca = sanitizeMarca(raw, this.map.width, this.map.height);
+    if (marca) this.broadcast({ t: 'marca', marca });
+  }
+
+  /** A névoa desta planta (a de outra planta, de antes de o mestre mexer nela, começa de novo). */
+  private nevoaAtual(): NevoaCena | null {
+    const n = this.data.nevoa;
+    if (!n) return null;
+    const { auto, raio } = n;
+    if (nevoaServe(n, this.map.width, this.map.height)) return n;
+    this.data.nevoa = nevoaNova(this.map.width, this.map.height, !!auto);
+    if (raio) this.data.nevoa.raio = raio;
+    return this.data.nevoa;
+  }
+
+  /** A névoa revelada aos poucos: ligar, desligar, mostrar ou esconder tudo, o pincel e a abertura automática. */
+  private nevoa(u: RoomUser, m: Record<string, unknown>) {
+    const c = u.client;
+    if (!this.isOwner(c)) return this.err(c, 'Só o mestre mexe na névoa.');
+    const w = this.map.width;
+    const h = this.map.height;
+    const atual = this.nevoaAtual();
+    let nova: NevoaCena | null = atual;
+    switch (m.acao) {
+      case 'ligar':
+        // a cena toda coberta, menos em volta dos agentes que já estão nela
+        nova = nevoaNova(w, h, true);
+        nova = this.abrirEmVoltaDosAgentes(nova);
+        break;
+      case 'desligar':
+        nova = null;
+        break;
+      case 'tudo':
+      case 'nada':
+        if (!atual) return;
+        nova = { ...atual, vista: (m.acao === 'tudo' ? '1' : '0').repeat(w * h) };
+        // com a abertura automática, a volta dos agentes continua à vista
+        if (m.acao === 'nada' && nova.auto) nova = this.abrirEmVoltaDosAgentes(nova);
+        break;
+      case 'pintar': {
+        if (!atual || !Array.isArray(m.casas) || typeof m.vista !== 'boolean') return;
+        const casas = (m.casas as unknown[]).slice(0, MAX_CASAS_PINCEL).flatMap((p) => (Array.isArray(p) && isInt(p[0]) && isInt(p[1]) ? [{ x: p[0], y: p[1] }] : []));
+        nova = pintarNevoa(atual, casas, m.vista);
+        break;
+      }
+      case 'auto': {
+        if (!atual || typeof m.auto !== 'boolean') return;
+        nova = { ...atual };
+        if (m.auto) nova.auto = true;
+        else delete nova.auto;
+        if (isInt(m.raio)) nova.raio = Math.max(1, Math.min(NEVOA_RAIO_MAX, m.raio));
+        if (nova.auto) nova = this.abrirEmVoltaDosAgentes(nova);
+        break;
+      }
+      default:
+        return;
+    }
+    if (nova === atual) return;
+    if (nova) this.data.nevoa = nova;
+    else delete this.data.nevoa;
+    this.hotel.save();
+    this.enviarInfo();
+  }
+
+  /** A névoa aberta em volta de cada agente da cena (as peças com ficha), no raio dela. */
+  private abrirEmVoltaDosAgentes(n: NevoaCena, so?: RoomUser[]): NevoaCena {
+    const r = n.raio ?? NEVOA_RAIO_PADRAO;
+    let out = n;
+    for (const u of so ?? this.users.values()) {
+      if (!this.hotel.ehAgente(u.client.look?.charId)) continue;
+      out = pintarNevoa(out, casasEmVolta(u.x, u.y, r), true);
+      if (u.next) out = pintarNevoa(out, casasEmVolta(u.next.x, u.next.y, r), true);
+    }
+    return out;
+  }
+
+  /** Com a abertura automática ligada: a névoa abre em volta dos agentes que andaram. */
+  private nevoaAutomatica(andaram: RoomUser[]) {
+    const n = this.nevoaAtual();
+    if (!n?.auto || !andaram.length) return;
+    const nova = this.abrirEmVoltaDosAgentes(n, andaram);
+    if (nova === n) return;
+    this.data.nevoa = nova;
+    this.hotel.save();
+    this.enviarInfo();
   }
 
   private setLink(u: RoomUser, id: number, roomId: unknown) {

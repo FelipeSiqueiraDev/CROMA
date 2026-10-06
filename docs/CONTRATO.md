@@ -141,6 +141,18 @@ Só para referência: o `SessionStore` já cuida disso.
 - `PartyMember.vitals` e `Character.vitals` trazem PV, PE e SAN; as condições saem de `vitalConditions()` (`shared/src/vitals.ts`), com os limites do livro de regras.
 - `CharacterDef.portraits` lista os retratos por estado que o servidor achou na pasta do personagem.
 
+## Ferramentas da mesa (06/10/2026)
+
+As do [`FERRAMENTAS-DA-MESA.md`](FERRAMENTAS-DA-MESA.md). Tipos e contas em `shared/src/mesa.ts`; só o mestre manda.
+
+| Direção | Mensagem | Para quê |
+|---|---|---|
+| cliente → servidor | `{ t: 'marca', marca }` | Ponto de atenção (`{ tipo: 'ponto', x, y }`), desenho (`{ tipo: 'traco', forma, cor, pts }`) ou `{ tipo: 'apagar' }`, em casas com fração. Conferida por `sanitizeMarca` e não guardada |
+| servidor → cliente | `{ t: 'marca', marca }` | A mesma marca, para todos que olham a cena (a mesa também) |
+| cliente → servidor | `{ t: 'nevoa', acao: 'ligar' \| 'desligar' \| 'tudo' \| 'nada' }`, `{ t: 'nevoa', acao: 'pintar', casas, vista }`, `{ t: 'nevoa', acao: 'auto', auto, raio? }` | A névoa revelada aos poucos da cena atual |
+| servidor → cliente | `RoomInfo.nevoa` (`roomUpdate`) | `{ vista, largura, auto?, raio? }`: uma letra por casa, `'1'` = a mesa vê. Sem ela, a mesa vê tudo |
+| cliente → servidor | `POST /api/mapas?token=` (a imagem) e depois `{ t: 'mapaImprovisado', nome, url, largura, altura, levar? }` | O mapa improvisado: a cena ao ar livre com a imagem no chão (`RoomInfo.mapa`) |
+
 ## Fichas (29/09/2026)
 
 A ficha de cada agente (`FichaSalva`, em `shared/src/fichas.ts`) guarda só as escolhas (o motor de regras calcula o resto) e o estado em jogo (PV, PE e SAN atuais, condições, anotações, companheiro).

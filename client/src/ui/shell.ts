@@ -52,6 +52,7 @@ import { AbaItens } from './itens';
 import { infoItem, romano, textoRef } from './fichaRegras';
 import { doCatalogoPeloNome, listaDoCatalogo } from './catalogoItens';
 import { TecladoSenha } from './teclado';
+import { FerramentasMesa } from './ferramentasMesa';
 import { TopBar } from './topbar';
 import { escolher } from './fichaModal';
 import { existeArte, ic } from './icons';
@@ -258,6 +259,8 @@ export class Shell {
   readonly board: HTMLElement;
   /** os botões da câmera do tabuleiro (isométrica ou tática) */
   private vistaEl: HTMLElement;
+  /** Apontar, Desenhar e Névoa: o que o mestre mostra na mesa */
+  readonly ferramentas: FerramentasMesa;
   private app: App;
   private campaign: CampaignState | null = null;
   private tokenWin: TokenWin;
@@ -487,7 +490,10 @@ export class Shell {
       h('button', { class: 'bv', type: 'button', 'data-tatico': 'nao', title: 'Vista isométrica (T)', onclick: () => this.trocarVista(false) }, ic('isometrico'), h('span', null, 'ISO')),
       h('button', { class: 'bv', type: 'button', 'data-tatico': 'sim', title: 'Vista tática: a sala de cima, como mapa de batalha (T)', onclick: () => this.trocarVista(true) }, ic('tatico'), h('span', null, 'TÁTICA')),
     );
-    this.board = h('main', { class: 'board' }, moldura, this.placeBar, zoom, centro, this.vistaEl, this.tabOverlay, this.teclado.el);
+    this.ferramentas = new FerramentasMesa(app);
+    this.combate.aoFerramentaMesa = (tipo) => this.ferramentas.alternar(tipo, false);
+    this.ferramentas.aoMudar = (tipo) => this.combate.marcarFerramentaMesa(tipo);
+    this.board = h('main', { class: 'board' }, moldura, this.placeBar, zoom, centro, this.vistaEl, this.ferramentas.el, this.tabOverlay, this.teclado.el);
 
     // ================= direita =================
     const backboard = h('div', { class: 'backboard', 'aria-hidden': 'true' });
@@ -652,6 +658,7 @@ export class Shell {
 
   private onRoom() {
     this.marcarVista();
+    this.ferramentas.atualizar();
     const id = this.app.state.room?.id ?? null;
     if (id !== this.lastRoom) this.planFloor = null;
     if (id !== this.lastRoom && this.lastRoom !== null) this.sceneFade();

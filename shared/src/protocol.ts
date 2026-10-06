@@ -5,6 +5,7 @@ import type { FloorItem, FloorStyle, Hint, ParticleKind, WallItem } from './room
 import type { CampaignState, LootKind } from './rpg';
 import type { PapelConta, Role, Session, SessionAction, Token } from './session';
 import type { FichaSalva } from './fichas';
+import type { AcaoNevoa, MarcaMesa, NevoaCena } from './mesa';
 import type { TipoItemCatalogo } from './regras/ficha';
 import type { VitalKey } from './vitals';
 import type { Door } from './walls';
@@ -302,6 +303,10 @@ export interface RoomInfo {
   particleLevel?: number;
   /** vista tática: a câmera do tabuleiro em cima, como um mapa de batalha (o mestre liga; a mesa acompanha) */
   tatico?: boolean;
+  /** a névoa revelada aos poucos (docs/FERRAMENTAS-DA-MESA.md): sem ela, a mesa vê a cena inteira */
+  nevoa?: NevoaCena;
+  /** mapa improvisado: a imagem que o mestre subiu, deitada no chão inteiro da cena */
+  mapa?: string;
   /** o cliente atual pode construir/editar */
   canBuild: boolean;
   /** o cliente atual é o dono (mestre) */
@@ -387,6 +392,15 @@ export type ClientMsg =
   /** ficha rápida de uma ameaça (peça), preenchida pelo mestre; null apaga */
   | { t: 'ameaca'; tokenId: number; ficha: FichaAmeaca | null }
   | { t: 'roomFx'; lightMode?: LightMode; fog?: number; darkness?: number; particleLevel?: number; tatico?: boolean }
+  /** ponto de atenção ou desenho rápido para a mesa (só o mestre; some sozinho) */
+  | { t: 'marca'; marca: MarcaMesa }
+  /** a névoa revelada aos poucos da cena (só o mestre) */
+  | ({ t: 'nevoa' } & AcaoNevoa)
+  /**
+   * mapa improvisado (só o mestre): a imagem enviada (`/api/mapas`) vira uma cena ao ar livre de
+   * largura × altura casas, ligada à cena atual por uma Entrada; `levar` leva os agentes da cena atual
+   */
+  | { t: 'mapaImprovisado'; nome: string; url: string; largura: number; altura: number; levar?: boolean }
   | { t: 'setLink'; id: number; roomId: number | null }
   | { t: 'sendTo'; userId: number | 'all'; roomId: number }
   | { t: 'tokenAdd'; name: string; look: AvatarLook; color?: string; capacity?: number }
@@ -436,6 +450,8 @@ export type ServerMsg =
   /** conteúdo de outra cena da campanha (miniatura), sem entrar nela */
   | { t: 'peek'; room: RoomInfo; items: FloorItem[]; wallItems: WallItem[] }
   | { t: 'roomUpdate'; room: RoomInfo }
+  /** ponto de atenção ou desenho do mestre, para todos que olham a cena */
+  | { t: 'marca'; marca: MarcaMesa }
   | { t: 'userJoin'; user: UserInfo }
   | { t: 'userLeave'; id: number }
   /** a peça atravessou uma passagem para outra cena (quem a comanda vai junto) */

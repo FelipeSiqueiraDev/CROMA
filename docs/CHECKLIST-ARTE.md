@@ -58,6 +58,7 @@ Pasta `interface/`:
 - [ ] **AÇÕES**: `acao-examinar.png` (lupa), `acao-abrir.png` (caixa aberta), `acao-usar.png` (mão), `acao-entregar.png` (setas trocando)
 - [ ] **Cartões da sala e dos players**: `local.png` (marcador de lugar), `andar.png` (camadas), `mais-opcoes.png` (os três pontos)
 - [ ] **Lista "Contém" do objeto**: `conteudo-documento.png`, `conteudo-email.png`, `conteudo-banco-de-dados.png`
+- [ ] **Ferramentas da mesa** (06/10, `PROMPT-FERRAMENTAS-MESA.txt`, [FERRAMENTAS-DA-MESA.md](FERRAMENTAS-DA-MESA.md)): `icones/mesa-apontar.png`, `mesa-desenhar.png`, `mesa-nevoa.png`, `mesa-mapa.png`, 128×128 · entram sozinhos; e a fumaça da névoa, `texturas/nevoa-mesa.png`, 512×512, que repete · entra sozinha
 
 ### Aba ITENS (a mochila de cada agente, referência `docs/ref-itens.jpg`)
 

@@ -42,6 +42,10 @@ import {
   type AcaoMochila,
   type Loot,
   type PapelConta,
+  MAPA_AREA_MAX,
+  MAPA_MAX,
+  MAPA_MIN,
+  URL_MAPA_RE,
 } from '@crona/shared';
 import { confereSenha, contaDaSessao, EMAIL_RE, fecharSessao, hashSenha, novaSessao, SENHA_MIN, type Conta } from './contas';
 import { loadDb, saveDbNow, scheduleSave, type CampaignData, type Database, type RoomData, type UserData } from './db';
@@ -85,6 +89,9 @@ const GM_ONLY = new Set([
   'setHint',
   'roomSettings',
   'roomFx',
+  'marca',
+  'nevoa',
+  'mapaImprovisado',
   'setLink',
   'unlock',
   'relock',
@@ -468,6 +475,11 @@ export class Hotel implements HotelApi {
     this.log(roomId, 'give', quem ? `${quem} entregou ${l.name} para ${nome}.` : `${nome} pegou ${l.name} (${deOnde}).`);
     this.fichaMudou(f);
     return true;
+  }
+
+  /** A peça é de um agente: o personagem tem ficha (a névoa abre em volta dela). */
+  ehAgente(personagem: number | null | undefined): boolean {
+    return !!this.fichaDoPersonagem(personagem);
   }
 
   /** Armado na peça com ficha: empunha a primeira arma da mochila (trocando o que estiver na mão) ou guarda as armas. */
@@ -1333,6 +1345,9 @@ export class Hotel implements HotelApi {
       case 'createRoom':
         this.createRoom(c, m);
         return;
+      case 'mapaImprovisado':
+        this.mapaImprovisado(c, m);
+        return;
       case 'join': {
         const room = typeof m.roomId === 'number' ? this.rooms.get(m.roomId) : undefined;
         if (!room) return c.send({ t: 'error', msg: 'Quarto não encontrado.' });
@@ -1524,6 +1539,49 @@ export class Hotel implements HotelApi {
     this.save();
     c.send({ t: 'roomCreated', id: data.id });
     this.roomChanged();
+  }
+
+  /**
+   * Mapa improvisado (docs/FERRAMENTAS-DA-MESA.md): a imagem que o mestre subiu vira uma cena ao ar
+   * livre, do tamanho que ele disse, com a imagem no chão e a vista tática ligada. Uma Entrada no meio
+   * da borda de baixo liga a cena nova à de agora (as duas ficam na mesma campanha, e quem pisa nela
+   * volta). Com `levar`, os agentes da cena de agora vão junto, e o mestre (e a mesa) também.
+   */
+  private mapaImprovisado(c: Client, m: Record<string, unknown>) {
+    const de = c.room;
+    if (!de) return c.send({ t: 'error', msg: 'Abra uma cena antes de criar o mapa.' });
+    const url = typeof m.url === 'string' && URL_MAPA_RE.test(m.url) ? m.url : null;
+    if (!url) return c.send({ t: 'error', msg: 'Envie a imagem do mapa antes.' });
+    const w = isInt(m.largura) ? m.largura : 0;
+    const h = isInt(m.altura) ? m.altura : 0;
+    if (w < MAPA_MIN || h < MAPA_MIN || w > MAPA_MAX || h > MAPA_MAX || w * h > MAPA_AREA_MAX) return c.send({ t: 'error', msg: 'Tamanho do mapa inválido.' });
+    const nome = (typeof m.nome === 'string' ? m.nome.replace(/[\u0000-\u001f·]/g, '').trim().slice(0, 30) : '') || 'Mapa improvisado';
+    const lugar = de.data.name.includes('·') ? de.data.name.split('·')[0].trim() : '';
+    const porta = { x: Math.floor(w / 2), y: h - 1, dir: 0 };
+    const data: RoomData = {
+      id: this.db.nextRoomId++,
+      name: lugar ? `${lugar} · ${nome}` : nome,
+      description: 'Mapa improvisado: a imagem que o mestre subiu, vista de cima.',
+      owner: de.data.owner,
+      heightmap: Array.from({ length: h }, () => '0'.repeat(w)).join('\n'),
+      door: porta,
+      items: [{ id: this.nextItemId(), defId: 'entrada', x: porta.x, y: porta.y, z: 0, rot: 0, state: 0, link: de.data.id }],
+      wallItems: [],
+      publicBuild: false,
+      darkness: 0,
+      aberto: true,
+      mapa: url,
+      tatico: true,
+      ...(de.data.floor ? { floor: de.data.floor } : {}),
+    };
+    this.db.rooms.push(data);
+    const nova = new RoomInstance(data, this);
+    this.rooms.set(data.id, nova);
+    this.log(de.data.id, 'scene', `Mapa improvisado: ${nome}.`);
+    if (m.levar !== false) for (const t of de.tokenList()) if (this.ehAgente(t.look?.charId)) this.moveToken(de, t.id, data.id);
+    this.save();
+    this.roomChanged();
+    this.enter(c, nova);
   }
 
   // ---------- personagens ----------

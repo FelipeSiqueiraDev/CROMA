@@ -247,6 +247,10 @@ export interface OpcoesMesa {
   celas?: Map<string, number> | null;
   /** o raio da ficha das peças, em casas (o padrão, 0,5: a ficha tem a largura de uma casa, 0,75 m) */
   ficha?: number;
+  /** o móvel aparece? (na mesa, o que está na névoa não aparece) */
+  mostrarItem?: (it: FloorItem) => boolean;
+  /** mapa improvisado: a imagem no chão inteiro da sala, no lugar do piso */
+  imagemChao?: CanvasImageSource | null;
 }
 
 /** O mapa tático parado, no enquadre e. */
@@ -260,7 +264,7 @@ export function desenharMesa(ctx: CanvasRenderingContext2D, map: RoomMap, piso: 
   const itens = map
     .allItems()
     .map((it) => ({ it, def: getFurni(it.defId) }))
-    .filter((m): m is { it: FloorItem; def: FurniDef } => !!m.def && !(m.def.hidden && m.it.state !== 1));
+    .filter((m): m is { it: FloorItem; def: FurniDef } => !!m.def && !(m.def.hidden && m.it.state !== 1) && (!opcoes.mostrarItem || opcoes.mostrarItem(m.it)));
   ctx.save();
   if (opcoes.fundo) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -276,8 +280,11 @@ export function desenharMesa(ctx: CanvasRenderingContext2D, map: RoomMap, piso: 
   if (padrao) padrao.setTransform(new DOMMatrix().scale(tex!.casas / tex!.img.naturalWidth));
   ctx.fillStyle = padrao ?? '#4a4038';
   ctx.fill(pisoPath);
-  ctx.fillStyle = 'rgba(14, 11, 8, 0.32)';
-  ctx.fill(pisoPath);
+  if (opcoes.imagemChao) ctx.drawImage(opcoes.imagemChao, 0, 0, map.width, map.height);
+  else {
+    ctx.fillStyle = 'rgba(14, 11, 8, 0.32)';
+    ctx.fill(pisoPath);
+  }
   for (const { it, def } of itens) if (def.flat) desenharTapete(ctx, it, def);
   ctx.save();
   ctx.clip(pisoPath);

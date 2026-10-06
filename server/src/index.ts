@@ -72,10 +72,11 @@ function imageExt(buf: Buffer): '.png' | '.jpg' | '.webp' | null {
   return null;
 }
 
-function handleUpload(req: http.IncomingMessage, res: http.ServerResponse, url: URL) {
+/** Imagem enviada pelo mestre: a folha de um personagem (vira personagem) ou a de um mapa improvisado (devolve a url). */
+function handleUpload(req: http.IncomingMessage, res: http.ServerResponse, url: URL, mapa = false) {
   const client = hotel.clientByToken(url.searchParams.get('token') ?? '');
   if (!client?.name) return sendJson(res, 401, { error: 'Entre no hotel antes de enviar.' });
-  if (client.role !== 'gm') return sendJson(res, 403, { error: 'Só o mestre envia sprites.' });
+  if (client.role !== 'gm') return sendJson(res, 403, { error: mapa ? 'Só o mestre envia mapas.' : 'Só o mestre envia sprites.' });
   const chunks: Buffer[] = [];
   let size = 0;
   let aborted = false;
@@ -98,6 +99,7 @@ function handleUpload(req: http.IncomingMessage, res: http.ServerResponse, url: 
       const hash = crypto.createHash('sha1').update(buf).digest('hex').slice(0, 20);
       fs.mkdirSync(UPLOAD_DIR, { recursive: true });
       fs.writeFileSync(path.join(UPLOAD_DIR, `${hash}${ext}`), buf);
+      if (mapa) return sendJson(res, 200, { url: `/uploads/${hash}${ext}` });
       const name = (url.searchParams.get('name') ?? '').replace(/[\u0000-\u001f]/g, '').trim();
       const def = hotel.addCharacter(client, `/uploads/${hash}${ext}`, name);
       sendJson(res, 200, { id: def.id });
@@ -151,6 +153,7 @@ const server = http.createServer(atender);
 function route(req: http.IncomingMessage, res: http.ServerResponse) {
   const url = new URL(req.url ?? '/', 'http://localhost');
   if (url.pathname === '/api/characters' && req.method === 'POST') return handleUpload(req, res, url);
+  if (url.pathname === '/api/mapas' && req.method === 'POST') return handleUpload(req, res, url, true);
   if (url.pathname.startsWith('/uploads/')) {
     const file = path.join(UPLOAD_DIR, path.basename(url.pathname));
     return serveFile(res, file, true);

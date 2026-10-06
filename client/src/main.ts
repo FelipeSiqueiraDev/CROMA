@@ -411,6 +411,9 @@ net.onMessage = (m: ServerMsg) => {
       view.updateInfo(m.room);
       app.emit('room');
       break;
+    case 'marca':
+      view.receberMarca(m.marca);
+      break;
     case 'userJoin':
       view.addUser(m.user);
       break;
@@ -515,6 +518,7 @@ window.addEventListener('keydown', (e) => {
   const v = app.view;
   if (e.key === 'Escape') {
     if (v.placement) endPlacement();
+    else if (shell.ferramentas.desligar()) return;
     else if (!closeTopWindow()) v.select(null);
     return;
   }
@@ -530,6 +534,13 @@ window.addEventListener('keydown', (e) => {
   if ((e.key === 'q' || e.key === 'Q' || e.key === 'e' || e.key === 'E') && !v.placement && !e.ctrlKey && !e.metaKey && !e.altKey) {
     const target = v.selection?.kind === 'user' ? v.selection.id : v.myId;
     if (target) shell.turnToken(target, e.key.toLowerCase() === 'e');
+    return;
+  }
+  // P, D e N: as ferramentas da mesa (apontar, desenhar, névoa)
+  const ferr = { p: 'ponto', d: 'traco', n: 'nevoa' } as const;
+  const k = e.key.toLowerCase();
+  if (k in ferr && !v.placement && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    shell.ferramentas.alternar(ferr[k as keyof typeof ferr]);
     return;
   }
   // T troca a câmera do tabuleiro: isométrica ou tática (a sala de cima)
