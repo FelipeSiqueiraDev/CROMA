@@ -284,7 +284,7 @@ export function abrirRequisicao(r: Requisicao) {
       const m = o.municao;
       if (m && !m.tem) {
         const om = opcoes.find((x) => x.tipo === 'equipamento' && x.id === m.id);
-        if (om && (om.ok || r.mestre)) acoes.push(h('button', { class: 'fx-bt rq-pedir-mun', type: 'button', onclick: () => (adicionar(o, 1, false), adicionar(om, 1)) }, ic('municao'), h('span', null, `Com ${m.nome}`)));
+        if (om && (om.ok || r.mestre)) acoes.push(h('button', { class: 'fx-bt rq-pedir-mun', type: 'button', onclick: () => (adicionar(o, 1, false), adicionar(om, 1)) }, h('span', { class: 'rq-mun-arte' }, arteDoItem({ id: om.id, tipo: om.tipo }, 'municao')), h('span', null, `Com ${m.nome}`)));
       }
     } else acoes.push(h('p', { class: 'rq-travado' }, ic('cadeado'), 'Fora do que a sua patente pode pedir. Fale com o mestre.'));
     const linhaNum = (rot: string, val: string) => h('div', null, h('dt', null, rot), h('dd', null, val));
@@ -299,7 +299,8 @@ export function abrirRequisicao(r: Requisicao) {
       if (p) nums.push(linhaNum('Defesa', `+${p.defesa}`), ...(p.resistencia ? [linhaNum('RD', String(p.resistencia.valor))] : []));
     }
     const partes: (Node | null)[] = [
-      h('button', { class: 'rq-det-voltar', type: 'button', 'aria-label': 'Voltar para a lista', onclick: () => caixa.classList.remove('com-det') }, h('i')),
+      h('button', { class: 'rq-det-voltar', type: 'button', 'aria-label': 'Voltar para a lista', onclick: () => fecharDetalhe() }, h('i')),
+      h('button', { class: 'rq-det-fechar', type: 'button', title: 'Fechar', 'aria-label': 'Fechar o item', onclick: () => fecharDetalhe() }, ic('fechar')),
       h('div', { class: 'rq-det-arte' }, h('span', { class: `rq-cat c${o.categoria}` }, o.categoria === 0 ? '0' : romano(o.categoria)), arteDoItem({ id: o.id, tipo: o.tipo }, inf.icone)),
       h('h4', { class: 'rq-det-nome' }, o.nome),
       h('p', { class: 'rq-det-tipo' }, inf.tipo, ' · ', textoRef(o.ref)),
@@ -329,6 +330,20 @@ export function abrirRequisicao(r: Requisicao) {
     const el = [...grade.querySelectorAll<HTMLElement>('.rq-card')].find((c) => c.dataset.chave === `${o.tipo}:${o.id}`);
     if (el && (sel?.tipo !== o.tipo || sel?.id !== o.id)) selecionar(o, el);
   };
+
+  /** Fecha o item que subiu (no celular): o X, o puxador, ou um toque fora dele. */
+  const fecharDetalhe = () => {
+    if (!caixa.classList.contains('com-det')) return;
+    sfx.paper();
+    caixa.classList.remove('com-det');
+    sel = null;
+    for (const c of grade.querySelectorAll('.rq-card.on')) (c.classList.remove('on'), c.setAttribute('aria-pressed', 'false'));
+    desenharTopo();
+    desenharDetalhe();
+  };
+  lista.addEventListener('pointerdown', (e) => {
+    if (caixa.classList.contains('com-det') && !(e.target as HTMLElement).closest('.rq-card')) fecharDetalhe();
+  });
 
   const selecionar = (o: regras.OpcaoItem, el: HTMLElement) => {
     sfx.click();
