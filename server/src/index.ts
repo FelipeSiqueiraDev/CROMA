@@ -170,7 +170,8 @@ function listarArte(): string[] {
     for (const it of itens) {
       if (it.name.startsWith('.')) continue;
       if (it.isDirectory()) andar(path.join(dir, it.name), `${rel}/${it.name}`, fundo + 1);
-      else if (/\.(png|webp|jpe?g|svg)$/i.test(it.name)) lista.push(`/arte${rel}/${it.name}`);
+      // a cópia leve (.png.webp) não entra na lista: o servidor troca sozinho na entrega
+      else if (/\.(png|webp|jpe?g|svg)$/i.test(it.name) && !/\.png\.webp$/i.test(it.name)) lista.push(`/arte${rel}/${it.name}`);
     }
   };
   andar(raiz, '', 0);

@@ -132,6 +132,13 @@ Tudo em [`FERRAMENTAS-DA-MESA.md`](FERRAMENTAS-DA-MESA.md). No canto de cima do 
 - Testes em `server/test/requisicao.test.ts` (8).
 - **Feito em 06/10 (era o próximo):** o MAPA reorganizado pela `docs/ref-mapa-3.webp` (bloco "DISPOSIÇÃO DE 06/10" no fim do `mapa.css`; a plaquinha e a faixa de estado em `renderEstado`, `shell.ts`). O COMBATE já seguia a `ref-combate-2` (as seis caixas, os estados na iniciativa, os chips de ação). Os menus e as janelas antigas viraram janelas de papel no meio, com a tela desfocada (`note.ts`, `Win` em `dom.ts`). O plano original, para referência: reorganizar MAPA e COMBATE pelas referências novas (`docs/ref-mapa-3.webp`, `docs/ref-combate-2.webp`, fora do git): ferramentas do tabuleiro numa fileira no canto de cima à direita, plaquinha do cômodo, faixa de estado embaixo do tabuleiro (Iluminação, Névoa, Terreno), "Agentes no local", inventário rápido 3 × 2, ações em lista, cena e objeto à esquerda com foto; no COMBATE, os estados na iniciativa, os chips de ação e o alvo com as resistências. Os nomes das peças continuam só com o mouse (decisão do Felipe).
 
+## Feito em 06/10: o jogo leve, de qualquer lugar
+
+- O jogo saiu do Docker: roda direto no Windows (`scripts/jogo.mjs`, sobe a cada login e volta se cair), e só o banco fica no Docker. Atualizar é `npm run crona` (segundos, sem montar imagem). O container `crona-app` ficou parado (sem reiniciar sozinho); `npm run crona:docker` o monta de novo, se precisar.
+- A arte em WebP (338 MB → 55 MB) na própria pasta da arte; o túnel (`scripts/link.mjs`) também sobe a cada login.
+- O Docker com teto de 3 GB e devolvendo a memória (`%USERPROFILE%\.wslconfig`): vale depois de reiniciar o PC ou o Docker.
+- Testado: pelo link e pela rede entra como jogador; neste PC, como mestre; de fora, o mestre entra pela conta "Felipe".
+
 ## Pela metade
 
 - **Ferramentas do mestre para arrumar as salas (05/10):** o botão **Trocar** no painel do móvel (aba Descrição: o catálogo abre na categoria dele e troca no mesmo lugar e giro; `swapItem`); o catálogo mostra a **arte** de cada móvel (`arteDaMiniatura`); **Maior/Menor** nos quadros e tapetes (`resizeItem`, `escala` no item, de 0,5 a 3: o quadro cresce em volta do meio, o tapete em volta do meio da pegada, no tabuleiro e no mapa tático); e o **tapete** (todo móvel `flat`) vai para baixo dos móveis (`canPlace`).

@@ -27,6 +27,8 @@ const fila = [...pngs];
 async function trabalhar() {
   for (let p = fila.shift(); p; p = fila.shift()) {
     try {
+      // já convertido e mais novo que o PNG: pula (a segunda vez é rápida)
+      if (fs.existsSync(`${p}.webp`) && fs.statSync(`${p}.webp`).mtimeMs >= fs.statSync(p).mtimeMs) continue;
       const buf = await sharp(p).webp({ quality: 88, alphaQuality: 100, effort: 4 }).toBuffer();
       const tam = fs.statSync(p).size;
       antes += tam;
