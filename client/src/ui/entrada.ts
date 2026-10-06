@@ -1,5 +1,7 @@
 import type { ClientMsg } from '@crona/shared';
 import { h } from './dom';
+import { Cena, UNIVERSOS, type CenaLayout } from './entradaCena';
+import REMENDOS from './entradaRemendos.json';
 
 /**
  * A tela de entrada da plataforma: a arte do Felipe (a mesa de RPG à luz de vela, com o painel
@@ -48,6 +50,8 @@ interface Layout {
   emblema: [number, number, number];
   /** x0, y0, x1, y1: onde o céu pisca */
   ceu: [number, number, number, number];
+  /** o fundo vivo: céu, luz, clima e peças trocáveis (entradaCena.ts) */
+  cena: Omit<CenaLayout, 'nome' | 'w' | 'h'>;
 }
 
 /** As medidas saíram da própria arte (as bordas dos campos desenhados). */
@@ -67,6 +71,26 @@ const COMPUTADOR: Layout = {
   fumaca: [1530, 232],
   emblema: [1118, 178, 150],
   ceu: [1250, 0, 1672, 110],
+  cena: {
+    janela: [940, 0, 1672, 150],
+    // o painel e o emblema que sobe acima dele
+    painel: [
+      [848, 128, 1392, 826],
+      [1012, 70, 1228, 300],
+    ],
+    sol: { x0: 1415, x1: 1650, horizonte: 128, alto: 22 },
+    lua: [1448, 27, 15],
+    chama: [430, 76, 17, 29],
+    remendos: REMENDOS.computador as CenaLayout['remendos'],
+    cantos: [
+      [165, 95],
+      [1645, 262],
+      [25, 135],
+    ],
+    raios: { y0: 140, y1: 941, xs: [1430, 1515, 1600], desvio: 300, largura: 30 },
+    nevoa: [0, 640, 1672, 941],
+    px: 3,
+  },
 };
 const CELULAR: Layout = {
   nome: 'celular',
@@ -84,6 +108,22 @@ const CELULAR: Layout = {
   fumaca: [855, 470],
   emblema: [470, 478, 175],
   ceu: [505, 0, 941, 250],
+  cena: {
+    janela: [500, 0, 941, 262],
+    painel: [[155, 340, 790, 1290]],
+    sol: { x0: 555, x1: 880, horizonte: 215, alto: 40 },
+    lua: [720, 85, 18],
+    chama: [300, 210, 15, 33],
+    remendos: REMENDOS.celular as CenaLayout['remendos'],
+    cantos: [
+      [75, 475],
+      [165, 65],
+      [915, 385],
+    ],
+    raios: { y0: 262, y1: 1672, xs: [570, 690, 810], desvio: 360, largura: 40 },
+    nevoa: [0, 1250, 941, 1672],
+    px: 3,
+  },
 };
 
 const SVG = (corpo: string) =>
@@ -112,6 +152,8 @@ export class Entrada {
   private fundo: HTMLImageElement;
   private fx: HTMLElement;
   private poeira: HTMLCanvasElement;
+  /** o fundo vivo: a hora, o clima e o universo sorteado */
+  private cena = new Cena();
   private painel: HTMLFormElement;
   private campos: Record<'nome' | 'email' | 'senha', { caixa: HTMLElement; input: HTMLInputElement }>;
   private olho: HTMLButtonElement;
@@ -124,7 +166,7 @@ export class Entrada {
   private modo: Modo = 'entrar';
   private esperando = false;
   private quadro = 0;
-  private particulas: { x: number; y: number; vx: number; vy: number; r: number; f: number; quente: boolean }[] = [];
+  private particulas: { x: number; y: number; vx: number; vy: number; r: number; f: number; quente: boolean; magia: boolean }[] = [];
   private erroTempo = 0;
   private aoRedimensionar = () => this.ajustar();
 
@@ -162,9 +204,34 @@ export class Entrada {
       this.erroEl,
       this.outro,
     );
-    this.palco = h('div', { class: 'ent-palco' }, this.fundo, this.fx, this.poeira, this.painel);
+    this.palco = h('div', { class: 'ent-palco' }, this.fundo, this.cena.ceu, this.cena.arte, this.fx, this.cena.luz, this.poeira, this.painel);
     this.el = h('div', { class: 'entrada', role: 'dialog', 'aria-label': 'Entrar no CRONA' }, this.palco);
-    this.fundo.addEventListener('load', () => this.el.classList.add('pronta'), { once: false });
+    const s = this.cena.sorteio;
+    Object.assign(this.el.dataset, { universo: s.universo, clima: s.clima, vela: s.vela ? 'acesa' : 'apagada', monstro: s.monstro ? 'sim' : 'nao' });
+    this.el.style.setProperty('--chama', UNIVERSOS[s.universo].luz.join(', '));
+    this.el.style.setProperty('--vela', s.vela ? '1' : '0');
+    this.cena.aoMudar = (c) => {
+      const p = c.pesos;
+      this.el.style.setProperty('--noite', p.noite.toFixed(3));
+      this.el.style.setProperty('--dourado', p.dourado.toFixed(3));
+      this.el.style.setProperty('--dia', p.dia.toFixed(3));
+    };
+    this.cena.aoMudar(this.cena);
+    this.fundo.addEventListener('load', () => {
+      // a cena reiluminada fica por cima da arte; a tela aparece quando ela fica pronta
+      const L = this.layout;
+      if (!L) return;
+      void this.cena.montar({ ...L.cena, nome: L.nome, w: L.w, h: L.h }, this.fundo).then(() => {
+        if (this.layout !== L) return;
+        const e = this.cena.escolhidas;
+        this.el.dataset.pecas = Object.values(e)
+          .map((v) => `${v.lugar}-${v.id}`)
+          .join(' ');
+        this.el.classList.toggle('caneca-fria', !!e.caneca?.fria);
+        this.cena.passo(performance.now(), 16);
+        this.el.classList.add('pronta');
+      });
+    });
   }
 
   /** Mostra a tela (com um aviso, se houver: "sua sessão terminou"). */
@@ -369,21 +436,22 @@ export class Entrada {
     const [ex, ey, er] = L.emblema;
     const [fx, fy] = L.fumaca;
     const [c0, c1, c2, c3] = L.ceu;
-    const nodes: HTMLElement[] = [
-      // a luz da vela na mesa inteira, e o halo em volta da chama
-      em(cx, cy, 'fx-luz-vela', `--r:${cr * 2.6}px`),
-      em(cx, cy, 'fx-chama', `--r:${cr}px`),
-      em(lx, ly, 'fx-lua', `--r:${lr}px`),
-      em(ex, ey, 'fx-emblema', `--r:${er}px`),
-    ];
-    // o céu piscando
+    // a luz da vela na mesa inteira e o halo em volta da chama (somem com a vela apagada; de dia, mais fracos)
+    const vela = h('div', { class: 'fx-grupo fx-vela' }, em(cx, cy, 'fx-luz-vela', `--r:${cr * 2.6}px`), em(cx, cy, 'fx-chama', `--r:${cr}px`));
+    // a vela apagada solta um fio de fumaça do pavio
+    const pavio = h('div', { class: 'fx-grupo fx-pavio' });
+    const [px, py, , ph] = L.cena.chama;
+    for (let i = 0; i < 3; i++) pavio.append(em(px, py + ph * 0.7, 'fx-fumaca fx-fumaca-pavio', `animation-delay:${(i * 1.6).toFixed(2)}s`));
+    // a lua e as estrelas: só de noite e com o céu aberto
+    const noite = h('div', { class: 'fx-grupo fx-noite' }, em(lx, ly, 'fx-lua', `--r:${lr}px`));
     for (let i = 0; i < 16; i++) {
       const x = c0 + Math.random() * (c2 - c0);
       const y = c1 + Math.random() * (c3 - c1);
-      nodes.push(em(x, y, 'fx-estrela', `animation-delay:${(Math.random() * 4).toFixed(2)}s;animation-duration:${(2.2 + Math.random() * 2.6).toFixed(2)}s`));
+      noite.append(em(x, y, 'fx-estrela', `animation-delay:${(Math.random() * 4).toFixed(2)}s;animation-duration:${(2.2 + Math.random() * 2.6).toFixed(2)}s`));
     }
+    const nodes: HTMLElement[] = [vela, pavio, noite, em(ex, ey, 'fx-emblema', `--r:${er}px`)];
     // a fumaça da caneca
-    for (let i = 0; i < 4; i++) nodes.push(em(fx + (i % 2 ? 10 : -6) * L.u, fy, 'fx-fumaca', `animation-delay:${(i * 1.25).toFixed(2)}s`));
+    for (let i = 0; i < 4; i++) nodes.push(em(fx + (i % 2 ? 10 : -6) * L.u, fy, 'fx-fumaca fx-vapor', `animation-delay:${(i * 1.25).toFixed(2)}s`));
     // as faíscas em volta do emblema
     const faiscas = 7;
     for (let i = 0; i < faiscas; i++) {
@@ -392,10 +460,12 @@ export class Entrada {
       nodes.push(em(ex + Math.cos(a) * d * 1.08, ey + Math.sin(a) * d * 0.72, 'fx-faisca', `animation-delay:${(i * 0.53).toFixed(2)}s`));
     }
     this.fx.replaceChildren(...nodes);
-    // a poeira na luz: mais perto da vela, mais quente
+    // a poeira na luz: mais perto da vela, mais quente; na fantasia, umas faíscas de magia
+    const magia = !!UNIVERSOS[this.cena.sorteio.universo].magia;
     this.particulas = Array.from({ length: L.nome === 'celular' ? 46 : 60 }, () => {
       const perto = Math.random() < 0.55;
       return {
+        magia: magia && Math.random() < 0.3,
         x: perto ? cx + (Math.random() - 0.5) * cr * 3 : Math.random() * L.w,
         y: perto ? cy + Math.random() * cr * 2.2 : Math.random() * L.h,
         vx: (Math.random() - 0.5) * 0.12,
@@ -410,14 +480,25 @@ export class Entrada {
   /** A poeira flutuando (pausa quando a aba some ou pede menos movimento). */
   private animar() {
     const ctx = this.poeira.getContext('2d');
-    if (!ctx || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    // pedindo menos movimento, a cena fica parada (mas com a hora e o clima certos)
+    const parado = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!ctx) return;
     let antes = performance.now();
+    let ultimaCena = 0;
     const passo = (agora: number) => {
       this.quadro = requestAnimationFrame(passo);
       const L = this.layout;
       if (!L || document.hidden) return;
+      if (this.cena.pronta) {
+        if (!parado) this.cena.passo(agora, Math.min(50, agora - antes));
+        else if (agora - ultimaCena > 30000) (this.cena.passo(agora, 0), (ultimaCena = agora));
+      }
+      if (parado) return void (antes = agora);
       const dt = Math.min(50, agora - antes) / 16.7;
       antes = agora;
+      const { noite, dia, dourado } = this.cena.pesos;
+      const velaAcesa = this.cena.sorteio.vela ? 1 : 0;
+      const corMagia = UNIVERSOS[this.cena.sorteio.universo].magia ?? [255, 255, 255];
       ctx.clearRect(0, 0, L.w, L.h);
       for (const p of this.particulas) {
         p.f += 0.02 * dt;
@@ -428,7 +509,12 @@ export class Entrada {
           p.x = Math.random() * L.w;
         }
         const luz = 0.35 + 0.35 * Math.sin(p.f * 1.7);
-        ctx.fillStyle = p.quente ? `rgba(255, 196, 120, ${0.25 + luz * 0.45})` : `rgba(210, 205, 230, ${0.08 + luz * 0.2})`;
+        // de dia a poeira brilha no sol; de noite, perto da vela (se acesa)
+        const quente = p.quente ? velaAcesa * (0.4 + 0.6 * noite) : 0;
+        const sol = (dia + dourado * 0.6) * 0.8;
+        if (p.magia) ctx.fillStyle = `rgba(${corMagia.join(', ')}, ${0.3 + luz * 0.6})`;
+        else if (quente > 0.1) ctx.fillStyle = `rgba(255, 196, 120, ${(0.25 + luz * 0.45) * quente})`;
+        else ctx.fillStyle = `rgba(${sol > 0.3 ? '255, 244, 220' : '210, 205, 230'}, ${(0.08 + luz * 0.2) * (1 + sol)})`;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
         ctx.fill();

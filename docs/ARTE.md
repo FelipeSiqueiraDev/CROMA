@@ -387,6 +387,10 @@ Para pôr no jogo: `python scripts/3d/cima.py <pasta com as PNGs>`. Cada móvel 
 
 A lista dos cômodos e dos móveis de cada um está em [`SEDE-DA-ORDEM.md`](SEDE-DA-ORDEM.md); o que falta desenhar, folha por folha, no [`CHECKLIST-ARTE.md`](CHECKLIST-ARTE.md).
 
+## 6. Tela de entrada: as peças trocáveis (decidido em 06/10)
+
+A caneca, a vela e o mapa da mesa da tela de entrada trocam a cada visita. Cada variante é um **remendo**: o Códex recebe o pedaço da arte ampliado (o gabarito, `node scripts/entrada-remendos.mjs gabaritos <pasta>`), redesenha só a peça e devolve a imagem no mesmo tamanho (1024×1024, 1536×1024 ou 1024×1536), **na mesma luz de noite à luz de vela** e no mesmo estilo de pixel art. Sem fundo transparente: o resto do gabarito fica igual. O script encaixa (`encaixar <entrega.png> <peça>-<id>-<tela>`) em `client/public/arte/login/variantes/`. A lista, os nomes e o pedido pronto ficam em [`TELA-ENTRADA.md`](TELA-ENTRADA.md). Genérico sempre: nada dos agentes da campanha.
+
 ## Como entregar
 
 1. Trabalhe numa branch `codex/arte-<assunto>` (ex.: `codex/arte-personagens`).

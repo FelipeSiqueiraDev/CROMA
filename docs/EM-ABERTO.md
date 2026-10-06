@@ -85,6 +85,7 @@ O C: encheu em 05/10 (0 bytes livres, o Docker parou). A pedido do Felipe, tudo 
 - **A tela de entrada e as contas (04/10).**
   - **A tela:** é a arte do Felipe, em `client/public/arte/login/`: a mesa de RPG à luz de vela, uma versão para o computador e uma para o celular. Os campos de verdade ficam em cima dos desenhados (`client/src/ui/entrada.ts` e `entrada.css`).
   - **As animações:** a vela tremula e ilumina a mesa, o céu pisca, a lua pulsa, sai fumaça da caneca, o emblema brilha com faíscas, a poeira flutua na luz e um brilho passa pelo botão.
+  - **O fundo vivo (06/10):** cada visita sorteia uma cena: a hora do relógio (dia, dourado, noite), o clima, o universo (fantasia, horror cósmico, paranormal, Tormenta), a vela acesa ou apagada e, às vezes, olhos de monstro no escuro (`client/src/ui/entradaCena.ts`). Genérico: nada dos agentes da campanha. As peças trocáveis (caneca, vela, mapa da mesa) são remendos do Códex que entram sozinhos. Tudo em [`TELA-ENTRADA.md`](TELA-ENTRADA.md). **Esperando:** a primeira leva do Códex (caneca de cerveja, vela apagada, mapa com tentáculos, só no computador) para o Felipe aprovar.
   - **As contas** ficam no servidor (`server/src/contas.ts`, guardadas na tabela `config`):
     - e-mail e senha, com a senha em scrypt;
     - uma sessão por aparelho, que vale 180 dias;

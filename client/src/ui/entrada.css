@@ -38,20 +38,54 @@
   -webkit-user-drag: none;
 }
 .ent-fx,
-.ent-poeira {
+.ent-poeira,
+.ent-arte,
+.ent-luz {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;
 }
-.ent-fx > i {
+/* o céu da janela fica atrás da arte (que tem o céu recortado), em pixels grandes */
+.ent-ceu {
+  position: absolute;
+  pointer-events: none;
+  image-rendering: pixelated;
+}
+.ent-fx i {
   position: absolute;
   display: block;
   transform: translate(-50%, -50%);
 }
 
-/* ---------------------------------------------------------------- luzes */
+/* ---------------------------------------------------------------- luzes
+   A cena (entradaCena.ts) põe no .entrada: --noite, --dourado e --dia (0..1, somam 1), --vela
+   (1 acesa, 0 apagada) e --chama (a cor da luz da vela no universo sorteado). */
+.entrada {
+  --noite: 1;
+  --dourado: 0;
+  --dia: 0;
+  --vela: 1;
+  --chama: 255, 170, 80;
+}
+.fx-grupo {
+  position: absolute;
+  inset: 0;
+}
+/* de dia a vela ainda brilha, mas a luz dela quase não aparece na sala */
+.fx-vela {
+  opacity: calc(var(--vela) * (0.25 + 0.75 * var(--noite) + 0.35 * var(--dourado)));
+}
+.fx-pavio {
+  opacity: calc(1 - var(--vela));
+}
+.fx-noite {
+  opacity: var(--noite);
+}
+.entrada:is([data-clima='chuva'], [data-clima='tempestade'], [data-clima='neblina']) .fx-noite {
+  opacity: calc(var(--noite) * 0.25);
+}
 .fx-chama,
 .fx-luz-vela,
 .fx-lua,
@@ -63,13 +97,13 @@
 .fx-chama {
   width: var(--r);
   height: var(--r);
-  background: radial-gradient(circle, rgba(255, 214, 140, 0.55), rgba(255, 160, 70, 0.18) 34%, transparent 68%);
+  background: radial-gradient(circle, rgba(var(--chama), 0.55), rgba(var(--chama), 0.18) 34%, transparent 68%);
   animation: ent-tremula 1.7s infinite ease-in-out;
 }
 .fx-luz-vela {
   width: var(--r);
   height: var(--r);
-  background: radial-gradient(circle, rgba(255, 170, 80, 0.16), rgba(255, 140, 60, 0.06) 42%, transparent 70%);
+  background: radial-gradient(circle, rgba(var(--chama), 0.16), rgba(var(--chama), 0.06) 42%, transparent 70%);
   animation: ent-tremula 2.3s infinite ease-in-out reverse;
 }
 @keyframes ent-tremula {
@@ -164,6 +198,17 @@
   filter: blur(calc(var(--u) * 6px));
   opacity: 0;
   animation: ent-sobe 5s infinite ease-out;
+}
+/* bebida gelada na caneca (uma peça trocável): sem vapor */
+.entrada.caneca-fria .fx-vapor {
+  display: none;
+}
+/* o fio de fumaça da vela apagada: fino e mais devagar */
+.fx-fumaca-pavio {
+  width: calc(var(--u) * 14px);
+  height: calc(var(--u) * 46px);
+  filter: blur(calc(var(--u) * 3px));
+  animation-duration: 4.8s;
 }
 @keyframes ent-sobe {
   0% {

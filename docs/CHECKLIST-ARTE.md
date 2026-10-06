@@ -117,6 +117,12 @@ Nada novo: usa os retratos, os ícones e as folhas da FICHAS. Os cartões de res
 
 ---
 
+## 6. Tela de entrada (06/10)
+
+As peças trocáveis do fundo da entrada (caneca, vela, mapa da mesa, mapa com monstro), em vários universos de RPG. Não são PNG transparentes: são remendos da arte, feitos a partir de um gabarito. A lista com os nomes, o formato e o pedido pronto da primeira leva está em [`TELA-ENTRADA.md`](TELA-ENTRADA.md#a-lista-o-id-e-onde-pode-aparecer).
+
+- [ ] ✱ Primeira leva, só no computador, para o Felipe aprovar: `caneca-cerveja`, `vela-apagada`, `mapa-tentaculos`
+
 ## O tabuleiro (revisto em 02/10)
 
 - [ ] ✱ **Catarina nas 8 direções** (`PROMPT-PERSONAGENS.txt`, Parte 0): entregue em 04/10 (`personagens-teste.zip`) e já convertida para o tabuleiro (`personagens/catarina/tabuleiro-32bits/`). **Esperando a aprovação do Felipe** (perto da Alosi, ela ficou com umas 6 cabeças de altura em vez de 7).
