@@ -744,3 +744,42 @@
     height: 16rem;
   }
 }
+
+/* ---------- a arte do modal de itens (kit do Códex, Parte 4; o que ainda não veio fica no desenho acima) ----------
+   As peças esticam pelos cantos (border-image): sem a arte, a variável não existe e vale o desenho de cima. */
+.rq-secao {
+  border-image: var(--ui-modal-itens-aba-categoria-normal) 24 fill / 1.2rem stretch;
+}
+.rq-secao:hover {
+  border-image-source: var(--ui-modal-itens-aba-categoria-foco);
+}
+.rq-secao.on {
+  border-image: none;
+}
+.rq-vaga {
+  border-image: var(--ui-modal-itens-contador-patente) 20 fill / 1rem stretch;
+  border-radius: 0;
+}
+.rq-vaga.cheia,
+.rq-vaga.passou {
+  border-radius: 0;
+}
+.rq-carga-barra {
+  height: 2.4rem;
+  border-image: var(--ui-modal-itens-barra-carga) 16 fill / 0.8rem stretch;
+  border-radius: 0;
+  box-shadow: none;
+}
+.rq-carga-barra i {
+  top: 0.45rem;
+  bottom: 0.45rem;
+}
+.rq-carga-cheia {
+  background: var(--ui-modal-itens-barra-carga-cheia, linear-gradient(#f5cd6c, #b8812c)) left center / auto 100% repeat-x;
+}
+.rq-carga.passou .rq-carga-cheia {
+  background: linear-gradient(#ee7a5a, #a3221a);
+}
+.rq-det-arte {
+  border-image: var(--ui-modal-itens-casa-item-grande) 48 fill / 2.4rem stretch;
+}

@@ -127,8 +127,21 @@ function titulo(texto: string, ...extra: (Node | null)[]) {
   return h('header', { class: 'cb-tit' }, h('i', { class: 'cb-marca', 'aria-hidden': 'true' }), h('h3', null, texto), h('span', { class: 'cb-tit-extra' }, ...extra));
 }
 
+/** Os ícones de linha que têm o pintado do kit (arte/icones/<nome>.png); sem a arte, fica o de linha. */
+const PINTADO: Partial<Record<NomeIcone, string>> = {
+  mira: 'tabuleiro-alcance',
+  regua: 'tabuleiro-medir',
+  area: 'tabuleiro-area',
+  tatico: 'tabuleiro-tatico',
+  centralizar: 'tabuleiro-centralizar',
+  avancar: 'combate-passar-turno',
+  girarE: 'combate-desfazer',
+  ok: 'combate-confirmar',
+};
+const icPintado = (icone: NomeIcone, pintado = PINTADO[icone]) => (pintado ? arteOu([`/arte/icones/${pintado}.png`], ic(icone)) : ic(icone));
+
 function botao(rotulo: string, icone: NomeIcone | null, fn: () => void, cls = '', dica?: string, desligado = false) {
-  return h('button', { class: `cb-bt ${cls}`, type: 'button', title: dica, disabled: desligado, onclick: () => (sfx.click(), fn()) }, icone ? ic(icone) : null, h('span', null, rotulo));
+  return h('button', { class: `cb-bt ${cls}`, type: 'button', title: dica, disabled: desligado, onclick: () => (sfx.click(), fn()) }, icone ? icPintado(icone) : null, h('span', null, rotulo));
 }
 
 function botaoJanela(rotulo: string, icone: NomeIcone, cls: string, fn: () => void) {
@@ -1025,13 +1038,13 @@ export class CombateScreen {
     if (!p) return null;
     const cond = vitalConditions(this.vitais(p.id));
     const cs = this.condicoesDe(c, p);
-    const est = (icone: NomeIcone, texto: string, cls: string) => h('span', { class: `cb-estado ${cls}` }, ic(icone), h('span', null, texto));
-    if (p.fora) return est('caveira', NOME_FORA[p.fora], 'ruim');
-    if (cond.morrendo) return est('caveira', `Morrendo ${p.morrendo}/3`, 'ruim');
+    const est = (icone: NomeIcone, texto: string, cls: string, pintado?: string) => h('span', { class: `cb-estado ${cls}` }, pintado ? icPintado(icone, pintado) : ic(icone), h('span', null, texto));
+    if (p.fora) return est('caveira', NOME_FORA[p.fora], 'ruim', 'estado-caido');
+    if (cond.morrendo) return est('caveira', `Morrendo ${p.morrendo}/3`, 'ruim', 'estado-morrendo');
     if (cond.enlouquecendo) return est('espiral', `Enlouquecendo ${p.enlouquecendo}/3`, 'ruim');
     if (c.fase !== 'encerrado' && cb.surpreendido(c, p)) return est('alerta', 'Surpreendido', 'aviso');
     if (c.fase === 'andamento' && p.desde > c.rodada) return est('entrar', `Entra na rodada ${p.desde}`, 'aviso');
-    if (p.sustenta) return est('pentagrama', 'Ritual sustentado', 'ritual');
+    if (p.sustenta) return est('pentagrama', 'Ritual sustentado', 'ritual', 'estado-ritual');
     if (cs.includes('caido')) return est('deitado', 'Caído', '');
     const outra = (p.condicoes ?? []).find((x) => ICONE_CONDICAO[x]);
     if (outra) return est(ICONE_CONDICAO[outra], nomeCond(outra), 'aviso');
@@ -1045,7 +1058,7 @@ export class CombateScreen {
   private estadoMestre(c: Combate, ps: Participante[]): HTMLElement | null {
     const fora = ps.filter((p) => p.fora || vitalConditions(this.vitais(p.id)).morrendo).length;
     if (fora) return h('span', { class: 'cb-estado ruim' }, ic('caveira'), h('span', null, `${fora} fora`));
-    if (ps.some((p) => p.sustenta)) return h('span', { class: 'cb-estado ritual' }, ic('pentagrama'), h('span', null, 'Ritual'));
+    if (ps.some((p) => p.sustenta)) return h('span', { class: 'cb-estado ritual' }, icPintado('pentagrama', 'estado-ritual'), h('span', null, 'Ritual'));
     void c;
     return null;
   }

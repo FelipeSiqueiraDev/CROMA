@@ -853,3 +853,18 @@ select.cb-sel option {
   box-shadow: none;
   color: #eef6ff;
 }
+
+/* os ícones pintados nos botões do combate (Passar turno, Desfazer, Alcance, Medir...) */
+.cb-bt .arte-ic {
+  width: 1.45em;
+  height: 1.45em;
+  margin: -0.2em 0;
+}
+.cb-bt .arte-ic img,
+.cb-estado .arte-ic img {
+  filter: drop-shadow(0 0.08rem 0.1rem #000);
+}
+.cb-estado .arte-ic {
+  width: 1.3em;
+  height: 1.3em;
+}

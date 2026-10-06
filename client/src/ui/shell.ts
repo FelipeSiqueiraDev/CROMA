@@ -56,7 +56,7 @@ import { FerramentasMesa } from './ferramentasMesa';
 import { AbaInterludio } from './interludio';
 import { TopBar } from './topbar';
 import { botao, escolher, janela } from './fichaModal';
-import { existeArte, ic, type NomeIcone } from './icons';
+import { arteOu, existeArte, ic, type NomeIcone } from './icons';
 
 export interface ShellActions {
   fx(): void;
@@ -498,7 +498,7 @@ export class Shell {
       'div',
       { class: 'board-vista', role: 'group', 'aria-label': 'Câmera do tabuleiro' },
       h('button', { class: 'bv', type: 'button', 'data-tatico': 'nao', title: 'Vista isométrica (T)', onclick: () => this.trocarVista(false) }, ic('isometrico'), h('span', null, 'ISO')),
-      h('button', { class: 'bv', type: 'button', 'data-tatico': 'sim', title: 'Vista tática: a sala de cima, como mapa de batalha (T)', onclick: () => this.trocarVista(true) }, ic('tatico'), h('span', null, 'TÁTICA')),
+      h('button', { class: 'bv', type: 'button', 'data-tatico': 'sim', title: 'Vista tática: a sala de cima, como mapa de batalha (T)', onclick: () => this.trocarVista(true) }, arteOu(['/arte/icones/tabuleiro-tatico.png'], ic('tatico')), h('span', null, 'TÁTICA')),
     );
     this.ferramentas = new FerramentasMesa(app);
     this.abaInterludio = new AbaInterludio(app);
