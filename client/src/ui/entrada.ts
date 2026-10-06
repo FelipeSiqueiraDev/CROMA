@@ -221,16 +221,31 @@ export class Entrada {
       // a cena reiluminada fica por cima da arte; a tela aparece quando ela fica pronta
       const L = this.layout;
       if (!L) return;
-      void this.cena.montar({ ...L.cena, nome: L.nome, w: L.w, h: L.h }, this.fundo).then(() => {
-        if (this.layout !== L) return;
-        const e = this.cena.escolhidas;
-        this.el.dataset.pecas = Object.values(e)
-          .map((v) => `${v.lugar}-${v.id}`)
-          .join(' ');
-        this.el.classList.toggle('caneca-fria', !!e.caneca?.fria);
-        this.cena.passo(performance.now(), 16);
-        this.el.classList.add('pronta');
-      });
+      // se a cena demorar ou falhar (a imagem de outro endereço não deixa ler os pixels), a tela
+      // aparece com a arte de sempre e os brilhos em CSS
+      const semCena = () => {
+        this.el.classList.add('sem-cena', 'pronta');
+      };
+      const espera = setTimeout(semCena, 4000);
+      this.cena
+        .montar({ ...L.cena, nome: L.nome, w: L.w, h: L.h }, this.fundo)
+        .then(() => {
+          clearTimeout(espera);
+          if (this.layout !== L) return;
+          const e = this.cena.escolhidas;
+          this.el.dataset.pecas = Object.values(e)
+            .map((v) => `${v.lugar}-${v.id}`)
+            .join(' ');
+          this.el.classList.toggle('caneca-fria', !!e.caneca?.fria);
+          this.cena.passo(performance.now(), 16);
+          this.el.classList.remove('sem-cena');
+          this.el.classList.add('pronta');
+        })
+        .catch((erro) => {
+          clearTimeout(espera);
+          console.warn('[entrada] a cena não montou:', erro);
+          semCena();
+        });
     });
   }
 

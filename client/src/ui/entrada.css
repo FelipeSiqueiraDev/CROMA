@@ -53,6 +53,16 @@
   pointer-events: none;
   image-rendering: pixelated;
 }
+/* sem a cena (falhou ou demorou), fica a arte de sempre */
+.entrada.sem-cena :is(.ent-ceu, .ent-arte, .ent-luz) {
+  display: none;
+}
+.entrada.sem-cena :is(.fx-vela, .fx-noite) {
+  opacity: 1;
+}
+.entrada.sem-cena .fx-pavio {
+  opacity: 0;
+}
 .ent-fx i {
   position: absolute;
   display: block;
