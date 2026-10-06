@@ -22,6 +22,7 @@ import {
   type TipoDocumento,
 } from '@crona/shared';
 import { portraitCanvas } from '../render/portrait';
+import { sprites } from '../render/sprites';
 import type { App } from './app';
 import { arteDoItem } from './arteItem';
 import { CorpoView } from './corpo';
@@ -96,6 +97,7 @@ export class TelaJogador {
   private aba: Aba = 'agente';
   private corpo = new CorpoView();
   private timer = 0;
+  private retratoTimer = 0;
   // o que fica escolhido em cada aba
   private itemSel: number | null = null;
   private filtroPoder: FiltroPoder = 'classe';
@@ -120,8 +122,12 @@ export class TelaJogador {
       'header',
       { class: 'jg-topo' },
       h('div', { class: 'jg-marca' }, h('b', null, 'ORDO REALITAS'), h('span', null, 'SEDE DA ORDEM')),
-      h('button', { class: 'jg-topo-bt', type: 'button', title: 'Menu e ficha completa', 'aria-label': 'Menu', onclick: () => (sfx.click(), acoes.menu()) }, pintado('topo-config', 'engrenagem')),
-      h('button', { class: 'jg-topo-bt sair', type: 'button', title: 'Sair', 'aria-label': 'Sair', onclick: () => acoes.sair() }, pintado('topo-sair', 'sair')),
+      h(
+        'div',
+        { class: 'jg-topo-bts' },
+        h('button', { class: 'jg-topo-bt', type: 'button', title: 'Menu e ficha completa', 'aria-label': 'Menu', onclick: () => (sfx.click(), acoes.menu()) }, pintado('topo-config', 'engrenagem')),
+        h('button', { class: 'jg-topo-bt sair', type: 'button', title: 'Sair', 'aria-label': 'Sair', onclick: () => acoes.sair() }, pintado('topo-sair', 'sair')),
+      ),
     );
     this.el = h('div', { class: 'jg' }, topo, this.perfil, this.vitais, this.numeros, this.conteudo, this.nav);
     this.renderNav();
@@ -210,6 +216,11 @@ export class TelaJogador {
     const classe = f.classe ? cat.classe(f.classe).nome : 'Sem classe';
     const trilha = f.trilha ? cat.trilha(f.trilha)?.nome : undefined;
     const look = lookDe(fs.personagem);
+    // o retrato sai da folha do personagem: sem ela ainda (a lista chega depois), desenha de novo daqui a pouco
+    if (look && !sprites.def(look.charId!)) {
+      clearTimeout(this.retratoTimer);
+      this.retratoTimer = window.setTimeout(() => this.fs && this.renderPerfil(), 700);
+    }
     // as condições: as do mestre e as que saem dos pontos (machucado, morrendo...)
     const auto = c ? vitalConditions(this.vit()) : null;
     const nomes = [
