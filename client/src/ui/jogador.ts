@@ -1,7 +1,7 @@
 /**
  * A tela do jogador no celular ("modo jogo", referências docs/ref-jogador-*.webp; o plano em
  * docs/TELA-DO-JOGADOR.md). Em cima, quem ele é, PV/PE/SAN (com − e +, ele mexe nos dele) e os
- * números da rodada; embaixo, seis abas: Agente (os atributos em volta do corpo e o Armado),
+ * números da rodada; embaixo, as abas: Agente (os atributos em d20, os números e o Armado),
  * Mochila, Poderes, Rituais, Docs (o que o mestre entregou) e Notas. A ficha inteira fica na
  * engrenagem.
  *
@@ -25,12 +25,11 @@ import { portraitCanvas } from '../render/portrait';
 import { sprites } from '../render/sprites';
 import type { App } from './app';
 import { arteDoItem } from './arteItem';
-import { CorpoView } from './corpo';
 import { h, toast } from './dom';
 import { botao, confirmar, escolher, janela } from './fichaModal';
 import { opcoesMelhoria } from './melhorias';
 import { infoItem, NOME_ELEMENTO, textoRef } from './fichaRegras';
-import { arte, arteOu, ic, type NomeIcone } from './icons';
+import { arteOu, ic, type NomeIcone } from './icons';
 import { sfx } from './sfx';
 import { vestirTema } from './temaUi';
 
@@ -48,9 +47,6 @@ const ABAS: { id: Aba; rotulo: string; icone: NomeIcone; pintado?: string }[] = 
   { id: 'notas', rotulo: 'Notas', icone: 'pena', pintado: 'titulo-anotacoes' },
 ];
 
-/** As pontas do pentagrama da ficha (em % do quadro): Agilidade em cima, Força e Intelecto dos lados, Vigor e Presença embaixo. */
-const PENTA: Record<regras.AtributoId, [number, number]> = { agi: [50, 14], for: [12, 42], int: [88, 42], vig: [25, 84], pre: [75, 84] };
-const ICONE_ATR: Record<regras.AtributoId, NomeIcone> = { agi: 'correr', for: 'punho', int: 'cerebro', pre: 'olho', vig: 'escudo' };
 
 const ICONE_DOC: Record<TipoDocumento, NomeIcone> = { relatorio: 'documento', mapa: 'mapa', comunicacao: 'email', registro: 'livro', foto: 'imagem', objeto: 'caixa', outro: 'documento' };
 const COR_ELEMENTO: Record<regras.Elemento, string> = { sangue: '#d9302c', morte: '#8d8d93', conhecimento: '#e2b53a', energia: '#a45cff', medo: '#f1efe9' };
@@ -108,7 +104,6 @@ export class TelaJogador {
   private equipe: { id: number; nome: string }[] = [];
   private docs: Documento[] = [];
   private aba: Aba = 'agente';
-  private corpo = new CorpoView();
   private timer = 0;
   /** onde cada barra estava (para animar a mudança) */
   private pctAntes: Partial<Record<'pv' | 'pe' | 'san', number>> = {};
@@ -121,6 +116,8 @@ export class TelaJogador {
   private docSel: number | null = null;
   private soFixadas = false;
   private notaSel: string | null = null;
+  /** o detalhe acabou de abrir: a lista rola até ele */
+  private focarDetalhe = false;
   // as partes da tela
   private perfil = h('section', { class: 'jg-perfil' });
   private vitais = h('section', { class: 'jg-vitais' });
@@ -143,7 +140,7 @@ export class TelaJogador {
         h('button', { class: 'jg-topo-bt sair', type: 'button', title: 'Sair', 'aria-label': 'Sair', onclick: () => acoes.sair() }, pintado('topo-sair', 'sair')),
       ),
     );
-    this.el = h('div', { class: 'jg' }, topo, this.perfil, this.vitais, this.numeros, this.conteudo, this.nav);
+    this.el = h('div', { class: 'jg' }, topo, this.perfil, this.vitais, this.conteudo, this.nav);
     this.renderNav();
   }
 
@@ -340,7 +337,6 @@ export class TelaJogador {
 
   private renderConteudo() {
     if (!this.fs || !this.calc) return this.conteudo.replaceChildren();
-    if (this.aba !== 'agente') this.corpo.el.remove();
     const partes: Record<Aba, () => Node[]> = {
       agente: () => this.abaAgente(),
       mochila: () => this.abaMochila(),
@@ -353,6 +349,11 @@ export class TelaJogador {
     this.conteudo.dataset.aba = this.aba;
     this.el.dataset.aba = this.aba;
     this.conteudo.replaceChildren(...partes[this.aba]());
+    if (this.focarDetalhe) {
+      this.focarDetalhe = false;
+      const det = this.conteudo.querySelector('.jg-det');
+      if (det) requestAnimationFrame(() => det.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
+    }
   }
 
   /** O título de uma seção: o nome em pixel e, à direita, um extra (contagem ou botão). */
@@ -365,29 +366,33 @@ export class TelaJogador {
   private abaAgente(): Node[] {
     const fs = this.fs!;
     const c = this.calc!;
-    const def = fs.personagem ? this.app.state.characters.find((x) => x.id === fs.personagem) : undefined;
-    this.corpo.setPersonagem(def);
-    this.corpo.setCondicoes(vitalConditions(this.vit()));
-    // os cinco atributos nas pontas do pentagrama, como na ficha do livro
-    const med = (a: regras.AtributoId) => {
+    // os atributos: o ícone, o d20 com o número (quantos d20 rola, LR p. 11) e o nome; o toque gira o dado e diz o que rola
+    const atr = (a: regras.AtributoId) => {
       const v = c.atributos[a];
-      return h(
-        'div',
-        { class: `jg-med a-${a}`, title: `${regras.NOME_ATRIBUTO[a]}: rola ${v > 0 ? `${v}d20 e fica o maior` : '2d20 e fica o menor'}.` },
-        h('span', { class: 'jg-med-ic' }, arte(`/arte/icones/${a}.png`, ICONE_ATR[a])),
-        h('b', { class: 'jg-med-v' }, String(v)),
-        h('span', { class: 'jg-med-n' }, a.toUpperCase()),
-      );
+      const rola = v > 0 ? `rola ${v}d20, fica o maior` : 'rola 2d20, fica o menor';
+      const el: HTMLButtonElement = h(
+        'button',
+        {
+          class: `jg-atr a-${a}`,
+          type: 'button',
+          'aria-label': `${regras.NOME_ATRIBUTO[a]} ${v}: ${rola}`,
+          onclick: () => {
+            sfx.click();
+            el.classList.remove('rola');
+            void el.offsetWidth;
+            el.classList.add('rola');
+            el.querySelector('.jg-atr-dica')?.remove();
+            const dica = h('span', { class: 'jg-atr-dica' }, h('b', null, regras.NOME_ATRIBUTO[a]), rola);
+            el.append(dica);
+            window.setTimeout(() => dica.remove(), 2600);
+          },
+        },
+        h('span', { class: 'jg-atr-ic' }, pintado(a, 'pulso')),
+        h('span', { class: 'jg-atr-dado' }, dadoD20(), h('b', null, String(v))),
+        h('span', { class: 'jg-atr-n' }, regras.NOME_ATRIBUTO[a]),
+      ) as HTMLButtonElement;
+      return el;
     };
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('viewBox', '0 0 100 100');
-    svg.setAttribute('preserveAspectRatio', 'none');
-    svg.setAttribute('class', 'jg-penta-linhas');
-    svg.setAttribute('aria-hidden', 'true');
-    const P = PENTA;
-    svg.innerHTML =
-      `<ellipse cx="50" cy="52" rx="40" ry="38" />` +
-      `<polygon points="${[P.agi, P.pre, P.for, P.int, P.vig].map(([x, y]) => `${x},${y}`).join(' ')}" />`;
     const armado = regras.armado(fs.ficha.inventario);
     const armas = fs.ficha.inventario.filter((it) => it.tipo === 'arma' && regras.maosDoItem(it) > 0 && it.uid);
     const naMao = fs.ficha.inventario.filter((it) => it.tipo === 'arma' && regras.lugarDoItem(it) === 'mao');
@@ -408,13 +413,9 @@ export class TelaJogador {
       h('span', { class: 'jg-armado-op arm' }, pintado(IC.armado, 'pistola'), 'Armado'),
     );
     return [
-      h(
-        'div',
-        { class: 'jg-penta' },
-        h('div', { class: 'jg-palco' }, h('div', { class: 'jg-palco-fundo' }), this.corpo.el),
-        svg,
-        ...(['agi', 'for', 'int', 'pre', 'vig'] as const).map(med),
-      ),
+      this.titulo('ATRIBUTOS', 'pulso'),
+      h('div', { class: 'jg-atrs' }, ...(['agi', 'for', 'int', 'pre', 'vig'] as const).map(atr)),
+      this.numeros,
       trocar,
       h('p', { class: 'jg-nota-armado' }, armado ? `Na mão: ${naMao.map((x) => regras.nomeDoItem(x)).join(', ')}.` : armas.length ? 'A arma fica guardada; Armado saca a primeira da mochila.' : 'Sem arma na mochila.'),
     ];
@@ -734,7 +735,7 @@ export class TelaJogador {
       const info = this.infoPoder(p);
       return h(
         'button',
-        { class: `jg-linha${this.poderSel === p.id ? ' on' : ''}`, type: 'button', onclick: () => ((this.poderSel = this.poderSel === p.id ? null : p.id), sfx.click(), this.renderConteudo()) },
+        { class: `jg-linha${this.poderSel === p.id ? ' on' : ''}`, type: 'button', onclick: () => ((this.poderSel = this.poderSel === p.id ? null : p.id), (this.focarDetalhe = true), sfx.click(), this.renderConteudo()) },
         h('span', { class: 'jg-linha-ic' }, pintado(filtro.pintado, filtro.icone)),
         h('span', { class: 'jg-linha-txt' }, h('span', { class: 'jg-linha-n' }, p.nome, h('em', { class: `jg-selo${info.custo ? ' pe' : ''}` }, info.custo ? `${info.custo} PE` : 'Passivo')), info.resumo ? h('small', null, info.resumo) : null),
         ic('direita'),
@@ -747,7 +748,7 @@ export class TelaJogador {
       origem: (f.origem && cat.origem(f.origem)?.nome) || 'Origem',
       paranormal: 'Paranormal',
     };
-    return [
+    const partes: (HTMLElement | null)[] = [
       this.titulo('PODERES', 'estrela'),
       filtros.length > 1
         ? h(
@@ -758,9 +759,11 @@ export class TelaJogador {
             ),
           )
         : null,
-      lista.length ? h('div', { class: 'jg-lista' }, ...linhas) : h('p', { class: 'jg-vazio' }, 'Sem poderes ainda.'),
-      sel ? this.detalhePoder(sel, nomeGrupo[filtro.id], filtro.icone, filtro.pintado) : null,
-    ].filter((x): x is HTMLElement => !!x);
+      lista.length
+        ? h('div', { class: 'jg-lista' }, ...lista.flatMap((p, i) => (p === sel ? [linhas[i], this.detalhePoder(p, nomeGrupo[filtro.id], filtro.icone, filtro.pintado)] : [linhas[i]])))
+        : h('p', { class: 'jg-vazio' }, 'Sem poderes ainda.'),
+    ];
+    return partes.filter((x): x is HTMLElement => !!x);
   }
 
   private infoPoder(p: regras.PoderObtido) {
@@ -831,7 +834,7 @@ export class TelaJogador {
       const k = conta(r);
       return h(
         'div',
-        { class: `jg-rit${this.ritualSel === r.id ? ' on' : ''}`, role: 'button', tabindex: 0, style: `--cor:${COR_ELEMENTO[r.elemento]}`, onclick: () => ((this.ritualSel = this.ritualSel === r.id ? null : r.id), sfx.click(), this.renderConteudo()) },
+        { class: `jg-rit${this.ritualSel === r.id ? ' on' : ''}`, role: 'button', tabindex: 0, style: `--cor:${COR_ELEMENTO[r.elemento]}`, onclick: () => ((this.ritualSel = this.ritualSel === r.id ? null : r.id), (this.focarDetalhe = true), sfx.click(), this.renderConteudo()) },
         h('span', { class: 'jg-rit-arte' }, arteOu([`/arte/rituais/${r.id}.png`, `/arte/icones/sigilo-${r.elemento}.png`], ic('pentagrama'))),
         h(
           'span',
@@ -845,9 +848,10 @@ export class TelaJogador {
     const sel = rituais.find((r) => r.id === this.ritualSel);
     return [
       this.titulo('RITUAIS', 'pentagrama'),
-      rituais.length ? h('div', { class: 'jg-rits' }, ...cards) : h('p', { class: 'jg-vazio' }, 'Sem rituais. Eles vêm do ocultista ou do poder Aprender Ritual.'),
-      sel ? this.detalheRitual(sel, conta(sel), fav.has(sel.id), estrela(sel)) : null,
-    ].filter((x): x is HTMLElement => !!x);
+      rituais.length
+        ? h('div', { class: 'jg-rits' }, ...rituais.flatMap((r, i) => (r === sel ? [cards[i], this.detalheRitual(r, conta(r), fav.has(r.id), estrela(r))] : [cards[i]])))
+        : h('p', { class: 'jg-vazio' }, 'Sem rituais. Eles vêm do ocultista ou do poder Aprender Ritual.'),
+    ].filter(Boolean) as HTMLElement[];
   }
 
   private detalheRitual(r: regras.Ritual, k: { pe: number; dt: number }, fav: boolean, estrela: HTMLElement): HTMLElement {
@@ -890,7 +894,7 @@ export class TelaJogador {
     const linhas = lista.map((d) =>
       h(
         'button',
-        { class: `jg-doc${this.docSel === d.id ? ' on' : ''}`, type: 'button', onclick: () => ((this.docSel = this.docSel === d.id ? null : d.id), sfx.paper(), this.renderConteudo()) },
+        { class: `jg-doc${this.docSel === d.id ? ' on' : ''}`, type: 'button', onclick: () => ((this.docSel = this.docSel === d.id ? null : d.id), (this.focarDetalhe = true), sfx.paper(), this.renderConteudo()) },
         h('span', { class: 'jg-doc-mini' }, d.imagem ? h('img', { src: d.imagem, alt: '', loading: 'lazy', decoding: 'async' }) : ic(ICONE_DOC[d.tipo])),
         h('span', { class: 'jg-linha-txt' }, h('span', { class: 'jg-linha-n' }, d.titulo, d.marcadoPor?.includes(fs.id) ? h('em', { class: 'jg-marca' }, ic('pino')) : null), h('small', null, meta(d))),
         ic('direita'),
@@ -907,10 +911,9 @@ export class TelaJogador {
         ),
       ),
       lista.length
-        ? h('div', { class: 'jg-lista' }, ...linhas)
+        ? h('div', { class: 'jg-lista' }, ...lista.flatMap((d, i) => (d === sel ? [linhas[i], this.detalheDoc(d, meta(d))] : [linhas[i]])))
         : h('p', { class: 'jg-vazio' }, this.docs.length ? 'Nada neste filtro.' : 'Nenhum documento ainda. O que o mestre entregar (relatórios, fotos, pistas) aparece aqui.'),
-      sel ? this.detalheDoc(sel, meta(sel)) : null,
-    ].filter((x): x is HTMLElement => !!x);
+    ].filter(Boolean) as HTMLElement[];
   }
 
   private detalheDoc(d: Documento, meta: string): HTMLElement {
@@ -973,7 +976,7 @@ export class TelaJogador {
     const linhas = lista.map((n) =>
       h(
         'button',
-        { class: `jg-nota${this.notaSel === n.id ? ' on' : ''}`, type: 'button', onclick: () => ((this.notaSel = this.notaSel === n.id ? null : n.id), sfx.paper(), this.renderConteudo()) },
+        { class: `jg-nota${this.notaSel === n.id ? ' on' : ''}`, type: 'button', onclick: () => ((this.notaSel = this.notaSel === n.id ? null : n.id), (this.focarDetalhe = true), sfx.paper(), this.renderConteudo()) },
         ic('documento'),
         h('span', { class: 'jg-linha-txt' }, h('span', { class: 'jg-linha-n' }, n.titulo || 'Sem título'), h('small', null, quando(n.em))),
         n.fixada ? h('em', { class: 'jg-marca' }, ic('pino')) : null,
@@ -986,9 +989,10 @@ export class TelaJogador {
     return [
       this.titulo('NOTAS', 'pena', h('button', { class: 'jg-tit-bt', type: 'button', onclick: () => this.novaNota() }, ic('mais'), h('span', null, 'Nova nota'))),
       h('div', { class: 'jg-filtros dois' }, filtro(false, 'Recentes', 'ampulheta', IC.notasRecentes), filtro(true, 'Fixadas', 'pino', IC.notasFixadas)),
-      lista.length ? h('div', { class: 'jg-lista' }, ...linhas) : h('p', { class: 'jg-vazio' }, this.soFixadas ? 'Nenhuma nota fixada.' : 'Nenhuma nota. Anote pistas, nomes e portas trancadas: só você e o mestre veem.'),
-      sel ? this.editorNota(sel) : null,
-    ].filter((x): x is HTMLElement => !!x);
+      lista.length
+        ? h('div', { class: 'jg-lista' }, ...lista.flatMap((n, i) => (n === sel ? [linhas[i], this.editorNota(n)] : [linhas[i]])))
+        : h('p', { class: 'jg-vazio' }, this.soFixadas ? 'Nenhuma nota fixada.' : 'Nenhuma nota. Anote pistas, nomes e portas trancadas: só você e o mestre veem.'),
+    ].filter(Boolean) as HTMLElement[];
   }
 
   private novaNota() {
@@ -1057,6 +1061,40 @@ function buscaHabilidade(id: string): regras.Habilidade | undefined {
   return undefined;
 }
 
+
+/**
+ * Um d20 visto de frente (a silhueta do icosaedro): a face do meio, as três que encostam nela e
+ * as seis da borda, sombreadas como se a luz viesse de cima. As cores e as arestas vêm do CSS.
+ */
+function dadoD20(): SVGSVGElement {
+  const T = '50,3';
+  const UR = '91,26.5';
+  const LR = '91,73.5';
+  const B = '50,97';
+  const LL = '9,73.5';
+  const UL = '9,26.5';
+  const t = '50,21';
+  const r = '77.7,69';
+  const l = '22.3,69';
+  const face = (cls: string, ...p: string[]) => `<polygon class="${cls}" points="${p.join(' ')}" />`;
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 100 100');
+  svg.setAttribute('class', 'jg-d20');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.innerHTML =
+    face('d20-cima', T, UL, t) +
+    face('d20-cima', T, t, UR) +
+    face('d20-meio', t, l, UL) +
+    face('d20-meio', t, r, UR) +
+    face('d20-lado', UR, r, LR) +
+    face('d20-lado', LL, l, UL) +
+    face('d20-baixo', LR, r, B) +
+    face('d20-baixo', B, l, LL) +
+    face('d20-baixo', l, r, B) +
+    face('d20-frente', t, r, l) +
+    face('d20-contorno', T, UR, LR, B, LL, UL);
+  return svg;
+}
 
 /** "4d20+5" (com a penalidade de dados, "2d20 (pior)"). */
 function textoTesteAtaque(a: regras.Ataque): string {
