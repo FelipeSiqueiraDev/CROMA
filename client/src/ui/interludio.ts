@@ -89,7 +89,9 @@ export class AbaInterludio {
             return sel;
           })()
         : null;
-      const ganhos = [r.pv && `+${r.pv} PV`, r.pe && `+${r.pe} PE`, r.san && `+${r.san} SAN`].filter(Boolean) as string[];
+      // o valor da regra inteiro; se bater no máximo, quanto entra de fato
+      const ganho = (k: 'pv' | 'pe' | 'san', nome: string) => (r.total[k] ? (r[k] < r.total[k] ? `+${r.total[k]} ${nome} (entra ${r[k]}, máx.)` : `+${r.total[k]} ${nome}`) : null);
+      const ganhos = [ganho('pv', 'PV'), ganho('pe', 'PE'), ganho('san', 'SAN')].filter(Boolean) as string[];
       const guardados = (tipo: 'exercicio' | 'leitura', nome: string, attr: string, max: number) => {
         const v = n.bonus[tipo];
         return h(

@@ -56,6 +56,8 @@ export interface ResultadoInterludio {
   pv: number;
   pe: number;
   san: number;
+  /** quanto a regra dá, antes de cortar no máximo (para mostrar ao mestre) */
+  total: { pv: number; pe: number; san: number };
   /** os bônus guardados depois do interlúdio */
   bonus: { exercicio: number; leitura: number };
   /** o que aconteceu, para o registro */
@@ -93,6 +95,7 @@ export function resolverInterludio(lugar: LugarDescanso, grupo: NoInterludio[]):
       pe = Math.floor(p.limitePe * (comeu === 'energetico' ? subir(vezes) : vezes));
     }
     if (e.acoes.includes('relaxar')) san = Math.floor(p.limitePe * vezes) + relaxam + (comeu === 'favorito' ? 2 : 0);
+    const total = { pv, pe, san };
     // nunca passa do máximo (LR p. 93)
     pv = Math.max(0, Math.min(pv, p.max.pv - p.atual.pv));
     pe = Math.max(0, Math.min(pe, p.max.pe - p.atual.pe));
@@ -110,6 +113,6 @@ export function resolverInterludio(lugar: LugarDescanso, grupo: NoInterludio[]):
       if (a === 'manutencao') notas.push('consertou um item');
       if (a === 'revisar') notas.push(`revisou o caso${comeu === 'rapido' ? ' (+5 no teste, prato rápido)' : ''}`);
     }
-    return { id: p.id, pv, pe, san, bonus, notas, erros };
+    return { id: p.id, pv, pe, san, total, bonus, notas, erros };
   });
 }
