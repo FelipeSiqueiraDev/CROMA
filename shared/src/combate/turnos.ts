@@ -4,7 +4,8 @@
  * e devolvem uma cópia mudada, ou o motivo da recusa.
  */
 import { condicao as condicaoDoCatalogo } from '../regras/dados';
-import { consequencia } from './ataque';
+import { consequencia, consequenciaMental, consequenciaNaoLetal, dadoDaFalha, METROS_POR_CASA, textoMetros } from './ataque';
+import { casasEmpurrao, empurraUmQuadrado, manobra as defManobra, type ManobraId } from './manobra';
 import {
   LADOS,
   type AcaoCombate,
@@ -12,6 +13,7 @@ import {
   type Combate,
   type Contexto,
   type Entrada,
+  type FichaAmeaca,
   type Lado,
   type MudancaVitais,
   type Participante,
@@ -122,15 +124,28 @@ function registrar(c: Combate, agora: number, tipo: TipoRegistro, t: string, des
   if (c.registro.length > MAX_REGISTRO) c.registro.splice(0, c.registro.length - MAX_REGISTRO);
 }
 
+/** A criatura (ameaça com elemento) não tem SAN e é imune a dano mental, a condições mentais e de medo e a rituais de Medo (LR p. 180). */
+const criatura = (ctx: Contexto, p: Participante) => p.lado !== 'agente' && !!ctx.ameaca?.(p.id)?.elemento;
+
 /** Começo do turno de um lugar (COMBATE.md, seção 4.3). */
 function comecarTurno(c: Combate, e: Entrada, ctx: Contexto) {
   const ps = ativosDa(c, e);
   c.acoes = {};
-  for (const p of ps) {
-    c.acoes[String(p.id)] = livre();
-    // a defesa especial volta no começo do próprio turno (DC-7)
-    p.reacao = false;
+  for (const p of ps) c.acoes[String(p.id)] = livre();
+  // quem atrasou volta à vez: o turno já tinha começado nesta rodada, e atrasar é só agir mais tarde (LR p. 87).
+  // O que já tinha usado (o PE do sustentado, ações livres) volta junto: o limite de PE é do turno
+  if (c.comecaram?.includes(e.id)) {
+    const guardado = c.atrasados?.[e.id];
+    if (guardado) {
+      for (const p of ps) c.acoes[String(p.id)] = guardado[String(p.id)] ?? livre();
+      delete c.atrasados![e.id];
+    }
+    registrar(c, ctx.agora, 'turno', `${nomeEntrada(c, e)} age agora (tinha atrasado a vez).`);
+    return;
   }
+  (c.comecaram ??= []).push(e.id);
+  // a defesa especial volta no começo do próprio turno (DC-7)
+  for (const p of ps) p.reacao = false;
   registrar(c, ctx.agora, 'turno', e.mestre ? `Turno do mestre: ${ps.map((p) => p.nome).join(', ')}.` : `Vez de ${nomeEntrada(c, e)}.`);
   // ação preparada que não foi usada até aqui se perde (LR p. 86)
   const i = c.preparadas.findIndex((x) => x.entrada === e.id);
@@ -170,7 +185,34 @@ function comecarTurno(c: Combate, e: Entrada, ctx: Contexto) {
     if (cs.includes('em-chamas')) registrar(c, ctx.agora, 'estado', `${p.nome} está em chamas: sofre 1d6 de fogo (LR p. 310).`);
     if (cs.includes('sangrando')) registrar(c, ctx.agora, 'estado', `${p.nome} está sangrando: Vigor DT 20; passou, estabiliza; falhou, perde 1d6 PV (LR p. 311).`);
     if (cs.includes('confuso')) registrar(c, ctx.agora, 'estado', `${p.nome} está confuso: role 1d6 (LR p. 310).`);
+    const agarrado = c.participantes.find((q) => q.agarra === p.id && !q.fora);
+    if (agarrado) registrar(c, ctx.agora, 'estado', `${p.nome} está agarrado por ${agarrado.nome}: soltar-se é ação padrão com teste de manobra (LR p. 85).`);
+    const preso = p.agarra ? participante(c, p.agarra) : undefined;
+    if (preso && !preso.fora) registrar(c, ctx.agora, 'estado', `${p.nome} agarra ${preso.nome}: uma mão ocupada, anda à metade; soltar é ação livre (LR p. 85).`);
   }
+}
+
+function comCondicao(p: Participante, id: string) {
+  p.condicoes = [...new Set([...(p.condicoes ?? []), id])];
+}
+
+function semCondicao(p: Participante, id: string) {
+  const s = (p.condicoes ?? []).filter((x) => x !== id);
+  if (s.length) p.condicoes = s;
+  else delete p.condicoes;
+}
+
+/** Quem agarra `p` deixa de agarrar (o alvo se soltou, saiu ou perdeu a condição). */
+function largarQuemAgarra(c: Combate, p: Participante) {
+  for (const q of c.participantes) if (q.agarra === p.id) delete q.agarra;
+}
+
+/** `p` solta quem ele agarra; o alvo sai do agarrado se ninguém mais o segura. */
+function soltarAgarrado(c: Combate, p: Participante): Participante | undefined {
+  const alvo = p.agarra ? participante(c, p.agarra) : undefined;
+  delete p.agarra;
+  if (alvo && !c.participantes.some((q) => q.agarra === alvo.id)) semCondicao(alvo, 'agarrado');
+  return alvo;
 }
 
 /** Passa a vez para o próximo lugar que pode agir; quando todos agiram, começa outra rodada. */
@@ -186,6 +228,8 @@ function proximo(c: Combate, ctx: Contexto) {
       }
       c.rodada += 1;
       c.agiram = [];
+      c.comecaram = [];
+      delete c.atrasados;
       registrar(c, ctx.agora, 'rodada', `Rodada ${c.rodada}.`);
       continue;
     }
@@ -209,6 +253,30 @@ function porIniciativa(c: Combate, e: Entrada, valor: number, desempate: number)
   }
 }
 
+/**
+ * Presença perturbadora das criaturas no combate (LR p. 180): quem as vê faz
+ * Vontade; com várias, vale a de maior VD, +1d6 por criatura a mais. O mestre
+ * pede o teste uma vez por cena para cada personagem (DC-15).
+ */
+function lembrarPresenca(c: Combate, ctx: Contexto, quemChega?: Participante) {
+  if (!ctx.ameaca) return;
+  const com = c.participantes
+    .filter((p) => !p.fora && p.lado !== 'agente')
+    .map((p) => ({ p, f: ctx.ameaca!(p.id) }))
+    .filter((x): x is { p: Participante; f: FichaAmeaca & { presenca: NonNullable<FichaAmeaca['presenca']> } } => !!x.f?.presenca);
+  if (!com.length || (quemChega && !com.some((x) => x.p.id === quemChega.id))) return;
+  const maior = com.reduce((a, b) => ((b.f.vd ?? 0) > (a.f.vd ?? 0) ? b : a));
+  const pr = maior.f.presenca;
+  const extra = com.length - 1;
+  const quem = com.length > 1 ? ` (${com.length} criaturas; vale a de ${maior.p.nome})` : ` de ${maior.p.nome}`;
+  registrar(
+    c,
+    ctx.agora,
+    'estado',
+    `Presença perturbadora${quem}: quem a vê faz Vontade DT ${pr.dt}; falhou, ${pr.dano}${extra ? `+${extra}d6` : ''} de dano mental; passou, metade. NEX ${pr.nex}% ou mais é imune (LR p. 180; uma vez por cena, DC-15).`,
+  );
+}
+
 const NOME_SAIDA: Record<Saida, string> = { morto: 'morreu', insano: 'chegou à insanidade', saiu: 'saiu do combate' };
 const NOME_ACAO: Record<TipoAcao, string> = { padrao: 'ação padrão', movimento: 'ação de movimento', completa: 'ação completa', livre: 'ação livre', reacao: 'reação' };
 
@@ -228,13 +296,22 @@ function ataque(c: Combate, x: unknown, ctx: Contexto, e: Entrada | undefined): 
   const alvo = participante(c, inteiro(o.alvo, 1, 1e9) ?? 0);
   if (!alvo || alvo.fora) return erro('O alvo não está no combate.');
   const ac = { ...acoesDe(c, quem.id) };
+  const vezes = inteiro(o.vezes, 1, 6) ?? 1;
+  let golpe = '';
   if (o.qual === 'completa') {
     if (ac.padrao || ac.movimento || ac.completa) return erro('A ação completa precisa do turno inteiro livre.');
     ac.completa = true;
   } else {
     if (ac.completa) return erro('A ação completa já gastou o turno.');
-    if (ac.padrao) return erro('A ação padrão já foi usada neste turno.');
-    ac.padrao = true;
+    if (ac.padrao) {
+      // o "×2" da ameaça: mais um ataque na mesma ação (LR p. 179)
+      if (!ac.golpes) return erro('A ação padrão já foi usada neste turno.');
+      ac.golpes -= 1;
+      golpe = ' (outro ataque da mesma ação)';
+    } else {
+      ac.padrao = true;
+      if (vezes > 1) ac.golpes = vezes - 1;
+    }
   }
   const reacao = o.reacao === 'esquiva' || o.reacao === 'bloqueio' ? o.reacao : null;
   if (reacao) {
@@ -251,49 +328,322 @@ function ataque(c: Combate, x: unknown, ctx: Contexto, e: Entrada | undefined): 
   const arma = texto(o.arma, 60) || 'ataque';
   const sits = Array.isArray(o.situacoes) ? o.situacoes.map((s) => texto(s, 40)).filter(Boolean).slice(0, 10) : [];
 
+  // a jogada pronta gasta os PE dela junto (o limite do turno conta, LR p. 23)
+  const jg = o.jogada && typeof o.jogada === 'object' ? (o.jogada as Record<string, unknown>) : null;
+  const peJogada = jg ? (inteiro(jg.pe, 0, 99) ?? 0) : 0;
+  const nomeJogada = jg ? texto(jg.nome, 60) : '';
+  const vitais: MudancaVitais[] = [];
+  if (peJogada) {
+    const v = ctx.vitais(quem.id);
+    if (!v) return erro(`${quem.nome} não tem PE marcados na peça.`);
+    if (v.pe < peJogada) return erro(`${quem.nome} só tem ${v.pe} PE; a jogada pede ${peJogada}.`);
+    ac.pe = (ac.pe ?? 0) + peJogada;
+    mudar(vitais, quem.id, 'pe', v.pe - peJogada);
+  }
   if (reacao) alvo.reacao = true;
   c.acoes[String(quem.id)] = ac;
-  let linha = `${quem.nome} ataca ${alvo.nome} com ${arma}${reacao ? ` (${alvo.nome} usa ${reacao})` : ''}: d20 ${d20}, total ${total} contra Defesa ${defesa}`;
+  let linha = `${quem.nome} ataca ${alvo.nome} com ${arma}${nomeJogada ? ` (jogada ${nomeJogada}${peJogada ? `, ${peJogada} PE` : ''})` : ''}${golpe}${reacao ? ` (${alvo.nome} usa ${reacao})` : ''}: d20 ${d20}, total ${total} contra Defesa ${defesa}`;
   if (sits.length) linha += ` (${sits.join(', ')})`;
   const f = o.falha && typeof o.falha === 'object' ? (o.falha as Record<string, unknown>) : null;
-  const d10 = f ? inteiro(f.d10, 1, 10) : undefined;
+  const d10 = f ? inteiro(f.d10, 1, 100) : undefined;
   const chance = f ? inteiro(f.chance, 0, 100) : undefined;
-  if (d10 !== undefined && chance) linha += `; falha ${chance}%: d10 ${d10}${f!.falhou ? ', falhou' : ''}`;
+  // o dado da falha: d10, ou d4 nos 75% (LR p. 89, 313)
+  if (d10 !== undefined && chance) linha += `; falha ${chance}%: d${dadoDaFalha(chance).faces} ${d10}${f!.falhou ? ', falhou' : ''}`;
   const rotulo = resultado === 'erro' ? 'errou' : resultado === 'critico' ? `acerto crítico ×${mult}` : 'acertou';
   registrar(c, ctx.agora, 'acao', `${linha} — ${rotulo}.`, resultado === 'erro' ? undefined : [rotulo]);
   if (resultado === 'erro' && o.contraAtaque === true) registrar(c, ctx.agora, 'estado', `${alvo.nome} pode contra-atacar (Luta treinada, uma defesa especial por rodada; LR p. 88).`);
 
-  const vitais: MudancaVitais[] = [];
   const d = o.dano && typeof o.dano === 'object' ? (o.dano as Record<string, unknown>) : null;
-  if (resultado !== 'erro' && d) {
-    const final = inteiro(d.final, 0, 9999) ?? 0;
-    const conta = texto(d.conta, 90);
-    const formula = texto(d.formula, 30);
-    const naoLetal = d.naoLetal === true;
-    const v = ctx.vitais(alvo.id);
-    if (v) {
-      const q = consequencia(v, final);
-      const estado = q.zerou ? '0 PV' : q.machucado ? 'machucado' : '';
-      registrar(c, ctx.agora, 'acao', `Dano${naoLetal ? ' não letal' : ''} ${formula}: ${conta}. ${alvo.nome}: PV ${v.pv} → ${q.pv}${estado ? ` (${estado})` : ''}.`, estado ? [estado] : undefined);
-      if (q.pv !== v.pv) vitais.push({ id: alvo.id, pv: q.pv });
-      if (q.massivo) registrar(c, ctx.agora, 'estado', `Dano massivo: ${alvo.nome} faz Fortitude DT ${q.massivo}; se falhar, vai a 0 PV (LR p. 88).`);
-      if (q.zerou) {
-        // a peça deita (DC-19)
-        alvo.condicoes = [...new Set([...(alvo.condicoes ?? []), 'caido'])];
-        registrar(
-          c,
-          ctx.agora,
-          'estado',
-          alvo.lado === 'agente'
-            ? naoLetal
-              ? `${alvo.nome} cai inconsciente (dano não letal, sem morrendo; LR p. 88).`
-              : `${alvo.nome} cai inconsciente e morrendo (LR p. 88).`
-            : `${alvo.nome} chegou a 0 PV: tire do combate (morte ou fora de combate, DC-16).`,
-        );
-      }
-    } else registrar(c, ctx.agora, 'acao', `Dano ${formula}: ${conta}. ${alvo.nome} não tem PV marcados na peça.`);
-  }
+  if (resultado !== 'erro' && d) aplicarDano(c, alvo, d, ctx, vitais);
+  // o dano a mais de outro tipo (ex.: "e 1d8 mental"), contado à parte
+  const dx = o.danoExtra && typeof o.danoExtra === 'object' ? (o.danoExtra as Record<string, unknown>) : null;
+  if (resultado !== 'erro' && dx) aplicarDano(c, alvo, dx, ctx, vitais);
   c.ultimo = { quem: quem.id, alvo: alvo.id, resultado, ...(mult ? { multiplicador: mult } : {}), em: ctx.agora };
+  return { ok: true, combate: c, vitais };
+}
+
+/** Guarda o valor novo de PV, PE ou SAN de um ser na lista de mudanças. */
+function mudar(vitais: MudancaVitais[], id: number, k: 'pv' | 'pe' | 'san', n: number) {
+  const m = vitais.find((x) => x.id === id);
+  if (m) m[k] = n;
+  else vitais.push({ id, [k]: n });
+}
+
+/**
+ * Aplica um dano que a tela já contou (LR p. 82, 88):
+ * - letal: PV novos, machucado, dano massivo e 0 PV. A 0 PV a peça deita
+ *   (DC-19); a ameaça sai pelo mestre (DC-16);
+ * - não letal: não tira PV; soma no `naoLetal` do ser, e quando passa dos PV
+ *   ele desmaia, sem morrendo;
+ * - mental: tira SAN, não PV. SAN 0 deixa enlouquecendo.
+ */
+function aplicarDano(c: Combate, alvo: Participante, d: Record<string, unknown>, ctx: Contexto, vitais: MudancaVitais[]) {
+  const final = inteiro(d.final, 0, 9999) ?? 0;
+  const conta = texto(d.conta, 90);
+  const formula = texto(d.formula, 30);
+  const mental = texto(d.tipo, 20) === 'mental';
+  const naoLetal = d.naoLetal === true && !mental;
+  const nome = mental ? 'Dano mental' : naoLetal ? 'Dano não letal' : 'Dano';
+  const v = ctx.vitais(alvo.id);
+  if (!v) {
+    registrar(c, ctx.agora, 'acao', `${nome} ${formula}: ${conta}. ${alvo.nome} não tem ${mental ? 'SAN marcada' : 'PV marcados'} na peça.`);
+    return;
+  }
+  if (final <= 0) {
+    registrar(c, ctx.agora, 'acao', `${nome} ${formula}: ${conta}. ${alvo.nome} não sofre dano.`);
+    return;
+  }
+  const ja = vitais.find((m) => m.id === alvo.id);
+  if (mental) {
+    // danos seguidos na mesma ação partem dos valores já mudados
+    const antes = ja?.san ?? v.san;
+    const q = consequenciaMental({ san: antes, sanMax: v.sanMax }, final);
+    const estado = q.zerou ? 'enlouquecendo' : q.perturbado ? 'perturbado' : '';
+    registrar(c, ctx.agora, 'acao', `${nome} ${formula}: ${conta}. ${alvo.nome}: SAN ${antes} → ${q.san}${estado ? ` (${estado})` : ''}.`, estado ? [estado] : undefined);
+    if (q.san !== antes) mudar(vitais, alvo.id, 'san', q.san);
+    if (q.zerou && alvo.lado === 'agente') registrar(c, ctx.agora, 'estado', `${alvo.nome} fica enlouquecendo: no 3º turno começado assim nesta cena, fica insano (LR p. 88).`);
+    return;
+  }
+  const pv = ja?.pv ?? v.pv;
+  if (naoLetal) {
+    const antes = alvo.naoLetal ?? 0;
+    const q = consequenciaNaoLetal({ pv, pvMax: v.pvMax }, antes, final);
+    alvo.naoLetal = q.naoLetal;
+    registrar(c, ctx.agora, 'acao', `${nome} ${formula}: ${conta}. ${alvo.nome}: não letal ${antes} → ${q.naoLetal} (PV ${pv}${q.desmaiou ? ', inconsciente' : ''}).`, q.desmaiou ? ['inconsciente'] : undefined);
+    if (q.massivo) registrar(c, ctx.agora, 'estado', `Dano massivo: ${alvo.nome} faz Fortitude DT ${q.massivo}; se falhar, cai inconsciente, sem morrendo (o não letal não deixa morrendo; LR p. 88).`);
+    if (q.desmaiou) {
+      comCondicao(alvo, 'inconsciente');
+      comCondicao(alvo, 'caido');
+      registrar(c, ctx.agora, 'estado', `${alvo.nome} cai inconsciente: o dano não letal passou dos PV, sem morrendo (LR p. 88).`);
+    }
+    return;
+  }
+  const q = consequencia({ pv, pvMax: v.pvMax }, final, alvo.naoLetal ?? 0);
+  const estado = q.zerou ? '0 PV' : q.desmaiou ? 'inconsciente' : q.machucado ? 'machucado' : '';
+  registrar(c, ctx.agora, 'acao', `${nome} ${formula}: ${conta}. ${alvo.nome}: PV ${pv} → ${q.pv}${estado ? ` (${estado})` : ''}.`, estado ? [estado] : undefined);
+  if (q.pv !== pv) mudar(vitais, alvo.id, 'pv', q.pv);
+  if (q.massivo) registrar(c, ctx.agora, 'estado', `Dano massivo: ${alvo.nome} faz Fortitude DT ${q.massivo}; se falhar, vai a 0 PV (LR p. 88).`);
+  if (q.desmaiou) {
+    comCondicao(alvo, 'inconsciente');
+    comCondicao(alvo, 'caido');
+    registrar(c, ctx.agora, 'estado', `${alvo.nome} cai inconsciente: com o dano não letal, os PV acabaram, mas sem morrendo (LR p. 88).`);
+  }
+  if (q.zerou) {
+    comCondicao(alvo, 'caido');
+    registrar(c, ctx.agora, 'estado', alvo.lado === 'agente' ? `${alvo.nome} cai inconsciente e morrendo (LR p. 88).` : `${alvo.nome} chegou a 0 PV: tire do combate (morte ou fora de combate, DC-16).`);
+  }
+}
+
+/**
+ * Manobra confirmada na tela (LR p. 85–86; COMBATE.md, seção 9): gasta a ação
+ * padrão (atropelar na investida é livre), escreve o teste oposto no registro e
+ * aplica o que a manobra faz quando vence. Empurrões mexem na peça pela tela.
+ */
+function manobra(c: Combate, x: unknown, ctx: Contexto, e: Entrada | undefined): Resultado {
+  const erro = (motivo: string): Resultado => ({ ok: false, motivo });
+  if (!x || typeof x !== 'object') return erro('Manobra inválida.');
+  const o = x as Record<string, unknown>;
+  if (!e) return erro('Não há turno em andamento.');
+  const def = typeof o.manobra === 'string' ? defManobra(o.manobra as ManobraId) : undefined;
+  if (!def) return erro('Manobra desconhecida.');
+  const quem = participante(c, inteiro(o.quem, 1, 1e9) ?? 0);
+  if (!quem || quem.fora || !e.participantes.includes(quem.id)) return erro('Quem faz a manobra não está na vez.');
+  const alvo = participante(c, inteiro(o.alvo, 1, 1e9) ?? 0);
+  if (!alvo || alvo.fora) return erro('O alvo não está no combate.');
+  if (alvo.id === quem.id) return erro('A manobra precisa de outro ser.');
+  if (def.id === 'esmagar' && quem.agarra !== alvo.id) return erro(`${quem.nome} não está agarrando ${alvo.nome}.`);
+  if (def.id === 'soltarse' && alvo.agarra !== quem.id) return erro(`${alvo.nome} não está agarrando ${quem.nome}.`);
+  const ac = { ...acoesDe(c, quem.id) };
+  if (!(o.qual === 'livre' && def.id === 'atropelar')) {
+    if (ac.completa) return erro('A ação completa já gastou o turno.');
+    if (ac.padrao) return erro('A ação padrão já foi usada neste turno.');
+    ac.padrao = true;
+  }
+  const lado = (v: unknown) => {
+    const t = (v && typeof v === 'object' ? v : {}) as Record<string, unknown>;
+    return { d20: inteiro(t.d20, 1, 20), total: inteiro(t.total, -99, 999) };
+  };
+  const t = (o.teste && typeof o.teste === 'object' ? o.teste : {}) as Record<string, unknown>;
+  const a = lado(t.quem);
+  const b = lado(t.alvo);
+  if (a.d20 === undefined || a.total === undefined || b.d20 === undefined || b.total === undefined) return erro('Falta o resultado dos dois testes.');
+  if (a.total === b.total && a.d20 >= 20 === b.d20 >= 20) return erro('Empate: os dois rolam de novo (LR p. 75).');
+  const venceu = o.venceu === true;
+  const dif = inteiro(o.diferenca, 0, 999) ?? Math.abs(a.total - b.total);
+  const mods = Array.isArray(o.modificadores) ? o.modificadores.map((s) => texto(s, 40)).filter(Boolean).slice(0, 10) : [];
+  const arma = texto(o.arma, 60);
+  c.acoes[String(quem.id)] = ac;
+  let linha = `${quem.nome} tenta ${def.verbo} ${alvo.nome}${arma ? ` (${arma})` : ''}: teste de manobra d20 ${a.d20}, total ${a.total} contra d20 ${b.d20}, total ${b.total}`;
+  if (mods.length) linha += ` (${mods.join(', ')})`;
+  const rotulo = venceu ? `venceu por ${dif}` : `${alvo.nome} venceu`;
+  registrar(c, ctx.agora, 'acao', `${linha} — ${rotulo}.`, venceu ? [rotulo] : undefined);
+  const vitais: MudancaVitais[] = [];
+  const est = (txt: string, destaque?: string[]) => registrar(c, ctx.agora, 'estado', txt, destaque);
+  if (!venceu) {
+    if (def.id === 'atropelar') est(`${alvo.nome} fica de pé e impede o avanço de ${quem.nome} (LR p. 86).`);
+    return { ok: true, combate: c, vitais };
+  }
+  switch (def.id) {
+    case 'agarrar':
+      // uma mão agarra um ser: quem já agarrava outro, solta
+      if (quem.agarra && quem.agarra !== alvo.id) soltarAgarrado(c, quem);
+      quem.agarra = alvo.id;
+      comCondicao(alvo, 'agarrado');
+      est(`${alvo.nome} fica agarrado por ${quem.nome}: desprevenido e imóvel, só ataca com arma leve e sofre −1d20 nos ataques; ${quem.nome} fica com uma mão ocupada e anda à metade (LR p. 85).`);
+      break;
+    case 'derrubar':
+      comCondicao(alvo, 'caido');
+      est(`${alvo.nome} cai${empurraUmQuadrado(dif) ? ' e é empurrado 1 quadrado; perto de uma beirada, Reflexos DT 20 para se segurar' : ''} (LR p. 85).`);
+      break;
+    case 'desarmar':
+      est(`O item de ${alvo.nome} cai ${empurraUmQuadrado(dif) ? `1 quadrado adiante, para onde ${quem.nome} escolher` : 'na casa dele'} (LR p. 85).`);
+      break;
+    case 'empurrar': {
+      const casas = inteiro(o.empurrao, 0, 99) ?? casasEmpurrao(dif);
+      est(`${alvo.nome} é empurrado ${textoMetros(casas * METROS_POR_CASA)}; ${quem.nome} pode gastar uma ação de movimento para ir junto (LR p. 85).`);
+      break;
+    }
+    case 'atropelar':
+      comCondicao(alvo, 'caido');
+      est(`${alvo.nome} cai, e ${quem.nome} passa (LR p. 86).`);
+      break;
+    case 'soltarse':
+      largarQuemAgarra(c, quem);
+      semCondicao(quem, 'agarrado');
+      est(`${quem.nome} se solta de ${alvo.nome}.`);
+      break;
+    case 'quebrar': {
+      const ob = o.objeto && typeof o.objeto === 'object' ? (o.objeto as Record<string, unknown>) : null;
+      const d = o.dano && typeof o.dano === 'object' ? (o.dano as Record<string, unknown>) : null;
+      if (ob && d) {
+        const quebrou = ob.quebrou === true;
+        est(`Dano no item de ${alvo.nome} (${texto(ob.nome, 40) || 'objeto'}): ${texto(d.conta, 90)}${quebrou ? ' — quebrou' : ''} (LR p. 90).`, quebrou ? ['quebrou'] : undefined);
+      } else est(`${quem.nome} acerta o item de ${alvo.nome}: role o dano contra a RD e os PV do objeto (LR p. 90).`);
+      break;
+    }
+    case 'esmagar': {
+      const d = o.dano && typeof o.dano === 'object' ? (o.dano as Record<string, unknown>) : null;
+      if (d) aplicarDano(c, alvo, d, ctx, vitais);
+      break;
+    }
+  }
+  return { ok: true, combate: c, vitais };
+}
+
+const NOME_TESTE_RES: Record<string, string> = { fortitude: 'Fortitude', reflexos: 'Reflexos', vontade: 'Vontade' };
+const NOME_FORMA_RIT: Record<string, string> = { basica: 'básica', discente: 'discente', verdadeira: 'verdadeira' };
+
+/**
+ * Ritual confirmado na tela (LR p. 117–121; COMBATE.md, seção 15.1): gasta a
+ * execução e os PE, confere a concentração, escreve a resistência e o dano de
+ * cada alvo, marca as condições, começa o sustentado e aplica o Custo do
+ * Paranormal em quem conjura (dano mental; a SAN perdida para sempre vai para a
+ * ficha pelo mestre).
+ */
+function ritual(c: Combate, x: unknown, ctx: Contexto, e: Entrada | undefined): Resultado {
+  const erro = (motivo: string): Resultado => ({ ok: false, motivo });
+  if (!x || typeof x !== 'object') return erro('Ritual inválido.');
+  const o = x as Record<string, unknown>;
+  if (!e) return erro('Não há turno em andamento.');
+  const quem = participante(c, inteiro(o.quem, 1, 1e9) ?? 0);
+  if (!quem || quem.fora || !e.participantes.includes(quem.id)) return erro('Quem conjura não está na vez.');
+  const nome = texto(o.ritual, 60);
+  if (!nome) return erro('Diga qual é o ritual.');
+  const forma = typeof o.forma === 'string' && o.forma in NOME_FORMA_RIT ? o.forma : 'basica';
+  const pe = inteiro(o.pe, 0, 99) ?? 0;
+  const v = ctx.vitais(quem.id);
+  if (pe > 0) {
+    if (!v) return erro(`${quem.nome} não tem PE marcados na peça.`);
+    if (v.pe < pe) return erro(`${quem.nome} só tem ${v.pe} PE.`);
+  }
+  // a execução do ritual gasta do turno como as outras ações (LR p. 119)
+  const ac = { ...acoesDe(c, quem.id) };
+  const qual = o.qual;
+  if (qual === 'padrao') {
+    if (ac.completa) return erro('A ação completa já gastou o turno.');
+    if (ac.padrao) return erro('A ação padrão já foi usada neste turno.');
+    ac.padrao = true;
+  } else if (qual === 'movimento') {
+    if (ac.completa) return erro('A ação completa já gastou o turno.');
+    if (!ac.movimento) ac.movimento = true;
+    else if (!ac.padrao) ac.padrao = true;
+    else return erro('Não sobra ação de movimento neste turno.');
+  } else if (qual === 'completa') {
+    if (ac.padrao || ac.movimento || ac.completa) return erro('A ação completa precisa do turno inteiro livre.');
+    ac.completa = true;
+  } else if (qual !== 'livre' && qual !== 'reacao') return erro('Execução inválida.');
+  ac.pe = (ac.pe ?? 0) + pe;
+  c.acoes[String(quem.id)] = ac;
+  const dt = inteiro(o.dt, 1, 99);
+  registrar(c, ctx.agora, 'acao', `${quem.nome} conjura ${nome} (${NOME_FORMA_RIT[forma]}${pe ? `, ${pe} PE` : ''}${dt ? `, DT ${dt}` : ''}).`);
+  const vitais: MudancaVitais[] = [];
+  const minhas: MudancaVitais = { id: quem.id };
+  if (pe > 0 && v) minhas.pe = v.pe - pe;
+  const lado = (t: unknown) => {
+    const r = (t && typeof t === 'object' ? t : null) as Record<string, unknown> | null;
+    if (!r) return null;
+    const d20 = inteiro(r.d20, 1, 20);
+    const total = inteiro(r.total, -99, 999);
+    const alvoDt = inteiro(r.dt, 1, 99);
+    return d20 === undefined || total === undefined ? null : { d20, total, dt: alvoDt, passou: r.passou === true, nome: texto(r.nome, 12) };
+  };
+  // concentração: falhou, o ritual não sai e os PE se perdem (LR p. 120)
+  const conc = lado(o.concentracao);
+  if (conc) {
+    registrar(c, ctx.agora, 'acao', `Concentração: Vontade d20 ${conc.d20}, total ${conc.total}${conc.dt ? ` contra DT ${conc.dt}` : ''} — ${conc.passou ? 'passou' : 'falhou'}.`, conc.passou ? undefined : ['falhou']);
+    if (!conc.passou) {
+      registrar(c, ctx.agora, 'estado', `O ritual não sai, e os PE se perdem (LR p. 120).`);
+      if (minhas.pe !== undefined) vitais.push(minhas);
+      return { ok: true, combate: c, vitais };
+    }
+  }
+  // cada alvo: resistência, dano e condição
+  const alvos = Array.isArray(o.alvos) ? o.alvos.slice(0, 20) : [];
+  const deMedo = o.elemento === 'medo' || o.medo === true;
+  for (const a of alvos) {
+    if (!a || typeof a !== 'object') continue;
+    const r = a as Record<string, unknown>;
+    const p = participante(c, inteiro(r.id, 1, 1e9) ?? 0);
+    if (!p || p.fora) continue;
+    // criaturas são imunes a rituais de Medo (LR p. 180)
+    if (deMedo && criatura(ctx, p)) {
+      registrar(c, ctx.agora, 'estado', `${p.nome} é criatura: imune a rituais de Medo (LR p. 180).`);
+      continue;
+    }
+    const t = lado(r.teste);
+    if (t) registrar(c, ctx.agora, 'acao', `${p.nome}: ${NOME_TESTE_RES[t.nome] ?? 'resistência'} d20 ${t.d20}, total ${t.total}${dt ? ` contra DT ${dt}` : ''} — ${t.passou ? 'passou' : 'falhou'}.`);
+    const d = r.dano && typeof r.dano === 'object' ? (r.dano as Record<string, unknown>) : null;
+    if (d) aplicarDano(c, p, d, ctx, vitais);
+    const dx = r.danoExtra && typeof r.danoExtra === 'object' ? (r.danoExtra as Record<string, unknown>) : null;
+    if (dx) aplicarDano(c, p, dx, ctx, vitais);
+    const cond = texto(r.condicao, 30);
+    const def = cond ? condicaoDoCatalogo(cond) : undefined;
+    if (def && criatura(ctx, p) && (def.grupo === 'medo' || def.grupo === 'mental')) registrar(c, ctx.agora, 'estado', `${p.nome} é criatura: imune a condições ${def.grupo === 'medo' ? 'de medo' : 'mentais'} (LR p. 180).`);
+    else if (def) {
+      comCondicao(p, cond);
+      registrar(c, ctx.agora, 'estado', `${p.nome} entra na condição ${def.nome.toLowerCase()}.`);
+    }
+  }
+  if (o.sustentado === true) {
+    quem.sustenta = nome;
+    registrar(c, ctx.agora, 'estado', `${quem.nome} sustenta ${nome}: 1 PE no começo de cada turno (LR p. 120).`);
+  }
+  // Custo do Paranormal (LR p. 121)
+  const mental = inteiro(o.mental, 0, 99) ?? 0;
+  const perde = inteiro(o.sanPermanente, 0, 3) ?? 0;
+  const custo = lado(o.custo);
+  if (o.medo === true) registrar(c, ctx.agora, 'estado', `Ritual de Medo: ${quem.nome} sofre ${mental} de dano mental e perde ${perde} de SAN para sempre (LR p. 121).`, perde ? [`perde ${perde} de SAN para sempre`] : undefined);
+  else if (custo) {
+    registrar(c, ctx.agora, 'acao', `Custo do Paranormal: Ocultismo d20 ${custo.d20}, total ${custo.total}${custo.dt ? ` contra DT ${custo.dt}` : ''} — ${custo.passou ? 'passou' : 'falhou'}.`, custo.passou ? undefined : ['falhou']);
+    if (mental) registrar(c, ctx.agora, 'estado', `${quem.nome} sofre ${mental} de dano mental${perde ? ' e perde 1 de SAN para sempre: ajuste o máximo na ficha' : ''} (LR p. 121).`, perde ? ['perde 1 de SAN para sempre'] : undefined);
+  }
+  // parte da SAN que o próprio ritual já tirou de quem conjura, se ele estava na área
+  if (mental && v) minhas.san = Math.max(0, (vitais.find((m) => m.id === quem.id)?.san ?? v.san) - mental);
+  if (minhas.pe !== undefined || minhas.san !== undefined) {
+    const ja = vitais.find((m) => m.id === quem.id);
+    if (ja) Object.assign(ja, minhas);
+    else vitais.push(minhas);
+  }
   return { ok: true, combate: c, vitais };
 }
 
@@ -376,6 +726,7 @@ export function aplicar(atual: Combate | null, a: AcaoCombate, ctx: Contexto): R
       c.fase = 'andamento';
       c.rodada = 1;
       c.agiram = [];
+      c.comecaram = [];
       c.inicio = ctx.agora;
       const ordem = entradas(c)
         .map((e) => `${nomeEntrada(c, e)} ${e.valor}`)
@@ -383,6 +734,7 @@ export function aplicar(atual: Combate | null, a: AcaoCombate, ctx: Contexto): R
       registrar(c, ctx.agora, 'estado', `Combate começou. Ordem de iniciativa: ${ordem}.`);
       const surp = c.participantes.filter((p) => !p.ciente);
       if (surp.length) registrar(c, ctx.agora, 'estado', `Surpreendidos na rodada 1 (desprevenidos e sem turno): ${surp.map((p) => p.nome).join(', ')}.`);
+      lembrarPresenca(c, ctx);
       registrar(c, ctx.agora, 'rodada', 'Rodada 1.');
       proximo(c, ctx);
       return ok();
@@ -399,6 +751,13 @@ export function aplicar(atual: Combate | null, a: AcaoCombate, ctx: Contexto): R
     case 'atrasar': {
       const e = naVez();
       if (!e) return erro('Não há turno em andamento.');
+      // atrasar é agir mais tarde: depois de usar a padrão, a de movimento ou a completa, não atrasa (LR p. 87).
+      // Ações livres (o PE do sustentado, que se paga no começo do turno, LR p. 120) não impedem
+      const agiu = e.participantes.some((id) => {
+        const ac = c.acoes[String(id)];
+        return !!ac && (ac.padrao || ac.movimento || ac.completa);
+      });
+      if (agiu) return erro('Já houve ação neste turno: atrasar é agir mais tarde, antes de usar a ação padrão, a de movimento ou a completa (LR p. 87).');
       const v = inteiro(a.valor, -99, 999);
       if (v === undefined) return erro('Iniciativa inválida.');
       if (v >= e.valor) return erro(`Para atrasar, a Iniciativa nova precisa ser menor que ${e.valor}.`);
@@ -408,6 +767,8 @@ export function aplicar(atual: Combate | null, a: AcaoCombate, ctx: Contexto): R
       if (v > prox.valor) return erro(`Para agir depois de ${nomeEntrada(c, prox)}, a Iniciativa nova precisa ser ${prox.valor} ou menos.`);
       porIniciativa(c, e, v, v === prox.valor ? prox.desempate - 1 : 0);
       registrar(c, ctx.agora, 'turno', `${nomeEntrada(c, e)} atrasa a vez: Iniciativa ${e.valor} → ${v}.`);
+      // o que já usou fica guardado até a vez voltar (o PE conta no mesmo turno)
+      (c.atrasados ??= {})[e.id] = Object.fromEntries(e.participantes.map((id) => [String(id), { ...acoesDe(c, id) }]));
       proximo(c, ctx);
       return ok();
     }
@@ -532,6 +893,7 @@ export function aplicar(atual: Combate | null, a: AcaoCombate, ctx: Contexto): R
       if (lado === 'agente') p.iniciativa = v!;
       else if (c.mestre.iniciativa === null) c.mestre.iniciativa = v!;
       registrar(c, ctx.agora, 'estado', `${p.nome} entra no combate e age a partir da rodada ${c.rodada + 1}${lado === 'agente' ? `, com Iniciativa ${v}` : ', no turno do mestre'}.`);
+      if (lado !== 'agente') lembrarPresenca(c, ctx, p);
       return ok();
     }
 
@@ -541,6 +903,9 @@ export function aplicar(atual: Combate | null, a: AcaoCombate, ctx: Contexto): R
       if (!p || p.fora) return erro('Essa peça não está no combate.');
       p.fora = a.motivo && a.motivo in NOME_SAIDA ? a.motivo : 'saiu';
       registrar(c, ctx.agora, 'estado', `${p.nome} ${NOME_SAIDA[p.fora]}.`);
+      // quem sai larga quem agarrava, e quem o agarrava larga ele
+      if (p.agarra) soltarAgarrado(c, p);
+      largarQuemAgarra(c, p);
       // era a vez dele e não sobrou ninguém no lugar: a vez passa
       const e = naVez();
       if (e && ativosDa(c, e).length === 0) {
@@ -560,18 +925,35 @@ export function aplicar(atual: Combate | null, a: AcaoCombate, ctx: Contexto): R
     case 'ataque':
       return ataque(c, a.ataque, ctx, naVez());
 
+    case 'manobra':
+      return manobra(c, a.manobra, ctx, naVez());
+
+    case 'ritual':
+      return ritual(c, a.ritual, ctx, naVez());
+
+    case 'soltar': {
+      const p = participante(c, inteiro(a.id, 1, 1e9) ?? 0);
+      if (!p || !p.agarra) return erro('Esse ser não está agarrando ninguém.');
+      const alvo = soltarAgarrado(c, p);
+      registrar(c, ctx.agora, 'acao', `${p.nome} solta ${alvo?.nome ?? 'quem agarrava'} (ação livre, LR p. 85).`);
+      return ok();
+    }
+
     case 'condicao': {
       const p = participante(c, inteiro(a.id, 1, 1e9) ?? 0);
       if (!p) return erro('Essa peça não está no combate.');
       const id = texto(a.condicao, 30);
       const cond = condicaoDoCatalogo(id);
       if (!cond) return erro('Condição desconhecida.');
+      if (a.ativa && criatura(ctx, p) && (cond.grupo === 'medo' || cond.grupo === 'mental')) return erro(`${p.nome} é criatura: imune a condições ${cond.grupo === 'medo' ? 'de medo' : 'mentais'} (LR p. 180).`);
       const s = new Set(p.condicoes ?? []);
       if (a.ativa ? s.has(id) : !s.has(id)) return ok();
       if (a.ativa) s.add(id);
       else s.delete(id);
       if (s.size) p.condicoes = [...s];
       else delete p.condicoes;
+      // saiu do agarrado à mão: quem o agarrava larga
+      if (!a.ativa && id === 'agarrado') largarQuemAgarra(c, p);
       registrar(c, ctx.agora, 'estado', a.ativa ? `${p.nome} entra na condição ${cond.nome.toLowerCase()}.` : `${p.nome} sai da condição ${cond.nome.toLowerCase()}.`);
       return ok();
     }
@@ -628,6 +1010,26 @@ export function aplicar(atual: Combate | null, a: AcaoCombate, ctx: Contexto): R
       return { ok: true, combate: c, vitais: [m] };
     }
 
+    case 'naoLetal': {
+      // o mestre ajusta o dano não letal (a cura tira primeiro ele, LR p. 88)
+      const p = participante(c, inteiro(a.id, 1, 1e9) ?? 0);
+      if (!p) return erro('Essa peça não está no combate.');
+      const n = inteiro(a.valor, 0, 9999);
+      if (n === undefined) return erro('Valor inválido.');
+      const antes = p.naoLetal ?? 0;
+      if (n === antes) return erro('Nada para mudar.');
+      if (n) p.naoLetal = n;
+      else delete p.naoLetal;
+      registrar(c, ctx.agora, 'estado', `${p.nome}: dano não letal ${antes} → ${n} (${texto(a.motivo, 80) || 'ajuste'}).`);
+      // desmaiado pelo não letal que voltou a ter PV acima dele: acorda (qualquer cura de 1 PV encerra o inconsciente, LR p. 88)
+      const v = ctx.vitais(p.id);
+      if (v && v.pv > 0 && v.pv - n > 0 && p.condicoes?.includes('inconsciente')) {
+        semCondicao(p, 'inconsciente');
+        registrar(c, ctx.agora, 'estado', `${p.nome} acorda (continua caído).`);
+      }
+      return ok();
+    }
+
     case 'encerrar': {
       if (c.fase === 'montando') return { ok: true, combate: null };
       if (c.fase === 'encerrado') return erro('O combate já acabou.');
@@ -635,6 +1037,9 @@ export function aplicar(atual: Combate | null, a: AcaoCombate, ctx: Contexto): R
       c.vez = null;
       c.acoes = {};
       registrar(c, ctx.agora, 'estado', `Combate encerrado na rodada ${c.rodada}.`);
+      // o dano não letal fica até ser curado (LR p. 88): o resumo lembra quem tem
+      const nl = c.participantes.filter((p) => p.naoLetal);
+      if (nl.length) registrar(c, ctx.agora, 'estado', `Dano não letal que fica até a cura: ${nl.map((p) => `${p.nome} ${p.naoLetal}`).join(', ')} (a cura tira primeiro ele, LR p. 88).`);
       return ok();
     }
 
@@ -650,10 +1055,14 @@ export function aplicar(atual: Combate | null, a: AcaoCombate, ctx: Contexto): R
 
 const TIPOS = new Set<AcaoCombate['tipo']>([
   'ataque',
+  'manobra',
+  'ritual',
+  'soltar',
   'condicao',
   'gastarPe',
   'sustentar',
   'vitais',
+  'naoLetal',
   'abrir',
   'participante',
   'iniciativaMestre',

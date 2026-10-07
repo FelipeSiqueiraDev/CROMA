@@ -58,7 +58,8 @@ A biblioteca Lucide cobre quase tudo (espadas, escudo, dado, régua, alvo, sol, 
 - [x] Efeitos e pendências do começo do turno (o que a etapa A já sabe: morrendo, enlouquecendo, surpresa, quem chega, ações preparadas)
 - [x] Tabuleiro do combate (o mesmo motor da tela MAPA) com as marcações: base por lado, deitado, caveira, círculo de ritual, anel de alcance, linha até o alvo, cobertura, mira, medir e área
 - [x] Resolução do ataque: faixa de quem age, abas, passos, arma, situação, rolagem com o carimbo e dano, com Desfazer e Confirmar
-- [ ] Resolução das outras abas com passos próprios (manobra com teste oposto, ritual com resistências e Custo do Paranormal)
+- [x] Resolução das outras abas com passos próprios: manobra com teste oposto e ritual com resistências e Custo do Paranormal (30/09)
+- [x] As 74 ameaças do livro na ficha rápida ("Do livro"), com ataques ×N e presença perturbadora (30/09)
 - [x] Registro com filtro, destaque, notas e desfazer
 - [x] Alvo da ameaça com a ficha rápida do mestre (o catálogo do livro fica para a etapa H)
 - [x] Os estados sem referência: sem combate, montar o combate e fim

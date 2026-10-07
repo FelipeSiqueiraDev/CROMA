@@ -1,4 +1,4 @@
-import { LAYOUTS, parseHeightmap, type Door } from '@croma/shared';
+import { LAYOUTS, parseHeightmap, type Door } from '@crona/shared';
 import type { App } from './app';
 import { clear, h, icon, Win } from './dom';
 
@@ -48,7 +48,7 @@ export class NavigatorWin {
 
   constructor(app: App) {
     this.app = app;
-    this.win = new Win('Navegador', { width: 420, x: 24, y: 70 });
+    this.win = new Win('Todas as cenas', { width: 420, x: 24, y: 70 });
     app.on('rooms', () => this.win.isOpen && this.tab !== 'create' && this.render());
     app.on('room', () => this.win.isOpen && this.render());
   }

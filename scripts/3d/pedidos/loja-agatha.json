@@ -1,0 +1,257 @@
+[
+ {
+  "nome": "balcao-loja",
+  "titulo": "Balcão da loja, inteiro",
+  "casas": [
+   6,
+   1
+  ],
+  "real": [
+   4.5,
+   0.65,
+   1.0
+  ]
+ },
+ {
+  "nome": "estante-frascos",
+  "titulo": "Estante de frascos (boticário)",
+  "casas": [
+   2,
+   1
+  ],
+  "real": [
+   1.5,
+   0.4,
+   2.2
+  ],
+  "encosta": true
+ },
+ {
+  "nome": "estante-livros-antiga",
+  "titulo": "Estante de livros antiga",
+  "casas": [
+   2,
+   1
+  ],
+  "real": [
+   1.5,
+   0.4,
+   2.4
+  ],
+  "encosta": true
+ },
+ {
+  "nome": "comoda-entalhada",
+  "titulo": "Cômoda entalhada",
+  "casas": [
+   2,
+   1
+  ],
+  "real": [
+   1.5,
+   0.5,
+   0.95
+  ],
+  "encosta": true
+ },
+ {
+  "nome": "escrivaninha-agatha",
+  "titulo": "Escrivaninha da Agatha",
+  "casas": [
+   2,
+   1
+  ],
+  "real": [
+   1.3,
+   0.7,
+   0.78
+  ]
+ },
+ {
+  "nome": "cadeira-entalhada",
+  "titulo": "Cadeira de espaldar alto",
+  "casas": [
+   1,
+   1
+  ],
+  "real": [
+   0.55,
+   0.55,
+   1.15
+  ]
+ },
+ {
+  "nome": "atril-livro",
+  "titulo": "Atril com o livro ocultista (no centro do símbolo)",
+  "casas": [
+   1,
+   1
+  ],
+  "real": [
+   0.5,
+   0.45,
+   1.2
+  ]
+ },
+ {
+  "nome": "vaso-jasmim",
+  "titulo": "Vaso com jasmim",
+  "casas": [
+   1,
+   1
+  ],
+  "real": [
+   0.45,
+   0.45,
+   0.9
+  ]
+ },
+ {
+  "nome": "cadeira-tatuagem",
+  "titulo": "Cadeira de tatuagem (reclinada)",
+  "casas": [
+   1,
+   3
+  ],
+  "real": [
+   0.7,
+   1.9,
+   1.0
+  ]
+ },
+ {
+  "nome": "carrinho-tatuagem",
+  "titulo": "Carrinho de tatuagem",
+  "casas": [
+   1,
+   1
+  ],
+  "real": [
+   0.45,
+   0.45,
+   0.9
+  ]
+ },
+ {
+  "nome": "poltrona-veludo",
+  "titulo": "Poltrona de veludo",
+  "casas": [
+   1,
+   1
+  ],
+  "real": [
+   0.72,
+   0.72,
+   1.0
+  ]
+ },
+ {
+  "nome": "mesinha-cha",
+  "titulo": "Mesinha redonda (chá e tarô)",
+  "casas": [
+   1,
+   1
+  ],
+  "real": [
+   0.6,
+   0.6,
+   0.6
+  ]
+ },
+ {
+  "nome": "livro-antigo",
+  "titulo": "Livro antigo fechado (em cima do balcão)",
+  "casas": [
+   1,
+   1
+  ],
+  "real": [
+   0.4,
+   0.3,
+   0.12
+  ]
+ },
+ {
+  "nome": "pano-amuletos",
+  "titulo": "Pano dos amuletos (em cima do balcão)",
+  "casas": [
+   2,
+   1
+  ],
+  "real": [
+   1.3,
+   0.45,
+   0.06
+  ]
+ },
+ {
+  "nome": "frascos-coloridos",
+  "titulo": "Frascos coloridos (em cima do balcão)",
+  "casas": [
+   1,
+   1
+  ],
+  "real": [
+   0.55,
+   0.3,
+   0.35
+  ]
+ },
+ {
+  "nome": "vela-derretida",
+  "titulo": "Vela derretida (em cima do balcão)",
+  "casas": [
+   1,
+   1
+  ],
+  "real": [
+   0.25,
+   0.25,
+   0.35
+  ]
+ },
+ {
+  "nome": "prateleira-ervas",
+  "titulo": "Prateleira de parede com potes e ervas",
+  "parede": true,
+  "real": [
+   1.2,
+   0.3,
+   0.5
+  ],
+  "alto": 1.5
+ },
+ {
+  "nome": "ervas-penduradas",
+  "titulo": "Ervas secas penduradas",
+  "parede": true,
+  "real": [
+   0.6,
+   0.15,
+   0.6
+  ],
+  "alto": 1.6
+ },
+ {
+  "nome": "arandela-vela",
+  "titulo": "Arandela de vela (latão)",
+  "parede": true,
+  "real": [
+   0.2,
+   0.2,
+   0.35
+  ],
+  "alto": 1.7
+ },
+ {
+  "nome": "quadro-astral",
+  "titulo": "Quadro: mapa astral antigo",
+  "parede": true,
+  "real": [
+   0.7,
+   0.04,
+   0.9
+  ],
+  "alto": 1.3
+ }
+]

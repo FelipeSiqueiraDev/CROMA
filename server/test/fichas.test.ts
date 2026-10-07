@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { beforeEach, describe, test } from 'node:test';
-import { regras, type ClientMsg, type FichaSalva, type ServerMsg } from '@croma/shared';
+import { regras, sanitizarFicha, type ClientMsg, type FichaSalva, type ServerMsg } from '@crona/shared';
 import { Hotel } from '../src/hotel';
 import { seedDb, upgradeDb } from '../src/seed';
-import { SEDE } from '../src/seedSede';
+import { SEDE, temasDosAgentes } from '../src/seedSede';
 
 type Msg<T extends ServerMsg['t']> = Extract<ServerMsg, { t: T }>;
 
@@ -135,5 +135,27 @@ describe('fichas', () => {
     jog.send({ t: 'login', name: 'Jogador', look, fichaKey: 'errada' });
     assert.equal(jog.last('welcome'), undefined);
     assert.match(jog.last('error')!.msg, /inválido/);
+  });
+});
+
+describe('tema da interface', () => {
+  test('a ficha guarda o tema; Ordem (o padrão) e tema desconhecido não ficam guardados', () => {
+    const base = { id: 1, nome: 'Teste', ficha: regras.novaFicha('Teste'), criadaEm: '', atualizadaEm: '' };
+    assert.equal(sanitizarFicha({ ...base, tema: 'sangue' })?.tema, 'sangue');
+    assert.equal(sanitizarFicha({ ...base, tema: 'ordem' })?.tema, undefined);
+    assert.equal(sanitizarFicha({ ...base, tema: 'medo' })?.tema, undefined);
+  });
+
+  test('os quatro agentes ganham o tema do elemento uma vez só', () => {
+    const db = seedDb();
+    upgradeDb(db);
+    const nova = (id: number, nome: string): FichaSalva => ({ id, nome, ficha: regras.novaFicha(nome), criadaEm: '', atualizadaEm: '' });
+    db.temasAgentes = false;
+    db.fichas = [nova(1, 'D.Tepes'), nova(2, 'Catarina Albuquerque'), nova(3, 'Alosi Walker'), nova(4, 'Cora Falcão'), nova(5, 'Outro')];
+    assert.ok(temasDosAgentes(db));
+    assert.deepEqual(db.fichas.map((f) => f.tema), ['sangue', 'morte', 'conhecimento', 'energia', undefined]);
+    db.fichas[0].tema = undefined;
+    assert.equal(temasDosAgentes(db), false);
+    assert.equal(db.fichas[0].tema, undefined);
   });
 });

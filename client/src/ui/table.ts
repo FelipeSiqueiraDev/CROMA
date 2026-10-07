@@ -1,4 +1,4 @@
-import { combate as cb, type CampaignState } from '@croma/shared';
+import { combate as cb, type CampaignState } from '@crona/shared';
 import { COR_LADO, marcasVazias } from '../render/combateMarcas';
 import type { App } from './app';
 import { h } from './dom';
@@ -137,6 +137,7 @@ export class TableScreen {
       if (p.condicoes?.includes('caido') || p.condicoes?.includes('inconsciente')) m.deitadas.add(-p.id);
       if (p.sustenta) m.rituais.add(-p.id);
     }
+    for (const id of cb.entrada(c, c.vez)?.participantes ?? []) m.vez.add(-id);
     for (const ch of this.app.session.session?.characters ?? []) {
       if (!ch.vitals || ch.vitals.pv > 0 || !m.bases.has(-ch.id)) continue;
       m.deitadas.add(-ch.id);

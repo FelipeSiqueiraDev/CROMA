@@ -20,14 +20,21 @@ import {
   type VitalKey,
   type Vitals,
   type CampaignState,
+  type Documento,
+  type FichaSalva,
   type FloorItem,
   type Loot,
   type LootKind,
+  espacosDoItemFicha,
+  kindDoItem,
+  regras,
   type Objective,
   type PartyMember,
   type RoomInfo,
+  type SceneInfo,
   type WallItem,
-} from '@croma/shared';
+} from '@crona/shared';
+import { abrirDocumentos, documentosMudaram } from './documentos';
 import { breathMode, livePortrait, portraitCanvas } from '../render/portrait';
 import { sprites } from '../render/sprites';
 import { thumbCopy } from '../render/thumbs';
@@ -43,12 +50,21 @@ import { brushize, paperize, textures, unpaint } from './paperArt';
 import { sfx } from './sfx';
 import { CombateScreen } from './combate';
 import { FichasScreen } from './fichas';
+import { AbaItens } from './itens';
+import { infoItem, romano, textoRef } from './fichaRegras';
+import { doCatalogoPeloNome, listaDoCatalogo } from './catalogoItens';
+import { TecladoSenha } from './teclado';
+import { FerramentasMesa } from './ferramentasMesa';
+import { AbaInterludio } from './interludio';
 import { TopBar } from './topbar';
-import { ic } from './icons';
+import { botao, escolher, janela } from './fichaModal';
+import { arteOu, existeArte, ic, type NomeIcone } from './icons';
 
 export interface ShellActions {
   fx(): void;
   catalog(): void;
+  /** abre o catálogo para trocar o móvel por outro, no mesmo lugar */
+  trocar(id: number, defId: string): void;
   inventory(): void;
   settings(): void;
   characters(): void;
@@ -60,7 +76,7 @@ export interface ShellActions {
 type InspTab = 'desc' | 'inter' | 'items';
 type Sel = { kind: 'floor' | 'wall'; item: FloorItem | WallItem } | null;
 
-const THUMB_KEY = 'croma.thumb.';
+const THUMB_KEY = 'crona.thumb.';
 const COLORS = ['#e3a94c', '#d83a2e', '#3f6fd8', '#f2efe6', '#6fdc8c', '#c78bff', '#3fe0c0', '#ff6fb0'];
 const INSP_TABS: InspTab[] = ['desc', 'inter', 'items'];
 
@@ -244,6 +260,15 @@ interface Slot {
 export class Shell {
   readonly el: HTMLElement;
   readonly board: HTMLElement;
+  /** os botões da câmera do tabuleiro (isométrica ou tática) */
+  private vistaEl: HTMLElement;
+  /** a plaquinha do cômodo e a faixa do estado (luz, névoa, partículas) do tabuleiro */
+  private placaEl!: HTMLElement;
+  private estadoEl!: HTMLElement;
+  /** Apontar, Desenhar e Névoa: o que o mestre mostra na mesa */
+  readonly ferramentas: FerramentasMesa;
+  /** a aba INTERLÚDIO (LR p. 92–93) */
+  private abaInterludio: AbaInterludio;
   private app: App;
   private campaign: CampaignState | null = null;
   private tokenWin: TokenWin;
@@ -281,22 +306,29 @@ export class Shell {
   private activeScene: number | null = null;
   private peeked = new Set<number>();
   private planCanvas: HTMLCanvasElement;
+  /** andar que a planta está mostrando agora */
+  private planShown = '';
+  /** a arte do alfinete (interface/alfinete.png), quando existe */
+  private alfineteImg: HTMLImageElement | null = null;
   private planRects: { id: number; x: number; y: number; w: number; h: number; name: string }[] = [];
-  private planDrag: { id: number; sx: number; sy: number; ox: number; oy: number; moved: boolean } | null = null;
+  private planDrag: { id: number; sx: number; sy: number; ox: number; oy: number; moved: boolean; mover: boolean } | null = null;
   private planScale = 6;
   private planOrigin = { x: 0, y: 0 };
   private planHatch = { room: -1, t: 1 };
   private planFade = { room: -1, t: 1 };
   private planHover = -1;
-  private planTip: HTMLElement;
   /** andar que a planta mostra (null = o da cena atual) */
   private planFloor: string | null = null;
   private planTitle!: HTMLElement;
   private planTabs!: HTMLElement;
-  /** senha sendo digitada no painel de um mobi com fechadura */
-  private kpTyped = { id: 0, value: '' };
+  /** o teclado de senha grande, no meio do tabuleiro (a geladeira do bar) */
+  private teclado: TecladoSenha;
   /** painel da direita: controle do RPG */
   private rpgTab: RpgTab = 'PLAYERS';
+  /** aba ITENS: a mochila de cada agente, pela ficha */
+  private abaItens: AbaItens;
+  private fichasMapa: FichaSalva[] = [];
+  private docs: Documento[] = [];
   private rpgTabsEl!: HTMLElement;
   private rpgBody!: HTMLElement;
   private rpgSig = '';
@@ -336,7 +368,15 @@ export class Shell {
   private logRows = new Map<string, HTMLElement>();
   private logReady = false;
 
+  /** as ações da tela (o catálogo, o inventário...) */
+  private acts: ShellActions;
+
+  /** o que os menus abrem (as janelas de construir, configurar, ajuda) */
+  private actions: ShellActions;
+
   constructor(app: App, act: ShellActions) {
+    this.actions = act;
+    this.acts = act;
     this.app = app;
     this.tokenWin = new TokenWin(app);
     this.hintEditor = new HintEditor(app);
@@ -358,9 +398,10 @@ export class Shell {
       aoTrocar: (id) => this.setTab(id),
       aoClicarMarca: () => void this.renameCampaign(),
       botoes: [
-        { id: 'clima', icone: 'sol', titulo: 'Clima da cena', onclick: () => (sfx.click(), act.fx()) },
+        // no celular, só a engrenagem e o sair, como na referência
+        { id: 'clima', icone: 'sol', titulo: 'Clima da cena', soDesktop: true, onclick: () => (sfx.click(), act.fx()) },
         { id: 'config', icone: 'engrenagem', titulo: 'Configurações', cheio: true, onclick: (e) => (e.stopPropagation(), this.toggleMenu()) },
-        { id: 'registro', icone: 'documento', titulo: 'Registro da sessão', onclick: (e) => (e.stopPropagation(), this.toggleRegistro()) },
+        { id: 'registro', icone: 'documento', titulo: 'Registro da sessão', soDesktop: true, onclick: (e) => (e.stopPropagation(), this.toggleRegistro()) },
         {
           id: 'sair',
           icone: 'sair',
@@ -396,6 +437,7 @@ export class Shell {
     document.addEventListener('click', () => (this.menu.classList.add('hidden'), this.registro.classList.add('hidden')));
     const top = this.topo.el;
     this.fichas = new FichasScreen(app, { jogador: false });
+    this.abaItens = new AbaItens(app, (o) => this.hintViewer.abrirItem(o));
     this.fichas.hide();
     this.combate = new CombateScreen(app);
 
@@ -404,23 +446,29 @@ export class Shell {
     const scenes = h('section', { class: 'sheet p-scenes' }, h('h3', { class: 'p-title' }, 'CENÁRIO ATUAL'), this.scenesEl);
     paperize(scenes, { seed: 11, tone: '#ceb69b', burn: 1, curl: 'br', curlSize: 32, backs: [{ dx: -6, dy: -3, rot: -1.1, dw: 2, dh: 4 }, { dx: 5, dy: 5, rot: 0.9 }] });
     this.planCanvas = h('canvas', { class: 'plan-canvas' });
-    this.planTip = h('span', { class: 'plan-tip hidden' });
-    this.planTitle = h('span', null, '1º ANDAR');
+    this.planTitle = h('span', null, 'PLANTA');
     this.planTabs = h('div', { class: 'plan-tabs hidden', role: 'tablist', 'aria-label': 'Andares' });
     // rosa dos ventos a nanquim (desenho padrão até chegar rosa-dos-ventos.png)
     const rosa = svg(`<svg class="rosa" viewBox="0 0 64 64" aria-hidden="true" fill="none" stroke="#2a241f" stroke-linejoin="round">
       <circle cx="32" cy="34" r="17" stroke-width="1.2"/><circle cx="32" cy="34" r="12.5" stroke-width="0.7" stroke-dasharray="1.6 1.6"/>
       <path d="M32 11 36 30 32 34 28 30Z" fill="#2a241f"/><path d="M32 57 36 38 32 34 28 38Z" fill="#fff8" /><path d="M9 34 28 30 32 34 28 38Z" fill="#fff8"/><path d="M55 34 36 30 32 34 36 38Z" fill="#2a241f"/>
       <path d="M32 11 32 57M9 34 55 34" stroke-width="0.6"/><text x="32" y="8" text-anchor="middle" font-size="8" font-family="Courier Prime, monospace" font-weight="700" fill="#2a241f" stroke="none">N</text></svg>`);
-    const plan = h('section', { class: 'sheet p-plan wide' }, h('h3', { class: 'p-title' }, this.planTitle), this.planTabs, this.planCanvas, rosa, this.planTip);
-    paperize(plan, { seed: 12, tone: '#c3b09a', burn: 0.85, grid: 11, backs: [{ dx: -10, dy: 5, rot: -1.4 }] });
+    void rosa;
+    const plan = h('section', { class: 'sheet p-plan wide' }, h('h3', { class: 'p-title' }, this.planTitle), this.planTabs, this.planCanvas, h('span', { class: 'tachinha', 'aria-hidden': 'true' }));
+    void existeArte('/arte/interface/alfinete.png').then((ok) => {
+      if (!ok) return;
+      const im = new Image();
+      im.onload = () => ((this.alfineteImg = im), this.drawPlan());
+      im.src = '/arte/interface/alfinete.png';
+    });
+    paperize(plan, { kit: false, seed: 12, tone: '#c3b09a', burn: 0.85, grid: 11, backs: [{ dx: -10, dy: 5, rot: -1.4 }] });
     this.bindPlan();
     // a lista de cenários saiu: a planta interativa é a navegação (a lista fica pronta, fora da tela)
     void scenes;
     const scrapA = h('span', { class: 'scrap scrap-a', 'aria-hidden': 'true' });
-    paperize(scrapA, { seed: 41, tone: '#c1ae97', burn: 0.8, shadow: 0.9, torn: 2.4 });
+    paperize(scrapA, { kit: false, seed: 41, tone: '#c1ae97', burn: 0.8, shadow: 0.9, torn: 2.4 });
     const note = h('span', { class: 'scrap scrap-note', 'aria-hidden': 'true' }, scribble());
-    paperize(note, { seed: 42, tone: '#c4af96', burn: 0.8, torn: 2.2 });
+    paperize(note, { kit: false, seed: 42, tone: '#c4af96', burn: 0.8, torn: 2.2 });
     const noteTape = h('span', { class: 'tape tape-note', 'aria-hidden': 'true' });
 
     // ================= objetivos =================
@@ -447,7 +495,25 @@ export class Shell {
       { class: 'board-centro', title: 'Enquadrar a sala', 'aria-label': 'Enquadrar a sala', onclick: () => (sfx.click(), app.view.fit()) },
       svg('<svg viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 3 37 20 20 37 3 20Z"/><circle cx="20" cy="20" r="6.5"/><path d="M20 10v4M20 26v4M10 20h4M26 20h4"/></svg>'),
     );
-    this.board = h('main', { class: 'board' }, moldura, this.placeBar, zoom, centro, this.tabOverlay);
+    this.teclado = new TecladoSenha(app);
+    // a câmera do tabuleiro: isométrica ou tática (a sala de cima, como mapa de batalha); a mesa acompanha
+    this.vistaEl = h(
+      'div',
+      { class: 'board-vista', role: 'group', 'aria-label': 'Câmera do tabuleiro' },
+      h('button', { class: 'bv', type: 'button', 'data-tatico': 'nao', title: 'Vista isométrica (T)', onclick: () => this.trocarVista(false) }, ic('isometrico'), h('span', null, 'ISO')),
+      h('button', { class: 'bv', type: 'button', 'data-tatico': 'sim', title: 'Vista tática: a sala de cima, como mapa de batalha (T)', onclick: () => this.trocarVista(true) }, arteOu(['/arte/icones/tabuleiro-tatico.png'], ic('tatico')), h('span', null, 'TÁTICA')),
+    );
+    this.ferramentas = new FerramentasMesa(app);
+    this.abaInterludio = new AbaInterludio(app);
+    this.combate.aoFerramentaMesa = (tipo) => this.ferramentas.alternar(tipo, false);
+    this.ferramentas.aoMudar = (tipo) => this.combate.marcarFerramentaMesa(tipo);
+    // a disposição de 06/10 (docs/ref-mapa-3.webp): as ferramentas numa fileira no canto de cima à direita,
+    // a plaquinha do cômodo à esquerda e, embaixo, a faixa do estado da cena
+    // (a faixa do estado embaixo saiu a pedido do Felipe; ISO e TÁTICA voltaram para o canto de baixo)
+    this.placaEl = h('div', { class: 'board-placa' });
+    this.estadoEl = h('div', { class: 'board-estado hidden' });
+    const ferr = h('div', { class: 'board-ferr' }, this.ferramentas.el, centro);
+    this.board = h('main', { class: 'board' }, moldura, this.placeBar, zoom, this.placaEl, ferr, this.vistaEl, this.tabOverlay, this.teclado.el);
 
     // ================= direita =================
     const backboard = h('div', { class: 'backboard', 'aria-hidden': 'true' });
@@ -464,7 +530,7 @@ export class Shell {
     this.giveWrap = h('section', { class: 'sheet p-give hidden' }, this.giveBody);
     paperize(this.giveWrap, { seed: 15, tone: '#d2bba6', burn: 0.9 });
     const giveScrap = h('span', { class: 'scrap scrap-give', 'aria-hidden': 'true' }, scribble());
-    paperize(giveScrap, { seed: 43, tone: '#c6b199', burn: 0.8, torn: 2.2, backs: [{ dx: -4, dy: 10, rot: -3, dh: -20 }] });
+    paperize(giveScrap, { kit: false, seed: 43, tone: '#c6b199', burn: 0.8, torn: 2.2, backs: [{ dx: -4, dy: 10, rot: -3, dh: -20 }] });
     // esquerda: tudo do mapa (planta, cômodo e objeto, entrega)
     const mapCol = h('aside', { class: 'col-map' }, plan, paperclip('clip clip-sala'), this.salaEl, this.inspEl, this.giveWrap);
 
@@ -488,7 +554,7 @@ export class Shell {
       { class: 'sheet p-quick' },
       h('span', { class: 'tape tape-q1', 'aria-hidden': 'true' }),
       h('span', { class: 'tape tape-q2', 'aria-hidden': 'true' }),
-      h('h3', { class: 'p-title' }, h('i', { class: 'losango', 'aria-hidden': 'true' }), 'INVENTÁRIO RÁPIDO (CENÁRIO)'),
+      h('h3', { class: 'p-title' }, h('i', { class: 'losango', 'aria-hidden': 'true' }), 'INVENTÁRIO RÁPIDO', h('small', null, '(CENÁRIO)')),
       this.quickEl,
     );
     paperize(quick, { seed: 16, tone: '#c9b49b', burn: 1, backs: [{ dx: 4, dy: 5, rot: 0.7, dw: -8 }] });
@@ -496,11 +562,15 @@ export class Shell {
     const log = h('section', { class: 'sheet p-log' }, h('span', { class: 'tape tape-log', 'aria-hidden': 'true' }), h('h3', { class: 'p-title' }, 'ÚLTIMAS AÇÕES'), this.logEl);
     paperize(log, { seed: 17, tone: '#cab59c', burn: 1, tab: { w: 163, h: 11 }, backs: [{ dx: -5, dy: 6, rot: -0.8, dw: 4 }] });
     this.acoesEl = h('div', { class: 'acoes' });
-    const acoes = h('section', { class: 'p-acoes' }, h('h3', { class: 'p-title' }, 'AÇÕES'), this.acoesEl);
+    const acoes = h('section', { class: 'sheet p-acoes' }, h('h3', { class: 'p-title' }, h('i', { class: 'losango', 'aria-hidden': 'true' }), 'AÇÕES'), this.acoesEl);
+    paperize(acoes, { seed: 22, tone: '#cdb99c', burn: 1, backs: [{ dx: -4, dy: 5, rot: -0.8, dw: -6 }] });
     const pilha = h('div', { class: 'pilha-mapa', 'aria-hidden': 'true' }, h('span', { class: 'pm-a' }), h('span', { class: 'pm-b' }), h('span', { class: 'pm-c' }));
-    for (const [i, x] of [...pilha.children].entries()) paperize(x as HTMLElement, { seed: 150 + i, tone: i === 1 ? '#cdbb99' : '#c4b08e', burn: 1.2, torn: 2, stains: 1.4, pad: 12 });
+    for (const [i, x] of [...pilha.children].entries()) paperize(x as HTMLElement, { kit: false, seed: 150 + i, tone: i === 1 ? '#cdbb99' : '#c4b08e', burn: 1.2, torn: 2, stains: 1.4, pad: 12 });
     void log;
-    const bottom = h('footer', { class: 'bottom' }, this.partyEl, quick, acoes, pilha);
+    // os agentes num papel com título, como o inventário e as ações
+    const agentes = h('section', { class: 'sheet p-agentes' }, h('h3', { class: 'p-title' }, h('i', { class: 'losango', 'aria-hidden': 'true' }), 'AGENTES'), this.partyEl);
+    paperize(agentes, { seed: 23, tone: '#cbb69a', burn: 1, backs: [{ dx: 3, dy: 4, rot: 0.6 }] });
+    const bottom = h('footer', { class: 'bottom' }, agentes, quick, acoes, pilha);
 
     this.mapLayer = h('div', { class: 'map-layer' }, h('div', { class: 'map-fx', 'aria-hidden': 'true' }));
     void note;
@@ -594,7 +664,42 @@ export class Shell {
     return (this.campaign?.party ?? []).map((p) => p.id ?? 0).filter(Boolean);
   }
 
+  /** Troca a câmera do tabuleiro (só o mestre): a mesa acompanha. */
+  trocarVista(tatico = !this.app.view.tatico) {
+    if (!this.app.state.room?.isOwner || this.app.view.tatico === tatico) return;
+    sfx.click();
+    this.app.net.send({ t: 'roomFx', tatico });
+  }
+
+  /** Os botões da câmera mostram a vista de agora. */
+  /** A plaquinha do cômodo e a faixa do estado da cena (a luz, a névoa do ar e as partículas); clicar abre o ☀. */
+  private renderEstado() {
+    const r = this.app.state.room;
+    if (!this.placaEl || !r) return;
+    const nome = r.name.split('·').pop()?.trim() ?? r.name;
+    this.placaEl.textContent = `${nome}${r.floor ? ` — ${r.floor}` : ''}`;
+    const luz = r.lightMode === 'blackout' ? 'apagão' : r.lightMode === 'flicker' ? 'piscando' : r.darkness >= 0.6 ? 'baixa' : r.darkness >= 0.3 ? 'média' : 'alta';
+    const nevoa = (r.fog ?? 0) < 0.05 ? 'nenhuma' : (r.fog ?? 0) < 0.4 ? 'leve' : 'densa';
+    const part = r.particles?.length ? `${r.particles.length === 1 ? ({ dust: 'poeira', smoke: 'fumaça', embers: 'brasas' } as Record<string, string>)[r.particles[0]] ?? r.particles[0] : `${r.particles.length} tipos`}` : 'nenhuma';
+    const cel = (icone: string, rot: string, val: string) =>
+      h('button', { class: 'be-cel', type: 'button', title: 'Clima da cena', disabled: !r.isOwner, onclick: () => (sfx.click(), this.actions.fx()) }, ic(icone), h('span', null, `${rot}: `), h('b', null, val));
+    void cel;
+    void luz;
+    void nevoa;
+    void part;
+  }
+
+  private marcarVista() {
+    this.renderEstado();
+    const tat = this.app.view.tatico;
+    for (const b of this.vistaEl.querySelectorAll<HTMLElement>('.bv')) b.classList.toggle('on', (b.dataset.tatico === 'sim') === tat);
+    this.vistaEl.classList.toggle('hidden', !this.app.state.room?.isOwner);
+    this.combate.marcarVista(tat);
+  }
+
   private onRoom() {
+    this.marcarVista();
+    this.ferramentas.atualizar();
     const id = this.app.state.room?.id ?? null;
     if (id !== this.lastRoom) this.planFloor = null;
     if (id !== this.lastRoom && this.lastRoom !== null) this.sceneFade();
@@ -661,33 +766,56 @@ export class Shell {
     if (!this.campaign) return;
     const r = this.app.state.room;
     // marca: organização e sede; à direita, a campanha e o andar da cena aberta
-    this.topo.setMarca(this.campaign.subtitle || 'Ordo Realitas', this.campaign.title || r?.name || 'CROMA');
+    this.topo.setMarca(this.campaign.subtitle || 'Ordo Realitas', this.campaign.title || r?.name || 'CRONA');
     const cena = this.campaign.scenes.find((x) => x.id === r?.id);
     this.topo.setLocal(this.campaign.title || null, cena?.floor ? `Andar ${cena.floor}` : (r?.name.split('·').pop()?.trim() ?? ''));
     this.topo.setOperacao(this.campaign.operacao ? `Operação ${this.campaign.operacao}` : null);
   }
 
+  /** Configurações (a engrenagem do topo): uma janela de papel com as opções em cartões. */
   private toggleMenu() {
-    this.registro.classList.add('hidden');
-    const open = this.menu.classList.toggle('hidden') === false;
-    if (!open) return;
     sfx.paper();
-    if (reduced()) return;
-    this.menu.animate([{ transform: 'translateY(-0.8rem)', opacity: 0 }, { transform: 'translateY(0)', opacity: 1 }], { duration: 180, easing: 'ease-out' });
+    const act = this.actions;
+    const j = janela('Configurações', 'engrenagem', () => {}, 96);
+    j.el.classList.add('tela-toda');
+    const opcoes: [NomeIcone, string, string, () => void][] = [
+      ['pessoa', 'Novo personagem', 'Uma peça nova no tabuleiro (agente, NPC ou ameaça).', () => this.tokenWin.open()],
+      ['caixa', 'Construir', 'O catálogo de móveis: pôr na cena, girar e mover.', act.catalog],
+      ['engrenagem', 'Configurar cena', 'Nome, descrição, andar, piso, cor do ambiente e partículas.', act.settings],
+      ['mochila', 'Mobis guardados', 'Os móveis tirados da cena, para pôr de novo.', act.inventory],
+      ['ficha', 'Sprites dos personagens', 'As folhas de cada personagem e as poses.', act.characters],
+      ['mapa', 'Todas as cenas', 'Abrir qualquer cena, de qualquer campanha.', act.navigator],
+      ['documento', 'Documentos', 'Relatórios, fotos e pistas para entregar aos agentes (aba Docs do celular).', () => this.abrirDocs()],
+      ['livro', 'Como usar', 'Os atalhos e as ferramentas do mestre.', act.help],
+    ];
+    const cartao = (icone: NomeIcone, nome: string, texto: string, fazer: () => void) =>
+      h('button', { class: 'cfg-carta', type: 'button', onclick: () => (sfx.click(), j.fechar(), fazer()) }, ic(icone), h('b', null, nome), h('span', null, texto));
+    const som = h(
+      'button',
+      { class: `cfg-carta cfg-som${sfx.enabled ? ' on' : ''}`, type: 'button', role: 'switch', 'aria-checked': String(sfx.enabled), onclick: () => (this.toggleSound(), som.classList.toggle('on', sfx.enabled), som.setAttribute('aria-checked', String(sfx.enabled)), (som.querySelector('span')!.textContent = sfx.enabled ? 'Ligados: clique para desligar.' : 'Desligados: clique para ligar.')) },
+      ic('radio'),
+      h('b', null, 'Sons da interface'),
+      h('span', null, sfx.enabled ? 'Ligados: clique para desligar.' : 'Desligados: clique para ligar.'),
+    );
+    j.corpo.append(h('div', { class: 'cfg-grade' }, ...opcoes.map(([i, n, t, f]) => cartao(i, n, t, f)), som));
+    j.rodape.append(h('span', { class: 'fj-esp' }), botao('Fechar', 'fechar', '', () => j.fechar()));
   }
 
-  /** Registro da sessão (as últimas ações), no botão de documento do topo. */
+  /** Registro da sessão (objetivos e as últimas ações), no botão de documento do topo: uma janela de papel. */
   private toggleRegistro() {
-    this.menu.classList.add('hidden');
-    const open = this.registro.classList.toggle('hidden') === false;
-    if (!open) return;
     sfx.paper();
-    const log = [...(this.campaign?.log ?? [])].reverse().slice(0, 40);
+    const j = janela('Registro da sessão', 'documento', () => this.registro.remove(), 80);
+    j.el.classList.add('tela-toda');
+    const log = [...(this.campaign?.log ?? [])].reverse().slice(0, 60);
     this.registroLog.replaceChildren(
       ...(log.length
         ? log.map((e) => h('div', { class: 'tb2-reg' }, h('time', null, new Date(e.at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })), logIcon(e.icon, 15), h('span', null, e.text)))
         : [h('p', null, 'Nada ainda nesta sessão.')]),
     );
+    this.registro.classList.remove('hidden', 'tb2-menu');
+    this.registro.classList.add('reg-janela');
+    j.corpo.append(this.registro);
+    j.rodape.append(h('span', { class: 'fj-esp' }), botao('Fechar', 'fechar', '', () => j.fechar()));
   }
 
   private toggleSound() {
@@ -727,7 +855,7 @@ export class Shell {
       return;
     }
     const note = h('section', { class: 'sheet p-soon' }, h('h3', { class: 'p-title' }, t, uline()), h('p', null, 'Esta aba chega nas próximas etapas.'), h('button', { class: 'dbtn', onclick: () => this.setTab('MAPA') }, 'Voltar ao mapa'));
-    paperize(note, { seed: 20 + t.length, tone: '#d0bba5', burn: 0.8 });
+    paperize(note, { kit: false, seed: 20 + t.length, tone: '#d0bba5', burn: 0.8 });
     clear(o).append(note);
     o.classList.remove('hidden');
     enter(note, 'drop', 0, 520);
@@ -861,7 +989,8 @@ export class Shell {
       const r = hitRect(p);
       if (!r || !this.campaign) return;
       const lay = this.campaign.layout[r.id] ?? { x: 0, y: 0 };
-      this.planDrag = { id: r.id, sx: p.x, sy: p.y, ox: lay.x, oy: lay.y, moved: false };
+      // clicar leva ao cômodo; mudar o cômodo de lugar na planta só segurando Alt (sem mexer no mapa por engano)
+      this.planDrag = { id: r.id, sx: p.x, sy: p.y, ox: lay.x, oy: lay.y, moved: false, mover: e.altKey };
       c.setPointerCapture(e.pointerId);
     });
     c.addEventListener('pointermove', (e) => {
@@ -874,16 +1003,10 @@ export class Shell {
         this.planHover = hid;
         this.drawPlan(true);
       }
-      if (hit && !d) {
-        this.planTip.textContent = hit.name;
-        this.planTip.classList.remove('hidden');
-        const pr = this.planTip.parentElement!.getBoundingClientRect();
-        const cr = c.getBoundingClientRect();
-        const k = cr.width / c.clientWidth;
-        this.planTip.style.left = `${cr.left - pr.left + (hit.x + hit.w / 2) * k}px`;
-        this.planTip.style.top = `${cr.top - pr.top + hit.y * k}px`;
-      } else this.planTip.classList.add('hidden');
-      if (!d || !this.campaign || !this.owner) return;
+      // o nome do cômodo só no aviso do navegador (aparece se o mouse parar em cima)
+      const titulo = hit ? hit.name : '';
+      if (c.title !== titulo) c.title = titulo;
+      if (!d || !d.mover || !this.campaign || !this.owner) return;
       const dx = Math.round((p.x - d.sx) / this.planScale);
       const dy = Math.round((p.y - d.sy) / this.planScale);
       if (dx || dy) d.moved = true;
@@ -894,7 +1017,6 @@ export class Shell {
     });
     c.addEventListener('pointerleave', () => {
       this.planHover = -1;
-      this.planTip.classList.add('hidden');
       this.drawPlan(true);
     });
     c.addEventListener('pointerup', () => {
@@ -954,7 +1076,7 @@ export class Shell {
   /** Abas da direita e o conteúdo da aba aberta (PLAYERS: a ficha de cada um). */
   private renderRpg(force = false) {
     const party = this.campaign?.party ?? [];
-    const sig = JSON.stringify([this.rpgTab, this.gm, party.map((p) => [p.id, p.name, p.color, p.vitals ?? null, p.roomId, p.look?.charId ?? null])]);
+    const sig = JSON.stringify([this.rpgTab, this.gm, party.map((p) => [p.id, p.name, p.color, p.vitals ?? null, p.roomId, p.look?.charId ?? null, !!p.armed])]);
     if (!force && sig === this.rpgSig) return;
     this.rpgSig = sig;
     clear(this.rpgTabsEl).append(
@@ -978,8 +1100,12 @@ export class Shell {
       ),
     );
     const body = clear(this.rpgBody);
-    if (this.rpgTab !== 'PLAYERS') {
-      body.append(h('p', { class: 'empty' }, `${this.rpgTab[0]}${this.rpgTab.slice(1).toLowerCase()}: chega nas próximas etapas.`));
+    if (this.rpgTab === 'ITENS') {
+      this.abaItens.render(body, party, this.fichasMapa, this.gm);
+      return;
+    }
+    if (this.rpgTab === 'INTERLÚDIO') {
+      this.abaInterludio.render(body, party, this.fichasMapa, this.gm, () => this.renderRpg(true));
       return;
     }
     if (!party.length) {
@@ -987,6 +1113,8 @@ export class Shell {
       return;
     }
     const cur = this.app.state.room?.id;
+    // mais de 4 agentes: o cartão encolhe para todos caberem sem rolar
+    body.classList.toggle('muitos', party.filter((p) => p.id).length > 4);
     for (const p of party) {
       if (!p.id) continue;
       const id = p.id;
@@ -994,7 +1122,13 @@ export class Shell {
       const card = h(
         'div',
         { class: 'rpg-player', style: `--c:${p.color}` },
-        h('button', { class: 'rp-foto', title: here ? 'Comandar' : `Ir para ${this.sceneName(p.roomId)}`, onclick: () => this.pickCard(id) }, portraitCanvas(p.look, 96, { dir: 2, armed: !!p.armed, hurt: vitalConditions(p.vitals).machucado })),
+        h(
+          'button',
+          { class: 'rp-foto', title: here ? 'Comandar' : `Ir para ${this.sceneName(p.roomId)}`, onclick: () => this.pickCard(id) },
+          portraitCanvas(p.look, 96, { dir: 2, armed: !!p.armed, hurt: vitalConditions(p.vitals).machucado }),
+          // armado sem retrato armado na arte: o sinal da arma no canto
+          p.armed && !sprites.def(p.look?.charId)?.portraits?.armado ? h('span', { class: 'rp-arma', title: 'Arma na mão' }, ic(this.app.session.session?.characters.find((c) => c.id === -id)?.arma === 'fogo' ? 'pistola' : 'espada')) : null,
+        ),
         h(
           'div',
           { class: 'rp-info' },
@@ -1008,14 +1142,32 @@ export class Shell {
     }
   }
 
+  /** Fichas do servidor: a aba ITENS mostra a mochila de cada agente por elas. */
+  /** Os documentos da investigação (o mestre recebe todos). */
+  setDocs(docs: Documento[]) {
+    this.docs = docs;
+    documentosMudaram();
+  }
+
+  private abrirDocs() {
+    abrirDocumentos(this.app, { docs: () => this.docs, fichas: () => this.fichasMapa, campanha: () => this.campaign?.key });
+  }
+
+  setFichasMapa(lista: FichaSalva[]) {
+    this.fichasMapa = lista;
+    // a mochila (ITENS) e as condições marcadas (PLAYERS) vêm das fichas
+    this.renderRpg(true);
+  }
+
   /** Abas dos andares acima da planta (só com mais de um andar). */
   private renderPlanTabs(floors: string[], shown: string) {
     const label = (f: string) => (f ? f.toUpperCase() : '1º ANDAR');
-    if (this.planTitle.textContent !== label(shown)) this.planTitle.textContent = label(shown);
     const sig = JSON.stringify([floors, shown]);
     if (this.planTabs.dataset.sig === sig) return;
     this.planTabs.dataset.sig = sig;
     clear(this.planTabs).classList.toggle('hidden', floors.length < 2);
+    // muitos andares (a fazenda tem cinco): as abas encolhem para caber
+    this.planTabs.classList.toggle('muitas', floors.length > 3);
     for (const f of floors)
       this.planTabs.append(
         h(
@@ -1036,7 +1188,13 @@ export class Shell {
       );
   }
 
-  /** Planta: cômodos de pedra cinza com contorno grosso; o atual pintado de vermelho. */
+  /**
+   * Planta (como a referência): uma planta de arquitetura no papel quadriculado. Todos os
+   * andares da campanha na mesma escala (o bar fica pequeno perto do subsolo, como é); os
+   * cômodos de pedra cinza com o contorno grosso e a linha clara por dentro, as portas
+   * marcadas na parede, o atual em vermelho com o alfinete e o nome numa plaquinha. Ao ar
+   * livre, o terreno (grama, estrada, água) e os prédios com o nome.
+   */
   private drawPlan(keepScale = false) {
     const c = this.planCanvas;
     const cssW = c.clientWidth || 220;
@@ -1057,153 +1215,307 @@ export class Shell {
     const floorOf = (id: number | undefined) => camp.scenes.find((s) => s.id === id)?.floor ?? '';
     const floors = [...new Set(camp.scenes.map((s) => s.floor ?? ''))];
     const shown = this.planFloor !== null && floors.includes(this.planFloor) ? this.planFloor : floorOf(cur);
+    this.planShown = shown;
     this.renderPlanTabs(floors, shown);
-    const parsed = camp.scenes
-      .filter((s) => (s.floor ?? '') === shown)
-      .map((s) => {
-        const p = camp.layout[s.id] ?? { x: 0, y: 0 };
-        const raw = parseHeightmap(s.heightmap);
-        return { s, raw, hm: rotateHm(raw, p.r ?? 0), p, rot: (x: number, y: number) => rotatePt(raw, p.r ?? 0, x, y) };
-      });
-    if (!keepScale || !this.planDrag) {
+    const todos = camp.scenes.map((s) => {
+      const p = camp.layout[s.id] ?? { x: 0, y: 0 };
+      const raw = parseHeightmap(s.heightmap);
+      const rot = (x: number, y: number) => rotatePt(raw, p.r ?? 0, x, y);
+      // o vão da porta (a casa de fora da parede) não entra no desenho
+      const porta = s.aberto ? null : rot(s.door.x, s.door.y);
+      return { s, raw, hm: rotateHm(raw, p.r ?? 0), p, rot, porta };
+    });
+    const caixa = (lista: typeof todos) => {
       let x0 = Infinity;
       let y0 = Infinity;
       let x1 = -Infinity;
       let y1 = -Infinity;
-      for (const { hm, p } of parsed) {
+      for (const { hm, p } of lista) {
         x0 = Math.min(x0, p.x);
         y0 = Math.min(y0, p.y);
         x1 = Math.max(x1, p.x + hm.width);
         y1 = Math.max(y1, p.y + hm.height);
       }
+      return { x0, y0, w: Math.max(1, x1 - x0), h: Math.max(1, y1 - y0) };
+    };
+    const parsed = todos.filter((q) => (q.s.floor ?? '') === shown);
+    void todos;
+    if (!keepScale || !this.planDrag) {
       const pad = 8;
-      this.planScale = Math.max(2, Math.min(12, Math.min((cssW - pad * 2) / (x1 - x0), (cssH - pad * 2) / (y1 - y0))));
+      // o andar enche o papel (como o prédio da referência); um cômodo sozinho (o bar) fica em no máximo metade dele
+      const b = caixa(parsed);
+      const sozinho = parsed.length === 1 && !parsed[0].s.aberto;
+      const teto = sozinho ? Math.min((cssW * 0.5) / b.w, (cssH * 0.7) / b.h) : Infinity;
+      this.planScale = Math.max(1.5, Math.min(teto, (cssW - pad * 2) / b.w, (cssH - pad * 2) / b.h));
       this.planOrigin = {
-        x: pad + (cssW - pad * 2 - (x1 - x0) * this.planScale) / 2 - x0 * this.planScale,
-        y: pad + (cssH - pad * 2 - (y1 - y0) * this.planScale) / 2 - y0 * this.planScale,
+        x: pad + (cssW - pad * 2 - b.w * this.planScale) / 2 - b.x0 * this.planScale,
+        y: pad + (cssH - pad * 2 - b.h * this.planScale) / 2 - b.y0 * this.planScale,
       };
     }
     const S = this.planScale;
     const O = this.planOrigin;
-    const rnd = (x: number, y: number, k: number) => {
-      const v = Math.sin(x * 127.1 + y * 311.7 + k * 74.7) * 43758.5453;
-      return v - Math.floor(v);
-    };
-    for (const { s, hm, p, rot } of parsed) {
-      const ox = O.x + p.x * S;
-      const oy = O.y + p.y * S;
-      const tile = (x: number, y: number) => hm.tiles[y]?.[x] !== null && hm.tiles[y]?.[x] !== undefined;
-      const tilesPath = new Path2D();
-      for (let y = 0; y < hm.height; y++) for (let x = 0; x < hm.width; x++) if (tile(x, y)) tilesPath.rect(ox + x * S, oy + y * S, S + 0.4, S + 0.4);
-      // piso de pedra
+    const granito = this.padraoGranito(ctx);
+    const TINTA = '#1d1a17';
+    // de quem é cada casa do andar (na planta): parede entre dois cômodos é fina; a de fora, grossa
+    const dono = new Map<string, number>();
+    const formas = new Map<number, Path2D>();
+    for (const { s, hm, p, porta } of parsed) {
+      if (s.aberto) continue;
+      const forma = new Path2D();
       for (let y = 0; y < hm.height; y++)
         for (let x = 0; x < hm.width; x++) {
-          if (!tile(x, y)) continue;
-          const n = rnd(x + p.x, y + p.y, 1);
-          const g = Math.round(128 + (n - 0.5) * 22);
-          ctx.fillStyle = `rgb(${g},${g - 3},${g - 7})`;
-          ctx.fillRect(ox + x * S, oy + y * S, S + 0.4, S + 0.4);
-          if (rnd(x, y, 2) < 0.35) {
-            ctx.strokeStyle = 'rgba(40,36,32,0.55)';
-            ctx.lineWidth = 0.6;
-            ctx.beginPath();
-            const sx = ox + x * S + rnd(x, y, 3) * S;
-            const sy = oy + y * S + rnd(x, y, 4) * S;
-            ctx.moveTo(sx, sy);
-            ctx.lineTo(sx + (rnd(x, y, 5) - 0.5) * S, sy + (rnd(x, y, 6) - 0.5) * S);
-            ctx.stroke();
-          }
-          if (rnd(x, y, 7) < 0.12) {
-            ctx.fillStyle = 'rgba(235,230,220,0.7)';
-            ctx.fillRect(ox + (x + 0.35) * S, oy + (y + 0.35) * S, S * 0.3, S * 0.3);
-          }
+          if (hm.tiles[y]?.[x] === null || hm.tiles[y]?.[x] === undefined || (porta && x === porta[0] && y === porta[1])) continue;
+          dono.set(`${p.x + x},${p.y + y}`, s.id);
+          forma.rect(O.x + (p.x + x) * S, O.y + (p.y + y) * S, S + 0.35, S + 0.35);
         }
-      ctx.strokeStyle = 'rgba(40,36,32,0.22)';
-      ctx.lineWidth = 0.5;
-      for (let y = 0; y < hm.height; y += 2) for (let x = 0; x < hm.width; x += 2) if (tile(x, y)) ctx.strokeRect(ox + x * S, oy + y * S, S * 2, S * 2);
+      formas.set(s.id, forma);
+    }
+    // a sombra do prédio no papel e a pedra (o andar inteiro é um prédio só, como na referência)
+    ctx.save();
+    ctx.translate(1.4, 1.8);
+    ctx.fillStyle = 'rgba(46,34,24,0.26)';
+    for (const f of formas.values()) ctx.fill(f);
+    ctx.restore();
+    ctx.fillStyle = granito;
+    for (const f of formas.values()) ctx.fill(f);
+    for (const { s, hm, raw, p, rot, porta } of parsed) {
+      const ox = O.x + p.x * S;
+      const oy = O.y + p.y * S;
+      const atual = s.id === cur;
       const rect = { id: s.id, x: ox, y: oy, w: hm.width * S, h: hm.height * S, name: s.name.split('·').pop()!.trim() };
-      // cômodo atual: lápis de cor vermelho (hachura) e depois o preenchimento
-      if (s.id === cur && this.planHatch.room === s.id) {
-        const t = this.planHatch.t;
+      if (s.aberto) {
+        this.terrenoNaPlanta(ctx, s, raw, rot, ox, oy, S, granito);
+        this.planRects.push(rect);
+        continue;
+      }
+      const forma = formas.get(s.id)!;
+      const tile = (x: number, y: number) => dono.get(`${p.x + x},${p.y + y}`) === s.id;
+      // marcas escuras de móvel e de entulho, aqui e ali (a referência tem os quadradinhos)
+      ctx.fillStyle = 'rgba(42,38,34,0.55)';
+      for (let y = 0; y < hm.height; y++)
+        for (let x = 0; x < hm.width; x++) {
+          if (!tile(x, y) || !tile(x - 1, y) || !tile(x + 1, y) || !tile(x, y - 1) || !tile(x, y + 1)) continue;
+          const v = Math.sin((p.x + x) * 127.1 + (p.y + y) * 311.7) * 43758.5453;
+          if (v - Math.floor(v) < 0.045) ctx.fillRect(ox + (x + 0.2) * S, oy + (y + 0.3) * S, S * 0.6, S * 0.4);
+        }
+      // o cômodo atual: um véu vermelho (e, entrando, o lápis risca antes)
+      if (atual) {
+        const anima = this.planHatch.room === s.id ? this.planHatch.t : 1;
         ctx.save();
-        ctx.clip(tilesPath);
-        ctx.fillStyle = `rgba(214,68,56,${(0.5 * Math.max(0, t - 0.55)) / 0.45})`;
-        ctx.fill(tilesPath);
-        const lines = this.hatchLines(rect);
-        const drawn = t * lines.length;
-        ctx.strokeStyle = 'rgba(176,34,26,0.7)';
-        ctx.lineWidth = 1.2;
-        ctx.lineCap = 'round';
-        ctx.beginPath();
-        lines.forEach(([x0, y0, x1, y1], i) => {
-          if (i >= drawn) return;
-          const f = Math.min(1, drawn - i);
-          const [ax, ay, bx, by] = i % 2 ? [x1, y1, x0, y0] : [x0, y0, x1, y1];
-          ctx.moveTo(ax, ay);
-          ctx.lineTo(ax + (bx - ax) * f, ay + (by - ay) * f);
-        });
-        ctx.stroke();
+        ctx.clip(forma);
+        ctx.fillStyle = `rgba(196,40,28,${(0.4 * Math.min(1, anima / 0.7)).toFixed(3)})`;
+        ctx.fill(forma);
+        if (anima < 1) {
+          const lines = this.hatchLines(rect);
+          const drawn = anima * lines.length;
+          ctx.strokeStyle = `rgba(150,28,20,${(0.8 * (1 - anima)).toFixed(3)})`;
+          ctx.lineWidth = 1.2;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          lines.forEach(([x0, y0, x1, y1], i) => {
+            if (i >= drawn) return;
+            const f = Math.min(1, drawn - i);
+            ctx.moveTo(x0, y0);
+            ctx.lineTo(x0 + (x1 - x0) * f, y0 + (y1 - y0) * f);
+          });
+          ctx.stroke();
+        }
         ctx.restore();
       } else if (s.id === this.planFade.room && this.planFade.t < 1) {
-        ctx.save();
-        ctx.fillStyle = `rgba(214,68,56,${0.55 * (1 - this.planFade.t)})`;
-        ctx.fill(tilesPath);
-        ctx.restore();
+        ctx.fillStyle = `rgba(190,36,26,${0.45 * (1 - this.planFade.t)})`;
+        ctx.fill(forma);
       }
       if (s.id === this.planHover) {
-        ctx.fillStyle = 'rgba(255,245,225,0.16)';
-        ctx.fill(tilesPath);
+        ctx.fillStyle = 'rgba(255,246,228,0.22)';
+        ctx.fill(forma);
       }
-      // paredes
-      ctx.strokeStyle = s.id === this.planHover ? '#5a1510' : '#1c1916';
-      ctx.lineWidth = Math.max(1.8, S * 0.34);
-      ctx.lineCap = 'round';
-      ctx.beginPath();
+      // as paredes: fina entre dois cômodos, grossa por fora
+      const fina: [number, number, number, number][] = [];
+      const grossa: [number, number, number, number][] = [];
+      const vizinho = (x: number, y: number) => dono.get(`${p.x + x},${p.y + y}`);
       for (let y = 0; y < hm.height; y++)
         for (let x = 0; x < hm.width; x++) {
           if (!tile(x, y)) continue;
           const X = ox + x * S;
           const Y = oy + y * S;
-          if (!tile(x, y - 1)) (ctx.moveTo(X, Y), ctx.lineTo(X + S, Y));
-          if (!tile(x, y + 1)) (ctx.moveTo(X, Y + S), ctx.lineTo(X + S, Y + S));
-          if (!tile(x - 1, y)) (ctx.moveTo(X, Y), ctx.lineTo(X, Y + S));
-          if (!tile(x + 1, y)) (ctx.moveTo(X + S, Y), ctx.lineTo(X + S, Y + S));
+          for (const [nx, ny, seg] of [
+            [x, y - 1, [X, Y, X + S, Y]],
+            [x, y + 1, [X, Y + S, X + S, Y + S]],
+            [x - 1, y, [X, Y, X, Y + S]],
+            [x + 1, y, [X + S, Y, X + S, Y + S]],
+          ] as [number, number, [number, number, number, number]][]) {
+            const v = vizinho(nx, ny);
+            if (v === s.id) continue;
+            (v === undefined ? grossa : fina).push(seg);
+          }
         }
-      ctx.stroke();
+      // traço de nanquim: cada ponta desvia um pouco, sempre igual (as paredes que se encontram continuam emendadas)
+      const tremor = (x: number, y: number) => {
+        const v = Math.sin(Math.round(x * 10) * 12.9898 + Math.round(y * 10) * 78.233) * 43758.5453;
+        return (v - Math.floor(v) - 0.5) * 0.9;
+      };
+      const traco = (segs: [number, number, number, number][], cor: string, lw: number) => {
+        if (!segs.length) return;
+        ctx.strokeStyle = cor;
+        ctx.lineWidth = lw;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        for (const [a, b2, c2, d2] of segs) (ctx.moveTo(a + tremor(a, b2), b2 + tremor(b2, a)), ctx.lineTo(c2 + tremor(c2, d2), d2 + tremor(d2, c2)));
+        ctx.stroke();
+      };
+      traco(fina, 'rgba(30,26,22,0.7)', 1);
+      traco(grossa, '#1d1a17', Math.max(1.6, Math.min(2.4, S * 0.42)));
+      if (atual) traco([...fina, ...grossa], 'rgba(122,18,12,0.85)', 1.2);
+      // as portas: um tracinho escuro atravessando a parede
+      ctx.fillStyle = '#26201b';
       for (const pt of s.portals) {
         const [px, py] = rot(pt.x, pt.y);
-        ctx.fillStyle = s.id === cur ? '#d66a5e' : '#8e8a84';
-        ctx.fillRect(ox + px * S + S * 0.15, oy + py * S + S * 0.2, S * 0.7, S * 0.6);
+        if (!tile(px, py)) continue;
+        const X = ox + px * S;
+        const Y = oy + py * S;
+        const e = Math.max(1.6, S * 0.32);
+        if (!tile(px, py - 1)) ctx.fillRect(X + S * 0.2, Y - e / 2, S * 0.6, e);
+        else if (!tile(px, py + 1)) ctx.fillRect(X + S * 0.2, Y + S - e / 2, S * 0.6, e);
+        else if (!tile(px - 1, py)) ctx.fillRect(X - e / 2, Y + S * 0.2, e, S * 0.6);
+        else if (!tile(px + 1, py)) ctx.fillRect(X + S - e / 2, Y + S * 0.2, e, S * 0.6);
       }
-      // nome do cômodo dentro dele, quando cabe
-      const fs = Math.min(11, rect.h * 0.3, (rect.w / Math.max(4, rect.name.length)) * 1.7);
-      if (fs >= 6) {
-        ctx.save();
-        ctx.font = `${fs.toFixed(1)}px "Ubuntu Mono", monospace`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.lineWidth = 2.4;
-        ctx.strokeStyle = 'rgba(214,204,188,0.85)';
-        ctx.fillStyle = s.id === cur ? '#5a1510' : '#2a211b';
-        const tx = rect.x + rect.w / 2;
-        const ty = rect.y + rect.h / 2;
-        ctx.strokeText(rect.name, tx, ty);
-        ctx.fillText(rect.name, tx, ty);
-        ctx.restore();
-      }
+      this.planRects.push(rect);
+    }
+    // onde estão as peças: bolinhas na cor de cada um
+    for (const { s, p, rot } of parsed)
       for (const u of s.users) {
         const pm = camp.party.find((q) => q.id === u.id);
         const [ux, uy] = rot(u.x, u.y);
         ctx.beginPath();
-        ctx.arc(ox + (ux + 0.5) * S, oy + (uy + 0.5) * S, Math.max(2.2, S * 0.42), 0, Math.PI * 2);
+        ctx.arc(O.x + (p.x + ux + 0.5) * S, O.y + (p.y + uy + 0.5) * S, Math.max(2, Math.min(3.2, S * 0.36)), 0, Math.PI * 2);
         ctx.fillStyle = pm?.color ?? '#fff';
         ctx.fill();
         ctx.lineWidth = 1;
-        ctx.strokeStyle = '#140f0c';
+        ctx.strokeStyle = '#f6efe2';
         ctx.stroke();
       }
-      this.planRects.push(rect);
+  }
+
+  /** O granito dos cômodos da planta: pedra cinza salpicada, com uns veios (como a referência). */
+  private granito: CanvasPattern | null = null;
+  private padraoGranito(ctx: CanvasRenderingContext2D): CanvasPattern | string {
+    if (this.granito) return this.granito;
+    const T = 72;
+    const p = document.createElement('canvas');
+    p.width = T;
+    p.height = T;
+    const g = p.getContext('2d');
+    if (!g) return '#9d9993';
+    let semente = 9;
+    const r = () => (semente = (semente * 16807) % 2147483647) / 2147483647;
+    g.fillStyle = '#928e87';
+    g.fillRect(0, 0, T, T);
+    // manchas grandes e claras/escuras (a pedra da referência), repetidas nas bordas para não ter emenda
+    const mancha = (x: number, y: number, rx: number, ry: number, cor: string) => {
+      for (const dx of [-T, 0, T])
+        for (const dy of [-T, 0, T]) {
+          g.beginPath();
+          g.ellipse(x + dx, y + dy, rx, ry, r() * 3, 0, Math.PI * 2);
+          g.fillStyle = cor;
+          g.fill();
+        }
+    };
+    for (let i = 0; i < 26; i++) mancha(r() * T, r() * T, 3 + r() * 7, 2 + r() * 5, r() < 0.55 ? 'rgba(70,66,60,0.16)' : 'rgba(225,221,212,0.18)');
+    for (let i = 0; i < 160; i++) {
+      g.fillStyle = r() < 0.6 ? 'rgba(52,48,44,0.38)' : 'rgba(232,228,220,0.35)';
+      g.fillRect(Math.floor(r() * T), Math.floor(r() * T), r() < 0.3 ? 2 : 1, r() < 0.3 ? 2 : 1);
     }
+    g.strokeStyle = 'rgba(46,42,38,0.38)';
+    g.lineWidth = 0.7;
+    for (let i = 0; i < 4; i++) {
+      let x = r() * T;
+      let y = r() * T;
+      g.beginPath();
+      g.moveTo(x, y);
+      for (let k = 0; k < 3; k++) {
+        x += (r() - 0.5) * 18;
+        y += (r() - 0.5) * 18;
+        g.lineTo(x, y);
+      }
+      g.stroke();
+    }
+    this.granito = ctx.createPattern(p, 'repeat');
+    return this.granito ?? '#9d9993';
+  }
+
+  /** O lugar ao ar livre na planta: o terreno com cores de mapa e os prédios de pedra, com o nome. */
+  private terrenoNaPlanta(ctx: CanvasRenderingContext2D, s: SceneInfo, raw: Heightmap, rot: (x: number, y: number) => [number, number], ox: number, oy: number, S: number, granito: CanvasPattern | string) {
+    const linhas = (s.terreno ?? '').replace(/\r/g, '').split('\n');
+    const COR: Record<string, string> = { '.': '#a9ad7d', g: '#a9ad7d', t: '#d9c69c', l: '#b38c62', p: '#cfc8b8', d: '#b99b70', m: '#a67d55', a: '#8fb2bd' };
+    for (let y = 0; y < raw.height; y++)
+      for (let x = 0; x < raw.width; x++) {
+        const ch = linhas[y]?.[x] ?? '.';
+        const chao = raw.tiles[y]?.[x] !== null && raw.tiles[y]?.[x] !== undefined;
+        if (!chao && ch !== 'a') continue;
+        const [rx, ry] = rot(x, y);
+        ctx.fillStyle = COR[ch] ?? COR['.'];
+        ctx.fillRect(ox + rx * S, oy + ry * S, S + 0.35, S + 0.35);
+      }
+    // a borda do lugar
+    const largura = (rot(raw.width - 1, raw.height - 1)[0] === raw.width - 1 ? raw.width : raw.height) * S;
+    const altura = (rot(raw.width - 1, raw.height - 1)[0] === raw.width - 1 ? raw.height : raw.width) * S;
+    ctx.strokeStyle = s.id === this.app.state.room?.id ? '#b22a20' : '#1d1a17';
+    ctx.lineWidth = s.id === this.app.state.room?.id ? 2.2 : 1.4;
+    ctx.strokeRect(ox, oy, largura, altura);
+    // os prédios
+    for (const m of s.marcos ?? []) {
+      const [ax, ay] = rot(m.x, m.y);
+      const [bx, by] = rot(m.x + m.w - 1, m.y + m.h - 1);
+      const x0 = ox + Math.min(ax, bx) * S;
+      const y0 = oy + Math.min(ay, by) * S;
+      const w = (Math.abs(bx - ax) + 1) * S;
+      const h = (Math.abs(by - ay) + 1) * S;
+      ctx.fillStyle = 'rgba(52,40,28,0.25)';
+      ctx.fillRect(x0 + 1.2, y0 + 1.4, w, h);
+      ctx.fillStyle = granito;
+      ctx.fillRect(x0, y0, w, h);
+      ctx.strokeStyle = '#1d1a17';
+      ctx.lineWidth = 1.6;
+      ctx.strokeRect(x0, y0, w, h);
+      const f = Math.min(8.5, h * 0.42, (w / Math.max(4, m.nome.length)) * 1.8);
+      if (f >= 5) {
+        ctx.save();
+        ctx.font = `600 ${f.toFixed(1)}px "Ubuntu Mono", monospace`;
+        ctx.fillStyle = '#efe6d1';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(m.nome, x0 + w / 2, y0 + h / 2);
+        ctx.restore();
+      }
+    }
+  }
+
+  /** O alfinete da sala atual: a arte (alfinete.png) ou o marcador de mapa desenhado. */
+  private alfinete(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
+    if (this.alfineteImg) {
+      const w = r * 2.4;
+      const hh = w * 1.4;
+      ctx.drawImage(this.alfineteImg, cx - w / 2, cy - hh * 0.8, w, hh);
+      return;
+    }
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(cx, cy + r * 1.7);
+    ctx.bezierCurveTo(cx - r * 0.45, cy + r * 0.9, cx - r, cy + r * 0.3, cx - r, cy - r * 0.15);
+    ctx.arc(cx, cy - r * 0.15, r, Math.PI, 0);
+    ctx.bezierCurveTo(cx + r, cy + r * 0.3, cx + r * 0.45, cy + r * 0.9, cx, cy + r * 1.7);
+    ctx.closePath();
+    ctx.fillStyle = '#f6efe3';
+    ctx.fill();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#4a120d';
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(cx, cy - r * 0.15, r * 0.4, 0, Math.PI * 2);
+    ctx.fillStyle = '#b3261e';
+    ctx.fill();
+    ctx.restore();
   }
 
   // ================= objetivos =================
@@ -1345,7 +1657,9 @@ export class Shell {
     this.inspKey = key;
     const body = this.inspBody;
     clear(body);
-    this.inspCab.textContent = sel?.kind === 'user' ? 'PERSONAGEM' : sel ? 'OBJETO SELECIONADO' : 'NESTA CENA';
+    this.inspCab.textContent = sel?.kind === 'user' ? 'PERSONAGEM' : sel ? 'OBJETO' : 'NESTA CENA';
+    // com algo aberto, o cartão da sala encolhe (só o nome e o andar) e o do objeto ganha a altura
+    this.inspEl.parentElement?.classList.toggle('com-selecao', !!sel);
     this.closeTag.classList.toggle('hidden', !sel);
     if (fresh && sel) this.closeTag.animate([{ transform: 'rotate(-14deg)' }, { transform: 'rotate(8deg)', offset: 0.45 }, { transform: 'rotate(-3deg)', offset: 0.75 }, { transform: 'rotate(0)' }], { duration: 700, easing: 'ease-out' });
 
@@ -1413,7 +1727,7 @@ export class Shell {
       const free = (item.loot ?? []).filter((l) => !l.holder).length;
       const lock = (item as FloorItem).lock;
       const parts = [
-        lock ? (lock.open ? 'Passagem aberta' : 'Com senha') : null,
+        lock ? (lock.open ? 'Passagem aberta' : lock.semSenha ? 'Esconde uma passagem' : 'Com senha') : null,
         item.hint ? 'Pista' : null,
         free ? `${free} ${free > 1 ? 'itens' : 'item'}` : null,
         item.actions?.length ? `${item.actions.length} ${item.actions.length > 1 ? 'interações' : 'interação'}` : null,
@@ -1465,17 +1779,17 @@ export class Shell {
         on ? tabRing() : null,
       );
     };
-    body.append(h('div', { class: 'itabs', role: 'tablist' }, tab('desc', 'DESCRIÇÃO'), tab('inter', 'INTERAÇÕES'), tab('items', `ITENS (${loot.length})`)));
+    body.append(h('div', { class: 'itabs', role: 'tablist' }, tab('items', `CONTÉM (${loot.length})`), tab('desc', 'DESCRIÇÃO'), tab('inter', 'INTERAÇÕES')));
     const pane = h('div', { class: `ipane ${this.inspTab}` });
-    body.append(pane);
+    body.append(pane, selo());
     if (this.inspTab === 'desc') this.paneDesc(pane, s);
     else if (this.inspTab === 'inter') this.paneInter(pane, s, actions);
     else this.paneItems(pane, s, loot);
   }
 
   /**
-   * Painel de senha de um mobi com fechadura: os jogadores dizem a senha, o
-   * mestre digita (teclas ou números do teclado). Certa = o mobi desliza.
+   * A fechadura de um mobi no painel do objeto: trancada, o botão que abre o teclado grande no
+   * meio do tabuleiro (os jogadores dizem a senha, o mestre digita); aberta, fechar de novo.
    */
   private keypad(it: FloorItem) {
     const lock = it.lock!;
@@ -1484,80 +1798,44 @@ export class Shell {
       return h(
         'div',
         { class: 'keypad open' },
-        h('div', { class: 'kp-head' }, h('b', null, 'PASSAGEM ABERTA'), lock.code ? h('small', null, `senha ${lock.code}`) : null),
+        h('div', { class: 'kp-head' }, h('b', null, 'PASSAGEM ABERTA')),
         h('button', { class: 'dbtn', onclick: () => (sfx.click(), net.send({ t: 'relock', id: it.id })) }, 'Fechar a passagem'),
       );
-    const len = Math.max(1, Math.min(8, lock.code?.length || 4));
-    if (this.kpTyped.id !== it.id) this.kpTyped = { id: it.id, value: '' };
-    const input = h('input', { class: 'kp-in', inputmode: 'numeric', autocomplete: 'off', maxlength: String(len), 'aria-label': 'Senha', value: this.kpTyped.value });
-    const slots = h('div', { class: 'kp-slots', 'aria-hidden': 'true' });
-    const show = () => {
-      this.kpTyped.value = input.value;
-      clear(slots).append(...Array.from({ length: len }, (_, i) => h('span', { class: `kp-slot${input.value[i] ? ' on' : ''}` }, input.value[i] ?? '')));
-    };
-    const press = (d: string) => {
-      if (input.value.length >= len) return;
-      input.value += d;
-      sfx.beep(Number(d));
-      show();
-    };
-    const back = () => {
-      input.value = input.value.slice(0, -1);
-      sfx.click();
-      show();
-    };
-    const send = () => {
-      if (!input.value) return;
-      net.send({ t: 'unlock', id: it.id, code: input.value });
-    };
-    input.addEventListener('input', () => {
-      input.value = input.value.replace(/\D/g, '').slice(0, len);
-      const last = input.value.slice(-1);
-      if (last) sfx.beep(Number(last));
-      show();
-    });
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') (e.preventDefault(), send());
-      if (e.key === 'Escape') input.blur();
-    });
-    const key = (label: string, fn: () => void, cls = '') => h('button', { class: `kp-key${cls}`, type: 'button', onclick: fn }, label);
-    const grid = h(
-      'div',
-      { class: 'kp-grid' },
-      ...['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => key(d, () => press(d))),
-      key('←', back, ' fn'),
-      key('0', () => press('0')),
-      key('OK', send, ' ok'),
-    );
-    show();
-    setTimeout(() => input.focus({ preventScroll: true }), 0);
+    // sem senha (o feno em cima do alçapão): empurrar já revela
+    if (lock.semSenha)
+      return h(
+        'div',
+        { class: 'keypad' },
+        h('div', { class: 'kp-head' }, h('b', null, 'ESCONDE UMA PASSAGEM')),
+        h('button', { class: 'dbtn', onclick: () => (sfx.click(), net.send({ t: 'use', id: it.id })) }, 'Empurrar e revelar'),
+      );
     return h(
       'div',
       { class: 'keypad' },
-      h('div', { class: 'kp-head' }, h('b', null, 'SENHA'), lock.code ? h('small', null, `mestre: ${lock.code}`) : null),
-      h('label', { class: 'kp-display' }, slots, input),
-      grid,
+      h('div', { class: 'kp-head' }, h('b', null, 'COM SENHA')),
+      h('button', { class: 'dbtn', onclick: () => this.abrirTeclado(it) }, 'Digitar a senha'),
     );
   }
 
-  /** Resposta do servidor à senha: carimbo e som; errada = o painel treme e limpa. */
+  /** Abre o teclado grande da fechadura (só o mestre, com ela trancada). false se não abriu. */
+  abrirTeclado(it: FloorItem): boolean {
+    if (!this.gm || !it.lock || it.lock.open || it.lock.semSenha) return false;
+    this.teclado.abrir(it);
+    return true;
+  }
+
+  /** Resposta do servidor à senha: no teclado grande (aberto) ou, sem ele, um carimbo no painel do objeto. */
   onLockResult(m: { id: number; ok: boolean; reason?: string }) {
-    const box = this.inspBody.querySelector<HTMLElement>('.keypad');
-    this.kpTyped = { id: m.id, value: '' };
-    const at = box ?? this.inspBody;
+    if (m.reason && !m.ok) toast(m.reason, 'error');
+    if (this.teclado.resultado(m)) return;
+    const at = this.inspBody.querySelector<HTMLElement>('.keypad') ?? this.inspBody;
     if (m.ok) {
       sfx.granted();
       this.stampCard(at, 'ACESSO LIBERADO', true);
     } else {
       sfx.denied();
-      if (box) shake(box, 0.6);
+      shake(at, 0.6);
       this.stampCard(at, m.reason ? 'NÃO DÁ' : 'SENHA ERRADA', false);
-      if (m.reason) toast(m.reason, 'error');
-      const input = box?.querySelector<HTMLInputElement>('.kp-in');
-      if (input) {
-        input.value = '';
-        input.dispatchEvent(new Event('input'));
-      }
     }
   }
 
@@ -1597,6 +1875,14 @@ export class Shell {
       if (item.hint) {
         const hh = item.hint;
         tools.append(tool(hh.visible ? 'Ocultar' : 'Revelar', () => net.send({ t: 'setHint', id: item.id, hint: { ...hh, visible: !hh.visible } })));
+      }
+      if (floor) tools.append(tool('Trocar', () => this.acts.trocar(floor.id, floor.defId)));
+      // quadros e tapetes: o tamanho do desenho
+      if (kind === 'wall' || fdef?.flat) {
+        const e = item.escala ?? 1;
+        const passo = (d: number) => net.send({ t: 'resizeItem', id: item.id, escala: Math.round((e + d) * 100) / 100 });
+        if (e < 3) tools.append(tool('Maior', () => passo(0.25)));
+        if (e > 0.5) tools.append(tool('Menor', () => passo(-0.25)));
       }
       tools.append(tool('Guardar', () => net.send({ t: 'pickup', id: item.id })));
       if (floor && fdef?.portal) {
@@ -1664,6 +1950,9 @@ export class Shell {
   private paneItems(pane: HTMLElement, s: NonNullable<Sel>, loot: Loot[]) {
     const net = this.app.net;
     if (!loot.length && !this.gm) pane.append(h('p', { class: 'empty' }, 'Nada aqui.'));
+    // quem está sob comando pega direto (vai para a mochila da ficha dele)
+    const ativo = this.app.view.users.get(this.app.view.myId ?? 0);
+    const quemPega = ativo && this.fichasMapa.some((f) => f.personagem && f.personagem === ativo.look.charId) ? ativo.name : null;
     loot.forEach((l) => {
       const holder = this.member(l.holder);
       const prev = this.holders.get(l.id);
@@ -1678,23 +1967,36 @@ export class Shell {
           )
         : this.gm
           ? h(
-              'button',
-              {
-                class: `dbtn${this.giveLoot?.lootId === l.id ? ' on' : ''}`,
-                onclick: () => {
-                  sfx.click();
-                  this.giveLoot = this.giveLoot?.lootId === l.id ? null : { itemId: s.item.id, lootId: l.id };
-                  this.renderInspector();
+              'div',
+              { class: 'ic-bts' },
+              quemPega
+                ? h('button', { class: 'dbtn', title: `${quemPega} pega e guarda na mochila`, onclick: () => (sfx.click(), net.send({ t: 'lootGive', itemId: s.item.id, lootId: l.id, to: quemPega })) }, 'Pegar')
+                : null,
+              h(
+                'button',
+                {
+                  class: `dbtn${this.giveLoot?.lootId === l.id ? ' on' : ''}`,
+                  onclick: () => {
+                    sfx.click();
+                    this.giveLoot = this.giveLoot?.lootId === l.id ? null : { itemId: s.item.id, lootId: l.id };
+                    this.renderInspector();
+                  },
                 },
-              },
-              'Entregar',
+                'Entregar',
+              ),
             )
           : null;
       const card = h(
         'div',
-        { class: `icard${this.giveLoot?.lootId === l.id ? ' sel' : ''}${l.revealed || this.gm ? '' : ' dim'}`, 'data-loot': String(l.id) },
+        {
+          class: `icard${this.giveLoot?.lootId === l.id ? ' sel' : ''}${l.revealed || this.gm ? '' : ' dim'}`,
+          'data-loot': String(l.id),
+          title: 'Clique para inspecionar (ou ler)',
+          // inspecionar o item (ou ler o documento): clique fora dos botões
+          onclick: (e: Event) => !(e.target as Element).closest('button') && (sfx.paper(), this.inspecionarLoot(l, s)),
+        },
         h('div', { class: 'ic-icon' }, lootIcon(l.kind, 52)),
-        h('div', { class: 'ic-text' }, h('b', null, l.name), h('small', null, `Peso: ${fmt(l.weight)} | ${lootKindLabel(l.kind)}`)),
+        h('div', { class: 'ic-text' }, h('b', null, l.name), h('small', null, `Espaços: ${fmt(l.espacos)} | ${lootKindLabel(l.kind)}${l.item ? ' · do livro' : ''}`)),
         right,
       );
       if (this.gm && !l.holder)
@@ -1708,9 +2010,17 @@ export class Shell {
     });
     if (this.gm) {
       if (this.addingLoot) {
-        const name = h('input', { class: 'mini grow', placeholder: 'Nome do item', maxlength: 40 });
-        const weight = h('input', { class: 'mini num', type: 'number', value: '1', step: '0.1', min: '0' });
-        const kind = h('select', { class: 'mini' }, ...LOOT_KINDS.map((k) => h('option', { value: k.id }, k.label)));
+        // um nome do livro (lista do campo) faz do item o do catálogo: espaços, tipo e, para arma, o ataque
+        const name = h('input', { class: 'mini grow', placeholder: 'Nome do item (ou um do livro)', maxlength: 40, list: listaDoCatalogo() }) as HTMLInputElement;
+        const weight = h('input', { class: 'mini num', type: 'number', value: '1', step: '0.5', min: '0', max: '10', 'aria-label': 'Espaços' }) as HTMLInputElement;
+        const kind = h('select', { class: 'mini', 'aria-label': 'Tipo' }, ...LOOT_KINDS.map((k) => h('option', { value: k.id }, k.label))) as HTMLSelectElement;
+        const desc = h('input', { class: 'mini add-desc', placeholder: 'Texto do mestre (opcional)', maxlength: 240 }) as HTMLInputElement;
+        name.addEventListener('change', () => {
+          const c = doCatalogoPeloNome(name.value);
+          if (!c) return;
+          weight.value = String(c.espacos);
+          kind.value = c.kind;
+        });
         const form = h(
           'form',
           {
@@ -1718,21 +2028,45 @@ export class Shell {
             onsubmit: (e: Event) => {
               e.preventDefault();
               if (!name.value.trim()) return;
-              net.send({ t: 'lootAdd', itemId: s.item.id, name: name.value.trim(), weight: Number(weight.value) || 0, kind: kind.value as LootKind });
+              const c = doCatalogoPeloNome(name.value);
+              const texto = desc.value.trim();
+              net.send({ t: 'lootAdd', itemId: s.item.id, name: name.value.trim(), espacos: Number(weight.value) || 0, kind: kind.value as LootKind, ...(c ? { item: { tipo: c.tipo, id: c.id } } : {}), ...(texto ? { descricao: texto } : {}) });
               this.addingLoot = false;
             },
           },
           name,
-          h('span', { class: 'mini-l' }, 'Peso'),
+          h('span', { class: 'mini-l' }, 'Espaços'),
           weight,
           kind,
           h('button', { class: 'dbtn', type: 'submit' }, 'OK'),
+          desc,
         );
         pane.append(form);
         enter(form, 'up', 0, 260);
         setTimeout(() => name.focus(), 0);
       } else pane.append(h('button', { class: 'add-item', onclick: () => ((this.addingLoot = true), this.renderInspector()) }, '+ Adicionar item'));
     }
+  }
+
+  /** O que é o item do cenário: o texto do mestre (o documento se lê assim), e os números do livro. */
+  private inspecionarLoot(l: Loot, s: NonNullable<Sel>) {
+    const linhas: Node[] = [];
+    const linha = (rot: string, txt: string) => txt && linhas.push(h('p', { class: 'dossier-linha' }, h('b', null, `${rot} `), txt));
+    let texto = l.descricao ?? '';
+    if (l.item) {
+      const it: regras.ItemFicha = { id: l.item.id, tipo: l.item.tipo };
+      const inf = infoItem(it, null);
+      const base = regras.baseDoItem(it) as { resumo?: string; especial?: string[] } | undefined;
+      texto ||= base?.resumo ?? '';
+      linha('Do livro:', `${inf.tipo} · categoria ${romano(inf.categoria)}`);
+      if (l.item.tipo === 'arma' || l.item.tipo === 'protecao') linha(l.item.tipo === 'arma' ? 'Ataque:' : 'Proteção:', [inf.efeito, inf.obs].filter((x) => x && x !== '—').join(' · '));
+      if (base?.especial?.length) linha('Regras:', base.especial.join(' · '));
+      if (inf.ref) linha('Livro:', textoRef(inf.ref));
+    }
+    linha('Espaços:', `${fmt(l.espacos)}${(l.qtd ?? 1) > 1 ? ` (x${l.qtd})` : ''}`);
+    linha('Onde está:', s.item.hint?.title || anyFurniName(s.item.defId));
+    if (this.gm && !l.revealed) linha('Mestre:', 'os jogadores ainda não sabem deste item.');
+    this.hintViewer.abrirItem({ titulo: l.name, rotulo: lootKindLabel(l.kind), icone: lootIcon(l.kind, 26), texto: texto || (['document', 'letter', 'tape'].includes(l.kind) ? 'Não há nada escrito que dê para ler.' : ''), linhas });
   }
 
   /** Carimbo que bate sobre o cartão e desbota (resultado de um teste). */
@@ -1770,7 +2104,7 @@ export class Shell {
     const body = clear(this.giveBody);
     body.append(h('h3', { class: 'p-title' }, `ENTREGAR ${l.name.toUpperCase()} PARA:`));
     this.campaign.party.forEach((p, i) => {
-      const after = Math.round((p.load + l.weight) * 10) / 10;
+      const after = Math.round((p.load + l.espacos) * 10) / 10;
       const over = Math.round((after - p.capacity) * 10) / 10;
       const ratio = p.capacity ? p.load / p.capacity : 1;
       const pct = Math.min(100, ratio * 100);
@@ -1787,7 +2121,7 @@ export class Shell {
         h(
           'div',
           { class: `g-after${over > 0 ? ' over' : ''}` },
-          h('b', null, `+${fmt(l.weight)} `, arrow(), ` ${fmt(after)} / ${fmt(p.capacity)}`),
+          h('b', null, `+${fmt(l.espacos)} `, arrow(), ` ${fmt(after)} / ${fmt(p.capacity)}`),
           over > 0 ? h('small', null, warnIcon(), h('u', null, `Excederá o limite em ${fmt(over)}`)) : null,
         ),
         btn,
@@ -1823,7 +2157,7 @@ export class Shell {
     if (this.delivering) return;
     this.delivering = true;
     try {
-      const after = Math.round((p.load + l.weight) * 10) / 10;
+      const after = Math.round((p.load + l.espacos) * 10) / 10;
       const over = after > p.capacity;
       sfx.click();
       this.giveBody.querySelectorAll('.dbtn').forEach((b) => ((b as HTMLButtonElement).disabled = true));
@@ -1844,7 +2178,7 @@ export class Shell {
         const to = card.getBoundingClientRect();
         await flyArc(lootIcon(l.kind, 52), from, to);
         bump(card, 1.07, 1.4);
-        floatText(card, `+${fmt(l.weight)}`, over ? '#ff6a5c' : '#8fe39a');
+        floatText(card, `+${fmt(l.espacos)}`, over ? '#ff6a5c' : '#8fe39a');
       }
     } finally {
       this.delivering = false;
@@ -1858,6 +2192,7 @@ export class Shell {
     const color = p?.color ?? u.color;
     const net = this.app.net;
     const carried: { l: Loot; from: string }[] = [];
+    const ficha = this.fichasMapa.find((f) => f.personagem && f.personagem === u.look.charId);
     const map = view.map;
     if (map) for (const it of [...map.allItems(), ...map.allWallItems()]) for (const l of it.loot ?? []) if (l.holder?.toLowerCase() === u.name.toLowerCase()) carried.push({ l, from: anyFurniName(it.defId) });
     const active = view.myId === id;
@@ -1885,7 +2220,7 @@ export class Shell {
       tools.append(
         h('button', { class: 'tool', title: 'Girar para a esquerda (Q)', onclick: () => this.turnToken(id, false) }, '↺ Girar'),
         h('button', { class: 'tool', title: 'Girar para a direita (E)', onclick: () => this.turnToken(id, true) }, 'Girar ↻'),
-        this.stateTool('Armado', !!p?.armed, 'Com a arma na mão (retrato armado)', () => net.send({ t: 'tokenEdit', tokenId: id, armed: !p?.armed })),
+        this.stateTool('Armado', !!p?.armed, ficha ? 'Vem da mão: empunha a arma da mochila ou guarda as armas' : 'Com a arma na mão (retrato armado)', () => net.send({ t: 'tokenEdit', tokenId: id, armed: !p?.armed })),
         tool('Editar', () => this.tokenWin.open({ id, name: u.name, look: u.look, color, capacity: p?.capacity ?? 10 })),
         tool('Remover', async () => (await askNote(`TIRAR ${u.name.toUpperCase()}?`, `${u.name} sai do tabuleiro. Os itens que carrega continuam registrados.`, 'Tirar do tabuleiro', true)) && net.send({ t: 'tokenRemove', tokenId: id })),
       );
@@ -1897,13 +2232,35 @@ export class Shell {
       sc.addEventListener('change', () => sc.value && net.send({ t: 'tokenScene', tokenId: id, roomId: Number(sc.value) }));
       body.append(sc);
     }
+    if (ficha) {
+      // com ficha, a mochila dela (um inventário só): o resto se faz na aba ITENS
+      const inv = ficha.ficha.inventario;
+      body.append(h('div', { class: 'itabs' }, h('span', { class: 'itab on' }, h('span', null, `MOCHILA (${inv.length})`), tabRing())));
+      const pane = h('div', { class: 'ipane' });
+      if (!inv.length) pane.append(h('p', { class: 'empty' }, 'Mochila vazia.'));
+      const lugar = { mao: 'na mão', vestido: 'vestido', mochila: 'na mochila' } as const;
+      for (const it of inv) {
+        const icone = it.tipo === 'cena' ? lootIcon((it.tipoCena as LootKind) || 'misc', 52) : lootIcon(kindDoItem(it), 52);
+        pane.append(h('div', { class: 'icard' }, h('div', { class: 'ic-icon' }, icone), h('div', { class: 'ic-text' }, h('b', null, regras.nomeDoItem(it)), h('small', null, `${fmt(espacosDoItemFicha(it))} esp. | ${lugar[regras.lugarDoItem(it)]}${(it.qtd ?? 1) > 1 ? ` · x${it.qtd}` : ''}`))));
+      }
+      pane.append(h('button', { class: 'add-item', onclick: () => (sfx.paper(), this.abrirItens(id)) }, 'Abrir na aba ITENS'));
+      body.append(pane);
+      return;
+    }
     body.append(h('div', { class: 'itabs' }, h('span', { class: 'itab on' }, h('span', null, `CARREGANDO (${carried.length})`), tabRing())));
     const pane = h('div', { class: 'ipane' });
     if (!carried.length) pane.append(h('p', { class: 'empty' }, 'Nada nas mãos (itens desta cena).'));
     carried.forEach(({ l, from }) =>
-      pane.append(h('div', { class: 'icard' }, h('div', { class: 'ic-icon' }, lootIcon(l.kind, 52)), h('div', { class: 'ic-text' }, h('b', null, l.name), h('small', null, `Peso: ${fmt(l.weight)} | ${lootKindLabel(l.kind)} · ${from}`)))),
+      pane.append(h('div', { class: 'icard' }, h('div', { class: 'ic-icon' }, lootIcon(l.kind, 52)), h('div', { class: 'ic-text' }, h('b', null, l.name), h('small', null, `Espaços: ${fmt(l.espacos)} | ${lootKindLabel(l.kind)} · ${from}`)))),
     );
     body.append(pane);
+  }
+
+  /** Abre a aba ITENS na mochila do agente (id da peça). */
+  private abrirItens(id: number) {
+    this.abaItens.escolher(id);
+    this.rpgTab = 'ITENS';
+    this.renderRpg(true);
   }
 
   /** Botão que liga/desliga um estado do personagem (Armado, Machucado). */
@@ -2009,9 +2366,52 @@ export class Shell {
         ),
       );
     }
+    // as condições do agente: as que saem sozinhas pelo PV e pela SAN e as que o mestre marca (na ficha).
+    // Ficam aqui e no celular do jogador; a FICHAS do mestre é só a das regras.
     const labels = conditionLabels(vitalConditions(p.vitals));
-    if (labels.length) wrap.append(h('div', { class: 'vt-conds' }, ...labels.map((l) => h('span', { class: 'vt-cond' }, l))));
+    const ficha = this.fichasMapa.find((f) => f.personagem !== undefined && f.personagem === p.look?.charId);
+    const marcadas = (ficha?.condicoes ?? []).map((c) => regras.catalogo.condicao(c)?.nome ?? c);
+    if (labels.length || marcadas.length || (this.gm && ficha))
+      wrap.append(
+        h(
+          'div',
+          { class: 'vt-conds' },
+          ...labels.map((l) => h('span', { class: 'vt-cond' }, l)),
+          ...marcadas.map((l) => h('span', { class: 'vt-cond marcada' }, l)),
+          this.gm && ficha ? h('button', { class: 'vt-cond mais', type: 'button', title: 'Condições', 'aria-label': `Condições de ${p.name}`, onclick: () => this.escolherCondicoes(ficha) }, ic('mais'), marcadas.length ? null : h('span', null, 'Condição')) : null,
+        ),
+      );
     return wrap;
+  }
+
+  /** As condições do livro para marcar no agente (as automáticas saem sozinhas pelo PV e pela SAN). */
+  private escolherCondicoes(ficha: FichaSalva) {
+    const AUTO = ['machucado', 'morrendo', 'perturbado', 'enlouquecendo'];
+    void escolher(
+      {
+        titulo: `Condições de ${ficha.nome}`,
+        dica: 'Machucado, morrendo, perturbado e enlouquecendo saem sozinhos pelo PV e pela SAN (LR p. 310–311).',
+        qtd: 40,
+        podeVazio: true,
+        opcoes: () =>
+          regras.catalogo.CATALOGO.condicoes.map((x) => ({
+            id: x.id,
+            nome: x.nome,
+            ref: x.ref,
+            resumo: x.resumo,
+            ok: !x.automatica,
+            motivos: x.automatica ? ['Sai sozinha pela ficha.'] : [],
+            avisos: x.inclui?.length ? [`Inclui: ${x.inclui.map((i) => regras.catalogo.condicao(i)?.nome ?? i).join(', ')}.`] : [],
+          })),
+        atual: () => ficha.condicoes ?? [],
+        aplicar: (ids) => {
+          const nova: FichaSalva = { ...ficha, condicoes: ids.filter((i) => !AUTO.includes(i)), atualizadaEm: new Date().toISOString() };
+          if (!nova.condicoes?.length) delete nova.condicoes;
+          this.app.net.send({ t: 'fichaSalvar', ficha: nova });
+        },
+      },
+      () => this.renderRpg(true),
+    );
   }
 
   /** Cartão da sala (esquerda): a foto, o nome, a descrição e o andar. */
@@ -2020,7 +2420,7 @@ export class Shell {
     const cena = this.campaign?.scenes.find((x) => x.id === r?.id);
     const url = r ? loadThumb(r.id) : null;
     const nome = (r?.name.split('·').pop()?.trim() ?? 'Cena').toUpperCase();
-    const sig = JSON.stringify([r?.id, r?.name, r?.description, cena?.floor, !!url]);
+    const sig = JSON.stringify([r?.id, r?.name, r?.description, cena?.floor, r?.area, !!url, this.campaign?.scenes.length]);
     if (sig === this.salaSig) return;
     this.salaSig = sig;
     clear(this.salaCorpo).append(
@@ -2030,7 +2430,7 @@ export class Shell {
         { class: 'sala-txt' },
         h('h3', { class: 'marca' }, nome),
         h('p', null, r?.description || 'Clique num objeto do cenário para ver descrição, interações e itens.'),
-        h('div', { class: 'sala-chips' }, h('span', null, ic('pino'), (cena?.floor ?? 'Andar único').toUpperCase()), h('span', null, ic('camadas'), `${(this.campaign?.scenes.length ?? 1)} CÔMODOS`)),
+        h('div', { class: 'sala-chips' }, h('span', null, ic('pino'), (cena?.floor ?? 'Andar único').toUpperCase()), h('span', null, ic('camadas'), r?.area ? r.area.toUpperCase() : `${this.campaign?.scenes.length ?? 1} CÔMODOS`)),
       ),
     );
   }
@@ -2065,10 +2465,22 @@ export class Shell {
         rotulo: 'Abrir',
         icone: 'caixa',
         ok: abrir,
-        dica: porta ? 'Abrir ou fechar' : lock ? 'Senha da passagem' : 'Ver o que tem dentro',
+        dica: porta
+          ? fdef?.portal
+            ? (['Fechar a porta', 'Trancar a porta', 'Destrancar e abrir'][(it as FloorItem).state] ?? 'Abrir ou fechar')
+            : 'Abrir ou fechar'
+          : lock?.semSenha
+            ? lock.open
+              ? 'Cobrir a passagem de novo'
+              : 'Empurrar e ver o que esconde'
+            : lock
+              ? 'Senha da passagem'
+              : 'Ver o que tem dentro',
         fazer: () => {
           if (!s) return;
-          if (porta && !lock) this.app.net.send({ t: 'use', id: it!.id });
+          if (lock?.semSenha) this.app.net.send({ t: 'use', id: it!.id });
+          else if (porta && !lock) this.app.net.send({ t: 'use', id: it!.id });
+          else if (lock && this.abrirTeclado(it as FloorItem)) return;
           else ((this.inspTab = lock ? 'desc' : 'items'), this.renderInspector(true));
         },
       },
@@ -2153,7 +2565,7 @@ export class Shell {
       if (c.color !== p.color) {
         c.color = p.color;
         c.el.style.setProperty('--c', p.color);
-        paperize(c.el, { seed: 60 + i * 3, tone: '#cfb99f', burn: 0.72, stripe: p.color, torn: 1.8, backs: [{ dx: 3, dy: 3, rot: 1.8 }, { dx: -3, dy: 5, rot: -1.3 }], pad: 22 });
+        paperize(c.el, { kit: false, seed: 60 + i * 3, tone: '#cfb99f', burn: 0.72, stripe: p.color, torn: 1.8, backs: [{ dx: 3, dy: 3, rot: 1.8 }, { dx: -3, dy: 5, rot: -1.3 }], pad: 22 });
       }
       // na carta cabe o nome curto (como na referência: Catarina, Alosi)
       c.name.textContent = p.name.length <= 11 ? p.name : p.name.split(/\s+/)[0];
@@ -2204,7 +2616,7 @@ export class Shell {
       this.turnButton(id, false),
       this.turnButton(id, true),
     );
-    paperize(el, { seed: 60 + i * 3, tone: '#cfb99f', burn: 0.72, stripe: p.color, torn: 1.8, backs: [{ dx: 3, dy: 3, rot: 1.8 }, { dx: -3, dy: 5, rot: -1.3 }], pad: 22 });
+    paperize(el, { kit: false, seed: 60 + i * 3, tone: '#cfb99f', burn: 0.72, stripe: p.color, torn: 1.8, backs: [{ dx: 3, dy: 3, rot: 1.8 }, { dx: -3, dy: 5, rot: -1.3 }], pad: 22 });
     tilt(el);
     return { el, img, name, away, look: this.portraitKey(p), color: p.color, vitals, vitalsKey: JSON.stringify(p.vitals ?? null) };
   }
@@ -2274,7 +2686,9 @@ export class Shell {
     list.sort((a, b) => order.indexOf(a.l.kind) - order.indexOf(b.l.kind));
     this.slots.forEach((slot, i) => {
       const s = list[i];
-      const more = i === 5 && list.length > 6 ? list.length - 5 : 0;
+      // a última casa mostra quantos sobram (+N) quando não cabe tudo
+      const ultima = this.slots.length - 1;
+      const more = i === ultima && list.length > this.slots.length ? list.length - ultima : 0;
       const key = s ? `${s.kind}${s.id}:${s.l.id}:${s.l.name}:${more}` : '';
       if (key === slot.key) return;
       const had = slot.key !== '';
@@ -2288,7 +2702,7 @@ export class Shell {
       clear(el);
       if (!s) return;
       const ic = lootIcon(s.l.kind, 44);
-      el.append(ic, h('span', { class: 'q-tag', 'aria-hidden': 'true' }, h('b', null, s.l.name), h('small', null, `Peso ${fmt(s.l.weight)}`)));
+      el.append(ic, h('span', { class: 'q-tag', 'aria-hidden': 'true' }, h('b', null, s.l.name), h('small', null, `${fmt(s.l.espacos)} esp.`)));
       if (more) el.append(h('b', { class: 'q-more' }, `+${more}`));
       if (!reduced()) {
         const d = this.intro(520 + i * 50);
@@ -2361,6 +2775,17 @@ export class Shell {
     const s = this.sceneList().find((x) => x.id === id);
     return s ? s.name.split('·').pop()!.trim() : '';
   }
+}
+
+/**
+ * Carimbo da Ordem bem apagado no painel do objeto (a referência): o anel com
+ * o nome e o emblema no meio, que vem do logo local (fora do git); sem o logo,
+ * fica só o anel.
+ */
+function selo(): HTMLElement {
+  const el = h('span', { class: 'insp-selo', 'aria-hidden': 'true' });
+  el.innerHTML = `<svg viewBox="0 0 100 100"><defs><path id="selo-arco" d="M50,50 m-37,0 a37,37 0 1,1 74,0 a37,37 0 1,1 -74,0"/></defs><circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="50" cy="50" r="29" fill="none" stroke="currentColor" stroke-width="1"/><text font-size="8.6" letter-spacing="1.6" fill="currentColor" font-family="Courier Prime, monospace" font-weight="700"><textPath href="#selo-arco">ORDO REALITAS · SEDE DA ORDEM ·</textPath></text></svg><i></i>`;
+  return el;
 }
 
 /** Planta girada em quartos de volta (r) no sentido horário, para encaixar o cômodo na planta. */

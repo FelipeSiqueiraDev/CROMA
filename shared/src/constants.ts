@@ -10,16 +10,28 @@ export const MAX_NAME = 16;
 export const MAX_TOKEN_NAME = 24;
 /** Altura máxima de empilhamento de mobis. */
 export const STACK_LIMIT = 12;
-/** Altura das paredes (em unidades de altura) acima do piso mais alto. */
-export const WALL_HEIGHT = 5;
 /** Pixels de tela (eixo x) por tile ao longo de uma parede. */
 export const WALL_PX_PER_TILE = 32;
 /** Pixels de tela por unidade de altura. */
 export const Z_PX = 32;
 /**
- * Escala do mundo: unidades de altura por metro. O personagem (~1,75 m) tem
- * ~104 px na tela e a parede (5 unidades) ~2,8 m; os mobis são medidos em
- * metros e convertidos com isto (mesa 0,8 m, estante 2,2 m, porta 2,15 m).
+ * A casa do tabuleiro, em metros: meio quadrado do livro (o quadrado de 1,5 m = 2 casas;
+ * REGRAS.md, decisão 6). Tudo segue isto: as regras, o desenho e a arte (móveis no
+ * tamanho de verdade, a pessoa com 1,80 m).
  */
-export const Z_PER_M = 1.8;
-export const MAX_ROOM_SIZE = 40;
+export const M_POR_CASA = 0.75;
+/**
+ * Escala do mundo: unidades de altura (32 px) por metro, a mesma da casa no isométrico
+ * (casa de 64×32 px = câmera a 45° e 30°): 52 px por metro na vertical. A pessoa de 1,80 m
+ * tem ~94 px; os mobis são medidos em metros e convertidos com isto (mesa 0,8 m, estante
+ * 2,2 m, porta 2,15 m).
+ */
+export const Z_PER_M = (Math.SQRT2 * Math.cos(Math.PI / 6)) / M_POR_CASA;
+/** Altura das paredes (em unidades de altura) acima do piso mais alto: 2,8 m. */
+export const WALL_HEIGHT = 2.8 * Z_PER_M;
+/**
+ * A arte das pessoas (bonecos, poses, folhas) sai a 57,6 px por metro (a escala antiga, de
+ * 0,68 m por casa); o tabuleiro desenha com isto, para a pessoa ficar com 1,80 m na escala nova.
+ */
+export const ESCALA_ARTE_PESSOA = (Z_PER_M * Z_PX) / 57.6;
+export const MAX_ROOM_SIZE = 80;

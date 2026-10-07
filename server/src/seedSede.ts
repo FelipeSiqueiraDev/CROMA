@@ -1,4 +1,4 @@
-import { RoomMap, type AvatarLook, type Door, type FloorItem, type FloorStyle, type LightMode, type ParticleKind } from '@croma/shared';
+import { RoomMap, type AvatarLook, type Door, type FloorItem, type FloorStyle, type LightMode, type ParticleKind, type Tema } from '@crona/shared';
 import type { Database, RoomData, TokenData } from './db';
 import { buildRoom, plan, type FloorSeed, type WallSeed } from './seed';
 
@@ -16,13 +16,31 @@ import { buildRoom, plan, type FloorSeed, type WallSeed } from './seed';
 export const SEDE = 'Sede · ';
 export const SEDE_CODE = '0413';
 /** Versão da montagem da Sede: subiu, a Sede é refeita no lugar (mesmos cômodos, peças e registro). */
-export const SEDE_REV = 3;
+export const SEDE_REV = 41;
 
 /** Planta retangular com a porta na parede de cima (y = 0), na coluna doorX. */
 export function planTop(w: number, h: number, doorX: number): { heightmap: string; door: Door } {
   const rows = [Array.from({ length: w }, (_, x) => (x === doorX ? '0' : 'x')).join('')];
   for (let y = 0; y < h; y++) rows.push('0'.repeat(w));
   return { heightmap: rows.join('\n'), door: { x: doorX, y: 0, dir: 4 } };
+}
+
+/**
+ * Planta retangular com a porta na parede de baixo (a da frente, que não aparece no tabuleiro), na
+ * coluna doorX: o vão fica na fileira de fora (y = h) e a passagem na última fileira da sala.
+ */
+export function planBottom(w: number, h: number, doorX: number): { heightmap: string; door: Door } {
+  const rows: string[] = [];
+  for (let y = 0; y < h; y++) rows.push('0'.repeat(w));
+  rows.push(Array.from({ length: w }, (_, x) => (x === doorX ? '0' : 'x')).join(''));
+  return { heightmap: rows.join('\n'), door: { x: doorX, y: h, dir: 0 } };
+}
+
+/** Planta retangular com a porta na parede da direita (a da frente), na fileira doorY. */
+export function planRight(w: number, h: number, doorY: number): { heightmap: string; door: Door } {
+  const rows: string[] = [];
+  for (let y = 0; y < h; y++) rows.push('0'.repeat(w) + (y === doorY ? '0' : 'x'));
+  return { heightmap: rows.join('\n'), door: { x: w, y: doorY, dir: 6 } };
 }
 
 /** Salão: 34×14 com o canto de cima à esquerda vazado (é o banheiro) e a porta da escada na parede esquerda. */
@@ -73,22 +91,38 @@ const table = (x: number, y: number, sides: string): FloorSeed[] => [
 
 /**
  * Cela da prisão (4 casas de largura): cama encostada no fundo, vaso no canto
- * e a frente de grade com a porta (fechada). bx = primeira coluna; bedY,
- * sideY e barsY = linhas; rot = para onde a grade olha.
+ * e a frente de concreto com a porta de aço (fechada). Fechada, a cela fica no
+ * escuro; aberta, acende e a parede da frente fica transparente (cela, no
+ * furni.ts). bx = primeira coluna; bedY, sideY e frontY = linhas; rot = para
+ * onde a frente olha.
  */
-const cell = (bx: number, bedY: number, sideY: number, barsY: number, rot: number): FloorSeed[] => [
+const cell = (bx: number, bedY: number, sideY: number, frontY: number, rot: number): FloorSeed[] => [
   ['bed', bx, bedY, 2],
-  ['toilet', bx + 3, sideY, 6],
-  ['cell_bars', bx, barsY, rot],
-  ['cell_door', bx + 1, barsY, rot],
-  ['cell_bars', bx + 2, barsY, rot],
-  ['cell_bars', bx + 3, barsY, rot],
+  ['toilet_steel', bx + 3, sideY, 6],
+  ['cell_front', bx, frontY, rot],
+  ['cell_door_steel', bx + 1, frontY, rot],
+  ['cell_front', bx + 2, frontY, rot],
+  ['cell_front', bx + 3, frontY, rot],
 ];
 
-/** Divisória baixa em pé (corre em y), de y0 a y1: separa as celas sem esconder as camas. */
-const wallY = (x: number, y0: number, y1: number): FloorSeed[] => Array.from({ length: y1 - y0 + 1 }, (_, i) => ['iwall_low', x, y0 + i, 2] as FloorSeed);
-/** Grade deitada (corre em x), de x0 a x1: entre as celas de costas. */
-const barsX = (y: number, x0: number, x1: number): FloorSeed[] => Array.from({ length: x1 - x0 + 1 }, (_, i) => ['cell_bars', x0 + i, y, 4] as FloorSeed);
+/**
+ * Cela da parede da esquerda (4 casas de comprimento, a frente corre em y e olha para a câmera):
+ * a cama encostada no fundo, o vaso no canto e a frente com a porta de aço. by = primeira linha;
+ * frontX = coluna da frente.
+ */
+const cellL = (by: number, frontX: number): FloorSeed[] => [
+  ['bed', 0, by, 4],
+  ['toilet_steel', 0, by + 3, 0],
+  ['cell_front', frontX, by, 2],
+  ['cell_door_steel', frontX, by + 1, 2],
+  ['cell_front', frontX, by + 2, 2],
+  ['cell_front', frontX, by + 3, 2],
+];
+/** Parede de concreto entre as celas (corre em x), de x0 a x1. */
+const wallX = (y: number, x0: number, x1: number): FloorSeed[] => Array.from({ length: x1 - x0 + 1 }, (_, i) => ['cell_front', x0 + i, y, 4] as FloorSeed);
+
+/** Parede de concreto entre as celas (corre em y), de y0 a y1, inteira como a frente. */
+const wallY = (x: number, y0: number, y1: number): FloorSeed[] => Array.from({ length: y1 - y0 + 1 }, (_, i) => ['cell_front', x, y0 + i, 2] as FloorSeed);
 /** Várias lâmpadas penduradas. */
 const lamps = (...at: [number, number][]): FloorSeed[] => at.map(([x, y]) => ['ceiling_lamp', x, y, 0] as FloorSeed);
 
@@ -99,61 +133,96 @@ const ROOMS: RoomSpec[] = [
     ambient: '#c0782a',
     particles: ['dust', 'smoke'],
     name: SEDE + 'Bar',
-    description: 'O bar de fachada: vazio, sujo e com pouca bebida. A única geladeira fica no canto, zumbindo.',
+    description: 'O Suvaco Seco: bar velho de fachada, marrom e acolhedor, com o fliperama piscando. A geladeira amarela do canto, a do teclado numérico, zumbe mais alto que as outras.',
     layout: plan(20, 15, 11),
     floorName: 'Térreo',
     style: 'madeira',
     darkness: 0.52,
     fog: 0.12,
     plan: { x: 0, y: 0 },
+    // Arrumado como a planta da Sede desenhada pelo Códex (cenarios/base-ordo-realitas.png) e a descrição
+    // do Suvaco Seco (wiki de Ordem Paranormal): o balcão comprido no fundo, as geladeiras no canto de
+    // cima, o fliperama na parede da esquerda, as mesas amarelas, a sinuca e a pilha de cadeiras no canto.
     floor: [
-      // a escada escondida vem antes: a geladeira fica em cima dela
+      // a escada escondida vem antes: a geladeira amarela fica em cima dela (e desliza para a esquerda)
       ['stairs_down', 20, 0, 4],
       ['beer_fridge', 20, 0, 4],
-      ['bar_shelf', 2, 0, 4],
-      ['bar_shelf', 4, 0, 4],
-      ['bar_shelf', 6, 0, 4],
-      ['crate_wood', 11, 0, 4],
-      ['crate_wood', 12, 0, 4],
-      ['barrel', 14, 0, 0],
+      // o fundo: prateleiras de garrafas e os dois frigobares de trás do balcão; no canto, mais duas geladeiras
+      ['bar_shelf', 1, 0, 4],
+      ['bar_shelf', 3, 0, 4],
+      ['minibar', 5, 0, 4],
+      ['minibar', 6, 0, 4],
+      ['bar_shelf', 7, 0, 4],
+      ['bar_shelf', 9, 0, 4],
+      ['beer_crate', 11, 0, 4],
+      ['beer_crate', 11, 0, 4],
+      ['keg', 12, 0, 0],
+      ['beer_crate', 13, 0, 4],
+      ['fridge_drinks', 16, 0, 4],
+      ['fridge_drinks', 17, 0, 4],
+      // o balcão de madeira: entre ele e as prateleiras fica o corredor do atendente (y 1 e 2), com a entrada no fim (x 13)
       ['bar_counter', 1, 3, 4],
       ['bar_counter', 3, 3, 4],
       ['bar_counter', 5, 3, 4],
       ['bar_counter', 7, 3, 4],
       ['bar_counter', 9, 3, 4],
-      ['stool_bar', 1, 4, 0],
-      ['stool_bar', 3, 4, 0],
+      ['bar_counter', 11, 3, 4],
+      ['beer_glass', 4, 3, 0],
+      ['beer_glass', 8, 3, 0],
+      ['beer_crate', 11, 3, 0],
+      ['stool_bar', 2, 4, 0],
       ['stool_bar', 4, 4, 0],
       ['stool_bar', 6, 4, 0],
       ['stool_bar', 8, 4, 0],
       ['stool_bar', 10, 4, 0],
-      ['jukebox', 1, 7, 2],
-      ...table(4, 8, 'ols'),
-      ...table(8, 7, 'olns'),
-      ...table(5, 12, 'oln'),
-      ...table(10, 11, 'ols'),
-      ['pool_table', 15, 5, 4],
-      ['sofa_booth', 13, 13, 0],
-      ['sofa_booth', 16, 13, 0],
+      ['stool_bar', 12, 4, 0],
+      // parede da esquerda: a poltrona, a planta, o fliperama de Tetris e, no canto, a pilha de cadeiras
+      ['armchair_red', 1, 5, 2],
+      ['plant', 1, 6, 0],
+      ['arcade', 1, 8, 2],
+      ['plant', 1, 13, 0],
+      ['chair_stack', 1, 14, 2],
+      // as mesas amarelas, com copos e cinzeiros que ninguém tirou
+      ...table(5, 6, 'olns'),
+      ['beer_glass', 5, 6, 0],
+      ...table(10, 7, 'olns'),
+      ['ashtray', 10, 7, 0],
+      ...table(5, 10, 'olns'),
+      ['beer_glass', 5, 10, 0],
+      ...table(8, 13, 'ol'),
+      ['ashtray', 8, 13, 0],
+      // a sinuca, perto do meio, e os tapetes vermelhos
+      ['pool_table', 14, 7, 4],
+      ['rug_ornate', 10, 10, 0],
+      ['rug_worn', 15, 4, 2],
+      // parede da direita: o aparador com as garrafas e, no canto de baixo, o armarinho
+      ['sideboard', 20, 8, 6],
+      ['bar_cabinet', 20, 13, 6],
       ['plant', 20, 14, 0],
-      ...lamps([5, 6], [10, 6], [15, 10], [4, 11], [16, 3]),
+      // perto da entrada, o sofá vermelho
+      ['sofa_booth', 13, 14, 0],
+      ...lamps([4, 2], [9, 2], [7, 6], [12, 9], [7, 11], [16, 11], [17, 2]),
       // sujeira
-      ['dirt', 12, 1, 0],
+      ['dirt', 13, 1, 0],
       ['dirt', 2, 2, 2],
-      ['dirt', 17, 2, 0],
+      ['dirt', 18, 2, 0],
       ['dirt', 12, 5, 4],
       ['dirt', 7, 9, 6],
-      ['dirt', 2, 13, 0],
-      ['dirt', 18, 10, 2],
-      ['dirt', 9, 14, 4],
-      ['dirt', 13, 9, 0],
+      ['dirt', 3, 13, 0],
+      ['dirt', 18, 11, 2],
+      ['dirt', 10, 14, 4],
+      ['dirt', 13, 12, 0],
     ],
     wall: [
-      ['neon_bar', 'r', 0, 12.5, 3.2],
-      ['clock', 'r', 0, 5.0, 4.1],
+      ['neon_bar', 'r', 0, 14.5, 3.08],
+      ['clock', 'r', 0, 5.5, 3.72],
+      ['sconce', 'l', 1, 9.4, 2.9],
+      ['sconce', 'l', 1, 12.6, 2.9],
+      // a TV do futebol, no alto, e o ventilador
+      ['tv_wall', 'r', 0, 12.6, 2.99],
+      ['fan_wall', 'l', 1, 7.0, 3.54],
+      // o alvo de dardos, perto do fliperama
       ['dartboard', 'l', 1, 4.2, 2.8],
-      ['sconce', 'l', 1, 9.4, 3.2],
-      ['sconce', 'l', 1, 13.4, 3.2],
     ],
     links: [[20, 0, 'salao']],
   },
@@ -164,7 +233,7 @@ const ROOMS: RoomSpec[] = [
     particles: ['dust'],
     lamp: 'fluorescent',
     name: SEDE + 'Salão Principal',
-    description: 'O coração da Sede: mesas de trabalho, a mesa redonda da equipe e a escada que sobe para o bar.',
+    description: 'O coração da Sede, bem iluminado: a fileira das quatro mesas de trabalho, os armários de ferro, os papéis dos casos e, na frente da escada, o canto das duas poltronas.',
     layout: salaoPlan(),
     floorName: 'Subsolo',
     style: 'concreto',
@@ -198,43 +267,37 @@ const ROOMS: RoomSpec[] = [
       ['chair_office', 25, 3, 6],
       ['chair_office', 25, 4, 6],
       ['chair_office', 25, 5, 6],
-      // mesa redonda da equipe
-      ['table_round', 29, 2, 0],
-      ['chair_red', 29, 1, 4],
-      ['chair_red', 30, 1, 4],
-      ['chair_red', 28, 2, 2],
-      ['chair_red', 28, 3, 2],
-      ['chair_red', 31, 2, 6],
-      ['chair_red', 31, 3, 6],
-      ['chair_red', 29, 4, 0],
-      ['chair_red', 30, 4, 0],
-      // mesa oval do canto, com poltrona
-      ['table_meeting', 31, 8, 2],
-      ['chair_red', 30, 8, 2],
-      ['chair_red', 30, 10, 2],
-      ['armchair', 33, 9, 6],
-      ['table_small', 34, 11, 0],
-      ['cabinet_file', 34, 6, 6],
-      ['cabinet_file', 34, 7, 6],
-      // xadrez perto da escada
-      ['table_chess', 4, 11, 0],
-      ['armchair', 3, 11, 2],
-      ['armchair', 5, 11, 6],
-      ['armchair', 4, 12, 0],
+      // a quarta mesa da fileira (na série são quatro mesas de metal em fila, com as banquetas)
+      ['table_work', 29, 3, 2],
+      ['chair_office', 28, 3, 2],
+      ['chair_office', 28, 4, 2],
+      ['chair_office', 28, 5, 2],
+      ['chair_office', 31, 3, 6],
+      ['chair_office', 31, 4, 6],
+      ['chair_office', 31, 5, 6],
+      ['cabinet_file', 33, 0, 4],
+      ['cabinet_file', 34, 0, 4],
+      // perto da escada, onde se chega: o canto de conversa, duas poltronas frente a frente e a mesa
+      // de xadrez no meio (arrumado pelo Felipe no jogo, 05/10; o tapete redondo preto e branco da
+      // série vem na arte nova)
+      ['armchair', 3, 12, 2],
+      ['table_chess', 5, 12, 4],
+      ['armchair', 7, 12, 6],
       ['bench', 10, 13, 0],
       ['bench', 13, 13, 0],
-      ['floor_lamp', 8, 11, 0],
+      ['floor_lamp', 5, 13, 0],
       ['plant', 8, 0, 0],
       ['plant', 34, 13, 0],
+      ['compass_floor', 16, 7, 0],
       ...lamps([6, 8], [14, 8], [21, 8], [27, 8], [31, 11]),
     ],
     wall: [
-      ['board_investigation', 'r', 0, 12.0, 2.6],
-      ['screen', 'r', 0, 21.5, 2.7],
-      ['clock', 'r', 0, 18.2, 3.9],
-      ['pipes', 'r', 0, 26.0, 4.2],
-      ['sconce', 'l', 1, 11.6, 3.2],
-      ['emergency_light', 'l', 8, 3.6, 3.6],
+      ['board_investigation', 'r', 0, 12.0, 2.36],
+      ['screen', 'r', 0, 21.5, 2.45],
+      ['clock', 'r', 0, 18.2, 3.54],
+      ['pipes', 'r', 0, 26.0, 3.81],
+      ['sconce', 'l', 1, 11.6, 2.9],
+      ['emergency_light', 'l', 8, 3.6, 3.27],
     ],
     links: [
       [1, 9, 'bar'],
@@ -250,10 +313,10 @@ const ROOMS: RoomSpec[] = [
     particles: ['dust'],
     lamp: 'fluorescent',
     name: SEDE + 'Corredor',
-    description: 'Corredor comprido de concreto. As portas levam à prisão, às salas e ao salão.',
+    description: 'Corredor comprido de blocos de concreto, vigiado pelas câmeras. As portas levam à prisão, às salas e ao salão; no fim, o zelador deixou o carrinho e a placa de piso molhado.',
     layout: plan(36, 3, 1),
     floorName: 'Subsolo',
-    style: 'concreto',
+    style: 'bloco',
     darkness: 0.6,
     fog: 0.15,
     plan: { x: 29, y: 8 },
@@ -266,18 +329,32 @@ const ROOMS: RoomSpec[] = [
       ['portal', 36, 1, 6],
       ['vent', 5, 1, 0],
       ['vent', 13, 2, 0],
-      ['vent', 31, 1, 0],
-      ['bench', 10, 0, 4],
+      ['vent', 34, 2, 0],
+      // na parede de cima: o banco, os armários do vestiário, as lixeiras perto das portas e a planta
+      ['trash_can', 4, 0, 4],
+      ['bench', 9, 0, 4],
+      ['locker_row', 12, 0, 4],
+      ['locker_row', 14, 0, 4],
+      ['trash_can', 19, 0, 4],
       ['plant', 24, 0, 0],
+      ['trash_can', 26, 0, 4],
+      // no fim do corredor, a limpeza pela metade: o carrinho, a poça e a placa
+      ['janitor_cart', 30, 0, 2],
+      ['puddle', 32, 1, 0],
+      ['wet_sign', 31, 2, 4],
       ...lamps([4, 1], [11, 1], [18, 1], [25, 1], [32, 1]),
     ],
     wall: [
-      ['pipes', 'r', 0, 3.5, 4.2],
-      ['pipes', 'r', 0, 14.5, 4.2],
-      ['pipes', 'r', 0, 33.5, 4.2],
-      ['emergency_light', 'r', 0, 9.5, 3.7],
-      ['emergency_light', 'r', 0, 30.5, 3.7],
-      ['extinguisher', 'r', 0, 18.5, 1.8],
+      ['cctv', 'r', 0, 2.0, 3.63],
+      ['pipes', 'r', 0, 3.5, 3.81],
+      ['emergency_light', 'r', 0, 9.5, 3.36],
+      ['pipes', 'r', 0, 14.5, 3.81],
+      ['notice_board', 'r', 0, 17.0, 2],
+      ['extinguisher', 'r', 0, 18.5, 1.63],
+      ['power_box', 'r', 0, 23.0, 2],
+      ['emergency_light', 'r', 0, 30.5, 3.36],
+      ['pipes', 'r', 0, 33.5, 3.81],
+      ['cctv', 'r', 0, 35.2, 3.63],
     ],
     links: [
       [1, 1, 'prisao'],
@@ -295,95 +372,113 @@ const ROOMS: RoomSpec[] = [
     lamp: 'fluorescent',
     name: SEDE + 'Prisão',
     was: [SEDE + 'Alojamentos'],
-    description: 'Celas com cama e vaso, grade na frente. As portas abrem com clique duplo; fechadas, ninguém sai.',
-    layout: plan(24, 20, 10),
+    description: 'Seis celas nas duas paredes do fundo, de frente para o pátio, todas de concreto com porta de aço; a do canto, maior, é a de contenção, para o que não é gente: o sigilo no chão e as correntes na parede. No pátio, a mesa do interrogatório debaixo da lâmpada e, perto da porta, o posto do carcereiro com as câmeras. As portas abrem com clique duplo: fechada, a cela fica no escuro e ninguém sai; aberta, a luz acende.',
+    layout: planRight(24, 16, 9),
     floorName: 'Subsolo',
-    style: 'concreto',
+    style: 'cela',
     darkness: 0.6,
     fog: 0.12,
-    plan: { x: 4, y: 0, r: 2 },
+    plan: { x: 4, y: 0 },
+    // Todas as celas nas duas paredes do fundo, com a frente para a câmera: ninguém vê cela pelas costas.
     floor: [
-      ['portal', 1, 10, 2],
-      ['portal', 24, 13, 6],
-      // celas do fundo (grade virada para o corredor de cima)
-      ...wallY(5, 0, 3),
-      ...wallY(10, 0, 3),
-      ...wallY(15, 0, 3),
-      ...wallY(20, 0, 3),
-      ...cell(1, 0, 1, 3, 4),
-      ...cell(6, 0, 1, 3, 4),
-      ...cell(11, 0, 1, 3, 4),
-      ...cell(16, 0, 1, 3, 4),
-      ...cell(21, 0, 1, 3, 4),
-      // bloco do meio: celas costas com costas, separadas por grade
-      ...barsX(10, 5, 20),
-      ...wallY(5, 7, 9),
-      ...wallY(10, 7, 9),
-      ...wallY(15, 7, 9),
-      ...wallY(20, 7, 9),
-      ...wallY(5, 11, 13),
-      ...wallY(10, 11, 13),
-      ...wallY(15, 11, 13),
-      ...wallY(20, 11, 13),
-      ...cell(6, 9, 8, 7, 4),
-      ...cell(11, 9, 8, 7, 4),
-      ...cell(16, 9, 8, 7, 4),
-      ...cell(6, 11, 12, 13, 0),
-      ...cell(11, 11, 12, 13, 0),
-      ...cell(16, 11, 12, 13, 0),
-      // celas da frente (grade virada para o corredor de baixo)
-      ...wallY(5, 17, 19),
-      ...wallY(10, 17, 19),
-      ...wallY(15, 17, 19),
-      ...wallY(20, 17, 19),
-      ...cell(1, 19, 18, 17, 4),
-      ...cell(6, 19, 18, 17, 4),
-      ...cell(11, 19, 18, 17, 4),
-      ...cell(16, 19, 18, 17, 4),
-      ...cell(21, 19, 18, 17, 4),
-      // posto do carcereiro
-      ['desk_metal', 23, 5, 2],
-      ['chair_office', 22, 6, 2],
-      ['locker', 24, 4, 6],
-      ...lamps([3, 5], [12, 5], [21, 5], [3, 15], [12, 15], [21, 15], [2, 10], [23, 10]),
+      ['portal', 23, 9, 6],
+      // a fileira do fundo: quatro celas, as paredes entre elas e o pilar que fecha a frente
+      ...[4, 9, 14, 19].flatMap((x) => [...wallY(x, 0, 2), ['cell_front', x, 3, 4] as FloorSeed]),
+      ...cell(0, 0, 1, 3, 4),
+      ...cell(5, 0, 1, 3, 4),
+      ...cell(10, 0, 1, 3, 4),
+      ...cell(15, 0, 1, 3, 4),
+      // a fileira da esquerda: uma cela e a de contenção, maior, no canto da frente
+      ...cellL(4, 3),
+      ...wallX(8, 0, 2),
+      ['cell_front', 3, 8, 2],
+      ...[9, 10, 11].map((y) => ['cell_front', 3, y, 2] as FloorSeed),
+      ['cell_door_steel', 3, 12, 2],
+      ...[13, 14, 15].map((y) => ['cell_front', 3, y, 2] as FloorSeed),
+      // a contenção: o sigilo no chão, sem cama, e o sangue e o entulho de quem tentou sair
+      ['sigil_floor', 0, 10, 0],
+      ['blood_drops', 2, 13, 0],
+      ['rubble', 0, 14, 0],
+      // o posto do carcereiro, no canto perto da porta: armários, a mesa das câmeras e a cadeira
+      ['locker_row', 20, 0, 4],
+      ['locker', 22, 0, 4],
+      ['desk_metal', 21, 3, 4],
+      ['monitor', 21, 3, 4],
+      ['chair_office', 21, 2, 4],
+      ['cabinet_file', 23, 3, 6],
+      // o interrogatório, no meio do pátio: a mesinha, as duas cadeiras e a lâmpada em cima
+      ['desk_metal', 11, 9, 0],
+      ['chair_wood', 11, 8, 4],
+      ['chair_wood', 12, 10, 0],
+      // a comida que ninguém comeu e os ralos do pátio
+      ['food_tray', 6, 1, 4],
+      ['food_tray', 1, 11, 2],
+      ['drain', 8, 7, 0],
+      ['drain', 17, 12, 0],
+      ['ceiling_lamp', 11, 9, 0],
+      ...lamps([7, 6], [17, 6], [7, 13], [18, 12]),
     ],
     wall: [
-      ['emergency_light', 'r', 0, 7.5, 3.8],
-      ['emergency_light', 'r', 0, 17.5, 3.8],
-      ['clock', 'l', 1, 6.5, 3.9],
+      // dentro das celas do fundo: a lâmpada de grade e os dias riscados
+      ['cage_lamp', 'r', 0, 1.5, 3.27],
+      ['tally_marks', 'r', 0, 2.8, 1.72],
+      ['cage_lamp', 'r', 0, 6.5, 3.27],
+      ['cage_lamp', 'r', 0, 11.5, 3.27],
+      ['tally_marks', 'r', 0, 12.5, 2],
+      ['cage_lamp', 'r', 0, 16.5, 3.27],
+      // dentro das celas da esquerda
+      ['cage_lamp', 'l', 0, 6, 3.27],
+      ['tally_marks', 'l', 0, 7.2, 1.72],
+      // a contenção: correntes, o sigilo riscado à unha e a luz de emergência
+      ['chains_wall', 'l', 0, 11, 2.2],
+      ['sigil_scratch', 'l', 0, 13.6, 2],
+      ['emergency_light', 'l', 0, 12.3, 3.45],
+      // o posto: o painel das câmeras e o relógio
+      ['monitor_wall', 'r', 0, 21.5, 2.9],
+      ['clock', 'r', 0, 23.3, 3.6],
     ],
-    links: [
-      [1, 10, 'corredor'],
-      [24, 13, 'camara'],
-    ],
+    links: [[23, 9, 'corredor']],
   },
   {
     key: 'camara',
     ambient: '#c89a3a',
     particles: ['dust', 'smoke', 'embers'],
     name: SEDE + 'Câmara do Selo',
-    description: 'Um cômodo escuro e abafado. No chão, um selo dourado que ninguém lembra de ter pintado.',
-    layout: plan(7, 7, 3),
+    description: 'Um lugar secreto, sem porta: um cômodo de pedra antiga, escuro e abafado, mais velho que o resto da Sede. No chão, um selo dourado que ninguém lembra de ter pintado; no fundo, o altar e uma rachadura que vaza luz.',
+    layout: planBottom(7, 7, 3),
     floorName: 'Subsolo',
-    style: 'pedra',
+    style: 'selo',
     darkness: 0.82,
     fog: 0.5,
     light: 'flicker',
-    plan: { x: -4, y: 3, r: 2 },
+    plan: { x: -4, y: 3 },
     floor: [
-      ['portal', 1, 3, 2],
-      ['sigil_gold', 3, 2, 0],
-      ['skull', 4, 3, 4],
-      ['candles', 3, 1, 0],
+      // o selo no meio, com o crânio em cima, e a cera das velas que queimaram em volta dele
+      ['sigil_gold', 2, 2, 0],
+      ['skull', 3, 3, 4],
+      ['wax_pool', 1, 1, 0],
+      ['wax_pool', 5, 1, 2],
+      ['wax_pool', 5, 5, 0],
+      ['candles', 1, 1, 0],
       ['candles', 5, 1, 0],
-      ['candles', 6, 3, 0],
-      ['candles', 3, 5, 0],
       ['candles', 5, 5, 0],
-      ['candelabra', 7, 0, 0],
-      ['candelabra', 7, 6, 0],
-      ['rubble', 1, 5, 0],
+      ['candles', 2, 5, 0],
+      // no fundo, o altar entre os dois pedestais com as cinzas
+      ['altar', 3, 0, 4],
+      ['pedestal', 2, 0, 4],
+      ['pedestal', 5, 0, 4],
+      ['candelabra', 6, 6, 0],
+      // o entulho no canto, perto da passagem
+      ['rubble', 0, 5, 0],
     ],
-    links: [[1, 3, 'prisao']],
+    wall: [
+      // a rachadura que vaza luz em cima do altar, as correntes e o sigilo riscado à unha
+      ['crack_glow', 'r', 0, 4, 1.09],
+      ['chains_wall', 'r', 0, 0.9, 1.63],
+      ['sigil_scratch', 'l', 0, 1.3, 1.81],
+      ['chains_wall', 'l', 0, 5.4, 1.63],
+    ],
+    links: [],
   },
   {
     key: 'laboratorio',
@@ -391,43 +486,39 @@ const ROOMS: RoomSpec[] = [
     particles: ['dust'],
     lamp: 'fluorescent',
     name: SEDE + 'Laboratório',
-    description: 'Bancadas nas paredes e uma ilha no meio: microscópio, frascos e o computador das análises.',
-    layout: planTop(9, 10, 2),
+    description: 'O laboratório do Renan, com cara de clínica: bancadas nas paredes e duas bancadas compridas no meio, microscópios, frascos e o quadro branco.',
+    layout: planBottom(9, 10, 6),
     floorName: 'Subsolo',
     style: 'azulejo',
     darkness: 0.42,
-    plan: { x: 30, y: -3, r: 2 },
+    plan: { x: 30, y: -3 },
     floor: [
-      ['portal', 2, 1, 4],
-      // bancadas encostadas no fundo e na parede esquerda
-      ['lab_bench', 3, 1, 4],
-      ['microscope', 3, 1, 4],
-      ['lab_bench', 5, 1, 4],
-      ['flasks', 5, 1, 4],
-      ['monitor', 6, 1, 4],
-      ['bookshelf', 7, 1, 4],
+      ['portal', 6, 9, 0],
+      // como na planta da série: as bancadas na parede do fundo e na da esquerda, e duas bancadas
+      // compridas no meio, paralelas, com o corredor entre elas; o quadro branco no fundo
+      ['lab_bench', 0, 0, 4],
+      ['stool_lab', 0, 1, 0],
+      ['whiteboard', 3, 0, 4],
+      ['cabinet_file', 7, 0, 4],
+      ['cabinet_file', 8, 0, 4],
       ['lab_bench', 0, 3, 2],
-      ['monitor_green', 0, 3, 2],
+      ['chair_office', 1, 3, 6],
       ['lab_bench', 0, 5, 2],
-      ['flasks', 0, 6, 2],
-      ['cabinet_file', 0, 8, 2],
-      ['cabinet_file', 0, 9, 2],
-      // ilha comprida no meio
-      ['lab_bench', 4, 4, 2],
-      ['flasks', 4, 4, 2],
-      ['lab_bench', 4, 6, 2],
-      ['microscope', 4, 7, 2],
-      ['chair_office', 6, 3, 6],
-      ['stool', 3, 6, 2],
-      ['chair_office', 1, 5, 6],
-      ['trolley', 7, 9, 0],
-      ...lamps([2, 3], [6, 6], [2, 9]),
+      ['lab_bench', 3, 3, 2],
+      ['lab_bench', 3, 5, 2],
+      ['lab_bench', 5, 3, 6],
+      ['lab_bench', 5, 5, 6],
+      ['stool_lab', 4, 4, 0],
+      ['stool_lab', 4, 6, 0],
+      ['chair_office', 6, 2, 0],
+      ['trolley', 7, 6, 0],
+      ...lamps([2, 2], [4, 5], [7, 3]),
     ],
     wall: [
-      ['board_investigation', 'r', 1, 4.6, 2.4],
-      ['notes_wall', 'l', 0, 7.5, 2.6],
+      ['board_investigation', 'r', 0, 4.6, 2.18],
+      ['notes_wall', 'l', 0, 6.5, 2.36],
     ],
-    links: [[2, 1, 'corredor']],
+    links: [[6, 9, 'corredor']],
   },
   {
     key: 'tecnologia',
@@ -436,73 +527,93 @@ const ROOMS: RoomSpec[] = [
     lamp: 'fluorescent',
     name: SEDE + 'Sala de Tecnologia',
     was: [SEDE + 'Sala de Reunião'],
-    description: 'Computadores contornando as paredes, cadeiras viradas para as telas e o carpete roxo no meio.',
-    layout: planTop(13, 10, 2),
+    description: 'As estações de trabalho na parede do fundo, embaixo do painel das câmeras; os servidores, a impressora e as fitas na parede da esquerda; o quadro branco no meio do carpete roxo.',
+    layout: planBottom(13, 10, 10),
     floorName: 'Subsolo',
     style: 'carpete',
     darkness: 0.5,
-    plan: { x: 40, y: -3, r: 2 },
+    plan: { x: 40, y: -3 },
     floor: [
-      ['portal', 2, 1, 4],
-      // bancada no fundo
-      ['console', 4, 1, 4],
-      ['console', 6, 1, 4],
-      ['console', 8, 1, 4],
-      ['console', 10, 1, 4],
-      ['chair_office', 4, 2, 0],
-      ['chair_office', 7, 2, 0],
-      ['chair_office', 10, 2, 0],
-      // bancada na parede esquerda
-      ['console', 0, 3, 2],
-      ['console', 0, 5, 2],
-      ['console', 0, 7, 2],
-      ['chair_office', 1, 4, 6],
-      ['chair_office', 1, 7, 6],
-      // bancada da frente, telas para o lado de cá
-      ['console', 7, 10, 0],
-      ['console', 9, 10, 0],
-      ['chair_office', 8, 9, 4],
-      ['chair_office', 10, 9, 4],
-      ...lamps([6, 5], [3, 8], [10, 6]),
+      ['portal', 10, 9, 0],
+      // as estações de trabalho na parede do fundo, cada uma com a sua cadeira
+      ['console', 4, 0, 4],
+      ['chair_office', 5, 1, 0],
+      ['console', 7, 0, 4],
+      ['chair_office', 8, 1, 0],
+      ['console', 10, 0, 4],
+      ['chair_office', 11, 1, 0],
+      // na parede da esquerda: os servidores com o nobreak, a impressora, as fitas e o bebedouro
+      ['server_rack', 0, 1, 2],
+      ['server_rack', 0, 2, 2],
+      ['ups', 0, 3, 2],
+      ['cables_floor', 1, 2, 4],
+      ['printer_dot', 0, 5, 2],
+      ['media_shelf', 0, 7, 2],
+      ['water_cooler', 0, 9, 2],
+      // o quadro branco no meio, virado para a sala, e as caixas de peças no canto
+      ['whiteboard', 5, 5, 4],
+      ['parts_boxes', 11, 8, 4],
+      ['parts_boxes', 12, 8, 6],
+      ...lamps([3, 3], [9, 3], [8, 7]),
     ],
-    links: [[2, 1, 'corredor']],
+    wall: [
+      ['monitor_wall', 'r', 0, 8, 2.63],
+      ['shelf_wall', 'r', 0, 4.8, 2.45],
+      ['ac_wall', 'r', 0, 11.6, 3.9],
+      ['shelf_wall', 'l', 0, 5, 2.63],
+    ],
+    links: [[10, 9, 'corredor']],
   },
   {
     key: 'gabinete',
     ambient: '#c0622a',
     particles: ['dust', 'smoke'],
     name: SEDE + 'Gabinete',
-    description: 'A mesa de quem manda na Sede, quatro poltronas de couro para quem vem prestar contas e um tapete antigo.',
-    layout: planTop(9, 10, 6),
+    description: 'O escritório do Veríssimo, imponente: as estantes grandes no fundo, a mesa grande de madeira com a cadeira dele, o sofá vermelho embaixo da pintura do Coliseu, as quatro poltronas no tapete, o quadro de detetive e o canto das relíquias.',
+    layout: planBottom(12, 10, 2),
     floorName: 'Subsolo',
     style: 'taco',
     darkness: 0.5,
-    plan: { x: 54, y: -3, r: 2 },
+    plan: { x: 54, y: -3 },
     floor: [
-      ['portal', 6, 1, 4],
-      ['rug_ornate', 1, 4, 2],
-      ['armchair_leather', 1, 6, 4],
-      ['armchair_leather', 2, 6, 4],
-      ['armchair_leather', 3, 6, 4],
-      ['armchair_leather', 4, 6, 4],
-      ['desk_wood', 2, 8, 0],
-      ['papers', 2, 8, 0],
-      ['desk_lamp', 3, 8, 0],
-      ['armchair_leather', 2, 9, 0],
-      ['table_small', 0, 1, 4],
-      ['books_stack', 0, 1, 4],
-      ['cabinet_file', 8, 1, 4],
-      ['locker', 8, 5, 6],
-      ['candelabra', 8, 9, 0],
-      ['plant', 0, 10, 0],
-      ...lamps([4, 3], [6, 8]),
+      ['portal', 2, 9, 0],
+      // a parede do fundo é o que impressiona: as estantes grandes dos dois lados e, no meio, o sofá
+      // vermelho embaixo da pintura do Coliseu (a estante que pega a parede inteira vem na arte nova)
+      ['bookshelf', 1, 0, 4],
+      ['bookshelf', 3, 0, 4],
+      ['sofa_booth', 5, 0, 4],
+      ['bookshelf', 7, 0, 4],
+      ['bookshelf', 9, 0, 4],
+      ['cabinet_file', 11, 0, 4],
+      ['candelabra', 4, 1, 0],
+      ['candelabra', 7, 1, 0],
+      // a mesa grande perto do centro, cheia de livros e folhas, com a cadeira do Veríssimo atrás
+      ['chair_office', 5, 2, 4],
+      ['desk_wood', 5, 3, 4],
+      ['desk_lamp', 5, 3, 4],
+      ['books_stack', 6, 3, 4],
+      // as quatro poltronas avermelhadas na frente, no tapete; o armário de metal ao lado da mesa
+      ['rug_ornate', 4, 4, 2],
+      ['armchair_red', 4, 5, 0],
+      ['armchair_red', 5, 5, 0],
+      ['armchair_red', 6, 5, 0],
+      ['armchair_red', 7, 5, 0],
+      ['cabinet_file', 8, 3, 4],
+      // o canto de exibição, na parede da esquerda: as relíquias nos pedestais (as armaduras e a
+      // vitrine dos itens paranormais vêm na arte nova)
+      ['pedestal', 0, 3, 2],
+      ['pedestal', 0, 5, 2],
+      ['pedestal', 0, 7, 2],
+      ['plant', 11, 9, 0],
+      ...lamps([6, 4], [6, 8], [2, 5], [10, 5]),
     ],
     wall: [
-      ['painting', 'r', 1, 3.5, 2.7],
-      ['painting', 'l', 0, 6.0, 2.6],
-      ['clock', 'r', 1, 8.5, 3.9],
+      // a pintura do Coliseu atrás da cadeira, o quadro de detetive enorme, o relógio
+      ['painting', 'r', 0, 6.0, 2.6],
+      ['board_investigation', 'l', 0, 1.6, 2.18],
+      ['clock', 'r', 0, 10.6, 3.54],
     ],
-    links: [[6, 1, 'corredor']],
+    links: [[2, 9, 'corredor']],
   },
   {
     key: 'rituais',
@@ -518,38 +629,39 @@ const ROOMS: RoomSpec[] = [
     plan: { x: 66, y: 1 },
     floor: [
       ['portal', 1, 8, 2],
-      ['sigil_floor', 2, 2, 0],
-      ['skull', 3, 3, 4],
-      ['blood_drops', 5, 3, 0],
-      ['blood_drops', 3, 5, 0],
-      ['blood_pool', 1, 5, 0],
-      // mesa de canto, estante e a mesa redonda do fundo
-      ['desk_wood', 1, 0, 4],
-      ['books_stack', 1, 0, 4],
-      ['candles', 2, 0, 4],
-      ['bookshelf', 5, 0, 4],
+      // o círculo no meio da sala: o crânio no centro, velas nos quatro lados, sangue
+      ['sigil_floor', 4, 4, 0],
+      ['skull', 5, 5, 4],
+      ['candles', 5, 3, 0],
+      ['candles', 3, 5, 0],
+      ['candles', 7, 5, 0],
+      ['candles', 5, 7, 0],
+      ['blood_pool', 6, 6, 0],
+      ['blood_drops', 4, 4, 0],
+      ['blood_drops', 7, 7, 0],
+      // na parede do fundo: a estante, o balcão dos frascos e a mesa redonda do canto
+      ['bookshelf', 1, 0, 4],
+      ['counter_wood', 3, 0, 4],
+      ['flasks', 3, 0, 4],
+      ['candles', 4, 0, 4],
+      ['counter_wood', 5, 0, 4],
+      ['books_stack', 5, 0, 4],
+      ['flasks', 6, 0, 4],
       ['table_round', 8, 0, 0],
       ['papers', 8, 0, 0],
-      ['chair_wood', 7, 1, 2],
-      // mesa comprida das ferramentas
-      ['desk_wood', 8, 4, 2],
-      ['candles', 8, 4, 2],
-      ['skull', 8, 5, 6],
-      ['stool', 7, 6, 6],
-      // balcão em L dos frascos
-      ['counter_wood', 3, 7, 0],
-      ['flasks', 3, 7, 0],
-      ['counter_wood', 5, 7, 0],
-      ['candles', 6, 7, 0],
-      ['counter_wood', 7, 8, 2],
-      ['flasks', 7, 9, 2],
-      ['candles', 1, 3, 0],
-      ['candles', 5, 1, 0],
+      ['chair_wood', 8, 2, 0],
+      // na parede da esquerda: a mesa das ferramentas (a faca, o giz, a tigela) e mais balcão
+      ['table_tools', 1, 3, 2],
+      ['stool', 2, 3, 6],
+      ['counter_wood', 1, 5, 2],
+      ['skull', 1, 5, 2],
     ],
     wall: [
-      ['poster_sigil', 'r', 0, 3.5, 2.8],
-      ['sconce', 'l', 1, 3.5, 3.2],
-      ['sconce', 'l', 1, 6.5, 3.2],
+      ['poster_sigil', 'r', 0, 4.5, 2.36],
+      ['poster_sigil', 'l', 1, 7.0, 2.36],
+      ['sconce', 'l', 1, 2.5, 2.9],
+      ['sconce', 'l', 1, 5.5, 2.9],
+      ['sconce', 'r', 0, 7.5, 2.9],
     ],
     links: [[1, 8, 'corredor']],
   },
@@ -559,31 +671,35 @@ const ROOMS: RoomSpec[] = [
     particles: [],
     lamp: 'fluorescent',
     name: SEDE + 'Banheiro',
-    description: 'Três vasos em cabines, duas pias e um espelho manchado.',
-    layout: plan(6, 4, 2),
+    description: 'Limpo e bem iluminado: no fundo, três cabines com vaso; na parede da esquerda, as duas pias com espelhos manchados.',
+    layout: planRight(6, 4, 2),
     floorName: 'Subsolo',
     style: 'xadrez',
     darkness: 0.45,
-    plan: { x: 30, y: 13, r: 2 },
+    plan: { x: 30, y: 13 },
     floor: [
-      ['portal', 1, 2, 2],
+      ['portal', 5, 2, 6],
+      // no fundo, as três cabines com vaso; as duas pias na parede da esquerda, embaixo dos espelhos
+      ['toilet', 0, 0, 4],
+      ['stall_panel', 1, 0, 2],
+      ['stall_panel', 1, 1, 2],
       ['toilet', 2, 0, 4],
+      ['stall_panel', 3, 0, 2],
+      ['stall_panel', 3, 1, 2],
       ['toilet', 4, 0, 4],
-      ['toilet', 6, 0, 4],
-      ['iwall_low', 3, 0, 2],
-      ['iwall_low', 3, 1, 2],
-      ['iwall_low', 5, 0, 2],
-      ['iwall_low', 5, 1, 2],
-      ['sink', 1, 0, 2],
-      ['sink', 1, 1, 2],
-      ['dirt', 5, 3, 0],
-      ...lamps([4, 2]),
+      ['stall_panel', 5, 0, 2],
+      ['sink', 0, 2, 2],
+      ['sink', 0, 3, 2],
+      ['trash_bin', 2, 3, 4],
+      ['dirt', 3, 2, 0],
+      ...lamps([3, 2]),
     ],
     wall: [
-      ['mirror', 'l', 1, 0.5, 2.9],
-      ['mirror', 'l', 1, 1.5, 2.9],
+      ['mirror', 'l', 0, 2.5, 2.63],
+      ['mirror', 'l', 0, 3.5, 2.63],
+      ['towel_dispenser', 'l', 0, 1.6, 2.27],
     ],
-    links: [[1, 2, 'salao']],
+    links: [[5, 2, 'salao']],
   },
   {
     key: 'enfermaria',
@@ -591,7 +707,7 @@ const ROOMS: RoomSpec[] = [
     particles: ['dust'],
     lamp: 'fluorescent',
     name: SEDE + 'Enfermaria',
-    description: 'Seis leitos separados por divisórias, o balcão dos remédios e o posto da enfermagem.',
+    description: 'A ala médica da Marcela: seis cubículos com as camas verdes, fechados por divisórias, os armários de remédio ao lado da porta e o posto da enfermagem no canto.',
     layout: planTop(20, 13, 17),
     floorName: 'Subsolo',
     style: 'ladrilho',
@@ -599,49 +715,36 @@ const ROOMS: RoomSpec[] = [
     plan: { x: 31, y: 26 },
     floor: [
       ['portal', 17, 1, 4],
-      // leitos de cima (cabeceira na parede)
-      ['hospital_bed', 1, 1, 4],
-      ['hospital_bed', 5, 1, 4],
-      ['hospital_bed', 9, 1, 4],
-      ['iv_stand', 2, 1, 0],
-      ['iv_stand', 6, 1, 0],
-      ['iv_stand', 10, 1, 0],
-      ['divider', 4, 1, 2],
-      ['divider', 4, 2, 2],
-      ['divider', 8, 1, 2],
-      ['divider', 8, 2, 2],
-      // leitos de baixo
-      ['hospital_bed', 1, 11, 0],
-      ['hospital_bed', 5, 11, 0],
-      ['hospital_bed', 9, 11, 0],
-      ['iv_stand', 2, 13, 0],
-      ['iv_stand', 6, 13, 0],
-      ['iv_stand', 10, 13, 0],
-      ['divider', 4, 12, 2],
-      ['divider', 4, 13, 2],
-      ['divider', 8, 12, 2],
-      ['divider', 8, 13, 2],
-      // remédios, balcão e posto
+      // seis cubículos, como na ala médica da série: três em cima (a cabeceira na parede) e três
+      // embaixo; cada um fechado pelas divisórias dos lados e por um pedaço na frente, com o soro
+      ...[1, 5, 9].flatMap((x) => [
+        ['hospital_bed', x, 1, 4] as FloorSeed,
+        ['iv_stand', x + 1, 1, 0] as FloorSeed,
+        ['hospital_bed', x, 11, 0] as FloorSeed,
+        ['iv_stand', x + 1, 13, 0] as FloorSeed,
+      ]),
+      ...[4, 8, 12].flatMap((x) => [1, 2, 3, 11, 12, 13].map((y) => ['divider', x, y, 2] as FloorSeed)),
+      ...[3, 7, 11].flatMap((x) => [['divider', x, 4, 0] as FloorSeed, ['divider', x, 10, 0] as FloorSeed]),
+      // os remédios num canto só: os armários na parede do fundo, ao lado da porta, e a pia
       ['medical_cabinet', 13, 1, 4],
       ['medical_cabinet', 15, 1, 4],
       ['cabinet_file', 18, 1, 4],
       ['sink', 19, 1, 4],
-      ['lab_bench', 12, 6, 4],
-      ['monitor_green', 12, 6, 4],
-      ['lab_bench', 14, 6, 4],
-      ['flasks', 14, 6, 4],
-      ['lab_bench', 16, 6, 4],
-      ['trolley', 18, 7, 0],
-      ['desk_metal', 15, 10, 0],
-      ['monitor', 16, 10, 0],
-      ['chair_office', 15, 11, 0],
-      ['sink', 18, 13, 0],
-      ['sink', 19, 13, 0],
-      ...lamps([3, 7], [7, 7], [11, 3], [16, 4], [13, 11]),
+      // o posto da enfermagem no canto de baixo: o balcão em L, com a mesa e o computador dentro
+      ['lab_bench', 13, 10, 2],
+      ['lab_bench', 14, 10, 4],
+      ['lab_bench', 16, 10, 4],
+      ['lab_bench', 18, 10, 4],
+      ['desk_metal', 16, 12, 4],
+      ['computer_old', 16, 12, 4],
+      ['chair_office', 16, 13, 0],
+      // o carrinho no corredor entre os cubículos
+      ['trolley', 7, 7, 0],
+      ...lamps([4, 7], [10, 7], [16, 5], [17, 12]),
     ],
     wall: [
-      ['clock', 'r', 1, 19.5, 3.9],
-      ['emergency_light', 'l', 0, 7.0, 3.6],
+      ['clock', 'r', 1, 19.5, 3.54],
+      ['emergency_light', 'l', 0, 7.0, 3.27],
     ],
     links: [[17, 1, 'salao']],
   },
@@ -651,7 +754,7 @@ const ROOMS: RoomSpec[] = [
     particles: ['dust'],
     lamp: 'fluorescent',
     name: SEDE + 'Arsenal',
-    description: 'Armas nas paredes, armários de munição e a bancada em U onde tudo é limpo e conferido.',
+    description: 'Os armários de armas dos dois lados da porta, os de munição e os baús nas paredes, e a bancada em U onde tudo é limpo e conferido.',
     layout: planTop(14, 10, 6),
     floorName: 'Subsolo',
     style: 'metal',
@@ -660,40 +763,87 @@ const ROOMS: RoomSpec[] = [
     plan: { x: 51, y: 26 },
     floor: [
       ['portal', 6, 1, 4],
+      // os armários de armas na parede do fundo, dos dois lados da porta, e os de munição no canto
       ['weapon_rack', 0, 1, 4],
       ['weapon_rack', 2, 1, 4],
       ['weapon_rack', 8, 1, 4],
       ['weapon_rack', 10, 1, 4],
-      ['locker', 12, 1, 4],
-      ['locker', 13, 1, 4],
-      ['locker', 0, 4, 2],
-      ['locker', 0, 5, 2],
-      ['locker', 0, 6, 2],
-      ['locker', 0, 7, 2],
-      // bancada em U no meio
+      ['locker_ammo', 12, 1, 4],
+      ['locker_ammo', 13, 1, 4],
+      // mais armários de munição e os baús na parede da esquerda
+      ['locker_ammo', 0, 4, 2],
+      ['locker_ammo', 0, 5, 2],
+      ['locker_ammo', 0, 6, 2],
+      ['chest_army', 0, 8, 2],
+      ['chest_army', 0, 10, 2, undefined, 1],
+      // a bancada em U no meio, as bancadas viradas para dentro, com as banquetas
       ['gun_table', 4, 4, 4],
       ['gun_table', 7, 4, 4],
       ['gun_table', 4, 5, 2],
-      ['gun_table', 9, 5, 2],
-      ['stool', 6, 6, 0],
-      ['stool', 7, 6, 0],
-      ['chest_military', 13, 3, 2],
-      ['crate_metal', 11, 8, 0],
-      ['crate_metal', 12, 8, 0],
-      ['crate_metal', 12, 9, 0],
-      ['crate_metal', 13, 9, 0],
-      ...lamps([5, 3], [10, 3], [7, 9]),
+      ['gun_table', 9, 5, 6],
+      ['stool_metal', 6, 6, 0],
+      ['stool_metal', 7, 6, 0],
+      ['oil_stain', 6, 8, 0],
+      // as caixas de munição empilhadas no canto da frente
+      ['ammo_box', 12, 9, 4],
+      ['ammo_box', 13, 9, 4],
+      ['ammo_box', 13, 8, 2],
+      ['ammo_box', 13, 9, 4],
+      ...lamps([5, 3], [10, 3], [7, 8]),
     ],
     wall: [
-      ['emergency_light', 'r', 1, 7.5, 3.8],
-      ['board_investigation', 'l', 0, 9.2, 2.4],
+      ['blade_rack', 'r', 1, 5.0, 2.09],
+      ['emergency_light', 'r', 1, 5.0, 3.99],
+      ['tool_board', 'l', 0, 2.7, 1.63],
+      ['target_paper', 'l', 0, 9.0, 1.72],
     ],
     links: [[6, 1, 'salao']],
   },
 ];
 
-/** Os quatro agentes começam no bar, perto da porta da rua. */
-function partyTokens(db: Database, charIdOf: (name: string) => number | null): TokenData[] {
+/**
+ * A cor de cada agente (o anel no tabuleiro, a ficha no mapa tático), pela cor do elemento dele
+ * (decidido pelo Felipe em 05/10): Tepes Sangue, Catarina Morte, Alosi Conhecimento, Cora Energia.
+ */
+export const COR_DO_AGENTE: Record<string, string> = {
+  'D.Tepes': '#c8322a',
+  'Catarina Albuquerque': '#1d1c21',
+  'Alosi Walker': '#d4a73a',
+  'Cora Falcão': '#8a4fd8',
+};
+
+/** A cor de cada agente em todas as cenas (a Sede e a Fazenda): true quando alguma mudou. */
+export function coresDosAgentes(db: Database): boolean {
+  let mudou = false;
+  for (const room of db.rooms)
+    for (const t of room.tokens ?? []) {
+      const cor = COR_DO_AGENTE[t.name];
+      if (cor && t.color !== cor) (t.color = cor), (mudou = true);
+    }
+  return mudou;
+}
+
+/** O tema da interface de cada agente, pelo elemento dele (05/10). */
+const TEMA_DO_AGENTE: [RegExp, Tema][] = [
+  [/tepes/i, 'sangue'],
+  [/catarina/i, 'morte'],
+  [/alosi/i, 'conhecimento'],
+  [/cora/i, 'energia'],
+];
+
+/** Põe o tema dos quatro agentes nas fichas deles, uma vez só (depois, o jogador troca na ficha). */
+export function temasDosAgentes(db: Database): boolean {
+  if (db.temasAgentes || !db.fichas?.length) return false;
+  for (const f of db.fichas ?? []) {
+    const t = TEMA_DO_AGENTE.find(([re]) => re.test(f.nome))?.[1];
+    if (t && !f.tema) f.tema = t;
+  }
+  db.temasAgentes = true;
+  return true;
+}
+
+/** Os quatro agentes começam no bar, perto da porta da rua (ou onde a montagem pedir: [x, y, direção] de cada um). */
+export function partyTokens(db: Database, charIdOf: (name: string) => number | null, onde?: [number, number, number][]): TokenData[] {
   const base = { shoes: '#3d3a40', pants: '#1c1b1f' };
   const tk = (name: string, x: number, y: number, dir: number, color: string, capacity: number, look: Partial<AvatarLook>): TokenData => ({
     id: db.nextItemId++,
@@ -705,11 +855,12 @@ function partyTokens(db: Database, charIdOf: (name: string) => number | null): T
     capacity,
     look: { skin: '#e8b98f', hair: '#1a1412', hairStyle: 0, top: '#2b2a30', outfit: 0, extra: 0, ...base, charId: charIdOf(name), ...look } as AvatarLook,
   });
+  const at = (i: number, x: number, y: number, dir: number): [number, number, number] => onde?.[i] ?? [x, y, dir];
   return [
-    tk('D.Tepes', 2, 10, 2, '#e3a94c', 10, { hair: '#3b2618', hairStyle: 1, extra: 2, top: '#5c4632', outfit: 1 }),
-    tk('Catarina Albuquerque', 3, 11, 2, '#d83a2e', 10, { skin: '#f3d2b3', hair: '#a8321e', hairStyle: 3, top: '#2b2a30', outfit: 1 }),
-    tk('Alosi Walker', 2, 12, 2, '#3f6fd8', 12, { hair: '#1a1412', extra: 1, top: '#d8d0c0', outfit: 2 }),
-    tk('Cora Falcão', 3, 9, 2, '#f2efe6', 10, { hair: '#c9c4bc', hairStyle: 2, top: '#1c1b1f' }),
+    tk('D.Tepes', ...at(0, 2, 10, 2), COR_DO_AGENTE['D.Tepes'], 10, { hair: '#3b2618', hairStyle: 1, extra: 2, top: '#5c4632', outfit: 1 }),
+    tk('Catarina Albuquerque', ...at(1, 3, 11, 2), COR_DO_AGENTE['Catarina Albuquerque'], 10, { skin: '#f3d2b3', hair: '#a8321e', hairStyle: 3, top: '#2b2a30', outfit: 1 }),
+    tk('Alosi Walker', ...at(2, 2, 12, 2), COR_DO_AGENTE['Alosi Walker'], 12, { hair: '#1a1412', extra: 1, top: '#d8d0c0', outfit: 2 }),
+    tk('Cora Falcão', ...at(3, 3, 9, 2), COR_DO_AGENTE['Cora Falcão'], 10, { hair: '#c9c4bc', hairStyle: 2, top: '#1c1b1f' }),
   ];
 }
 
@@ -764,6 +915,7 @@ export function seedSede(db: Database) {
   const built = new Map<string, RoomData>();
   for (const spec of ROOMS) {
     const room = buildRoom(db, spec.name, spec.description, spec.layout, furnish(spec), spec.wall ?? [], spec.darkness);
+    room.montagem = resumo(spec);
     style(room, spec);
     built.set(spec.key, room);
   }
@@ -784,6 +936,33 @@ export function seedSede(db: Database) {
   db.sedeRev = SEDE_REV;
 }
 
+/** Resumo da montagem de um cômodo (planta, móveis, paredes): mudou, o cômodo é refeito. */
+function resumo(spec: RoomSpec): string {
+  const t = JSON.stringify([spec.layout, spec.floor, spec.wall ?? [], spec.links]);
+  let h = 2166136261;
+  for (let i = 0; i < t.length; i++) h = Math.imul(h ^ t.charCodeAt(i), 16777619) >>> 0;
+  return h.toString(36);
+}
+
+/**
+ * Peças de parede novas num cômodo guardado sem resumo (de antes de 05/10): entram sem refazer o
+ * cômodo, para não desfazer o que o mestre arrumou pelo jogo.
+ */
+const NOVAS_NA_PAREDE: Record<string, string[]> = { bar: ['dartboard'] };
+
+/**
+ * Retoques num cômodo guardado sem refazê-lo: quando o retoque acha o que procura (e devolve true),
+ * mexe só nisso e o cômodo passa a ter o resumo da montagem nova, sem ser refeito.
+ */
+const RETOQUES: Record<string, (room: RoomData) => boolean> = {
+  // o alvo de dardos entrou em cima da porta do bar (05/10): vai para perto do fliperama
+  bar: (room) => {
+    const alvo = room.wallItems.find((w) => w.defId === 'dartboard' && w.pos === 11);
+    if (alvo) alvo.pos = 4.2;
+    return !!alvo;
+  },
+};
+
 /**
  * Refaz a Sede no lugar quando a montagem muda (SEDE_REV): mesmos cômodos
  * (ids), mesmas peças (numa casa livre se a antiga sumiu), mesmo registro e
@@ -797,6 +976,17 @@ export function rebuildSede(db: Database): boolean {
   for (const spec of ROOMS) {
     const names = [spec.name, ...(spec.was ?? [])];
     let room = existing.find((r) => names.includes(r.name));
+    const h = resumo(spec);
+    // a montagem deste cômodo não mudou (ou é de antes do resumo): fica como o mestre deixou
+    if (room && (room.montagem === h || room.montagem === undefined || RETOQUES[spec.key]?.(room))) {
+      if (room.montagem === undefined)
+        for (const [defId, w, plane, pos, z] of (spec.wall ?? []).filter((ws) => NOVAS_NA_PAREDE[spec.key]?.includes(ws[0])))
+          if (!room.wallItems.some((it) => it.defId === defId)) room.wallItems.push({ id: db.nextItemId++, defId, wall: w, plane, pos, z, state: 0 });
+      room.montagem = h;
+      style(room, spec);
+      built.set(spec.key, room);
+      continue;
+    }
     const fresh = buildRoom(db, spec.name, spec.description, spec.layout, furnish(spec), spec.wall ?? [], spec.darkness);
     if (room) {
       // mesmo cômodo: só troca planta e móveis
@@ -806,6 +996,7 @@ export function rebuildSede(db: Database): boolean {
       room = fresh;
       db.rooms.push(room);
     }
+    room.montagem = h;
     style(room, spec);
     built.set(spec.key, room);
   }

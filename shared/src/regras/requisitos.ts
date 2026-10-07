@@ -42,7 +42,7 @@ export interface Contexto {
 export interface Resultado {
   ok: boolean;
   motivos: string[];
-  /** requisitos que o CROMA não confere sozinho */
+  /** requisitos que o CRONA não confere sozinho */
   avisos: string[];
 }
 

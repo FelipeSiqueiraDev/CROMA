@@ -3,7 +3,7 @@
  * opções do motor de regras (liberadas ou travadas, com o motivo), escrever
  * um texto e confirmar. Tudo por cima da tela, com Esc para fechar.
  */
-import type { regras } from '@croma/shared';
+import type { regras } from '@crona/shared';
 import { h } from './dom';
 import type { Escolher } from './fichaRegras';
 import { textoRef } from './fichaRegras';
@@ -23,6 +23,11 @@ window.addEventListener('keydown', (e) => {
   e.stopPropagation();
   abertas[abertas.length - 1].fechar();
 });
+
+/** Alguma janela aberta (os atalhos do tabuleiro ficam quietos enquanto isso). */
+export function janelaAberta(): boolean {
+  return abertas.length > 0;
+}
 
 /** Janela de papel no meio da tela. `aoFechar` roda uma vez. */
 export function janela(titulo: string, icone: NomeIcone, aoFechar: () => void, largura = 62): Janela {
@@ -56,7 +61,8 @@ export function janela(titulo: string, icone: NomeIcone, aoFechar: () => void, l
   return j;
 }
 
-function botao(rotulo: string, icone: NomeIcone | null, cls: string, onclick: () => void): HTMLButtonElement {
+/** Botão do rodapé das janelas de papel. */
+export function botao(rotulo: string, icone: NomeIcone | null, cls: string, onclick: () => void): HTMLButtonElement {
   return h('button', { class: `fx-bt ${cls}`, type: 'button', onclick }, icone ? ic(icone) : null, h('span', null, rotulo));
 }
 
@@ -125,7 +131,7 @@ export function escolher(e: Escolher, aoGravar: () => void): Promise<boolean> {
         );
       if (!vis.length) lista.append(h('p', { class: 'fj-vazio' }, 'Nada com esse nome.'));
       cont.textContent = multi ? `${escolhidos.size} de ${e.qtd}` : '';
-      gravar.disabled = multi ? escolhidos.size === 0 : escolhidos.size !== 1 && !e.atual().length;
+      gravar.disabled = multi ? escolhidos.size === 0 && !e.podeVazio : escolhidos.size !== 1 && !e.atual().length;
     };
     const gravar = botao('Gravar', 'ok', 'forte', () => {
       e.aplicar([...escolhidos]);

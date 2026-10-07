@@ -4,8 +4,8 @@
  * navegador e sai da barra de endereço. ?mesa (ou ?jogador) abre a tela da mesa
  * mesmo num navegador que é de mestre.
  */
-const KEY = 'croma.gmKey';
-const TABLE_NAME = 'croma.mesaNome';
+const KEY = 'crona.gmKey';
+const TABLE_NAME = 'crona.mesaNome';
 
 /** O link pede a tela da mesa de propósito (?mesa ou ?jogador). */
 export function tableRequested() {

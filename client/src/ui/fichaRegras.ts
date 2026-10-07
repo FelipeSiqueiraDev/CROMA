@@ -5,7 +5,7 @@
  * feita) vira um `Escolher`: as opções do motor, travadas com o motivo, o que
  * está escolhido e como gravar. A tela só mostra e chama `aplicar`.
  */
-import { regras } from '@croma/shared';
+import { lootKindLabel, regras, type LootKind } from '@crona/shared';
 
 type Ficha = regras.Ficha;
 type Nex = regras.Nex;
@@ -27,11 +27,15 @@ export function romano(c: number): string {
   return ['0', 'I', 'II', 'III', 'IV'][c] ?? String(c);
 }
 
-/** "3d20+5"; com 0 dados (ou menos) rola 2 e fica o pior (LR p. 78). */
-export function textoTeste(dados: number, bonus: number): string {
+/**
+ * "3d20+5". `dados` = o atributo e os dados ganhos; `penalidade` = os perdidos.
+ * Se a penalidade deixaria menos de 1 dado, rola como se ela fosse bônus e fica
+ * o pior (LR p. 11); atributo 0 rola 2 e fica o pior (LR p. 75).
+ */
+export function textoTeste(dados: number, bonus: number, penalidade = 0): string {
   const b = bonus ? (bonus > 0 ? `+${bonus}` : `${bonus}`) : '';
-  if (dados < 1) return `2d20${b} (pior)`;
-  return `${dados}d20${b}`;
+  const r = regras.rolagem(dados, penalidade);
+  return `${r.dados}d20${b}${r.fica === 'menor' ? ' (pior)' : ''}`;
 }
 
 export function sinal(n: number): string {
@@ -110,8 +114,23 @@ function iconeDoItem(it: regras.ItemFicha): string {
   return e ? ICONE_GRUPO[e.grupo] : 'caixa';
 }
 
+/** Ícone de linha do item achado no cenário, pelo tipo. */
+const ICONE_CENA: Record<LootKind, string> = { weapon: 'faca', document: 'documento', key: 'cadeado', letter: 'email', potion: 'frasco', tape: 'pendrive', box: 'caixa', misc: 'caixa' };
+
 /** O que a linha do item mostra (nome, tipo, dano ou efeito, observações). */
 export function infoItem(it: regras.ItemFicha, calc: regras.Calculado | null): InfoItem {
+  // achado no cenário (um documento, uma chave): o texto do mestre no lugar do efeito
+  if (it.tipo === 'cena') {
+    const kind = (it.tipoCena ?? 'misc') as LootKind;
+    const obs = [(it.qtd ?? 1) > 1 ? `×${it.qtd}` : '', 'achado na missão'].filter(Boolean).join(' · ');
+    return { nome: it.apelido || it.nome || it.id, tipo: lootKindLabel(kind), categoria: 0, espacos: it.espacos ?? 1, efeito: it.descricao || '—', obs, icone: ICONE_CENA[kind] ?? 'caixa' };
+  }
+  const info = infoDoCatalogo(it, calc);
+  if (it.achado) info.obs = [info.obs, 'achado na missão'].filter(Boolean).join(' · ');
+  return info;
+}
+
+function infoDoCatalogo(it: regras.ItemFicha, calc: regras.Calculado | null): InfoItem {
   const base = regras.baseDoItem(it);
   const nome = it.apelido || base?.nome || it.id;
   const categoria = regras.categoriaDoItem(it);
@@ -122,7 +141,7 @@ export function infoItem(it: regras.ItemFicha, calc: regras.Calculado | null): I
   if (it.tipo === 'arma') {
     const a = cat.arma(it.id);
     const atq = calc?.ataques.find((x) => x.item === it.id && x.nome === nome);
-    const teste = atq ? textoTeste(atq.dados + atq.penalidadeDados, atq.bonus) : '';
+    const teste = atq ? textoTeste(atq.dados, atq.bonus, atq.penalidadeDados) : '';
     const crit = atq ? `${atq.critico.margem < 20 ? `${atq.critico.margem}` : '20'}/x${atq.critico.multiplicador}` : a ? `${a.critico.margem}/x${a.critico.multiplicador}` : '';
     const obs = [teste && `${atq?.pericia === 'luta' ? 'Luta' : 'Pontaria'} ${teste}`, crit, a?.alcance ? `alcance ${a.alcance}` : '', extra, ...(atq?.notas ?? [])].filter(Boolean).join(' · ');
     return { nome, tipo: a ? TIPO_ARMA[a.tipo] : 'Arma', categoria, espacos: base?.espacos ?? 0, efeito: atq?.dano ?? a?.dano ?? '—', obs, icone, ref: a?.ref };
@@ -160,6 +179,8 @@ export interface Escolher {
   /** texto curto acima da lista */
   dica?: string;
   /** quantas marcar (1 = escolha única) */
+  /** pode gravar sem nada escolhido (as condições: tirar a última) */
+  podeVazio?: boolean;
   qtd: number;
   opcoes: () => Opcao[];
   atual: () => string[];
@@ -375,8 +396,11 @@ function localParametro(f: Ficha, nex: Nex, id: string): { nome: string; escolha
   return null;
 }
 
-/** Rituais de uma habilidade (Escolhido pelo Outro Lado, Saber Ampliado): quantos e até que círculo. */
-function ritualDaHabilidade(f: Ficha, nex: Nex, id: string): { qtd: number; circuloMax: number; nome: string } | null {
+/**
+ * Rituais de uma habilidade (Escolhido pelo Outro Lado, Saber Ampliado): quantos
+ * e até que círculo. `exato`: o ritual do círculo novo tem de ser dele (LR p. 35).
+ */
+function ritualDaHabilidade(f: Ficha, nex: Nex, id: string): { qtd: number; circuloMax: number; exato?: number; nome: string } | null {
   const h = habilidadePorId(f, id, nex);
   if (!h) return null;
   const maxClasse = regras.circuloMaximo(f.classe ?? 'mundano', nex) || 1;
@@ -385,10 +409,14 @@ function ritualDaHabilidade(f: Ficha, nex: Nex, id: string): { qtd: number; circ
     return { nome: h.nome, qtd: es.tipo === 'ritual' ? (es.qtd ?? 1) : 1, circuloMax: es.tipo === 'ritual' ? (es.circuloMax ?? maxClasse) : maxClasse };
   }
   if (h.rituaisExtras) {
-    // no NEX da própria habilidade: a quantidade dela; nos círculos novos, 1
-    const st = regras.montarEstado(f, nex);
-    const qtd = h.nex === nex || (h.nex === undefined && nex === 5) ? (typeof h.rituaisExtras.qtd === 'number' ? h.rituaisExtras.qtd : st.atributos[h.rituaisExtras.qtd]) : 1;
-    return { nome: h.nome, qtd, circuloMax: Math.min(h.rituaisExtras.circuloMax ?? 4, maxClasse) };
+    // no NEX da própria habilidade: a quantidade dela, até o círculo dela
+    if (h.nex === nex || (h.nex === undefined && nex === 5)) {
+      const st = regras.montarEstado(f, nex);
+      const qtd = typeof h.rituaisExtras.qtd === 'number' ? h.rituaisExtras.qtd : st.atributos[h.rituaisExtras.qtd];
+      return { nome: h.nome, qtd, circuloMax: Math.min(h.rituaisExtras.circuloMax ?? 4, maxClasse) };
+    }
+    // nos círculos novos: 1, do círculo que acabou de liberar
+    return { nome: h.nome, qtd: 1, circuloMax: maxClasse, exato: maxClasse };
   }
   return null;
 }
@@ -640,9 +668,9 @@ export function escolherCampo(f: Ficha, nex: Nex, campo: Campo, alvo?: string): 
       const ler = () => f.progressao[nex]?.parametros?.[alvo]?.rituais ?? [];
       return {
         titulo: `${info.nome}: ${info.qtd} ritual${info.qtd > 1 ? 'is' : ''}`,
-        dica: `Até o ${info.circuloMax}º círculo.`,
+        dica: info.exato ? `Do ${info.exato}º círculo, o que acabou de liberar.` : `Até o ${info.circuloMax}º círculo.`,
         qtd: info.qtd,
-        opcoes: () => filtrarRituais(regras.opcoesRitual(f, nex, info.circuloMax), ler()),
+        opcoes: () => filtrarRituais(regras.opcoesRitual(f, nex, info.circuloMax, info.exato), ler()),
         atual: ler,
         aplicar: (ids) => {
           const e = esc(f, nex);

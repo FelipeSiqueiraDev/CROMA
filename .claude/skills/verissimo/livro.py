@@ -10,7 +10,7 @@
 # server/data/verissimo/livros.json (fora do git):
 #   {"LR": "C:/.../LIVRO DE REGRAS.pdf", "SAH": "C:/.../sobrevivendo-ao-horror.pdf",
 #    "marca": ["trechos da marca d'água do comprador, para esconder"]}
-# ou das variáveis CROMA_LR_PDF e CROMA_SAH_PDF.
+# ou das variáveis CRONA_LR_PDF e CRONA_SAH_PDF.
 #
 # Os PDFs têm marca d'água do comprador (nome e e-mail): as linhas com e-mail
 # ou com os trechos de "marca" somem do texto. Nas imagens ela aparece: nunca
@@ -39,9 +39,10 @@ def config():
     if os.path.exists(arq):
         with open(arq, encoding="utf-8") as f:
             cfg = json.load(f)
-    for livro, var in (("LR", "CROMA_LR_PDF"), ("SAH", "CROMA_SAH_PDF")):
-        if os.environ.get(var):
-            cfg[livro] = os.environ[var]
+    for livro, var in (("LR", "CRONA_LR_PDF"), ("SAH", "CRONA_SAH_PDF")):
+        valor = os.environ.get(var)
+        if valor:
+            cfg[livro] = valor
     return cfg
 
 
@@ -49,7 +50,7 @@ def abrir(livro):
     cfg = config()
     caminho = cfg.get(livro)
     if not caminho or not os.path.exists(caminho):
-        print(f"Não achei o PDF de {livro}. Configure server/data/verissimo/livros.json ou {('CROMA_LR_PDF' if livro == 'LR' else 'CROMA_SAH_PDF')}.")
+        print(f"Não achei o PDF de {livro}. Configure server/data/verissimo/livros.json ou {('CRONA_LR_PDF' if livro == 'LR' else 'CRONA_SAH_PDF')}.")
         sys.exit(0)
     return fitz.open(caminho), cfg
 

@@ -1,0 +1,15 @@
+{
+  "destino": "client/public/arte/mobiliario",
+  "escala": 0.5,
+  "limpar": 56,
+  "moveis": [
+    {"def": "altar", "folha": "client/public/arte/mobiliario/folhas/altar-pedra.png", "W": 2, "D": 1, "real": [0.9, 0.5, 0.6], "angulos": true, "giros": {"4": 0, "6": 1, "0": 2, "2": 3}},
+    {"def": "rubble", "folha": "client/public/arte/mobiliario/folhas/entulho.png", "W": 2, "D": 2, "real": [1.2, 1.2, 0.5], "como_esta": true, "pisa": true, "giros": {"4": 0, "6": 1, "0": 2, "2": 3}},
+    {"def": "pedestal", "folha": "client/public/arte/mobiliario/folhas/pedestal-tigela.png", "real": [0.35, 0.35, 1.0], "como_esta": true, "altura": "todas", "pisa": true, "giros": {"4": 0, "6": 1, "0": 2, "2": 3}},
+    {"def": "chains_wall", "folha": "client/public/arte/mobiliario/folhas/correntes-algemas.png", "real": [0.6, 0.1, 0.9], "parede": {"r": [0, 0.5, 0.5], "l": [1, 0.5, 0.5]}},
+    {"def": "crack_glow", "folha": "client/public/arte/mobiliario/folhas/rachadura-dourada.png", "real": [0.8, 0.02, 1.6], "parede": {"r": [0, 0.5, 0.5], "l": [1, 0.5, 0.5]}},
+    {"def": "sigil_scratch", "folha": "client/public/arte/mobiliario/folhas/sigilo-riscado.png", "real": [0.6, 0.01, 0.6], "caixas": [[100, 0, 840, 887], [940, 0, 1680, 887]], "parede": {"r": [0, 0.5, 0.5], "l": [1, 0.5, 0.5]}},
+    {"def": "sigil_gold", "folha": "client/public/arte/mobiliario/folhas/selo-dourado.png", "W": 3, "D": 3, "chao": true},
+    {"def": "wax_pool", "folha": "client/public/arte/mobiliario/folhas/poca-cera.png", "W": 1, "D": 1, "chao": true}
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "destino": "client/public/arte/mobiliario",
+  "escala": 0.5,
+  "limpar": 56,
+  "moveis": [
+    {"def": "flasks", "folha": "client/public/arte/mobiliario/folhas/frascos-laboratorio.png", "real": [0.45, 0.3, 0.25], "como_esta": true, "altura": true, "giros": {"4": 0, "6": 1, "0": 2, "2": 3}},
+    {"def": "microscope", "folha": "client/public/arte/mobiliario/folhas/microscopio.png", "real": [0.25, 0.35, 0.42], "como_esta": true, "altura": "todas", "giros": {"4": 0, "0": 1, "6": 2, "2": 3}},
+    {"def": "monitor", "folha": "client/public/arte/mobiliario/folhas/computador-tela-plana.png", "real": [0.5, 0.4, 0.45], "como_esta": true, "altura": "todas", "giros": {"4": 0, "6": 1, "0": 2, "2": 3}, "estados": {"1": "client/public/arte/mobiliario/folhas/computador-tela-plana-desligado.png"}, "tela": {"modo": "tv", "cores": ["#5ad0e0", "#4ab8d8", "#6ae0f0"], "ms": 900, "forca": 0.22, "giros": {"4": [0.54, 0.39, 0.32], "2": [0.37, 0.39, 0.32]}}},
+    {"def": "monitor_green", "folha": "client/public/arte/mobiliario/folhas/monitor-radar.png", "real": [0.45, 0.4, 0.42], "como_esta": true, "altura": "todas", "giros": {"4": 0, "0": 1, "6": 2, "2": 3}, "tela": {"modo": "pulso", "cores": ["#4fe39a"], "ms": 2400, "forca": 0.35, "giros": {"4": [0.29, 0.55, 0.2], "2": [0.61, 0.61, 0.2]}}},
+    {"def": "stool_lab", "folha": "client/public/arte/mobiliario/folhas/banqueta-laboratorio.png", "real": [0.45, 0.45, 0.62], "como_esta": true, "altura": "todas", "giros": {"4": 0, "6": 1, "0": 2, "2": 3}},
+    {"def": "bookshelf", "folha": "client/public/arte/mobiliario/folhas/estante-livros.png", "W": 2, "D": 1, "real": [1.5, 0.35, 2.2], "angulos": true, "encosta": true, "giros": {"4": 0, "6": 1, "0": 2, "2": 3}},
+    {"def": "notes_wall", "folha": "client/public/arte/mobiliario/folhas/anotacoes-parede.png", "real": [0.6, 0.02, 0.5], "parede": {"r": [0, 0.5, 0.5], "l": [1, 0.5, 0.5]}}
+  ]
+}

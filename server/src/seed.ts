@@ -15,11 +15,12 @@ import {
   type Hint,
   type Loot,
   type WallItem,
-} from '@croma/shared';
+} from '@crona/shared';
 import type { Database, RoomData, TokenData } from './db';
-import { rebuildSede, seedSede } from './seedSede';
+import { montarFazenda } from './seedFazenda';
+import { coresDosAgentes, rebuildSede, seedSede, temasDosAgentes } from './seedSede';
 
-export const SYSTEM_OWNER = 'CROMA';
+export const SYSTEM_OWNER = 'CRONA';
 
 export type FloorSeed = [defId: string, x: number, y: number, rot: number, hint?: Hint, state?: number];
 export type WallSeed = [defId: string, wall: 'l' | 'r', plane: number, pos: number, z: number, hint?: Hint];
@@ -74,7 +75,7 @@ export function buildRoom(
   };
 }
 
-const SEED_VERSION = 14;
+const SEED_VERSION = 15;
 
 /** Os quatro investigadores da mesa. */
 const TEPES = 'D.Tepes';
@@ -172,10 +173,10 @@ function seedCasa(db: Database) {
       ['portal', 12, 4, 6],
     ],
     [
-      ['window_barred', 'r', 0, 7.9, 2.2],
-      ['poster_sigil', 'l', 1, 7.0, 2.0],
-      ['emergency_light', 'r', 0, 11.5, 3.2],
-      ['clock', 'r', 0, 9.2, 3.4],
+      ['window_barred', 'r', 0, 7.9, 2],
+      ['poster_sigil', 'l', 1, 7.0, 1.81],
+      ['emergency_light', 'r', 0, 11.5, 2.9],
+      ['clock', 'r', 0, 9.2, 3.08],
     ],
     0.6,
   );
@@ -197,7 +198,7 @@ function seedCasa(db: Database) {
       ['crate_wood', 11, 1, 0],
       ['portal', 6, 0, 4],
     ],
-    [['emergency_light', 'r', 0, 3.0, 4.2], ['pipes', 'l', 1, 8.0, 5.0]],
+    [['emergency_light', 'r', 0, 3.0, 3.81], ['pipes', 'l', 1, 8.0, 4.54]],
     0.78,
   );
   porao.fog = 0.7;
@@ -215,7 +216,7 @@ function seedCasa(db: Database) {
       ['ceiling_lamp', 3, 3, 0],
       ['portal', 3, 0, 4],
     ],
-    [['window_barred', 'r', 0, 5.3, 2.3], ['notes_wall', 'l', 1, 4.2, 2.1]],
+    [['window_barred', 'r', 0, 5.3, 2.09], ['notes_wall', 'l', 1, 4.2, 1.91]],
     0.65,
   );
   quarto.fog = 0.2;
@@ -232,7 +233,7 @@ function seedCasaRpg(db: Database) {
   const put = (room: RoomData | undefined, defId: string, loot: [string, number, Loot['kind']][], actions: [string, number][]) => {
     const it = room?.items.find((i) => i.defId === defId);
     if (!it) return;
-    it.loot = loot.map(([name, weight, kind]) => ({ id: id(), name, weight, kind, revealed: false }));
+    it.loot = loot.map(([name, espacos, kind]) => ({ id: id(), name, espacos, kind, revealed: false }));
     it.actions = actions.map(([label, dt]) => ({ id: id(), label, dt }));
   };
   const sala = byName('Casa Abandonada · Sala');
@@ -322,10 +323,10 @@ function seedMansao(db: Database) {
       ['portal', 4, 7, 0],
     ],
     [
-      ['clock', 'r', 0, 5.6, 3.4],
-      ['sconce', 'l', 1, 2.2, 2.3],
-      ['sconce', 'l', 1, 6.4, 2.3],
-      ['poster_sigil', 'r', 0, 2.2, 2.0],
+      ['clock', 'r', 0, 5.6, 3.08],
+      ['sconce', 'l', 1, 2.2, 2.09],
+      ['sconce', 'l', 1, 6.4, 2.09],
+      ['poster_sigil', 'r', 0, 2.2, 1.81],
     ],
     0.62,
   );
@@ -348,8 +349,8 @@ function seedMansao(db: Database) {
       ['portal', 9, 3, 6],
     ],
     [
-      ['window_barred', 'r', 0, 4.2, 2.2],
-      ['antlers', 'l', 1, 5.8, 3.0],
+      ['window_barred', 'r', 0, 4.2, 2],
+      ['antlers', 'l', 1, 5.8, 2.72],
     ],
     0.6,
   );
@@ -373,8 +374,8 @@ function seedMansao(db: Database) {
       ['portal', 4, 7, 0],
     ],
     [
-      ['sconce', 'r', 0, 5.2, 2.6],
-      ['sconce', 'l', 1, 6.6, 2.4],
+      ['sconce', 'r', 0, 5.2, 2.36],
+      ['sconce', 'l', 1, 6.6, 2.18],
     ],
     0.66,
   );
@@ -411,11 +412,11 @@ function seedMansao(db: Database) {
       ['portal', 5, 8, 0],
     ],
     [
-      ['window_barred', 'r', 0, 5.2, 2.2],
-      ['board_investigation', 'r', 0, 8.3, 1.8],
-      ['sconce', 'l', 1, 4.5, 2.4],
-      ['sconce', 'r', 0, 2.6, 2.6],
-      ['clock', 'l', 1, 7.4, 3.3],
+      ['window_barred', 'r', 0, 5.2, 2],
+      ['board_investigation', 'r', 0, 8.3, 1.63],
+      ['sconce', 'l', 1, 4.5, 2.18],
+      ['sconce', 'r', 0, 2.6, 2.36],
+      ['clock', 'l', 1, 7.4, 2.99],
     ],
     0.58,
   );
@@ -438,7 +439,7 @@ function seedMansao(db: Database) {
       ['portal', 2, 0, 4],
       ['portal', 4, 5, 0],
     ],
-    [['window_barred', 'r', 0, 6.4, 2.2]],
+    [['window_barred', 'r', 0, 6.4, 2]],
     0.68,
   );
   const quarto = buildRoom(
@@ -458,8 +459,8 @@ function seedMansao(db: Database) {
       ['portal', 4, 0, 4],
     ],
     [
-      ['window_barred', 'r', 0, 3.2, 2.3],
-      ['notes_wall', 'l', 1, 4.8, 2.1],
+      ['window_barred', 'r', 0, 3.2, 2.09],
+      ['notes_wall', 'l', 1, 4.8, 1.91],
     ],
     0.7,
   );
@@ -506,7 +507,7 @@ function seedMansao(db: Database) {
   const loot = (room: RoomData, defId: string, list: [string, number, Loot['kind'], string?][], actions: [string, number][] = []) => {
     const it = room.items.find((i) => i.defId === defId);
     if (!it) return console.warn(`[seed] ${room.name}: ${defId} sem lugar para itens`);
-    it.loot = list.map(([name, weight, kind, holder]) => ({ id: id(), name, weight, kind, revealed: true, ...(holder ? { holder } : {}) }));
+    it.loot = list.map(([name, espacos, kind, holder]) => ({ id: id(), name, espacos, kind, revealed: true, ...(holder ? { holder } : {}) }));
     it.actions = actions.map(([label, dt]) => ({ id: id(), label, dt }));
   };
   loot(
@@ -642,8 +643,14 @@ function liftWallItems(r: RoomData) {
 /** Aplica conteúdo novo em bancos antigos sem apagar nada. */
 export function upgradeDb(db: Database): boolean {
   const v = db.seedVersion ?? 1;
-  // a Sede muda de montagem sem esperar versão nova do banco
-  if (v >= SEED_VERSION) return rebuildSede(db);
+  // a Sede e a fazenda mudam de montagem sem esperar versão nova do banco
+  if (v >= SEED_VERSION) {
+    const sede = rebuildSede(db);
+    const fazenda = montarFazenda(db);
+    const cores = coresDosAgentes(db);
+    const temas = temasDosAgentes(db);
+    return sede || fazenda || cores || temas;
+  }
   for (const r of db.rooms) {
     r.lightMode ??= 'normal';
     r.fog ??= r.id === 1 ? 0.2 : 0;
@@ -701,7 +708,20 @@ export function upgradeDb(db: Database): boolean {
   }
   // Sede da Ordem: bar no térreo e a sede no subsolo
   if (v < 12) seedSede(db);
+  // um inventário só: o peso dos itens do cenário vira espaços (LR p. 53)
+  if (v < 15)
+    for (const r of db.rooms)
+      for (const it of [...r.items, ...r.wallItems])
+        for (const l of it.loot ?? []) {
+          const velho = l as Loot & { weight?: number };
+          if (typeof velho.espacos !== 'number') velho.espacos = Math.max(0, Math.min(10, Math.round((velho.weight ?? 1) * 2) / 2));
+          delete velho.weight;
+        }
   rebuildSede(db);
+  // Fazenda Olhos de Águia: a fazenda de fora, os arredores e o interior das casas
+  montarFazenda(db);
+  coresDosAgentes(db);
+  temasDosAgentes(db);
   db.seedVersion = SEED_VERSION;
   return true;
 }
@@ -782,18 +802,18 @@ export function seedDb(): Database {
         ['barrel', 12, 7, 0],
       ],
       [
-        ['board_investigation', 'l', 1, 2.0, 1.7, hint('inspect', 'Quadro de investigação', 'Fotos de três desaparecidos ligadas por fios vermelhos a um mesmo endereço.')],
-        ['poster_sigil', 'l', 1, 3.9, 2.1],
-        ['sconce', 'l', 1, 4.6, 2.3],
-        ['notes_wall', 'l', 1, 7.2, 2.0],
-        ['sconce', 'l', 1, 8.9, 2.3],
-        ['wall_shelf', 'r', 0, 2.0, 2.5],
-        ['antlers', 'r', 0, 4.0, 3.0],
-        ['clock', 'r', 0, 6.0, 3.1],
-        ['window_barred', 'r', 0, 8.0, 2.1],
-        ['pipes', 'r', 0, 10.0, 3.9],
-        ['sconce', 'r', 0, 11.3, 2.4],
-        ['door_sealed', 'r', 0, 12.35, 0.08, hint('gear', 'Porta Selada', 'O sigilo pintado na porta ainda está úmido. Alguém esteve aqui há pouco.')],
+        ['board_investigation', 'l', 1, 2.0, 1.54, hint('inspect', 'Quadro de investigação', 'Fotos de três desaparecidos ligadas por fios vermelhos a um mesmo endereço.')],
+        ['poster_sigil', 'l', 1, 3.9, 1.91],
+        ['sconce', 'l', 1, 4.6, 2.09],
+        ['notes_wall', 'l', 1, 7.2, 1.81],
+        ['sconce', 'l', 1, 8.9, 2.09],
+        ['wall_shelf', 'r', 0, 2.0, 2.27],
+        ['antlers', 'r', 0, 4.0, 2.72],
+        ['clock', 'r', 0, 6.0, 2.81],
+        ['window_barred', 'r', 0, 8.0, 1.91],
+        ['pipes', 'r', 0, 10.0, 3.54],
+        ['sconce', 'r', 0, 11.3, 2.18],
+        ['door_sealed', 'r', 0, 12.35, 0.07, hint('gear', 'Porta Selada', 'O sigilo pintado na porta ainda está úmido. Alguém esteve aqui há pouco.')],
       ],
       0.55,
     ),
@@ -802,7 +822,7 @@ export function seedDb(): Database {
   db.rooms.push(
     buildRoom(
       db,
-      'Saguão CROMA',
+      'Saguão CRONA',
       'Ponto de encontro. Todo mundo pode construir.',
       'saguao',
       [
@@ -828,13 +848,13 @@ export function seedDb(): Database {
         ['mug', 11, 7, 0],
       ],
       [
-        ['window_barred', 'r', 0, 3.0, 2.5],
-        ['window_barred', 'r', 0, 12.0, 2.5],
-        ['clock', 'r', 0, 8.5, 3.6],
-        ['poster_sigil', 'l', 1, 6.0, 2.0],
-        ['sconce', 'l', 1, 10.5, 2.3],
-        ['sconce', 'r', 0, 6.0, 3.0],
-        ['sconce', 'r', 0, 11.0, 3.0],
+        ['window_barred', 'r', 0, 3.0, 2.27],
+        ['window_barred', 'r', 0, 12.0, 2.27],
+        ['clock', 'r', 0, 8.5, 3.27],
+        ['poster_sigil', 'l', 1, 6.0, 1.81],
+        ['sconce', 'l', 1, 10.5, 2.09],
+        ['sconce', 'r', 0, 6.0, 2.72],
+        ['sconce', 'r', 0, 11.0, 2.72],
       ],
       0.45,
     ),
@@ -855,8 +875,8 @@ export function seedDb(): Database {
         ['cabinet_file', 6, 0, 4],
       ],
       [
-        ['window_barred', 'r', 0, 4.5, 2.3],
-        ['notes_wall', 'l', 1, 4.3, 2.0],
+        ['window_barred', 'r', 0, 4.5, 2.09],
+        ['notes_wall', 'l', 1, 4.3, 1.81],
       ],
       0.7,
     ),

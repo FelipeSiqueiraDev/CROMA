@@ -1,6 +1,6 @@
-import { randomLook, sanitizeLook, type AvatarLook } from '@croma/shared';
+import { randomLook, sanitizeLook, type AvatarLook } from '@crona/shared';
 
-const KEY = 'croma.login';
+const KEY = 'crona.login';
 
 /** Nome e aparência salvos neste navegador (o mestre entra com eles). */
 export function loadLogin(): { name: string; look: AvatarLook } {

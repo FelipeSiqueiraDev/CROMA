@@ -478,7 +478,7 @@ export const ORIGENS: Origem[] = [
   // Perícias: Vontade e mais uma à escolha, ligada à premonição. Os tipos não
   // têm "uma fixa + uma à escolha": a escolha fica com uma só e a Vontade
   // treinada entra pelo efeito `treino` do poder (se o jogador escolher
-  // Vontade de novo, o CROMA avisa que ela já era treinada).
+  // Vontade de novo, o CRONA avisa que ela já era treinada).
   {
     id: 'profetizado', nome: 'Profetizado', ref: SAH(13), pericias: { escolha: 1, texto: 'além de Vontade, uma ligada à premonição' },
     poder: {

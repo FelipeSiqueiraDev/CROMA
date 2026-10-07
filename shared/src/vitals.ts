@@ -6,7 +6,7 @@
  *  - morrendo: 0 PV;
  *  - perturbado: menos da metade da Sanidade total;
  *  - enlouquecendo: Sanidade 0.
- * PE baixo (menos da metade) não é condição do livro; o CROMA usa só para o
+ * PE baixo (menos da metade) não é condição do livro; o CRONA usa só para o
  * retrato (respiração lenta, de cansaço).
  */
 export interface Vitals {
@@ -62,7 +62,7 @@ export interface VitalConditions {
   morrendo: boolean;
   perturbado: boolean;
   enlouquecendo: boolean;
-  /** PE abaixo da metade (regra do CROMA, não do livro) */
+  /** PE abaixo da metade (regra do CRONA, não do livro) */
   cansado: boolean;
 }
 

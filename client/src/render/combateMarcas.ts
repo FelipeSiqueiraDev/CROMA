@@ -5,7 +5,7 @@
  * círculo de quem sustenta ritual, a medida e a área. A tela COMBATE diz o que
  * mostrar; o RoomView desenha a cada quadro, com as peças onde estiverem.
  */
-import { combate as cb } from '@croma/shared';
+import { combate as cb } from '@crona/shared';
 import { contornoArea, type Area, type Casa } from '../room/combateGeo';
 import { UI_FONT } from './bubbles';
 import { iso } from './iso';
@@ -32,16 +32,41 @@ export interface MarcasCombate {
   area: (Area & { rotulo: string }) | null;
   /** peças dentro da área (anel vermelho) */
   naArea: Set<number>;
+  /** de quem é a vez (brilha no mapa tático) */
+  vez: Set<number>;
 }
 
 export function marcasVazias(): MarcasCombate {
-  return { bases: new Map(), deitadas: new Set(), caveiras: new Set(), rituais: new Set(), alcance: null, linha: null, cobertura: null, mira: null, medida: null, area: null, naArea: new Set() };
+  return { bases: new Map(), deitadas: new Set(), caveiras: new Set(), rituais: new Set(), alcance: null, linha: null, cobertura: null, mira: null, medida: null, area: null, naArea: new Set(), vez: new Set() };
 }
 
 /** Posição da peça em casas (com o passo em andamento) e a altura do chão dela. */
 export type PosPeca = (id: number) => { x: number; y: number; z: number } | null;
 
 export const COR_LADO = { agente: '#3fc6ff', inimigo: '#ff3b35', neutro: '#b9b3a8' } as const;
+/**
+ * As peças pintadas do kit para o chão do combate (arte/combate/): a base de cada lado e o círculo do
+ * ritual, já em elipse 2:1. Sem a imagem (ainda carregando, ou sem arte), fica o desenho de código.
+ */
+function imagem(url: string) {
+  const im = new Image();
+  im.decoding = 'async';
+  im.src = url;
+  return im;
+}
+const KIT = {
+  agente: imagem('/arte/combate/base-agente.png'),
+  inimigo: imagem('/arte/combate/base-inimigo.png'),
+  ritual: imagem('/arte/combate/circulo-ritual.png'),
+};
+const pronta = (im: HTMLImageElement) => im.complete && im.naturalWidth > 0;
+
+/** A base pintada do lado (agente ou inimigo), ou null para o anel de código. */
+export function baseDoKit(cor: string | undefined): HTMLImageElement | null {
+  const im = cor === COR_LADO.agente ? KIT.agente : cor === COR_LADO.inimigo ? KIT.inimigo : null;
+  return im && pronta(im) ? im : null;
+}
+
 const AMBAR = 'rgba(246,196,74,0.95)';
 const CIANO = 'rgba(80,200,255,0.9)';
 const VERMELHO = 'rgba(255,64,56,0.95)';
@@ -106,7 +131,15 @@ export function desenharChao(ctx: CanvasRenderingContext2D, m: MarcasCombate, po
   for (const id of m.rituais) {
     const p = pos(id);
     if (!p) continue;
-    circuloRitual(ctx, p.x + 0.5, p.y + 0.5, p.z + 0.02, now);
+    if (pronta(KIT.ritual)) {
+      // o círculo pintado, do tamanho do de código (raio de 1,7 casa), pulsando
+      const [x, y] = iso(p.x + 0.5, p.y + 0.5, p.z + 0.02);
+      const w = 1.7 * 2 * 32 * Math.SQRT2;
+      ctx.save();
+      ctx.globalAlpha = 0.75 + 0.25 * Math.sin(now / 420);
+      ctx.drawImage(KIT.ritual, x - w / 2, y - w / 4, w, w / 2);
+      ctx.restore();
+    } else circuloRitual(ctx, p.x + 0.5, p.y + 0.5, p.z + 0.02, now);
     const [lx, ly] = iso(p.x + 0.5, p.y + 0.5, p.z);
     lights.push({ x: lx, y: ly, radius: 70, color: '#ff3a2a', intensity: 0.55, kind: 'emergency' });
   }

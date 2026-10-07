@@ -11,6 +11,9 @@ export * from './protocol';
 export * from './session';
 export * from './vitals';
 export * from './fichas';
+export * from './itens';
+export * from './mesa';
+export * from './documentos';
 /** Regras de Ordem Paranormal: catálogos, ficha, criação de NEX 0% a 99% (ver docs/REGRAS.md). */
 export * as regras from './regras';
 /** Combate: ordem de iniciativa, rodadas, turnos e registro (ver docs/COMBATE.md). */
@@ -23,10 +26,12 @@ export {
   DEFAULT_CAPACITY,
   type LootKind,
   type Loot,
+  type ItemNoCenario,
   type ItemAction,
   type Objective,
   type LogIcon,
   type LogEntry,
   type PartyMember,
   type CampaignState,
+  type NotaPlanta,
 } from './rpg';

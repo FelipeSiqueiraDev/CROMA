@@ -47,7 +47,7 @@ Ele roda num agente separado e em segundo plano: a conversa continua enquanto el
      "marca": ["trechos da marca d'água do comprador, para esconder do texto"]
    }
    ```
-   Ou use as variáveis `CROMA_LR_PDF` e `CROMA_SAH_PDF`.
+   Ou use as variáveis `CRONA_LR_PDF` e `CRONA_SAH_PDF`.
 2. Precisa de Python com PyMuPDF (`pip install pymupdf`), do banco no ar (`npm run banco`) e das dependências instaladas (`npm install`).
 3. O estado fica só nesta máquina. Sem ele, a primeira conferência vê tudo como novo; se o que existe já foi conferido, rode `/verissimo base`.
 

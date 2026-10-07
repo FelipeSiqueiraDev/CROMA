@@ -1,4 +1,4 @@
-import type { ParticleKind, RoomMap } from '@croma/shared';
+import type { ParticleKind, RoomMap } from '@crona/shared';
 import { rgba } from './color';
 import { iso } from './iso';
 import type { Light } from './lighting';

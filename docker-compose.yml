@@ -1,30 +1,64 @@
-# Banco do CROMA: Postgres 17 no Docker, só para este computador.
-#   npm run banco          sobe (e deixa ligado: volta sozinho com o Docker)
-#   npm run banco:parar    desliga
+# O CRONA inteiro no Docker: o jogo (servidor, interface e toda a arte) e o banco.
+#   npm run crona          monta a imagem e sobe os dois (voltam sozinhos com o Docker)
+#   npm run crona:parar    desliga o jogo (o banco continua)
+#   npm run crona:logs     o que o servidor está dizendo (os links do mestre e da mesa)
+#   npm run banco          sobe só o banco (para o `npm run dev`)
+#   npm run banco:parar    desliga o banco
 #   npm run banco:backup   cópia em server/data/backups/
+# O jogo atende em duas portas com o mesmo número (CRONA_PORTA, 8080):
+#   - http://localhost:8080 ........ este computador, o mestre (sem senha)
+#   - http://<IP da rede>:8080 ..... a rede: a mesa (?mesa), os celulares (?ficha=) e o mestre em outro
+#                                    aparelho (?mestre=); o `npm run crona` acha o IP (CRONA_IP)
 # A porta fica presa a 127.0.0.1: o tablet e os outros aparelhos da rede não
-# enxergam o banco (eles falam só com o servidor do CROMA).
-name: croma
+# enxergam o banco (eles falam só com o servidor do CRONA).
+
+name: crona
 services:
   banco:
     image: postgres:17-alpine
-    container_name: croma-postgres
+    container_name: crona-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: croma
-      POSTGRES_PASSWORD: ${CROMA_DB_SENHA:-croma_local}
-      POSTGRES_DB: croma
+      POSTGRES_USER: crona
+      POSTGRES_PASSWORD: ${CRONA_DB_SENHA:-crona_local}
+      POSTGRES_DB: crona
       TZ: America/Sao_Paulo
       PGTZ: America/Sao_Paulo
     ports:
-      - "127.0.0.1:${CROMA_DB_PORTA:-5433}:5432"
+      - "127.0.0.1:${CRONA_DB_PORTA:-5433}:5432"
     volumes:
-      - croma-dados:/var/lib/postgresql/data
+      - crona-dados:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U croma -d croma"]
+      test: ["CMD-SHELL", "pg_isready -U crona -d crona"]
       interval: 3s
       timeout: 3s
       retries: 20
 
+  jogo:
+    build: .
+    image: crona:local
+    container_name: crona-app
+    restart: unless-stopped
+    depends_on:
+      banco:
+        condition: service_healthy
+    environment:
+      CRONA_DB_URL: postgres://crona:${CRONA_DB_SENHA:-crona_local}@banco:5432/${CRONA_DB_NOME:-crona}
+      CRONA_PORT: 3001
+      CRONA_PORTA_LOCAL: 3002
+      CRONA_PORTA_REDE: ${CRONA_PORTA:-8080}
+      CRONA_PORTA_MESTRE: ${CRONA_PORTA:-8080}
+      CRONA_IP: ${CRONA_IP:-}
+      TZ: America/Sao_Paulo
+    ports:
+      # a porta da rede, no IP deste computador na rede
+      - "${CRONA_IP:-127.0.0.1}:${CRONA_PORTA:-8080}:3001"
+      # a mesma porta em 127.0.0.1: só este computador chega, e entra como mestre
+      - "127.0.0.1:${CRONA_PORTA:-8080}:3002"
+    volumes:
+      # os arquivos enviados pelo jogo (folhas, retratos)
+      - crona-arquivos:/app/server/data
+
 volumes:
-  croma-dados:
+  crona-dados:
+  crona-arquivos:

@@ -1,4 +1,4 @@
-import { Z_PER_M } from '@croma/shared';
+import { Z_PER_M } from '@crona/shared';
 import { shade } from './color';
 import { iso } from './iso';
 

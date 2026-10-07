@@ -174,14 +174,15 @@ function lerEnv(): Record<string, string> {
   return out;
 }
 
-/** As fichas do banco (só leitura). Sem CROMA_DB_URL, lê o db.json. `ok` = conseguiu ler. */
+/** As fichas do banco (só leitura). Sem CRONA_DB_URL, lê o db.json. `ok` = conseguiu ler. */
 async function lerFichas(): Promise<{ fichas: FichaSalva[]; ok: boolean; aviso?: string }> {
-  const url = process.env.CROMA_DB_URL ?? lerEnv().CROMA_DB_URL;
+  const env = lerEnv();
+  const url = process.env.CRONA_DB_URL ?? env.CRONA_DB_URL;
   if (!url) {
     const txt = lerTexto(path.join(RAIZ, 'server/data/db.json'));
-    if (!txt) return { fichas: [], ok: false, aviso: 'sem CROMA_DB_URL e sem server/data/db.json: não há fichas para ler' };
+    if (!txt) return { fichas: [], ok: false, aviso: 'sem CRONA_DB_URL e sem server/data/db.json: não há fichas para ler' };
     const db = JSON.parse(txt) as { fichas?: FichaSalva[] };
-    return { fichas: db.fichas ?? [], ok: true, aviso: 'sem CROMA_DB_URL: fichas lidas do server/data/db.json' };
+    return { fichas: db.fichas ?? [], ok: true, aviso: 'sem CRONA_DB_URL: fichas lidas do server/data/db.json' };
   }
   const sql = postgres(url, { max: 1, connect_timeout: 5, onnotice: () => {} });
   try {
@@ -243,7 +244,7 @@ function resumoDe(f: Ficha): Resumo {
   for (const k of regras.ATRIBUTOS) por(`DT habilidades ${k.toUpperCase()}`, String(c.dtHabilidades[k]));
   // todas as perícias: um atributo que sobe muda os dados até das destreinadas
   for (const [id, p] of Object.entries(c.pericias))
-    por(`perícia ${id}`, `${p.grau}, ${p.dados}d20${p.bonus >= 0 ? '+' : ''}${p.bonus} (${p.atributo})${p.podeUsar ? '' : ', não pode usar'}`);
+    por(`perícia ${id}`, `${p.grau}, ${p.dados}d20${p.bonus >= 0 ? '+' : ''}${p.bonus}${p.penalidadeDados ? ` (${p.penalidadeDados}d20)` : ''} (${p.atributo})${p.podeUsar ? '' : ', não pode usar'}`);
   for (const [tipo, v] of Object.entries(c.resistencias)) por(`resistência ${tipo}`, String(v));
   por('esquiva', c.reacoes.esquiva === null ? '—' : String(c.reacoes.esquiva));
   por('bloqueio', c.reacoes.bloqueio === null ? '—' : String(c.reacoes.bloqueio));

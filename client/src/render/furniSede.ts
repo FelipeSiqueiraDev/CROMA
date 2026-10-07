@@ -1,5 +1,6 @@
+import { Z_PER_M } from '@crona/shared';
 import { rgba, rng, shade } from './color';
-import { B, drawers, faceRange, lightIf, N, V, type Builder, type FNode } from './furniKit';
+import { B, drawers, faceRange, lightIf, N, V, wallBlock, type Builder, type FNode } from './furniKit';
 import { OUTLINE, type LBox, type LFace, type Painter } from './painter';
 
 /*
@@ -198,7 +199,9 @@ export const SEDE_BUILDERS: Record<string, Builder> = {
   /** Geladeira de porta de vidro, acesa por dentro (apaga no apagão). */
   beer_fridge(def, _s, seed) {
     const [body, glow] = def.colors;
-    const b: LBox = [0.1, 0.92, 0.06, 0.94, 0, 2.0];
+    // desenhada para 2 m; mais baixa (frigobar), encolhe por igual
+    const k = Math.min(1, def.height / Z_PER_M / 2.0);
+    const b: LBox = [0.1, 0.92, 0.06, 0.94, 0, 2.0 * k];
     const r = rng(seed + 5);
     const rows = [0.25, 0.62, 0.99, 1.36].map((z) => Array.from({ length: 5 }, (_, i) => ({ a: 0.2 + i * 0.13 + r() * 0.02, h: 0.16 + r() * 0.08, c: BOTTLES[Math.floor(r() * 4)], z })));
     return V(
@@ -208,8 +211,9 @@ export const SEDE_BUILDERS: Record<string, Builder> = {
           if (!p.m.visible('front')) return;
           const lit = p.power > 0.1;
           // placa acesa no alto
-          p.face(b, 'front', 0.1, 0.9, 1.74, 1.94, lit ? glow : shade(glow, -0.7), true);
+          p.face(b, 'front', 0.1, 0.9, 1.74 * k, 1.94 * k, lit ? glow : shade(glow, -0.7), true);
           p.withFace(b, 'front', (ctx) => {
+            ctx.scale(1, k);
             ctx.fillStyle = lit ? 'rgba(120,20,10,0.8)' : 'rgba(40,10,10,0.8)';
             ctx.fillRect(0.2, 1.8, 0.6, 0.02);
             ctx.fillRect(0.3, 1.86, 0.4, 0.02);
@@ -235,10 +239,10 @@ export const SEDE_BUILDERS: Record<string, Builder> = {
             ctx.fillStyle = '#c9c4bc';
             ctx.fillRect(0.8, 0.7, 0.03, 0.45);
           });
-          p.face(b, 'front', 0.1, 0.9, 0, 0.1, '#1a1210');
+          p.face(b, 'front', 0.1, 0.9, 0, 0.1 * k, '#1a1210');
         }),
       ],
-      [{ u: 1.05, v: 0.5, z: 1.1, radius: 125, color: glow, intensity: 0.75, kind: 'electric' }],
+      [{ u: 1.05, v: 0.5, z: 1.1 * k, radius: 125 * (0.5 + k / 2), color: glow, intensity: 0.75, kind: 'electric' }],
     );
   },
 
@@ -381,35 +385,37 @@ export const SEDE_BUILDERS: Record<string, Builder> = {
   bed(def) {
     const [blanket, frame, sheet] = def.colors;
     const D = def.depth;
+    // de solteiro (1 casa) ou de casal (2 casas, dois travesseiros)
+    const W = def.width;
     const legs: LBox[] = [
       [0.04, 0.12, 0.05, 0.13, 0, 0.2],
       [D - 0.12, D - 0.04, 0.05, 0.13, 0, 0.2],
-      [0.04, 0.12, 0.87, 0.95, 0, 0.2],
-      [D - 0.12, D - 0.04, 0.87, 0.95, 0, 0.2],
+      [0.04, 0.12, W - 0.13, W - 0.05, 0, 0.2],
+      [D - 0.12, D - 0.04, W - 0.13, W - 0.05, 0, 0.2],
     ];
-    const base: LBox = [0.04, D - 0.04, 0.04, 0.96, 0.2, 0.32];
-    const mattress: LBox = [0.1, D - 0.07, 0.07, 0.93, 0.32, 0.48];
-    const pillow: LBox = [0.16, 0.62, 0.14, 0.86, 0.48, 0.58];
-    const cover: LBox = [0.8, D - 0.05, 0.05, 0.95, 0.32, 0.53];
-    const head: LBox = [0.01, 0.08, 0.02, 0.98, 0, 0.95];
+    const base: LBox = [0.04, D - 0.04, 0.04, W - 0.04, 0.2, 0.32];
+    const mattress: LBox = [0.1, D - 0.07, 0.07, W - 0.07, 0.32, 0.48];
+    const pillows: LBox[] = W > 1 ? [[0.16, 0.62, 0.14, W / 2 - 0.06, 0.48, 0.58], [0.16, 0.62, W / 2 + 0.06, W - 0.14, 0.48, 0.58]] : [[0.16, 0.62, 0.14, 0.86, 0.48, 0.58]];
+    const cover: LBox = [0.8, D - 0.05, 0.05, W - 0.05, 0.32, 0.53];
+    const head: LBox = [0.01, 0.08, 0.02, W - 0.02, 0, 0.95];
     return V([
       B(head, frame, { edge: 0.25 }),
       ...legs.map((l) => B(l, frame)),
       B(base, frame, { edge: 0.15 }),
       B(mattress, sheet, { edge: 0.2 }),
-      B(pillow, shade(sheet, 0.1), { edge: 0.3 }),
+      ...pillows.map((b) => B(b, shade(sheet, 0.1), { edge: 0.3 })),
       N(cover, (p) => {
         p.box(cover, blanket, { edge: 0.2 });
         p.withTop(0.531, (ctx) => {
           // dobra na ponta do cobertor
           ctx.fillStyle = shade(blanket, 0.18);
-          ctx.fillRect(0.8, 0.05, 0.16, 0.9);
+          ctx.fillRect(0.8, 0.05, 0.16, W - 0.1);
           ctx.strokeStyle = 'rgba(0,0,0,0.25)';
           ctx.lineWidth = 0.02;
           for (let u = 1.2; u < D - 0.2; u += 0.45) {
             ctx.beginPath();
             ctx.moveTo(u, 0.1);
-            ctx.lineTo(u + 0.08, 0.9);
+            ctx.lineTo(u + 0.08, W - 0.1);
             ctx.stroke();
           }
         });
@@ -833,6 +839,69 @@ export const SEDE_BUILDERS: Record<string, Builder> = {
           for (let u = 0.2; u < 0.9; u += 0.14) p.cyl(u, 0.88, 0.02, 0.1, 2.08, iron, { outline: false });
           p.box([0.12, 0.9, 0.86, 0.9, 1.0, 1.06], iron, { edge: 0.3 });
           p.box([0.72, 0.88, 0.84, 0.94, 0.95, 1.18], lockC, { edge: 0.35 });
+        }),
+      );
+    return V(nodes);
+  },
+
+  /** Parede de cela (no lugar da grade): concreto inteiro até 2,2 m, na borda da casa. */
+  cell_front(def) {
+    const [c0] = def.colors;
+    const b: LBox = [0, 0.15, 0, 1, 0, 2.2];
+    return V([N(b, (p) => wallBlock(p, b, c0))]);
+  },
+
+  /** Porta de aço da cela: fechada, a chapa com o visor gradeado e a portinhola da comida; aberta, gira 90° e encosta no batente. */
+  cell_door_steel(def, state) {
+    const [steel, dark, lockC] = def.colors;
+    const open = state === 1;
+    const nodes: FNode[] = [
+      // batentes de aço
+      B([0, 0.15, 0, 0.08, 0, 2.2], dark, { edge: 0.2 }),
+      B([0, 0.15, 0.92, 1, 0, 2.2], dark, { edge: 0.2 }),
+      B([0, 0.15, 0.08, 0.92, 2.08, 2.2], dark, { edge: 0.3 }),
+    ];
+    const chapa = (p: Painter, f: LBox, face: LFace, v0: number, v1: number) => {
+      p.box(f, steel, { edge: 0.18 });
+      p.withFace(f, face, (ctx) => {
+        const w = v1 - v0;
+        const a = (k: number) => v0 + w * k;
+        // as duas chapas rebaixadas
+        ctx.fillStyle = shade(steel, -0.1);
+        ctx.fillRect(a(0.14), 0.14, w * 0.72, 0.62);
+        ctx.fillRect(a(0.14), 1.18, w * 0.72, 0.18);
+        ctx.fillRect(a(0.14), 1.76, w * 0.72, 0.22);
+        // o visor: a janelinha escura com três barras
+        ctx.fillStyle = '#08090b';
+        ctx.fillRect(a(0.32), 1.42, w * 0.36, 0.28);
+        ctx.fillStyle = shade(steel, 0.18);
+        for (const k of [0.41, 0.5, 0.59]) ctx.fillRect(a(k) - 0.012, 1.42, 0.024, 0.28);
+        // a portinhola da comida
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.fillRect(a(0.26), 0.9, w * 0.48, 0.1);
+        ctx.fillStyle = shade(steel, 0.12);
+        ctx.fillRect(a(0.26), 0.99, w * 0.48, 0.02);
+        // rebites e ferrugem na base
+        ctx.fillStyle = 'rgba(15,12,10,0.6)';
+        for (const z of [0.08, 1.06, 2.0]) for (const k of [0.08, 0.92]) ctx.fillRect(a(k) - 0.012, z, 0.024, 0.024);
+        ctx.fillStyle = 'rgba(110,62,32,0.28)';
+        ctx.fillRect(v0, 0.02, w, 0.1);
+      });
+    };
+    if (!open)
+      nodes.push(
+        N([0.03, 0.12, 0.08, 0.92, 0, 2.08], (p) => {
+          chapa(p, [0.03, 0.12, 0.08, 0.92, 0.02, 2.08], 'front', 0.08, 0.92);
+          // fechadura
+          p.box([0.0, 0.15, 0.72, 0.86, 0.95, 1.16], lockC, { edge: 0.35 });
+        }),
+      );
+    else
+      nodes.push(
+        N([0.15, 0.95, 0.84, 0.93, 0, 2.08], (p) => {
+          // aberta: gira 90° e encosta no batente
+          chapa(p, [0.15, 0.95, 0.85, 0.92, 0.02, 2.08], p.m.visible('right') ? 'right' : 'left', 0.15, 0.95);
+          p.box([0.78, 0.9, 0.83, 0.94, 0.95, 1.16], lockC, { edge: 0.35 });
         }),
       );
     return V(nodes);

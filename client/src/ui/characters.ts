@@ -1,4 +1,4 @@
-import { ANIM_KEYS, DIR_KEYS, SHEET_TO_DIR, type AnimKey, type AvatarLook, type CharacterDef, type DirKey } from '@croma/shared';
+import { ANIM_KEYS, DIR_KEYS, SHEET_TO_DIR, type AnimKey, type AvatarLook, type CharacterDef, type DirKey } from '@crona/shared';
 
 const ANIM_LABEL: Record<AnimKey, string> = { idle: 'parado', walk: 'andando', sit: 'sentado' };
 import { drawSprite, sprites, type LoadedChar } from '../render/sprites';

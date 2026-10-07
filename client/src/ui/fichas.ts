@@ -8,12 +8,16 @@
  * salvos sozinhos) e editar (um rascunho da ficha inteira; Salvar grava,
  * Cancelar descarta). NEX e pontos de prestígio só o mestre muda.
  */
-import { regras, vitalConditions, type AvatarLook, type CampaignState, type CharacterDef, type FichaSalva, type Vitals } from '@croma/shared';
+import { NOME_TEMA, TEMAS, regras, vitalConditions, type AvatarLook, type CampaignState, type CharacterDef, type FichaSalva, type Vitals } from '@crona/shared';
 import { portraitCanvas } from '../render/portrait';
 import type { App } from './app';
 import { CorpoView } from './corpo';
 import { h, toast } from './dom';
+import { arteDoItem } from './arteItem';
+import { abrirRequisicao } from './requisicao';
 import { confirmar, escolher, janela, mostrar, perguntarTexto } from './fichaModal';
+import { opcoesMelhoria } from './melhorias';
+import { abrirCriacao, type Assistente } from './criacao';
 import {
   escolherCampo,
   escolherPendencia,
@@ -32,9 +36,10 @@ import {
   textoTeste,
   type Campo,
 } from './fichaRegras';
-import { arte, ic, type NomeIcone } from './icons';
+import { arte, arteOu, ic, type NomeIcone } from './icons';
 import { paperize } from './paperArt';
 import { sfx } from './sfx';
+import { vestirTema } from './temaUi';
 
 type Ficha = regras.Ficha;
 type Calc = regras.Calculado;
@@ -43,7 +48,8 @@ const cat = regras.catalogo;
 
 type Modo = 'jogo' | 'editar';
 type AbaNotas = 'anotacoes' | 'documentos' | 'pistas' | 'perfil';
-type AbaTatico = 'combate' | 'evolucao';
+/** As abas do painel da direita, embaixo (repaginada de 05/10). */
+type AbaGrupo = 'poderes' | 'rituais' | 'companheiro' | 'anotacoes' | 'evolucao';
 
 const ICONE_ATR: Record<regras.AtributoId, NomeIcone> = { agi: 'correr', for: 'punho', int: 'cerebro', pre: 'olho', vig: 'escudo' };
 const CLASSE_NOME = (c: regras.ClasseId | null) => (c ? cat.classe(c).nome : '—');
@@ -80,6 +86,22 @@ export interface OpcoesFichas {
   jogador: boolean;
 }
 
+/** O ícone pintado do título de cada painel (o kit de interface). */
+const TITULO_PINTADO: Record<string, string> = {
+  'fx-ident': 'identificacao',
+  'fx-atrib': 'atributos',
+  'fx-rec': 'recursos',
+  'fx-deriv': 'derivados',
+  'fx-cond': 'condicoes',
+  'fx-per': 'pericias',
+  'fx-pod': 'poderes',
+  'fx-rit': 'rituais',
+  'fx-comp': 'companheiro',
+  'fx-equip': 'equipamentos',
+  'fx-inv': 'inventario',
+  'fx-notas': 'anotacoes',
+};
+
 export class FichasScreen {
   readonly el: HTMLElement;
   private app: App;
@@ -92,7 +114,7 @@ export class FichasScreen {
   private campanha: CampaignState | null = null;
   private corpo = new CorpoView();
   private abaNotas: AbaNotas = 'anotacoes';
-  private abaTatico: AbaTatico = 'combate';
+  private abaGrupo: AbaGrupo = 'poderes';
   private soTreinadas = false;
   private timers = new Map<number, number>();
   private dica: HTMLElement;
@@ -109,6 +131,13 @@ export class FichasScreen {
   private pPod: HTMLElement;
   private pRit: HTMLElement;
   private pTat: HTMLElement;
+  private pEvol: HTMLElement;
+  /** os papéis que juntam os painéis (Vida, Atributos e combate, Itens e as Abas) */
+  private gVida: HTMLElement;
+  private gComb: HTMLElement;
+  private gItens: HTMLElement;
+  private gAbas: HTMLElement;
+  private abasNav: HTMLElement;
   private pComp: HTMLElement;
   private pEquip: HTMLElement;
   private pInv: HTMLElement;
@@ -122,7 +151,10 @@ export class FichasScreen {
     const papel = (el: HTMLElement, seed: number, extra: Parameters<typeof paperize>[1] = { seed }) => (paperize(el, { tone: '#d9c9a9', burn: 1, torn: 1.1, stains: 1, creases: 0.3, crumple: 0.35, specks: 0.6, pad: 18, ...extra, seed }), el);
     const secao = (cls: string, titulo: string | null, icone: NomeIcone | null, escuro = false) => {
       const s = h('section', { class: `fx-p ${cls}${escuro ? ' escuro' : ''}` });
-      if (titulo) s.append(h('header', { class: 'fx-tit' }, icone ? h('span', { class: 'fx-tit-ic' }, ic(icone)) : null, h('h3', null, titulo), h('span', { class: 'fx-tit-extra' })));
+      // o ícone pintado do título (arte/icones/titulo-*.png); sem ele, o de linha
+      const pintado = TITULO_PINTADO[cls];
+      const icTit = icone ? (pintado ? arteOu([`/arte/icones/titulo-${pintado}.png`], ic(icone)) : ic(icone)) : null;
+      if (titulo) s.append(h('header', { class: 'fx-tit' }, icTit ? h('span', { class: 'fx-tit-ic' }, icTit) : null, h('h3', null, titulo), h('span', { class: 'fx-tit-extra' })));
       s.append(h('div', { class: 'fx-corpo-p' }));
       return s;
     };
@@ -151,13 +183,22 @@ export class FichasScreen {
     this.pRit = papel(secao('fx-rit', 'RITUAIS / PODERES PARANORMAIS', 'pentagrama', true), 108, { seed: 108, tone: '#d4c3a2', burn: 1, torn: 1, pad: 18 });
     this.pTat = secao('fx-tat', null, null);
     this.pComp = papel(secao('fx-comp', 'COMPANHEIRO', 'pata'), 109);
-    this.pEquip = papel(secao('fx-equip', 'EQUIPAMENTOS / ATAQUES', 'mochila'), 110);
+    this.pEquip = papel(secao('fx-equip', 'ITENS E ATAQUES', 'mochila'), 110);
     this.pInv = papel(secao('fx-inv', 'INVENTÁRIO', 'caixa', true), 111, { seed: 111, tone: '#d4c3a2', burn: 1, torn: 1, pad: 18 });
     this.pNotas = papel(secao('fx-notas', 'ANOTAÇÕES / DOCUMENTOS / PISTAS', 'documento'), 112);
+    this.pEvol = papel(secao('fx-evol', 'EVOLUÇÃO', 'linhaTempo'), 113);
+    // ---------- os grupos (na tela grande): cada um é um papel só, com os painéis dentro; no celular
+    // eles somem (display: contents) e cada painel volta a ter o próprio papel ----------
+    const grupo = (cls: string, seed: number, ...filhos: HTMLElement[]) => papel(h('section', { class: `fx-grupo ${cls}` }, ...filhos), seed);
+    this.gVida = grupo('fx-g-vida', 120, this.pRec, this.pCond);
+    this.gComb = grupo('fx-g-comb', 121, this.pAtrib, this.pDeriv, this.pTat);
+    this.gItens = grupo('fx-g-itens', 122, this.pEquip, this.pInv);
+    this.abasNav = h('nav', { class: 'fx-g-abas-nav', role: 'tablist' });
+    this.gAbas = grupo('fx-g-abas', 123, this.abasNav, this.pPod, this.pRit, this.pComp, this.pNotas, this.pEvol);
     this.barra = h('div', { class: 'fx-barra' });
     this.vazio = h('div', { class: 'fx-vazio hidden' });
     const pilha = h('div', { class: 'fx-pilha', 'aria-hidden': 'true' }, h('span', { class: 'fx-pilha-a' }), h('span', { class: 'fx-pilha-b' }), h('span', { class: 'fx-pilha-c' }));
-    for (const [i, s] of [...pilha.children].entries()) paperize(s as HTMLElement, { seed: 130 + i, tone: i === 1 ? '#cdbb99' : '#c4b08e', burn: 1.2, torn: 2, stains: 1.4, pad: 12 });
+    for (const [i, s] of [...pilha.children].entries()) paperize(s as HTMLElement, { kit: false, seed: 130 + i, tone: i === 1 ? '#cdbb99' : '#c4b08e', burn: 1.2, torn: 2, stains: 1.4, pad: 12 });
     this.dica = h('div', { class: 'fx-dica hidden', role: 'tooltip' });
     this.el = h(
       'div',
@@ -169,18 +210,11 @@ export class FichasScreen {
         this.pAgentes,
         this.pCorpo,
         this.pIdent,
-        this.pDeriv,
-        this.pAtrib,
-        this.pRec,
-        this.pCond,
+        this.gComb,
+        this.gVida,
         this.pPer,
-        this.pPod,
-        this.pRit,
-        this.pTat,
-        this.pComp,
-        this.pEquip,
-        this.pInv,
-        this.pNotas,
+        this.gAbas,
+        this.gItens,
         this.barra,
         this.vazio,
       ),
@@ -270,13 +304,35 @@ export class FichasScreen {
 
   // ================================================================ modos
 
-  private entrarEdicao() {
+  private entrarEdicao(passos = true) {
     const fs = this.atual();
     if (!fs || this.editando) return;
     this.rascunho = clone(fs);
     this.modo = 'editar';
     sfx.paper();
     this.render();
+    // o Editar do mestre abre os passos da criação (a ficha de trás muda junto)
+    if (passos && this.gm) this.abrirAssistente(false);
+  }
+
+  /** A criação passo a passo, no rascunho (docs/CRIACAO-DE-PERSONAGEM.md). */
+  private assistente: Assistente | null = null;
+  private abrirAssistente(nova: boolean) {
+    if (this.assistente || !this.rascunho) return;
+    this.assistente = abrirCriacao({
+      fs: () => this.rascunho,
+      gm: this.gm,
+      nova,
+      pericias: (alvo) => this.editarPericias(alvo),
+      escolha: (e) => this.abrirEscolha(e),
+      item: (i) => this.detalheItem(i),
+      requisicao: () => this.adicionarItem(),
+      tema: () => this.escolherTema(),
+      render: () => this.render(),
+      salvar: () => this.salvarEdicao(),
+      cancelar: () => this.cancelarEdicao(),
+      fechou: () => (this.assistente = null),
+    });
   }
 
   private cancelarEdicao() {
@@ -315,6 +371,7 @@ export class FichasScreen {
     this.selId = null;
     sfx.paper();
     this.render();
+    this.abrirAssistente(true);
   }
 
   private selecionar(id: number) {
@@ -340,9 +397,19 @@ export class FichasScreen {
   }
 
   private render() {
+    this.renderTela();
+    // os passos da criação, abertos por cima, acompanham
+    this.assistente?.atualizar();
+  }
+
+  private renderTela() {
     const fs = this.atual();
     this.calc = fs ? regras.calcular(fs.ficha) : null;
     this.el.classList.toggle('editando', this.editando);
+    // o tema do agente veste a ficha dele (e, no celular, a tela inteira do jogador)
+    vestirTema(this.el, fs?.tema);
+    const tela = this.el.closest<HTMLElement>('.tela-ficha');
+    if (tela) vestirTema(tela, fs?.tema);
     this.renderAgentes();
     const tem = !!fs;
     this.vazio.classList.toggle('hidden', tem);
@@ -368,6 +435,7 @@ export class FichasScreen {
     this.renderEquip(fs, this.calc);
     this.renderInv(fs, this.calc);
     this.renderNotas(fs);
+    this.renderAbas(this.calc);
     this.renderBarra(fs);
   }
 
@@ -397,7 +465,7 @@ export class FichasScreen {
           'button',
           { class: `fx-ag${on ? ' on' : ''}`, type: 'button', title: fs.nome, onclick: () => fs.id && this.selecionar(fs.id) },
           h('span', { class: 'fx-ag-foto' }, foto),
-          h('span', { class: 'fx-ag-placa' }, h('span', { class: 'fx-ag-nome' }, fs.nome), h('span', { class: 'fx-ag-info' }, `NEX ${fs.ficha.nex}% · ${CLASSE_NOME(fs.ficha.classe)}`)),
+          h('span', { class: 'fx-ag-placa' }, h('span', { class: `fx-ag-nome${fs.nome.length > 14 ? ' longo' : ''}` }, fs.nome), h('span', { class: 'fx-ag-info' }, `NEX ${fs.ficha.nex}% · ${CLASSE_NOME(fs.ficha.classe)}`)),
           h('span', { class: 'fx-ag-pv' }, h('i', { style: `width:${Math.round((v.pv / Math.max(1, v.pvMax)) * 100)}%` })),
           pend ? h('span', { class: 'fx-ag-pend', title: `${pend} pendência${pend > 1 ? 's' : ''}` }, String(pend)) : null,
         ),
@@ -471,6 +539,7 @@ export class FichasScreen {
       linha('NEX', nexBar, ed && this.gm ? () => this.escolherNex() : undefined, 'Nível de exposição paranormal. Só o mestre muda.'),
       linha('Patente', h('span', null, pat, h('small', null, ` ${f.pp} PP`)), ed && this.gm ? () => this.editarPP() : undefined, c.patente ? `Crédito ${c.patente.credito}. Só o mestre muda os pontos de prestígio.` : undefined),
       linha('Idade', f.textos?.idade || '—', ed ? () => this.editarTexto('Idade', 'Idade', f.textos?.idade ?? '', (v) => ((f.textos ??= {}), (f.textos.idade = v || undefined))) : undefined),
+      linha('Tema', NOME_TEMA[fs.tema ?? 'ordem'], ed ? () => this.escolherTema() : undefined, 'O tema da interface do agente: veste a ficha, a requisição e o celular dele.'),
       linha('Campanha', this.campanha?.title || '—'),
       linha('Local', local),
     );
@@ -488,6 +557,26 @@ export class FichasScreen {
       gravar(v.trim());
       this.render();
     });
+  }
+
+  private escolherTema() {
+    const fs = this.rascunho;
+    if (!fs) return;
+    const ops = TEMAS.map((t) => ({ id: t, nome: NOME_TEMA[t], ok: true, motivos: [], avisos: [] }));
+    void escolher(
+      {
+        titulo: 'Tema da interface',
+        dica: 'A cor e a arte da tela do agente. Ordem é o neutro, o das telas do mestre.',
+        qtd: 1,
+        opcoes: () => ops,
+        atual: () => [fs.tema ?? 'ordem'],
+        aplicar: (ids) => {
+          const t = ids[0] as (typeof TEMAS)[number] | undefined;
+          if (t) fs.tema = t === 'ordem' ? undefined : t;
+        },
+      },
+      () => this.render(),
+    );
   }
 
   private escolherNex() {
@@ -617,6 +706,18 @@ export class FichasScreen {
   private renderRec(fs: FichaSalva, c: Calc) {
     const v = this.vitais(fs, c);
     const corpo = this.corpoDe(this.pRec);
+    // a FICHAS do mestre é a das regras: só os máximos. O que acontece em jogo (PV, PE e SAN de agora,
+    // as condições) fica na lateral do MAPA e no celular do jogador, que continua com as barras.
+    if (!this.o.jogador) {
+      const caixa = (k: 'pv' | 'pe' | 'san', rotulo: string, icone: NomeIcone, dica: string) =>
+        h('div', { class: `fx-dv ${k}`, 'data-dica': dica }, h('span', { class: 'fx-dv-ic' }, arte(`/arte/icones/${k}.png`, icone)), h('span', { class: 'fx-dv-t' }, h('span', { class: 'fx-dv-r' }, rotulo), h('b', { class: 'fx-dv-v' }, String(v[`${k}Max` as const]))));
+      corpo.replaceChildren(
+        caixa('pv', 'PV MÁX.', 'coracao', 'Pontos de vida: os da classe, mais o Vigor, e o que cada NEX soma.'),
+        caixa('pe', 'PE MÁX.', 'cerebro', 'Pontos de esforço: os da classe, mais a Presença, e o que cada NEX soma.'),
+        caixa('san', 'SAN MÁX.', 'espiral', 'Sanidade: a da classe e o que cada NEX soma.'),
+      );
+      return;
+    }
     const linha = (k: 'pv' | 'pe' | 'san', rotulo: string, icone: NomeIcone) => {
       const atual = v[k];
       const max = v[`${k}Max` as const];
@@ -688,9 +789,7 @@ export class FichasScreen {
 
   private renderDeriv(c: Calc) {
     const corpo = this.corpoDe(this.pDeriv);
-    const res = Object.entries(c.resistencias)
-      .filter(([, v]) => v)
-      .map(([t, v]) => `${nomeDano(t)} ${v}`);
+    const res = resistenciasParaMostrar(c.resistencias).map(([t, v]) => `${nomeDano(t)} ${v}`);
     const caixa = (icone: NomeIcone, rotulo: string, valor: string, dica: string, url: string) =>
       h('div', { class: 'fx-dv', 'data-dica': dica }, h('span', { class: 'fx-dv-ic' }, arte(url, icone)), h('span', { class: 'fx-dv-t' }, h('span', { class: 'fx-dv-r' }, rotulo), h('b', { class: 'fx-dv-v' }, valor)));
     corpo.replaceChildren(
@@ -704,6 +803,9 @@ export class FichasScreen {
   // ---------------------------------------------------------------- condições
 
   private renderCond(fs: FichaSalva, c: Calc) {
+    // as condições são do jogo, não das regras: na FICHAS do mestre não aparecem
+    this.pCond.classList.toggle('hidden', !this.o.jogador);
+    if (!this.o.jogador) return;
     const v = this.vitais(fs, c);
     const auto = vitalConditions(v);
     const marcadas = new Set(fs.condicoes ?? []);
@@ -758,6 +860,7 @@ export class FichasScreen {
         titulo: 'Condições',
         dica: 'Machucado, morrendo, perturbado e enlouquecendo saem sozinhos pelo PV e pela SAN (LR p. 310–311).',
         qtd: 40,
+        podeVazio: true,
         opcoes: () =>
           cat.CATALOGO.condicoes.map((x) => ({
             id: x.id,
@@ -803,24 +906,26 @@ export class FichasScreen {
           h('span', { class: 'fx-tab-n' }, nome),
           h('span', { class: `fx-grau ${pc.grau}` }, GRAU_CURTO[pc.grau]),
           h('span', null, NOME_ATR[pc.atributo]),
-          h('b', null, pc.podeUsar ? textoTeste(pc.dados, pc.bonus) : '—'),
+          h('b', null, pc.podeUsar ? textoTeste(pc.dados, pc.bonus, pc.penalidadeDados) : '—'),
         ),
       );
     }
-    corpo.replaceChildren(cab, h('div', { class: 'fx-tab-rol' }, ...linhas));
+    corpo.replaceChildren(h('div', { class: 'fx-tab-cabs' }, cab, cab.cloneNode(true)), avisarRolagem(h('div', { class: 'fx-tab-rol' }, ...linhas)));
     this.extraDe(this.pPer).replaceChildren(
       h('button', { class: `fx-mini txt${this.soTreinadas ? ' on' : ''}`, type: 'button', title: 'Mostrar só as treinadas', onclick: () => ((this.soTreinadas = !this.soTreinadas), this.render()) }, this.soTreinadas ? 'Treinadas' : 'Todas'),
     );
   }
 
   /** Perícias da criação: as da origem, as fixas e os grupos da classe, e as livres. */
-  private editarPericias() {
+  /** As perícias da criação: numa janela ou, no assistente, dentro de `alvo`. */
+  private editarPericias(alvo?: HTMLElement) {
     const fs = this.rascunho;
     if (!fs) return;
     const f = fs.ficha;
     const info = periciasCriacao(f);
-    const j = janela('Perícias treinadas (criação)', 'dados', () => this.render(), 72);
-    const corpo = h('div', { class: 'fj-per' });
+    const j = alvo ? null : janela('Perícias treinadas (criação)', 'dados', () => this.render(), 72);
+    const corpo = alvo ?? h('div', { class: 'fj-per' });
+    if (alvo) corpo.classList.add('fj-per');
     const desenhar = () => {
       const info2 = periciasCriacao(f);
       const livres = new Set(f.pericias.livres);
@@ -916,6 +1021,7 @@ export class FichasScreen {
     };
     void info;
     desenhar();
+    if (!j) return;
     j.corpo.append(corpo);
     j.rodape.append(h('span', { class: 'fj-esp' }), h('button', { class: 'fx-bt forte', type: 'button', onclick: () => j.fechar() }, ic('ok'), h('span', null, 'Pronto')));
   }
@@ -997,63 +1103,78 @@ export class FichasScreen {
 
   // ---------------------------------------------------------------- tático
 
+  /** Os números do combate (no papel de Atributos e combate) e a linha da evolução (na aba dela). */
   private renderTat(fs: FichaSalva, c: Calc) {
     const pend = c.pendencias.length;
     const erros = c.problemas.filter((p) => p.severidade === 'erro').length;
     const avisos = c.problemas.length - erros;
-    const abas = h(
-      'div',
-      { class: 'fx-tat-abas', role: 'tablist' },
-      h('button', { class: `fx-tat-aba${this.abaTatico === 'combate' ? ' on' : ''}`, type: 'button', onclick: () => ((this.abaTatico = 'combate'), this.render()) }, ic('mira'), 'COMBATE'),
+    const ini = c.pericias.iniciativa;
+    const cel = (rotulo: string, valor: string, dica: string) => h('div', { class: 'fx-tc', 'data-dica': dica }, h('span', null, rotulo), h('b', null, valor));
+    const profs = c.proficiencias.map(nomeProf).join(', ') || '—';
+    this.pTat.replaceChildren(
       h(
-        'button',
-        { class: `fx-tat-aba${this.abaTatico === 'evolucao' ? ' on' : ''}`, type: 'button', onclick: () => ((this.abaTatico = 'evolucao'), this.render()) },
-        ic('linhaTempo'),
-        'EVOLUÇÃO',
-        pend + erros ? h('span', { class: 'fx-tat-n' }, String(pend + erros)) : null,
-      ),
-    );
-    const corpo = h('div', { class: 'fx-tat-corpo' });
-    if (this.abaTatico === 'combate') {
-      const ini = c.pericias.iniciativa;
-      const cel = (rotulo: string, valor: string, dica: string) => h('div', { class: 'fx-tc', 'data-dica': dica }, h('span', null, rotulo), h('b', null, valor));
-      const profs = c.proficiencias.map(nomeProf).join(', ') || '—';
-      corpo.append(
-        cel('INICIATIVA', textoTeste(ini.dados, ini.bonus), 'Teste de Iniciativa (Agilidade).'),
+        'div',
+        { class: 'fx-tat-corpo' },
+        cel('INICIATIVA', textoTeste(ini.dados, ini.bonus, ini.penalidadeDados), 'Teste de Iniciativa (Agilidade).'),
         cel('ESQUIVA', c.reacoes.esquiva !== null ? String(c.reacoes.esquiva) : '—', 'Reação (treinado em Reflexos): Defesa + bônus de Reflexos contra um ataque.'),
         cel('BLOQUEIO', c.reacoes.bloqueio !== null ? `RD ${c.reacoes.bloqueio}` : '—', 'Reação (treinado em Fortitude): resistência a dano igual ao bônus de Fortitude contra um ataque corpo a corpo.'),
         cel('CONTRA-ATAQUE', c.reacoes.contraAtaque ? 'Sim' : '—', 'Reação (treinado em Luta): quando um ataque corpo a corpo erra você.'),
         cel('LIMITE PE', `${c.limitePe}/turno`, 'Quantos PE pode gastar por turno.'),
         cel('DT RITUAIS', String(c.dtRituais), '10 + limite de PE + Presença.'),
         h('div', { class: 'fx-tc largo', 'data-dica': profs }, h('span', null, 'PROFICIÊNCIAS'), h('b', null, profs)),
-      );
-    } else {
-      const f = fs.ficha;
-      const linha = h('div', { class: 'fx-ev-linha' });
-      for (const n of regras.NEX_LISTA.filter((x) => x <= f.nex && (x > 0 || f.comecouMundano))) {
-        const pn = c.pendencias.filter((p) => p.nex === n).length;
-        const er = c.problemas.filter((p) => p.nex === n && p.severidade === 'erro').length;
-        const av = c.problemas.filter((p) => p.nex === n && p.severidade === 'aviso').length;
-        linha.append(
-          h(
-            'button',
-            { class: `fx-ev${pn ? ' pend' : er ? ' erro' : av ? ' aviso' : ' ok'}`, type: 'button', 'data-dica': `NEX ${n}%${pn ? ` · ${pn} a escolher` : ''}${er ? ` · ${er} erro${er > 1 ? 's' : ''}` : ''}${av ? ` · ${av} aviso${av > 1 ? 's' : ''}` : ''}`, onclick: () => this.abrirEvolucao(n) },
-            h('i'),
-            h('span', null, `${n}%`),
-          ),
-        );
-      }
-      corpo.append(
-        linha,
+      ),
+    );
+    const f = fs.ficha;
+    const linha = h('div', { class: 'fx-ev-linha' });
+    for (const n of regras.NEX_LISTA.filter((x) => x <= f.nex && (x > 0 || f.comecouMundano))) {
+      const pn = c.pendencias.filter((p) => p.nex === n).length;
+      const er = c.problemas.filter((p) => p.nex === n && p.severidade === 'erro').length;
+      const av = c.problemas.filter((p) => p.nex === n && p.severidade === 'aviso').length;
+      linha.append(
         h(
-          'div',
-          { class: 'fx-ev-res' },
-          h('span', null, pend ? `${pend} escolha${pend > 1 ? 's' : ''} pendente${pend > 1 ? 's' : ''}` : 'Tudo escolhido', erros ? ` · ${erros} erro${erros > 1 ? 's' : ''}` : '', avisos ? ` · ${avisos} aviso${avisos > 1 ? 's' : ''}` : ''),
-          h('button', { class: 'fx-bt mini', type: 'button', onclick: () => this.abrirEvolucao() }, ic('linhaTempo'), h('span', null, 'Ver tudo')),
+          'button',
+          { class: `fx-ev${pn ? ' pend' : er ? ' erro' : av ? ' aviso' : ' ok'}`, type: 'button', 'data-dica': `NEX ${n}%${pn ? ` · ${pn} a escolher` : ''}${er ? ` · ${er} erro${er > 1 ? 's' : ''}` : ''}${av ? ` · ${av} aviso${av > 1 ? 's' : ''}` : ''}`, onclick: () => this.abrirEvolucao(n) },
+          h('i'),
+          h('span', null, `${n}%`),
         ),
       );
     }
-    this.pTat.replaceChildren(h('span', { class: 'fx-cantos', 'aria-hidden': 'true' }), abas, corpo);
+    this.corpoDe(this.pEvol).replaceChildren(
+      linha,
+      h(
+        'div',
+        { class: 'fx-ev-res' },
+        h('span', null, pend ? `${pend} escolha${pend > 1 ? 's' : ''} pendente${pend > 1 ? 's' : ''}` : 'Tudo escolhido', erros ? ` · ${erros} erro${erros > 1 ? 's' : ''}` : '', avisos ? ` · ${avisos} aviso${avisos > 1 ? 's' : ''}` : ''),
+        h('button', { class: 'fx-bt mini', type: 'button', onclick: () => this.abrirEvolucao() }, ic('linhaTempo'), h('span', null, 'Ver tudo')),
+      ),
+    );
+  }
+
+  /** As abas do painel da direita: só a escolhida aparece (no celular, todas, uma embaixo da outra). */
+  private renderAbas(c: Calc) {
+    const temComp = !this.el.classList.contains('sem-comp');
+    const pend = c.pendencias.length + c.problemas.filter((p) => p.severidade === 'erro').length;
+    const abas: [AbaGrupo, string, HTMLElement, number][] = [
+      ['poderes', 'PODERES', this.pPod, 0],
+      ['rituais', 'RITUAIS', this.pRit, c.pendencias.filter((p) => p.tipo === 'ritual').length],
+      ['companheiro', 'COMPANHEIRO', this.pComp, 0],
+      ['anotacoes', 'ANOTAÇÕES', this.pNotas, 0],
+      ['evolucao', 'EVOLUÇÃO', this.pEvol, pend],
+    ];
+    if (this.abaGrupo === 'companheiro' && !temComp) this.abaGrupo = 'poderes';
+    this.abasNav.replaceChildren(
+      ...abas
+        .filter(([id]) => id !== 'companheiro' || temComp)
+        .map(([id, nome, , n]) =>
+          h(
+            'button',
+            { class: `fx-g-aba${this.abaGrupo === id ? ' on' : ''}`, type: 'button', role: 'tab', 'aria-selected': String(this.abaGrupo === id), onclick: () => (sfx.click(), (this.abaGrupo = id), this.renderAbas(c)) },
+            nome,
+            n ? h('span', { class: 'fx-g-aba-n' }, String(n)) : null,
+          ),
+        ),
+    );
+    for (const [id, , el] of abas) el.classList.toggle('fora-da-aba', id !== this.abaGrupo);
   }
 
   /** Linha do tempo completa: o que foi escolhido em cada NEX, o que falta e o que quebra regra. */
@@ -1191,14 +1312,14 @@ export class FichasScreen {
   private renderEquip(fs: FichaSalva, c: Calc) {
     const corpo = this.corpoDe(this.pEquip);
     const cab = h('div', { class: 'fx-tab-cab' }, h('span'), h('span', null, 'ITEM'), h('span', null, 'TIPO'), h('span', null, 'DANO / EFEITO'), h('span', null, 'OBS.'), h('span'));
-    const ordem: Record<regras.ItemFicha['tipo'], number> = { arma: 0, protecao: 1, amaldicoado: 2, equipamento: 3 };
+    const ordem: Record<regras.ItemFicha['tipo'], number> = { arma: 0, protecao: 1, amaldicoado: 2, equipamento: 3, cena: 4 };
     const itens = fs.ficha.inventario.map((it, i) => ({ it, i })).sort((a, b) => ordem[a.it.tipo] - ordem[b.it.tipo] || a.i - b.i);
     const linhas = itens.map(({ it, i }) => {
       const inf = infoItem(it, c);
       return h(
         'div',
         { class: `fx-tab-l${it.empunhado ? ' empunhado' : ''}`, 'data-dica': `${inf.nome} · categoria ${romano(inf.categoria)} · ${inf.espacos} espaço${inf.espacos === 1 ? '' : 's'}${inf.ref ? ` · ${textoRef(inf.ref)}` : ''}` },
-        h('span', { class: 'fx-eq-ic' }, arte(`/arte/itens/${it.id}.png`, inf.icone)),
+        h('span', { class: 'fx-eq-ic' }, arteDoItem(it, inf.icone)),
         h('span', { class: 'fx-tab-n' }, inf.nome),
         h('span', null, inf.tipo),
         h('span', null, inf.efeito),
@@ -1217,11 +1338,11 @@ export class FichasScreen {
           h('span', { class: 'fx-tab-n' }, des.nome),
           h('span', null, 'Desarmado'),
           h('span', null, des.dano),
-          h('span', { class: 'fx-eq-obs' }, [`Luta ${textoTeste(des.dados + des.penalidadeDados, des.bonus)}`, `${des.critico.margem}/x${des.critico.multiplicador}`, ...des.notas].join(' · ')),
+          h('span', { class: 'fx-eq-obs' }, [`Luta ${textoTeste(des.dados, des.bonus, des.penalidadeDados)}`, `${des.critico.margem}/x${des.critico.multiplicador}`, ...des.notas].join(' · ')),
           h('span'),
         ),
       );
-    corpo.replaceChildren(cab, h('div', { class: 'fx-tab-rol' }, ...(linhas.length ? linhas : [h('p', { class: 'fx-nada' }, 'Mochila vazia.')])));
+    corpo.replaceChildren(cab, avisarRolagem(h('div', { class: 'fx-tab-rol' }, ...(linhas.length ? linhas : [h('p', { class: 'fx-nada' }, 'Mochila vazia.')]))));
   }
 
   private detalheItem(i: number) {
@@ -1233,16 +1354,19 @@ export class FichasScreen {
     const inf = infoItem(it, c);
     const ed = this.editando;
     const j = janela(inf.nome, 'mochila', () => this.render(), 58);
-    const linhas: Node[] = [
+    // a arte pintada do item ao lado do texto (a mesma da mochila e da requisição)
+    const efeito = [inf.efeito, inf.obs].filter((x) => x && x !== '—');
+    const linhas: Node[] = ([
       h('p', { class: 'fj-texto' }, `${inf.tipo} · categoria ${romano(inf.categoria)} · ${inf.espacos} espaço${inf.espacos === 1 ? '' : 's'}${inf.ref ? ` · ${textoRef(inf.ref)}` : ''}`),
-      h('p', { class: 'fj-texto' }, h('b', null, inf.efeito), inf.obs ? ` · ${inf.obs}` : ''),
-    ];
-    const base = it.tipo === 'arma' ? cat.arma(it.id) : it.tipo === 'protecao' ? cat.protecao(it.id) : it.tipo === 'equipamento' ? cat.equipamento(it.id) : cat.amaldicoado(it.id);
+      efeito.length ? h('p', { class: 'fj-texto' }, h('b', null, efeito[0]), efeito[1] && efeito[1] !== efeito[0] ? ` · ${efeito[1]}` : '') : null,
+    ] as (HTMLElement | null)[]).filter((x): x is HTMLElement => !!x);
+    const base = it.tipo === 'cena' ? undefined : it.tipo === 'arma' ? cat.arma(it.id) : it.tipo === 'protecao' ? cat.protecao(it.id) : it.tipo === 'equipamento' ? cat.equipamento(it.id) : cat.amaldicoado(it.id);
     const resumo = (base as { resumo?: string } | undefined)?.resumo;
     if (resumo) linhas.push(h('p', { class: 'fj-dica' }, resumo));
     const esp = (base as { especial?: string[] } | undefined)?.especial;
-    if (esp?.length) linhas.push(h('p', { class: 'fj-dica' }, esp.join(' · ')));
-    j.corpo.append(...linhas);
+    const espLivre = esp?.filter((x) => !efeito.includes(x));
+    if (espLivre?.length) linhas.push(h('p', { class: 'fj-dica' }, espLivre.join(' · ')));
+    j.corpo.append(h('div', { class: 'fj-item' }, h('div', { class: 'fj-item-arte' }, arteDoItem(it, inf.icone)), h('div', { class: 'fj-item-txt' }, ...linhas)));
     if (!ed) {
       j.rodape.append(h('span', { class: 'fj-esp' }), h('button', { class: 'fx-bt', type: 'button', onclick: () => j.fechar() }, ic('fechar'), h('span', null, 'Fechar')));
       return;
@@ -1250,13 +1374,30 @@ export class FichasScreen {
     const apelido = h('input', { class: 'fx-inp', value: it.apelido ?? '', maxlength: 40, placeholder: 'Nome próprio (opcional)', oninput: (e: Event) => (it.apelido = (e.target as HTMLInputElement).value.trim() || undefined) });
     const qtd = h('input', { class: 'fx-inp', type: 'number', min: 1, max: 99, value: String(it.qtd ?? 1), oninput: (e: Event) => (it.qtd = Math.max(1, Math.round(Number((e.target as HTMLInputElement).value) || 1)) || undefined) });
     j.corpo.append(h('label', { class: 'fj-campo' }, h('span', null, 'Apelido'), apelido), h('label', { class: 'fj-campo' }, h('span', null, 'Quantidade'), qtd));
-    if (it.tipo === 'arma') {
-      const cb = h('input', { type: 'checkbox', checked: !!it.empunhado, onchange: (e: Event) => (it.empunhado = (e.target as HTMLInputElement).checked || undefined) });
-      j.corpo.append(h('label', { class: 'fj-check' }, cb, 'Empunhada'));
+    // na mão: armas, escudo e o que se empunha (duas mãos no máximo, LR p. 53)
+    if (regras.maosDoItem(it)) {
+      const cb = h('input', { type: 'checkbox', checked: regras.lugarDoItem(it) === 'mao', onchange: (e: Event) => (it.empunhado = (e.target as HTMLInputElement).checked || undefined) });
+      j.corpo.append(h('label', { class: 'fj-check' }, cb, regras.maosDoItem(it) === 2 ? 'Na mão (as duas)' : 'Na mão'));
     }
-    if (it.tipo === 'protecao') {
+    if (regras.vestivel(it)) {
       const cb = h('input', { type: 'checkbox', checked: it.vestido !== false, onchange: (e: Event) => (it.vestido = (e.target as HTMLInputElement).checked ? undefined : false) });
-      j.corpo.append(h('label', { class: 'fj-check' }, cb, 'Vestida'));
+      j.corpo.append(h('label', { class: 'fj-check' }, cb, 'Vestido'));
+    }
+    // a perícia do utensílio ou o elemento das amarras (LR p. 63 e 66)
+    const qual = it.tipo === 'cena' ? null : regras.escolhaDoItem(it.tipo, it.id);
+    if (qual) {
+      const lista = qual === 'pericia' ? regras.periciasDoItem() : (['sangue', 'morte', 'conhecimento', 'energia'] as const).map((id) => ({ id, nome: NOME_ELEMENTO[id] }));
+      const atual = qual === 'pericia' ? it.escolha?.pericia : it.escolha?.elemento;
+      const sel = h('select', { class: 'fx-inp' }, h('option', { value: '' }, '—'), ...lista.map((x) => h('option', { value: x.id, selected: atual === x.id }, x.nome))) as HTMLSelectElement;
+      sel.addEventListener('change', () => {
+        if (!sel.value) delete it.escolha;
+        else it.escolha = qual === 'pericia' ? { pericia: sel.value as regras.PericiaId } : { elemento: sel.value as regras.Elemento };
+      });
+      j.corpo.append(h('label', { class: 'fj-campo' }, h('span', null, qual === 'pericia' ? 'Perícia que ele melhora' : 'Elemento'), sel));
+    }
+    if (it.tipo !== 'cena') {
+      const cb = h('input', { type: 'checkbox', checked: !!it.achado, onchange: (e: Event) => (it.achado = (e.target as HTMLInputElement).checked || undefined) });
+      j.corpo.append(h('label', { class: 'fj-check' }, cb, 'Achado na missão (não ocupa vaga da patente)'));
     }
     // modificações e maldições
     const mods = h('div', { class: 'fj-chips' });
@@ -1267,7 +1408,7 @@ export class FichasScreen {
       );
     };
     desenharMods();
-    if (it.tipo !== 'amaldicoado') {
+    if (it.tipo !== 'amaldicoado' && it.tipo !== 'cena') {
       j.corpo.append(
         h('h4', { class: 'fj-sub' }, 'Modificações e maldições'),
         mods,
@@ -1296,33 +1437,19 @@ export class FichasScreen {
             titulo: 'Modificação',
             dica: 'Cada modificação sobe a categoria do item em I (LR p. 60).',
             qtd: 1,
-            opcoes: () =>
-              cat.CATALOGO.modificacoes
-                .filter((m) => cat.disponivel(m, f.regras))
-                .map((m) => {
-                  const motivos: string[] = [];
-                  if (alvo && !m.para.includes(alvo)) motivos.push('Não serve para este item.');
-                  if ((it.modificacoes ?? []).includes(m.id)) motivos.push('Já está no item.');
-                  if (m.incompativel?.some((x) => (it.modificacoes ?? []).includes(x))) motivos.push('Não combina com outra modificação do item.');
-                  return { id: m.id, nome: m.nome, ref: m.ref, resumo: m.resumo, ok: !motivos.length, motivos, avisos: [] };
-                }),
+            // o motor confere: onde vai, requisitos, as que não combinam e a categoria contra a patente
+            opcoes: () => opcoesMelhoria(f, f.inventario.indexOf(it), 'modificacao', this.gm).filter((o) => !(it.modificacoes ?? []).includes(o.id.split(':')[1])),
             atual: () => [],
-            aplicar: (ids) => ids[0] && (it.modificacoes = [...(it.modificacoes ?? []), ids[0]]),
+            aplicar: (ids) => ids[0] && (it.modificacoes = [...(it.modificacoes ?? []), ids[0].split(':')[1]]),
           }
         : {
             titulo: 'Maldição',
             dica: 'A primeira maldição sobe a categoria em II; cada outra, em I (LR p. 144).',
             qtd: 1,
-            opcoes: () =>
-              cat.CATALOGO.maldicoes.map((m) => {
-                const motivos: string[] = [];
-                const tipoItem = it.tipo === 'arma' ? 'arma' : it.tipo === 'protecao' ? 'protecao' : 'acessorio';
-                if (!m.para.includes(tipoItem)) motivos.push('Não serve para este item.');
-                if ((it.maldicoes ?? []).includes(m.id)) motivos.push('Já está no item.');
-                return { id: m.id, nome: `${m.nome} (${NOME_ELEMENTO[m.elemento]})`, ref: m.ref, ok: !motivos.length, motivos, avisos: [] };
-              }),
+            // e nas maldições: os elementos que se oprimem e só de agente especial em diante
+            opcoes: () => opcoesMelhoria(f, f.inventario.indexOf(it), 'maldicao', this.gm).filter((o) => !(it.maldicoes ?? []).includes(o.id.split(':')[1])),
             atual: () => [],
-            aplicar: (ids) => ids[0] && (it.maldicoes = [...(it.maldicoes ?? []), ids[0]]),
+            aplicar: (ids) => ids[0] && (it.maldicoes = [...(it.maldicoes ?? []), ids[0].split(':')[1]]),
           },
       () => depois(),
     );
@@ -1334,16 +1461,22 @@ export class FichasScreen {
     const corpo = this.corpoDe(this.pInv);
     const slots: HTMLElement[] = fs.ficha.inventario.map((it, i) => {
       const inf = infoItem(it, c);
+      const esp = inf.espacos * (it.qtd ?? 1);
+      const lugar = regras.lugarDoItem(it);
       return h(
         'button',
-        { class: `fx-sl${it.empunhado ? ' em-uso' : ''}`, type: 'button', 'data-dica': `${inf.nome} · ${romano(inf.categoria)} · ${inf.espacos} esp.`, 'aria-label': inf.nome, onclick: () => this.detalheItem(i) },
-        arte(`/arte/itens/${it.id}.png`, inf.icone, `ic fx-sl-ic ${inf.icone === 'kitMedico' ? 'vermelho' : ''}`),
+        { class: `fx-sl${lugar !== 'mochila' ? ' em-uso' : ''}`, type: 'button', 'data-dica': `${inf.nome} · ${romano(inf.categoria)} · ${fmtNum(esp)} esp.${lugar === 'mao' ? ' · na mão' : lugar === 'vestido' ? ' · vestido' : ''}`, 'aria-label': inf.nome, onclick: () => this.detalheItem(i) },
+        arteDoItem(it, inf.icone, `ic fx-sl-ic ${inf.icone === 'kitMedico' ? 'vermelho' : ''}`),
         (it.qtd ?? 1) > 1 ? h('small', null, `×${it.qtd}`) : null,
+        // espaços do item, quando não é o 1 de sempre (LR p. 53)
+        esp !== 1 ? h('i', { class: 'fx-sl-esp', 'aria-hidden': 'true' }, fmtNum(esp)) : null,
       );
     });
-    const total = Math.max(15, Math.ceil((slots.length + 1) / 5) * 5);
+    // as casas vazias são os espaços que sobram da carga (5 por ponto de Força)
+    const livres = Math.max(1, Math.floor(c.carga.espacos - c.carga.usados));
+    const total = Math.max(15, Math.ceil((slots.length + livres) / 5) * 5);
     for (let i = slots.length; i < total; i++) slots.push(h('button', { class: 'fx-sl vazio', type: 'button', 'aria-label': 'Adicionar item', disabled: i > slots.length, onclick: () => this.adicionarItem() }, i === fs.ficha.inventario.length ? ic('mais') : null));
-    corpo.replaceChildren(h('div', { class: 'fx-sl-grade' }, ...slots));
+    corpo.replaceChildren(avisarRolagem(h('div', { class: 'fx-sl-grade' }, ...slots)));
     const lim = c.itens.map((l) => h('span', { class: `fx-lim${l.usados > l.limite ? ' passou' : ''}`, 'data-dica': `Categoria ${romano(l.categoria)}: ${l.usados} de ${l.limite} pela patente.` }, `${romano(l.categoria)} ${l.usados}/${l.limite}`));
     this.extraDe(this.pInv).replaceChildren(
       h('span', { class: 'fx-lims' }, ...lim),
@@ -1355,65 +1488,8 @@ export class FichasScreen {
     if (!this.editando) this.entrarEdicao();
     const fs = this.rascunho;
     if (!fs) return;
-    const f = fs.ficha;
-    type Aba = 'arma' | 'protecao' | 'equipamento' | 'amaldicoado';
-    let aba: Aba = 'arma';
-    const j = janela('Adicionar item', 'mochila', () => this.render(), 74);
-    const abas = h('div', { class: 'fj-abas' });
-    const busca = h('input', { class: 'fx-inp fj-busca', type: 'search', placeholder: 'Procurar…' }) as HTMLInputElement;
-    const lista = h('div', { class: 'fj-lista' });
-    const desenhar = () => {
-      const c = regras.calcular(f);
-      abas.replaceChildren(
-        ...(
-          [
-            ['arma', 'Armas'],
-            ['protecao', 'Proteções'],
-            ['equipamento', 'Equipamentos'],
-            ['amaldicoado', 'Amaldiçoados'],
-          ] as [Aba, string][]
-        ).map(([id, nome]) => h('button', { class: `fj-aba${aba === id ? ' on' : ''}`, type: 'button', onclick: () => ((aba = id), desenhar()) }, nome)),
-      );
-      const q = busca.value.trim().toLowerCase();
-      const fonte: { id: string; nome: string; categoria: number; espacos: number; ref: regras.Ref; extra: string }[] =
-        aba === 'arma'
-          ? cat.CATALOGO.armas.map((a) => ({ id: a.id, nome: a.nome, categoria: a.categoria, espacos: a.espacos, ref: a.ref, extra: `${a.dano} · ${a.critico.margem}/x${a.critico.multiplicador} · ${a.proficiencia}` }))
-          : aba === 'protecao'
-            ? cat.CATALOGO.protecoes.map((p) => ({ id: p.id, nome: p.nome, categoria: p.categoria, espacos: p.espacos, ref: p.ref, extra: `Defesa +${p.defesa}` }))
-            : aba === 'equipamento'
-              ? cat.CATALOGO.equipamentos.map((e) => ({ id: e.id, nome: e.nome, categoria: e.categoria, espacos: e.espacos, ref: e.ref, extra: e.resumo ?? '' }))
-              : cat.CATALOGO.amaldicoados.map((x) => ({ id: x.id, nome: x.nome, categoria: x.categoria, espacos: x.espacos, ref: x.ref, extra: NOME_ELEMENTO[x.elemento] }));
-      lista.replaceChildren();
-      for (const x of fonte) {
-        if (!cat.disponivel(x, f.regras)) continue;
-        if (q && !x.nome.toLowerCase().includes(q)) continue;
-        const lim = x.categoria >= 1 ? c.itens.find((l) => l.categoria === x.categoria) : undefined;
-        const aviso = lim && lim.usados >= lim.limite ? `Categoria ${romano(x.categoria)} já no limite da patente (${lim.usados}/${lim.limite}).` : aba === 'amaldicoado' && f.pp < 50 ? 'Itens amaldiçoados só a partir de agente especial (LR p. 144).' : '';
-        const bt = h(
-          'button',
-          {
-            class: 'fo',
-            type: 'button',
-            onclick: () => {
-              f.inventario.push({ id: x.id, tipo: aba });
-              sfx.drop();
-              bt.classList.add('on');
-              setTimeout(() => bt.classList.remove('on'), 500);
-              cont.textContent = `${f.inventario.length} itens na mochila`;
-            },
-          },
-          h('span', { class: 'fo-marca' }, ic('mais')),
-          h('span', { class: 'fo-txt' }, h('span', { class: 'fo-nome' }, x.nome, h('small', null, ` ${romano(x.categoria)} · ${x.espacos} esp. · ${textoRef(x.ref)}`)), x.extra ? h('span', { class: 'fo-resumo' }, x.extra) : null, aviso ? h('div', { class: 'fo-avisos' }, ic('alerta'), aviso) : null),
-        );
-        lista.append(bt);
-      }
-    };
-    const cont = h('span', { class: 'fj-cont' }, `${f.inventario.length} itens na mochila`);
-    j.corpo.append(abas, h('div', { class: 'fj-filtros' }, busca, cont), lista);
-    busca.addEventListener('input', desenhar);
-    j.rodape.append(h('span', { class: 'fj-esp' }), h('button', { class: 'fx-bt forte', type: 'button', onclick: () => j.fechar() }, ic('ok'), h('span', null, 'Pronto')));
-    desenhar();
-    setTimeout(() => busca.focus(), 30);
+    // a requisição: o item entra no rascunho (Salvar grava) e a ficha atrás acompanha
+    abrirRequisicao({ ficha: fs.ficha, nome: fs.ficha.nome, tema: fs.tema, mestre: this.gm, aoAdicionar: () => this.render(), aoFechar: () => this.render() });
   }
 
   private adicionarRitual() {
@@ -1484,7 +1560,7 @@ export class FichasScreen {
       bt(ed ? 'Editando' : 'Editar', 'lapis', `fx-b-editar${ed ? ' on' : ''}`, () => this.entrarEdicao()),
       bt('Adicionar Item', 'caixa', 'fx-b-item', () => this.adicionarItem()),
       bt('Adicionar Ritual', 'pentagrama', 'fx-b-ritual', () => this.adicionarRitual()),
-      bt('Salvar Ficha', 'salvar', 'fx-b-salvar forte', () => (ed ? this.salvarEdicao() : toast('A ficha já está salva: em jogo, tudo grava sozinho.')), false),
+      ed ? bt('Salvar Ficha', 'salvar', 'fx-b-salvar forte', () => this.salvarEdicao(), false) : bt('Ficha salva', 'ok', 'fx-b-salvar', () => toast('Em jogo, tudo grava sozinho.'), false),
     );
     void fs;
   }
@@ -1547,6 +1623,20 @@ export const NOME_DANO: Record<string, string> = {
 };
 function nomeDano(t: string) {
   return NOME_DANO[t] ?? t;
+}
+
+/** RD para mostrar: os quatro tipos físicos iguais viram "Físico"; os cinco elementos iguais, "Paranormal". */
+export function resistenciasParaMostrar(res: Partial<Record<string, number>>): [string, number][] {
+  const r = { ...res };
+  const grupo = (tipos: string[], nome: string) => {
+    const v = r[tipos[0]];
+    if (!v || !tipos.every((t) => r[t] === v)) return;
+    for (const t of tipos) delete r[t];
+    r[nome] = (r[nome] ?? 0) + v;
+  };
+  grupo(['balistico', 'corte', 'impacto', 'perfuracao'], 'fisico');
+  grupo(['sangue', 'morte', 'conhecimento', 'energia', 'medo'], 'paranormal');
+  return (Object.entries(r) as [string, number | undefined][]).filter((x): x is [string, number] => !!x[1]);
 }
 
 const NOME_PROF: Record<regras.Proficiencia, string> = {
@@ -1670,4 +1760,12 @@ function feitoNoNex(f: Ficha, n: Nex, c: Calc): { texto: string; campo?: Campo; 
   }
   void c;
   return out;
+}
+
+/** Lista que rola por dentro (perícias, equipamentos, inventário): some embaixo enquanto tem mais para ver. */
+function avisarRolagem<T extends HTMLElement>(el: T): T {
+  const ver = () => el.classList.toggle('tem-mais', el.scrollTop + el.clientHeight < el.scrollHeight - 4);
+  el.addEventListener('scroll', ver, { passive: true });
+  requestAnimationFrame(ver);
+  return el;
 }

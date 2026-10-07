@@ -1,4 +1,4 @@
-import { parseHeightmap, type SceneInfo } from '@croma/shared';
+import { parseHeightmap, type SceneInfo } from '@crona/shared';
 import type { App } from './app';
 import { clear, h, icon } from './dom';
 

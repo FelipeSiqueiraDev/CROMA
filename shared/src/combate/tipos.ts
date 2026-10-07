@@ -8,7 +8,9 @@
  * sustentado e o registro. Só o mestre mexe; os dados são físicos (o mestre
  * digita os resultados).
  */
-import type { TipoDano } from '../regras/tipos';
+import type { Elemento, TipoDano } from '../regras/tipos';
+import type { ManobraId, Tamanho } from './manobra';
+import type { FormaRitual, TesteResistencia } from './ritual';
 
 /** Lado de cada ser: os agentes têm turno próprio; inimigos e neutros agem no turno do mestre. */
 export type Lado = 'agente' | 'inimigo' | 'neutro';
@@ -37,12 +39,20 @@ export interface Participante {
   /** turnos começados morrendo e enlouquecendo nesta cena (LR p. 88) */
   morrendo: number;
   enlouquecendo: number;
+  /**
+   * Dano não letal sofrido: soma com o letal para desmaiar, mas não deixa
+   * morrendo; a cura tira primeiro ele (LR p. 88). Os PV da peça só caem com
+   * o letal.
+   */
+  naoLetal?: number;
   /** já usou a defesa especial (bloqueio, esquiva ou contra-ataque) desde o começo do próprio turno */
   reacao: boolean;
   /** condições marcadas no combate (ids do catálogo). As dos agentes ficam na ficha deles. */
   condicoes?: string[];
   /** ritual que o ser sustenta: paga 1 PE no começo de cada turno (LR p. 120) */
   sustenta?: string;
+  /** quem este ser está agarrando (id da peça; LR p. 85) */
+  agarra?: number;
 }
 
 /** Ação preparada: acontece como reação até o próximo turno de quem preparou (LR p. 86). */
@@ -70,6 +80,8 @@ export interface AcoesTurno {
   completa: boolean;
   /** PE gastos desde o começo do turno */
   pe?: number;
+  /** ataques que ainda cabem na ação padrão já usada (ataque ×2 da ameaça, LR p. 179) */
+  golpes?: number;
 }
 
 export type ResultadoAtaque = 'erro' | 'acerto' | 'critico';
@@ -93,6 +105,13 @@ export interface Combate {
   vez: string | null;
   /** entradas que já tiveram o turno nesta rodada */
   agiram: string[];
+  /**
+   * Entradas que já começaram o turno nesta rodada: quem atrasa não começa de
+   * novo (os contadores e o sustentado não contam duas vezes, LR p. 87–88).
+   */
+  comecaram?: string[];
+  /** o que cada ser do lugar já tinha usado quando atrasou (PE do sustentado, ações livres): volta com a vez */
+  atrasados?: Record<string, Record<string, AcoesTurno>>;
   participantes: Participante[];
   /** Iniciativa do grupo do mestre: um teste por todos, com o menor bônus (LR p. 83) */
   mestre: { iniciativa: number | null; desempate: number };
@@ -139,16 +158,102 @@ export interface AtaqueConfirmado {
   teste: { dados: number; bonus: number; d20: number; total: number; defesa: number };
   /** situações que pesaram (nomes curtos, para o registro) */
   situacoes: string[];
-  /** chance de falha (camuflagem): a chance, o d10 e se falhou */
+  /** chance de falha (camuflagem): a chance, o dado (d10; d4 nos 75%) e se falhou */
   falha?: { chance: number; d10: number; falhou: boolean };
   resultado: ResultadoAtaque;
   multiplicador?: number;
   /** o dano: a fórmula rolada, a soma dos dados, o total e o que ficou depois de resistência e RD */
-  dano?: { formula: string; soma: number; total: number; tipo: string; conta: string; final: number; naoLetal?: boolean };
+  dano?: DanoConfirmado;
+  /** o dano a mais de outro tipo (Vomitar Lodo: e 1d8 mental, LR p. 221) */
+  danoExtra?: DanoConfirmado;
   /** defesa especial que o alvo usou */
   reacao?: 'esquiva' | 'bloqueio';
   /** errou um golpe corpo a corpo e o alvo pode contra-atacar (lembrete no registro) */
   contraAtaque?: boolean;
+  /** a ação faz este número de ataques (o "×2" da ameaça, LR p. 179) */
+  vezes?: number;
+  /** a jogada pronta do agente: o nome e os PE que ela gasta junto com o ataque */
+  jogada?: { nome: string; pe: number };
+}
+
+/** Um lado do teste oposto: dados, bônus, o d20 que ficou e o total. */
+export interface LadoOposto {
+  dados: number;
+  bonus: number;
+  d20: number;
+  total: number;
+}
+
+/** Dano já contado na tela (ataque, esmagar, quebrar): a fórmula, a soma dos dados, o total e o que ficou. */
+export interface DanoConfirmado {
+  formula: string;
+  soma: number;
+  total: number;
+  tipo: string;
+  conta: string;
+  final: number;
+  naoLetal?: boolean;
+}
+
+/** Uma manobra que o mestre confirmou na tela (LR p. 85–86; COMBATE.md, seção 9). */
+export interface ManobraConfirmada {
+  quem: number;
+  alvo: number;
+  manobra: ManobraId;
+  /** ação gasta: padrão; atropelar durante a investida é livre (LR p. 86) */
+  qual: 'padrao' | 'livre';
+  /** arma do teste de manobra */
+  arma?: string;
+  teste: { quem: LadoOposto; alvo: LadoOposto };
+  /** quem faz a manobra venceu o teste oposto (no empate, rola de novo e não chega aqui) */
+  venceu: boolean;
+  diferenca: number;
+  /** o que pesou nos testes (nomes curtos, para o registro) */
+  modificadores: string[];
+  /** casas que o alvo foi empurrado (a tela move a peça) */
+  empurrao?: number;
+  /** esmagar e quebrar */
+  dano?: DanoConfirmado;
+  /** quebrar: o objeto, os PV dele e se quebrou */
+  objeto?: { nome: string; pv: number; quebrou: boolean };
+  /** desarmar: o item da mão do alvo que cai (sem ele, a primeira arma na mão) */
+  item?: number;
+}
+
+/** Um alvo do ritual: o teste de resistência, o dano e a condição que ele ganha. */
+export interface AlvoRitual {
+  id: number;
+  teste?: { nome: TesteResistencia; dados: number; bonus: number; d20: number; total: number; passou: boolean };
+  dano?: DanoConfirmado;
+  /** o dano a mais de outro tipo (Presença do Medo: mental e de Medo, LR p. 139) */
+  danoExtra?: DanoConfirmado;
+  /** condição do catálogo que o alvo ganha */
+  condicao?: string;
+}
+
+/** Um ritual que o mestre confirmou na tela (LR p. 117–121; COMBATE.md, seção 15.1). */
+export interface RitualConfirmado {
+  quem: number;
+  ritual: string;
+  /** elemento do ritual: as criaturas são imunes aos de Medo (LR p. 180) */
+  elemento?: Elemento;
+  forma: FormaRitual;
+  /** a execução do ritual (o que gasta do turno) */
+  qual: TipoAcao;
+  /** PE gastos (0 = ameaça, que não paga PE) */
+  pe: number;
+  dt?: number;
+  sustentado?: boolean;
+  /** teste de Vontade de concentração (condição ruim ou terrível); falhou, o ritual não sai */
+  concentracao?: { dt: number; d20: number; total: number; passou: boolean };
+  alvos: AlvoRitual[];
+  /** Custo do Paranormal: o teste de Ocultismo, fora de Medo */
+  custo?: { dt: number; d20: number; total: number; passou: boolean };
+  /** ritual de Medo: não tem teste; o dano mental e a SAN vêm direto */
+  medo?: boolean;
+  /** dano mental em quem conjura e a SAN que ele perde para sempre */
+  mental?: number;
+  sanPermanente?: number;
 }
 
 /** O que a tela do mestre pede (o servidor confere e aplica). */
@@ -168,9 +273,10 @@ export type AcaoCombate =
   /**
    * Declara uma ação: vai para o registro e gasta o que ela custa. `quem` = qual
    * ser age (no turno do mestre); `especial` = reação de defesa especial
-   * (bloqueio, esquiva, contra-ataque: uma por rodada).
+   * (bloqueio, esquiva, contra-ataque: uma por rodada). `sacar` = o item da
+   * mochila do ser que vai para a mão junto (sacar é ação de movimento, LR p. 54).
    */
-  | { tipo: 'declarar'; qual: TipoAcao; texto: string; quem?: number; especial?: boolean }
+  | { tipo: 'declarar'; qual: TipoAcao; texto: string; quem?: number; especial?: boolean; sacar?: number }
   | { tipo: 'reacao'; id: number; usada: boolean }
   /** alguém chega no meio: age a partir da rodada seguinte */
   | { tipo: 'entrar'; id: number; lado: Lado; iniciativa?: number | null }
@@ -178,6 +284,12 @@ export type AcaoCombate =
   | { tipo: 'nota'; texto: string }
   /** ataque resolvido na tela: aplica o dano no alvo e escreve no registro */
   | { tipo: 'ataque'; ataque: AtaqueConfirmado }
+  /** manobra resolvida na tela: teste oposto, condição no alvo e o dano de esmagar */
+  | { tipo: 'manobra'; manobra: ManobraConfirmada }
+  /** quem agarra solta o alvo (ação livre, LR p. 85) */
+  | { tipo: 'soltar'; id: number }
+  /** ritual resolvido na tela: PE, resistências, dano, condições e o Custo do Paranormal */
+  | { tipo: 'ritual'; ritual: RitualConfirmado }
   /** marca ou tira uma condição de um ser do combate */
   | { tipo: 'condicao'; id: number; condicao: string; ativa: boolean }
   /** gasta PE de quem age (habilidade, ritual): conta no limite do turno */
@@ -186,6 +298,8 @@ export type AcaoCombate =
   | { tipo: 'sustentar'; id: number; ritual: string | null }
   /** muda PV, PE ou SAN de um ser (cura, socorro, dano de fora do ataque), com o motivo no registro */
   | { tipo: 'vitais'; id: number; pv?: number; pe?: number; san?: number; motivo: string }
+  /** muda o dano não letal de um ser (a cura tira primeiro ele, LR p. 88) */
+  | { tipo: 'naoLetal'; id: number; valor: number; motivo?: string }
   | { tipo: 'encerrar' }
   | { tipo: 'fechar' }
   | { tipo: 'desfazer' };
@@ -199,6 +313,8 @@ export interface Contexto {
   pecas: PecaCombate[];
   /** PV, PE e SAN de cada peça (contadores de morrendo e enlouquecendo, dano, PE gasto) */
   vitais: (id: number) => Vitais | null;
+  /** a ficha rápida da ameaça de uma peça (presença perturbadora) */
+  ameaca?: (id: number) => FichaAmeaca | null;
 }
 
 /** PV, PE e SAN (igual ao `Vitals` da sessão; repetido aqui para o módulo não depender da sessão). */
@@ -242,6 +358,17 @@ export interface AtaqueAmeaca {
   multiplicador: number;
   /** alcance da arma: curto, médio, longo, extremo (sem alcance = corpo a corpo) */
   alcance?: string;
+  /** ataques por ação (o "×2" da ficha) */
+  vezes?: number;
+  /** dano a mais de outro tipo, rolado à parte ("3d6 Morte e 1d8 mental") */
+  extra?: { dano: string; tipo: TipoDano };
+}
+
+/** Presença perturbadora: NEX que dá imunidade, DT e o dano mental (LR p. 180). */
+export interface PresencaAmeaca {
+  nex: number;
+  dt: number;
+  dano: string;
 }
 
 /**
@@ -261,5 +388,14 @@ export interface FichaAmeaca {
   imunidades: TipoDano[];
   vulnerabilidades: TipoDano[];
   ataques: AtaqueAmeaca[];
+  /** tamanho (Tab. 7.1, LR p. 179): muda os testes de manobra; sem nada, Médio */
+  tamanho?: Tamanho;
+  /** Luta para o teste oposto das manobras; sem nada, vale o primeiro ataque corpo a corpo */
+  luta?: TesteAmeaca;
+  /** elemento da criatura (rituais: o elemento que vence o dela, LR p. 118); pessoa não tem */
+  elemento?: Elemento;
+  presenca?: PresencaAmeaca;
+  /** id da ameaça do livro de que a ficha veio (ameacasLivro.ts) */
+  livro?: string;
   notas?: string;
 }

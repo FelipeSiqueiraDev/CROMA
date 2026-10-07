@@ -1,6 +1,7 @@
-import type { AvatarLook, CharacterDef, combate, Door, FichaSalva, FloorItem, FloorStyle, InvItem, LightMode, LogEntry, Objective, ParticleKind, Vitals, WallItem } from '@croma/shared';
+import type { AvatarLook, CharacterDef, combate, Documento, Door, FichaSalva, FloorItem, FloorStyle, InvItem, LightMode, LogEntry, NevoaCena, NotaPlanta, Objective, ParticleKind, Vitals, WallItem } from '@crona/shared';
 import type { Banco } from './banco';
 import { BancoJson } from './banco/json';
+import type { Conta } from './contas';
 
 export { DATA_DIR, UPLOAD_DIR } from './pastas';
 
@@ -21,14 +22,28 @@ export interface RoomData {
   tokens?: TokenData[];
   /** andar ("Térreo", "Subsolo") */
   floor?: string;
+  /** área do cômodo ("Área técnica") */
+  area?: string;
   /** piso do cômodo */
   floorStyle?: FloorStyle;
+  /** ao ar livre: sem paredes, sem teto */
+  aberto?: boolean;
+  /** chão casa por casa, ao ar livre (letras de TERRENOS) */
+  terreno?: string;
   /** cor do ambiente (#rrggbb) */
   ambient?: string;
   /** partículas (poeira, fumaça, brasas) */
   particles?: ParticleKind[];
   /** quantidade de partículas 0..1 */
   particleLevel?: number;
+  /** a montagem da Sede de onde o cômodo saiu (o resumo dela): a Sede refeita só troca os cômodos cuja montagem mudou */
+  montagem?: string;
+  /** vista tática ligada (a câmera do tabuleiro em cima) */
+  tatico?: boolean;
+  /** a névoa revelada aos poucos: as casas que a mesa vê (sem ela, a mesa vê tudo) */
+  nevoa?: NevoaCena;
+  /** mapa improvisado: a imagem enviada pelo mestre, no chão inteiro da cena */
+  mapa?: string;
 }
 
 export interface TokenData {
@@ -72,6 +87,8 @@ export interface CampaignData {
   combate?: combate.Combate;
   /** fichas rápidas das ameaças, pelo id da peça (docs/COMBATE.md, seção 17) */
   ameacas?: Record<string, combate.FichaAmeaca>;
+  /** anotações do mestre na planta, por andar */
+  notas?: NotaPlanta[];
 }
 
 export interface Database {
@@ -94,16 +111,26 @@ export interface Database {
   liveScene?: number;
   /** versão da montagem da Sede da Ordem (ver SEDE_REV) */
   sedeRev?: number;
+  /** os temas dos quatro agentes já foram postos (uma vez só: depois, quem escolhe é o jogador) */
+  temasAgentes?: boolean;
+  /** versão da montagem da Fazenda Olhos de Águia (seedFazenda) */
+  fazendaRev?: number;
   /** fichas de personagem (motor de regras) */
   fichas?: FichaSalva[];
   nextFichaId?: number;
+  /** documentos da investigação que o mestre entrega (aba Docs do jogador) */
+  documentos?: Documento[];
+  nextDocId?: number;
+  /** contas da plataforma (a tela de entrada; ver src/contas.ts) */
+  contas?: Conta[];
+  nextContaId?: number;
 }
 
-export type { FichaSalva } from '@croma/shared';
+export type { FichaSalva } from '@crona/shared';
 
 // ---------- onde o banco fica guardado ----------
 // JSON (server/data/db.json) por padrão; Postgres quando o servidor abre com
-// CROMA_DB_URL (ver src/banco). O Hotel continua chamando loadDb/saveDbNow.
+// CRONA_DB_URL (ver src/banco). O Hotel continua chamando loadDb/saveDbNow.
 
 let banco: Banco = new BancoJson();
 let carregado: { db: Database | null } | null = null;

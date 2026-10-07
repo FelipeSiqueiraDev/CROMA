@@ -1,0 +1,15 @@
+{
+  "parado": {"ms": 125},
+  "andar": {"casasPorCiclo": 1.91},
+  "sentar": {"ms": 50},
+  "sentado": {"ms": 120},
+  "levantar_cadeira": {"ms": 50},
+  "interagir": {"ms": 55},
+  "pegar": {"ms": 55},
+  "abrir": {"ms": 55},
+  "consumir": {"ms": 60},
+  "dancar": {"ms": 70},
+  "dano": {"ms": 45},
+  "cair": {"ms": 55, "segura": true},
+  "levantar": {"ms": 55}
+}

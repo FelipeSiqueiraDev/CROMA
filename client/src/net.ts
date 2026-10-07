@@ -1,4 +1,4 @@
-import type { ClientMsg, ServerMsg } from '@croma/shared';
+import type { ClientMsg, ServerMsg } from '@crona/shared';
 
 export class Net {
   private ws: WebSocket | null = null;

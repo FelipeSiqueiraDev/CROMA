@@ -1,4 +1,4 @@
-import type { AvatarLook } from '@croma/shared';
+import type { AvatarLook } from '@crona/shared';
 import { shade } from './color';
 
 export type Pose = 'stand' | 'walk' | 'sit';
@@ -302,6 +302,11 @@ function collect(look: AvatarLook, dir: number, headDir: number, a: AvatarAnim, 
   return rects;
 }
 
+/** A grade do desenho tem 84 px de altura; no tabuleiro o boneco vai a 1,80 m, como os personagens (104 px). */
+const GRADE_ALTURA = 84;
+export const PIXEL_AVATAR_HEIGHT = 104;
+const ESCALA = PIXEL_AVATAR_HEIGHT / GRADE_ALTURA;
+
 /** Desenha o avatar com os pés em (x, y). */
 export function drawPixelAvatar(
   ctx: CanvasRenderingContext2D,
@@ -314,16 +319,17 @@ export function drawPixelAvatar(
   alpha = 1,
 ) {
   const rects = collect(look, dir, headDir, a);
-  const X = Math.round(x);
-  const Y = Math.round(y);
+  ctx.save();
+  ctx.translate(Math.round(x), Math.round(y));
+  ctx.scale(ESCALA, ESCALA);
   ctx.globalAlpha = alpha;
   ctx.fillStyle = 'rgba(14,9,10,0.92)';
-  for (const [rx, ry, w, h] of rects) ctx.fillRect(X + rx - 1, Y + ry - 1, w + 2, h + 2);
+  for (const [rx, ry, w, h] of rects) ctx.fillRect(rx - 1, ry - 1, w + 2, h + 2);
   for (const [rx, ry, w, h, c] of rects) {
     ctx.fillStyle = c;
-    ctx.fillRect(X + rx, Y + ry, w, h);
+    ctx.fillRect(rx, ry, w, h);
   }
-  ctx.globalAlpha = 1;
+  ctx.restore();
 }
 
 /** Só a cabeça (ícone de balão), com o centro do rosto em (x, y). */
@@ -342,4 +348,3 @@ export function drawPixelHead(ctx: CanvasRenderingContext2D, look: AvatarLook, x
   ctx.restore();
 }
 
-export const PIXEL_AVATAR_HEIGHT = 84;

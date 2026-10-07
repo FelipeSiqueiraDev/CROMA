@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { beforeEach, describe, test } from 'node:test';
-import { DIR_KEYS, DIR_TO_SHEET, distinctFacings, parseHeightmap, pointToTile, sheetDirFor, tileCenter, turnFacing, type ClientMsg, type DirKey, type ServerMsg, type Session, type SessionAction } from '@croma/shared';
+import { DIR_KEYS, DIR_TO_SHEET, distinctFacings, parseHeightmap, pointToTile, sheetDirFor, tileCenter, turnFacing, type ClientMsg, type DirKey, type ServerMsg, type Session, type SessionAction } from '@crona/shared';
 import { Hotel } from '../src/hotel';
 import { seedDb, upgradeDb } from '../src/seed';
 
@@ -232,7 +232,7 @@ describe('itens', () => {
   test('jogador não recebe pista oculta nem item ainda não revelado', () => {
     const desk = gm.session().objects.find((o) => o.name === 'Escrivaninha')!;
     gm.send({ t: 'setHint', id: desk.id, hint: { icon: 'inspect', title: 'Fundo falso', text: 'Segredo.', visible: false } });
-    gm.send({ t: 'lootAdd', itemId: desk.id, name: 'Bilhete', weight: 0.1, kind: 'letter' });
+    gm.send({ t: 'lootAdd', itemId: desk.id, name: 'Bilhete', espacos: 0, kind: 'letter' });
     hotel.pushNow();
     const mine = gm.session();
     const theirs = player.session();

@@ -1,8 +1,10 @@
 /* =====================================================================
-   Tela MAPA — referência nova docs/referencias/mapa.webp (1672×941; 1rem = 10 px).
-   Por cima de shell.css (a tela antiga): posições, papel e letras da
-   referência. Máquina de escrever (Courier Prime) no texto; marcador
-   vermelho nos títulos; tabuleiro com moldura e cantos de mira.
+   Tela MAPA (1672×941; 1rem = 10 px). Por cima de shell.css (a tela antiga).
+   Desde 03/10 o tabuleiro é largo, quase 16:9 (114,8 × 67,2), e as colunas dos
+   lados têm 24,2 de largura; a disposição é a mesma (planta, sala e objeto à
+   esquerda; PLAYERS, INTERLÚDIO e ITENS à direita; cartas, inventário e ações
+   embaixo). Visual da referência da Mansão Alvarez: papel, polaroides com fita,
+   máquina de escrever (Special Elite nos títulos, Courier Prime no texto).
    ===================================================================== */
 .shell {
   font-family: var(--f-maquina);
@@ -13,9 +15,9 @@
     #0c0d0f;
 }
 .shell .p-title {
-  font-family: var(--f-maquina);
-  font-weight: 700;
-  letter-spacing: 0;
+  font-family: 'Special Elite', var(--f-maquina);
+  font-weight: 400;
+  letter-spacing: 0.08em;
 }
 .tape,
 .scrap,
@@ -25,10 +27,10 @@
 
 /* ---------- tabuleiro: moldura, cantos de mira e o botão de enquadrar ---------- */
 .board {
-  left: 49.7rem;
-  right: 37.2rem;
-  top: 9.5rem;
-  bottom: 17.1rem;
+  left: 26.2rem;
+  right: 26.2rem;
+  top: 9rem;
+  bottom: 17.9rem;
 }
 .board-moldura {
   position: absolute;
@@ -86,60 +88,180 @@
   top: auto;
   bottom: 3.4rem;
 }
+/* a câmera do tabuleiro: isométrica ou tática (a sala de cima, como mapa de batalha) */
+.board-vista {
+  position: absolute;
+  left: 2.8rem;
+  bottom: 2.8rem;
+  display: flex;
+  gap: 0.3rem;
+  padding: 0.3rem;
+  border: 0.1rem solid rgba(143, 176, 210, 0.35);
+  border-radius: 0.6rem;
+  background: rgba(9, 12, 18, 0.78);
+  box-shadow: 0 0 1.2rem rgba(0, 0, 0, 0.6);
+  z-index: 2;
+}
+.board-vista .bv {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 3rem;
+  padding: 0 1rem 0 0.8rem;
+  border: 0;
+  border-radius: 0.4rem;
+  background: none;
+  color: #8fb0d2;
+  opacity: 0.72;
+  font: 700 1.1rem/1 var(--f-maquina);
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, opacity 0.2s;
+}
+.board-vista .bv .ic {
+  width: 1.7rem;
+  height: 1.7rem;
+}
+.board-vista .bv:hover {
+  opacity: 1;
+}
+.board-vista .bv.on {
+  background: rgba(143, 176, 210, 0.2);
+  color: #e2eefa;
+  opacity: 1;
+  box-shadow: inset 0 0 0 0.1rem rgba(143, 176, 210, 0.55);
+}
 
 /* ---------- coluna da esquerda: planta, sala, objeto ---------- */
 .col-map {
   left: 1rem;
-  width: 47.3rem;
+  width: 24.2rem;
   top: 9rem;
-  bottom: 15.1rem;
-  gap: 0.7rem;
+  bottom: 17.9rem;
+  gap: 1rem;
 }
+/* a planta como o cartão de papel quadriculado da referência (Mansão Alvarez): baixo, um pouco torto, preso com tachinha */
 .col-map .p-plan.wide {
-  height: 27.5rem;
+  flex: none;
+  height: 19rem;
   margin: 0;
-  transform: none;
+  transform: rotate(-0.5deg);
 }
 .p-plan .p-title {
   position: absolute;
-  left: 3.4rem;
-  top: 1.7rem;
-  font-size: 2.5rem;
-  color: #1c1915;
+  left: 2.2rem;
+  top: 1.5rem;
+  padding-bottom: 0.2rem;
+  border-bottom: 0.12rem solid rgba(28, 25, 21, 0.55);
+  font-family: 'Special Elite', var(--f-maquina);
+  font-size: 1.4rem;
+  letter-spacing: 0.22em;
+  color: rgba(28, 25, 21, 0.85);
 }
 .p-plan .uline {
   display: none;
 }
+/* os andares como texto: TÉRREO · SUBSOLO, o atual em vermelho com um traço de caneta embaixo */
 .plan-tabs {
   position: absolute;
-  left: 3.4rem;
-  top: 5.1rem;
+  left: 1.6rem;
+  right: 4.4rem;
+  top: 4.3rem;
   display: flex;
-  gap: 0.6rem;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 0;
 }
 .plan-tab {
-  height: 2.4rem;
-  padding: 0 1.6rem;
-  border: 0.12rem solid rgba(60, 52, 42, 0.6);
+  position: relative;
+  height: auto;
+  padding: 0.2rem 0.6rem 0.4rem;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  font-family: 'Special Elite', var(--f-maquina);
+  font-size: 1.1rem;
+  letter-spacing: 0.08em;
+  color: rgba(42, 36, 31, 0.5);
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.plan-tab:hover {
+  background: none;
+  color: rgba(42, 36, 31, 0.9);
+}
+.plan-tab + .plan-tab::before {
+  content: '·';
+  position: absolute;
+  left: -0.2rem;
+  color: rgba(42, 36, 31, 0.35);
+}
+.plan-tabs.muitas {
+  gap: 0.1rem;
+}
+.plan-tabs.muitas .plan-tab {
+  flex: 0 1 auto;
+  min-width: 0;
+  padding: 0.2rem 0.6rem 0.4rem;
+  font-size: 1.1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.plan-tab.on,
+.plan-tab.on:hover {
+  border: 0;
+  background: none;
+  color: #a3221a;
+}
+.plan-tab.on::after {
+  content: '';
+  position: absolute;
+  left: 0.6rem;
+  right: 0.6rem;
+  bottom: 0.1rem;
+  height: 0.18rem;
   border-radius: 0.2rem;
-  background: rgba(255, 250, 238, 0.3);
-  font-family: var(--f-maquina);
-  font-size: 1.3rem;
-  color: #2a241f;
+  background: #b3261e;
+  opacity: 0.85;
+  transform: rotate(-1.2deg);
 }
-.plan-tab.on {
-  border-color: #9c1f19;
-  background: #b92a22;
-  color: #fff3ef;
-}
+/* canvas posicionado não estica entre left/right e top/bottom (com width auto, ele fica do
+   tamanho de dentro e vazava do cartão para cima do tabuleiro): o tamanho vai explícito */
 .plan-canvas {
   position: absolute;
-  left: 3rem;
-  right: 3rem;
-  top: 8.4rem;
-  bottom: 2.2rem;
-  width: auto;
-  height: auto;
+  left: 1.6rem;
+  top: 6.8rem;
+  width: calc(100% - 3.2rem);
+  height: calc(100% - 8.2rem);
+}
+.plan-tabs.hidden ~ .plan-canvas {
+  top: 4.6rem;
+  height: calc(100% - 6rem);
+}
+.p-plan .tachinha {
+  position: absolute;
+  right: 1.6rem;
+  top: 1rem;
+  z-index: 4;
+  width: 2.3rem;
+  height: 2.3rem;
+  border-radius: 50%;
+  background: radial-gradient(circle at 36% 32%, #ff9c8a 0, #d8352a 30%, #a01810 64%, #560805 100%);
+  box-shadow:
+    0.35rem 0.5rem 0.4rem rgba(0, 0, 0, 0.45),
+    inset -0.15rem -0.2rem 0.3rem rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+.p-plan .tachinha::after {
+  content: '';
+  position: absolute;
+  left: 0.55rem;
+  top: 0.45rem;
+  width: 0.65rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.6);
 }
 .rosa {
   position: absolute;
@@ -152,7 +274,7 @@
 }
 .clip-sala {
   position: relative;
-  left: 4.5rem;
+  left: 3.2rem;
   top: -2.4rem;
   width: 2rem;
   height: 5.6rem;
@@ -162,38 +284,41 @@
   pointer-events: none;
 }
 
-/* cartão da sala */
+/* cartão da sala: a foto pequena em cima à esquerda, o nome e os chips do lado, o texto embaixo */
 .p-sala {
   flex: none;
-  height: 16.3rem;
-  padding: 0.6rem 1.6rem 1rem 1rem;
+  height: auto;
+  padding: 1.3rem 1.4rem 1.3rem 1.2rem;
 }
 .sala-corpo {
-  height: 100%;
   display: grid;
-  grid-template-columns: 17.8rem 1fr;
-  gap: 1.2rem;
-}
-.p-sala .polaroid {
-  width: 17rem;
-  height: 14.6rem;
-  margin: 0.2rem 0 0 0.6rem;
-  transform: rotate(-3deg);
+  grid-template-columns: 9.8rem 1fr;
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas:
+    'foto titulo'
+    'foto chips'
+    'texto texto';
+  column-gap: 1.1rem;
 }
 .sala-txt {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  padding-top: 1.4rem;
+  display: contents;
+}
+.p-sala .polaroid {
+  grid-area: foto;
+  width: 9.4rem;
+  height: 7.8rem;
+  margin: 0.3rem 0 0 0.2rem;
+  transform: rotate(-3deg);
 }
 .marca,
 .insp-cab {
   position: relative;
   margin: 0;
-  padding-left: 1.4rem;
-  font-family: var(--f-maquina);
-  font-weight: 700;
-  font-size: 1.95rem;
+  padding-left: 1.2rem;
+  font-family: 'Special Elite', var(--f-maquina);
+  font-weight: 400;
+  font-size: 1.8rem;
+  letter-spacing: 0.06em;
   line-height: 1.2;
   color: #1c1915;
   white-space: nowrap;
@@ -205,62 +330,134 @@
   content: '';
   position: absolute;
   left: 0;
-  top: 0.35rem;
-  width: 0.5rem;
-  height: 1.8rem;
+  top: 0.3rem;
+  width: 0.36rem;
+  height: 1.5rem;
   border-radius: 0.1rem;
-  background: #c02a22;
-  box-shadow: 0.1rem 0.1rem 0 rgba(120, 20, 16, 0.4);
+  background: #b3261e;
+}
+.sala-txt .marca {
+  grid-area: titulo;
+  align-self: end;
+  margin-top: 0.4rem;
 }
 .sala-txt p {
-  flex: 1;
-  margin: 0.8rem 0 0.6rem 1.4rem;
-  font-size: 1.4rem;
-  line-height: 1.4;
-  color: #2b251f;
+  grid-area: texto;
+  margin: 1.1rem 0 0;
+  font-size: 1.22rem;
+  line-height: 1.42;
+  color: #3a3128;
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
 }
 .sala-chips {
+  grid-area: chips;
   display: flex;
-  gap: 0.8rem;
-  margin-left: 1.4rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin: 0.7rem 0 0 1.2rem;
 }
 .sala-chips span {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  height: 2.6rem;
-  padding: 0 1rem;
-  border: 0.12rem solid rgba(70, 60, 48, 0.4);
+  gap: 0.4rem;
+  height: 2.1rem;
+  padding: 0 0.7rem;
+  border: 0.1rem solid rgba(70, 60, 48, 0.38);
   border-radius: 0.2rem;
   background: rgba(255, 250, 238, 0.25);
-  font-size: 1.2rem;
-  color: #2a241f;
+  font-family: 'Special Elite', var(--f-maquina);
+  font-size: 0.98rem;
+  letter-spacing: 0.04em;
+  color: #3a3128;
+  white-space: nowrap;
 }
 .sala-chips .ic {
-  width: 1.6rem;
-  height: 1.6rem;
+  width: 1.3rem;
+  height: 1.3rem;
 }
 
 /* cartão do objeto selecionado */
 .p-insp {
   margin: 0;
-  padding: 1.5rem 1.4rem 0.6rem 2rem;
+  padding: 1.4rem 1.2rem 0.6rem 1.6rem;
 }
 .insp-cab {
   flex: none;
-  color: #b3261e;
+  color: #1c1915;
+  font-size: 1.45rem;
+  letter-spacing: 0.1em;
   margin-bottom: 0.9rem;
 }
+/* a foto pequena e o nome lado a lado, a descrição embaixo, na largura toda */
 .p-insp .insp-head {
-  gap: 1.4rem;
+  display: grid;
+  grid-template-columns: 8.4rem minmax(0, 1fr);
+  grid-template-areas:
+    'foto titulo'
+    'texto texto';
+  column-gap: 1rem;
+  row-gap: 0.8rem;
+  align-items: center;
+  min-height: 0;
+  margin: 0 0 0.9rem;
+}
+.p-insp .insp-head > .polaroid {
+  grid-area: foto;
+}
+.p-insp .insp-text {
+  display: contents;
+}
+.p-insp .insp-text > *:not(h2):not(p) {
+  grid-column: 1 / -1;
+}
+.p-insp .insp-text h2 {
+  grid-area: titulo;
+  margin: 0;
+  white-space: normal;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+.p-insp .insp-text p {
+  grid-area: texto;
+  margin: 0;
+  -webkit-text-stroke: 0;
+}
+.p-insp .itabs {
+  gap: 0.3rem;
+  margin-left: 0;
+}
+.p-insp .itabs .itab {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+}
+.p-insp .insp-cab {
+  padding-right: 3.4rem;
+}
+/* com um objeto ou personagem aberto, o cartão da sala vira uma linha (o nome e o andar) */
+.col-map.com-selecao .p-sala {
+  padding-top: 0.9rem;
+  padding-bottom: 0.9rem;
+}
+.col-map.com-selecao .p-sala .polaroid,
+.col-map.com-selecao .sala-txt p {
+  display: none;
+}
+.col-map.com-selecao .sala-corpo {
+  grid-template-columns: 1fr;
+  grid-template-areas: 'titulo' 'chips';
+}
+.col-map.com-selecao .sala-chips {
+  flex-direction: row;
+  margin-top: 0.5rem;
 }
 .p-insp .polaroid {
-  width: 12.4rem;
-  height: 9.8rem;
+  width: 8.4rem;
+  height: 7rem;
   padding: 0.35rem;
   transform: none;
   background: #1a1918;
@@ -270,77 +467,128 @@
   display: none;
 }
 .p-insp .insp-text h2 {
-  font-family: var(--f-maquina);
-  font-weight: 700;
-  font-size: 1.8rem;
+  font-family: 'Special Elite', var(--f-maquina);
+  font-weight: 400;
+  font-size: 1.45rem;
+  letter-spacing: 0.04em;
   color: #1c1915;
 }
 .p-insp .insp-text .uline {
   display: none;
 }
 .p-insp .insp-text p {
-  font-size: 1.35rem;
+  font-size: 1.15rem;
   line-height: 1.4;
-  color: #2b251f;
+  color: #3a3128;
 }
 .p-insp .itabs {
   margin-top: 0.4rem;
 }
 .p-insp .itab {
-  font-family: var(--f-maquina);
-  font-weight: 700;
+  font-family: 'Special Elite', var(--f-maquina);
+  font-weight: 400;
+  font-size: 1.02rem;
+  letter-spacing: 0.02em;
+  padding-left: 0.3rem;
+  padding-right: 0.3rem;
 }
 .p-insp .ipane.cena .icard {
+  grid-template-columns: 4.6rem minmax(0, 1fr) auto;
+  column-gap: 0.8rem;
+  min-height: 0;
+  padding: 0.6rem 0.6rem 0.6rem 0.5rem;
   border-radius: 0.2rem;
 }
+.p-insp .ipane.cena .ic-icon {
+  width: 4.6rem;
+  height: 4.6rem;
+}
+.p-insp .ipane.cena .ic-icon canvas {
+  max-width: 4.2rem;
+  max-height: 4.2rem;
+}
+.p-insp .ipane.cena .ic-text b {
+  margin-bottom: 0.3rem;
+  font-family: 'Special Elite', var(--f-maquina);
+  font-weight: 400;
+  font-size: 1.25rem;
+  white-space: normal;
+  line-height: 1.15;
+}
+.p-insp .ipane.cena .ic-text small {
+  font-size: 1rem;
+  color: #a3221a;
+}
+.p-insp .ipane.cena .dbtn {
+  min-width: 0;
+  height: auto;
+  padding: 0.5rem 0.9rem;
+  font-size: 1.1rem;
+}
 .p-insp .insp-tip {
-  font-size: 1.15rem;
-  color: #5a4f42;
+  font-family: var(--f-mao);
+  font-size: 1.6rem;
+  line-height: 1.15;
+  color: #6a5c4a;
 }
 .insp-x {
   right: 0.6rem;
   top: 0.8rem;
 }
 
-/* ---------- direita: PLAYERS ---------- */
+/* ---------- direita: PLAYERS (a foto e o nome em cima, as três barras embaixo, na largura toda) ---------- */
 .col-rpg {
   right: 1rem;
-  width: 34.9rem;
+  width: 24.2rem;
   top: 9rem;
-  bottom: 16.1rem;
+  bottom: 17.9rem;
 }
 .p-rpg {
-  padding: 1.3rem 1.4rem 1rem;
-  transform: none;
+  min-width: 0;
+  max-width: 100%;
+  padding: 1.2rem 1.2rem 0.8rem;
+  transform: rotate(0.3deg);
+}
+.rpg-body,
+.rpg-player,
+.rp-vit,
+.rp-l > * {
+  min-width: 0;
 }
 .rpg-tabs {
   flex-wrap: nowrap;
   gap: 0;
-  margin: 0 0 1.4rem;
-  padding-bottom: 0.7rem;
-  background: linear-gradient(#c8352b, #c8352b) left bottom / 3.6rem 0.2rem no-repeat;
+  margin: 0 0 0.6rem;
+  padding: 0;
+  border-bottom: 0.12rem solid rgba(70, 60, 48, 0.35);
+  background: none;
 }
 .rpg-tabs .itab {
-  flex: 1;
-  height: 4.3rem;
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+  height: 3.4rem;
   display: grid;
   place-items: center;
-  border: 0.12rem solid rgba(70, 60, 48, 0.4);
-  border-left-width: 0;
-  background: rgba(255, 250, 238, 0.22);
-  font-family: var(--f-maquina);
-  font-weight: 700;
-  font-size: 1.45rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: 'Special Elite', var(--f-maquina);
+  font-weight: 400;
+  font-size: 1.18rem;
+  letter-spacing: 0.02em;
+  color: rgba(42, 36, 31, 0.55);
+  transition: color 0.15s;
+}
+.rpg-tabs .itab:hover {
   color: #1c1915;
 }
-.rpg-tabs .itab:first-child {
-  border-left-width: 0.12rem;
-}
 .rpg-tabs .itab.on {
-  border: 0.2rem solid #c8352b;
-  border-radius: 0.2rem;
-  background: rgba(255, 250, 238, 0.45);
-  box-shadow: inset 0 -0.3rem 0 #c8352b;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: inset 0 -0.26rem 0 #b3261e;
+  color: #1c1915;
 }
 .rpg-tabs .itab .tab-ring {
   display: none;
@@ -348,123 +596,177 @@
 .rpg-player {
   position: relative;
   display: grid;
-  grid-template-columns: 8.6rem 1fr;
-  gap: 1.3rem;
-  margin: 0 0 1.4rem;
-  padding: 1.1rem 1.1rem 1.1rem 1.1rem;
+  grid-template-columns: 5.6rem minmax(0, 1fr);
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas:
+    'foto nome'
+    'foto local'
+    'vit vit';
+  column-gap: 1rem;
+  margin: 0 0 0.6rem;
+  padding: 0.8rem 0.8rem 0.9rem;
   border-bottom: 0;
 }
+.rp-info {
+  display: contents;
+}
 .rp-foto {
-  width: 8.6rem;
-  height: 10.6rem;
-  padding: 0.3rem;
+  grid-area: foto;
+  position: relative;
+  width: 5.6rem;
+  height: 6rem;
+  padding: 0.25rem;
   border: 0;
-  border-radius: 0.2rem;
-  background: #1c1a18;
-  box-shadow: 0 0 0 0.15rem #6b5d4c, 0 0.3rem 0.6rem rgba(0, 0, 0, 0.45);
+  border-radius: 0.1rem;
+  background: #efe9dc;
+  box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.4);
+  transform: rotate(-2deg);
   cursor: pointer;
   overflow: hidden;
+}
+.rpg-player:nth-child(even) .rp-foto {
+  transform: rotate(1.6deg);
 }
 .rp-foto canvas {
   display: block;
   width: 100% !important;
   height: 100% !important;
   object-fit: cover;
+  background: #1c1a18;
 }
-.rp-info {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
+.rp-arma {
+  position: absolute;
+  right: 0.2rem;
+  bottom: 0.2rem;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border: 0.1rem solid #c9a45a;
+  border-radius: 50%;
+  background: #1c1a18;
+  color: #eadfc4;
+  box-shadow: 0 0.2rem 0.4rem rgba(0, 0, 0, 0.5);
+}
+.rp-arma .ic {
+  width: 1.2rem;
+  height: 1.2rem;
 }
 .rp-nome {
+  grid-area: nome;
+  align-self: end;
   display: flex;
   align-items: flex-start;
-  gap: 0.6rem;
+  gap: 0.4rem;
+  min-width: 0;
 }
 .rp-nome b {
   flex: 1;
   min-width: 0;
-  font-size: 1.6rem;
-  letter-spacing: -0.03em;
-  line-height: 1.2;
+  font-family: 'Special Elite', var(--f-maquina);
+  font-weight: 400;
+  font-size: 1.38rem;
+  letter-spacing: 0.01em;
+  line-height: 1.15;
   color: #1c1915;
-  white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 .rp-mais {
-  width: 3.2rem;
-  height: 2.9rem;
+  width: 2.4rem;
+  height: 2.2rem;
   flex: none;
   display: grid;
   place-items: center;
   padding: 0;
-  border: 0.12rem solid rgba(70, 60, 48, 0.55);
+  border: 0;
   border-radius: 0.3rem;
-  background: rgba(255, 250, 238, 0.4);
-  color: #1c1915;
+  background: none;
+  color: #6a5c4a;
   cursor: pointer;
 }
+.rp-mais:hover {
+  background: rgba(60, 46, 30, 0.1);
+  color: #1c1915;
+}
 .rp-mais .ic {
-  width: 1.8rem;
-  height: 1.8rem;
-}
-.rp-local {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin: 0.3rem 0 0.7rem;
-  font-size: 1.35rem;
-  color: #2b251f;
-  white-space: nowrap;
-}
-.rp-local .ic {
   width: 1.6rem;
   height: 1.6rem;
-  fill: #1c1915;
+}
+.rp-local {
+  grid-area: local;
+  align-self: start;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  margin: 0.25rem 0 0;
+  font-size: 1.08rem;
+  color: #6a5c4a;
+  white-space: nowrap;
+}
+.rp-local span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rp-local .ic {
+  flex: none;
+  width: 1.2rem;
+  height: 1.2rem;
+  fill: #6a5c4a;
   stroke: #d8c7a7;
 }
 .rp-vit {
+  grid-area: vit;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.3rem;
+  margin-top: 0.7rem;
 }
 .rp-l {
   display: grid;
-  grid-template-columns: 3.4rem 2.3rem 1fr 2.3rem;
+  grid-template-columns: 2.8rem 1.9rem minmax(0, 1fr) 1.9rem;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.35rem;
 }
 .rp-l b {
-  font-size: 1.3rem;
+  font-family: 'Special Elite', var(--f-maquina);
+  font-size: 1.05rem;
   font-weight: 400;
-  color: #2a241f;
+  letter-spacing: 0.06em;
+  color: #4a3f33;
 }
 .rp-q {
-  width: 2.3rem;
-  height: 2.2rem;
+  width: 1.9rem;
+  height: 1.8rem;
   display: grid;
   place-items: center;
   padding: 0;
-  border: 0.12rem solid #5e5243;
-  border-radius: 0.3rem;
-  background: linear-gradient(180deg, #f1e7d2, #d9caab);
-  color: #1d1a16;
+  border: 0.1rem solid rgba(60, 46, 30, 0.45);
+  border-radius: 0.25rem;
+  background: rgba(255, 250, 238, 0.35);
+  color: #3a3128;
   cursor: pointer;
 }
+.rp-q:hover {
+  background: rgba(255, 250, 238, 0.7);
+}
 .rp-q .ic {
-  width: 1.4rem;
-  height: 1.4rem;
+  width: 1.2rem;
+  height: 1.2rem;
   stroke-width: 2.6;
 }
 .rp-bar {
   position: relative;
-  height: 2.1rem;
+  height: 1.75rem;
   padding: 0;
   border: 0;
-  border-radius: 0.2rem;
+  border-radius: 0.3rem;
   overflow: hidden;
-  background: #5c5650;
+  background: rgba(60, 46, 30, 0.22);
+  box-shadow: inset 0 0.1rem 0.2rem rgba(0, 0, 0, 0.25);
   cursor: pointer;
 }
 .rp-bar i {
@@ -472,73 +774,139 @@
   left: 0;
   top: 0;
   bottom: 0;
+  border-radius: 0.3rem;
   transition: width 0.35s cubic-bezier(0.3, 0.8, 0.3, 1);
 }
 .rp-bar.pv i {
-  background: linear-gradient(180deg, #e2403c, #c52824);
-}
-.rp-bar.pe {
-  background: #6a4a16;
+  background: linear-gradient(180deg, #d8423b, #ad2620);
 }
 .rp-bar.pe i {
-  background: linear-gradient(180deg, #eaa633, #d38a1a);
-}
-.rp-bar.san {
-  background: #1d3565;
+  background: linear-gradient(180deg, #e6a03a, #c07e17);
 }
 .rp-bar.san i {
-  background: linear-gradient(180deg, #3c8cf2, #2468d6);
+  background: linear-gradient(180deg, #3f8cf0, #2462c8);
 }
 .rp-bar span {
   position: relative;
   display: block;
-  padding: 0 0.7rem;
+  padding: 0 0.6rem;
   text-align: right;
   font-family: var(--f-maquina);
   font-weight: 700;
-  font-size: 1.3rem;
-  line-height: 2.1rem;
+  font-size: 1.1rem;
+  line-height: 1.75rem;
   color: #fff;
-  text-shadow: 0 0.1rem 0.15rem rgba(0, 0, 0, 0.6);
+  text-shadow: 0 0.1rem 0.15rem rgba(0, 0, 0, 0.7);
+}
+/* com mais de 4 agentes cabe todo mundo: a foto menor, uma linha de nome, sem o lugar (fica no aviso) */
+.rpg-body.muitos .rpg-player {
+  grid-template-columns: 4.2rem 1fr;
+  grid-template-areas:
+    'foto nome'
+    'vit vit';
+  grid-template-rows: auto auto;
+  padding: 0.6rem 0.8rem 0.7rem;
+}
+.rpg-body.muitos .rp-foto {
+  width: 4.2rem;
+  height: 4.4rem;
+}
+.rpg-body.muitos .rp-nome {
+  align-self: center;
+}
+.rpg-body.muitos .rp-nome b {
+  -webkit-line-clamp: 1;
+}
+.rpg-body.muitos .rp-local {
+  display: none;
+}
+.rpg-body.muitos .rp-vit {
+  margin-top: 0.5rem;
+  gap: 0.22rem;
+}
+.rpg-body.muitos .rp-bar {
+  height: 1.5rem;
+}
+.rpg-body.muitos .rp-bar span {
+  line-height: 1.5rem;
+  font-size: 1rem;
 }
 
-/* ---------- baixo: cartas, inventário rápido, ações ---------- */
+/* ---------- baixo: uma fileira só, sem nada por cima de nada: as cartas (polaroides com fita), o
+   inventário rápido e as ações, os dois em papel ---------- */
 .bottom {
-  height: 15.6rem;
+  height: 16.9rem;
+  display: flex;
+  align-items: flex-end;
+  gap: 1.6rem;
+  padding: 0 1rem 0.9rem;
 }
 .bottom::before {
   display: none;
 }
 .party {
-  left: 2.8rem;
-  top: 1.2rem;
-  height: 12.5rem;
-  gap: 1.35rem;
-  --cw: 10.7rem;
+  position: relative;
+  left: auto;
+  top: auto;
+  flex: none;
+  height: auto;
+  align-items: flex-end;
+  gap: 1.2rem;
+  padding: 0 0 0.3rem 0.6rem;
+  --cw: min(11.2rem, calc((58rem - (var(--n, 4) - 1) * 1.2rem) / var(--n, 4)));
 }
 .pcard {
-  width: 10.7rem;
-  height: 12.5rem;
-  padding: 0;
-  border: 0.15rem solid #7c6a50;
-  border-radius: 0.2rem;
-  overflow: hidden;
-  background: #1a1716;
-  box-shadow: 0 0.3rem 0.8rem rgba(0, 0, 0, 0.6);
-  --r: 0deg !important;
+  width: var(--cw);
+  height: auto;
+  padding: 0.55rem 0.55rem 0.2rem;
+  border: 0;
+  border-radius: 0.1rem;
+  overflow: visible;
+  background: #efe9dc;
+  box-shadow: 0 0.6rem 1rem rgba(0, 0, 0, 0.55);
+  --r: 0deg;
+}
+.pcard:nth-child(4n + 1) {
+  --rr: -2deg;
+}
+.pcard:nth-child(4n + 2) {
+  --rr: 1.4deg;
+}
+.pcard:nth-child(4n + 3) {
+  --rr: -1deg;
+}
+.pcard:nth-child(4n + 4) {
+  --rr: 1.8deg;
+}
+/* a fita na cor do agente */
+.pcard::before {
+  content: '';
+  position: absolute;
+  top: -1rem;
+  left: 50%;
+  z-index: 5;
+  width: 5.4rem;
+  height: 1.8rem;
+  transform: translateX(-50%) rotate(-4deg);
+  background: color-mix(in srgb, var(--c, #e3a94c) 72%, transparent);
+  box-shadow: 0 0.1rem 0.2rem rgba(0, 0, 0, 0.25);
+  pointer-events: none;
 }
 .pcard > .paper-cv,
-.pcard .pc-vitals,
 .pcard .pc-corner {
   display: none;
 }
 .pcard .pc-photo {
-  position: absolute;
-  inset: 0;
-  width: auto;
+  position: relative;
+  inset: auto;
+  display: block;
+  width: 100%;
   height: auto;
+  aspect-ratio: 1 / 1.02;
   margin: 0;
   border: 0;
+  overflow: hidden;
+  background: #1a1614;
   box-shadow: none;
 }
 .pcard .pc-img,
@@ -547,27 +915,47 @@
   height: 100% !important;
 }
 .pcard .pc-name {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 3;
-  padding: 0.35rem 0.3rem 0.45rem;
-  background: rgba(14, 13, 12, 0.88);
-  border-top: 0.1rem solid rgba(255, 255, 255, 0.08);
-  font-family: var(--f-maquina);
-  font-weight: 400;
-  font-size: 1.3rem;
-  letter-spacing: -0.03em;
-  color: #f1ece2;
+  position: static;
+  display: block;
+  padding: 0.1rem 0 0;
+  border: 0;
+  background: none;
+  font-family: var(--f-mao);
+  font-weight: 700;
+  font-size: 1.9rem;
+  line-height: 1.1;
+  letter-spacing: 0;
+  color: #241d16;
   text-align: center;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* as três barrinhas finas (PV, PE, SAN) embaixo do nome */
+.pcard .pc-vitals {
+  display: flex;
+  width: 100%;
+  margin: 0.1rem 0 0.35rem;
+  gap: 0.18rem;
+}
+.pcard .pcv {
+  display: block;
+  flex: 1 1 0;
+  height: auto;
+}
+.pcard .pcv b,
+.pcard .pcv em {
+  display: none;
+}
+.pcard .pcv-bar {
+  height: 0.34rem;
+  background: rgba(60, 46, 30, 0.2);
+  box-shadow: none;
+}
 .pcard.on {
-  border-color: #e0332f;
-  box-shadow: 0 0 1.2rem rgba(230, 40, 36, 0.55);
+  outline: 0.25rem solid #d4392c;
+  outline-offset: 0.2rem;
+  box-shadow: 0 0.6rem 1rem rgba(0, 0, 0, 0.55), 0 0 1.4rem rgba(230, 40, 36, 0.5);
 }
 .pcard .pc-away {
   display: none;
@@ -580,140 +968,131 @@
   opacity: 1;
 }
 .p-quick {
-  left: 53.3rem;
-  top: 0.5rem;
-  width: 50.7rem;
-  height: 13rem;
-  padding: 1.6rem 2rem 1rem;
-  transform: none;
+  position: relative;
+  left: auto;
+  top: auto;
+  bottom: auto;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 14.6rem;
+  padding: 1.5rem 1.8rem 1rem;
+  transform: rotate(-0.4deg);
 }
-.p-quick .p-title {
+.p-quick .p-title,
+.p-acoes .p-title {
   display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  font-size: 1.55rem;
+  align-items: baseline;
+  gap: 0.7rem;
+  font-size: 1.4rem;
+  letter-spacing: 0.1em;
   color: #1c1915;
+  -webkit-text-stroke: 0;
+}
+.p-quick .p-title small {
+  font-size: 1rem;
+  letter-spacing: 0.12em;
+  color: #7a6c5a;
 }
 .losango {
-  width: 0.9rem;
-  height: 0.9rem;
-  transform: rotate(45deg);
-  background: #c02a22;
+  align-self: center;
+  width: 0.36rem;
+  height: 1.4rem;
+  border-radius: 0.1rem;
+  transform: none;
+  background: #b3261e;
   flex: none;
 }
 .quick-slots {
   display: grid;
-  grid-template-columns: repeat(6, 7.1rem);
-  gap: 0.75rem;
-  margin-top: 1.1rem;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin-top: 1.3rem;
 }
 .qslot {
-  width: 7.1rem;
-  height: 7rem;
-  border: 0.12rem solid #3a3a3e;
-  border-radius: 0.25rem;
-  background: radial-gradient(ellipse at 50% 35%, #36363a, #232326);
-  box-shadow: inset 0 0.1rem 0 rgba(255, 255, 255, 0.05), 0 0.2rem 0.4rem rgba(0, 0, 0, 0.35);
+  width: auto;
+  height: 7.4rem;
+  border: 0;
+  border-radius: 0.3rem;
+  background: radial-gradient(ellipse at 50% 35%, #3a3128, #241d17);
+  box-shadow: inset 0 0 0.6rem rgba(0, 0, 0, 0.6), 0 0.15rem 0.3rem rgba(0, 0, 0, 0.3);
   color: #ece6da;
   transform: none !important;
 }
 .qslot.empty {
-  background: #5d574f;
-  border-color: #4a453f;
-  box-shadow: inset 0 0.2rem 0.5rem rgba(0, 0, 0, 0.3);
+  background: rgba(60, 46, 30, 0.14);
+  box-shadow: inset 0 0 0 0.12rem rgba(60, 46, 30, 0.2);
 }
 .p-acoes {
-  position: absolute;
-  left: 106.3rem;
-  top: 0;
-  width: 45.2rem;
-  height: 14rem;
-  padding: 1.4rem 2.2rem 1.6rem;
-  border: 0.12rem solid #2a2a2d;
-  border-radius: 0.2rem;
-  background:
-    radial-gradient(ellipse 80% 80% at 50% 30%, rgba(255, 255, 255, 0.03), transparent 70%),
-    #141416;
-  box-shadow: inset 0 0 1.4rem rgba(0, 0, 0, 0.7), 0 0.4rem 1.2rem rgba(0, 0, 0, 0.6);
+  position: relative;
+  left: auto;
+  top: auto;
+  flex: none;
+  width: 43rem;
+  height: 14.6rem;
+  padding: 1.5rem 1.8rem 1rem;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  transform: rotate(0.4deg);
   pointer-events: auto;
 }
 .p-acoes .p-title {
-  display: inline-block;
-  padding-bottom: 0.4rem;
-  border-bottom: 0.25rem solid #c8352b;
-  font-size: 1.6rem;
-  color: #ece6da;
+  padding-bottom: 0;
+  border-bottom: 0;
 }
 .acoes {
   display: grid;
-  grid-template-columns: repeat(4, 9.2rem);
-  gap: 1.3rem;
-  margin-top: 1.1rem;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.9rem;
+  margin-top: 1.3rem;
 }
 .acao {
-  height: 7.5rem;
+  height: 7.4rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.6rem;
+  gap: 0.5rem;
   padding: 0;
-  border: 0.12rem solid #3b3b3f;
-  border-radius: 0.2rem;
-  background: linear-gradient(180deg, #1e1e21, #161618);
-  color: #ece6da;
-  font-family: var(--f-maquina);
-  font-size: 1.45rem;
+  border: 0;
+  border-radius: 0.3rem;
+  background: linear-gradient(180deg, #2f2822, #221c17);
+  box-shadow: 0 0.25rem 0 #120e0a, inset 0 0.1rem 0 rgba(255, 255, 255, 0.06);
+  color: #efe6d6;
+  font-family: 'Special Elite', var(--f-maquina);
+  font-size: 1.25rem;
+  letter-spacing: 0.06em;
   cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition:
+    transform 0.08s,
+    box-shadow 0.15s,
+    background 0.15s;
 }
 .acao .ic {
-  width: 3rem;
-  height: 3rem;
+  width: 2.6rem;
+  height: 2.6rem;
   stroke-width: 1.6;
 }
 .acao:not(:disabled):hover {
-  border-color: #6a6a70;
+  background: linear-gradient(180deg, #3a3129, #2a221c);
+}
+.acao:not(:disabled):active {
+  transform: translateY(0.2rem);
+  box-shadow: 0 0.05rem 0 #120e0a;
 }
 .acao:disabled {
-  opacity: 0.5;
+  opacity: 0.42;
   cursor: default;
 }
 .acao.on {
-  border-color: #d2302d;
-  color: #ff5a53;
-  background: radial-gradient(ellipse at 50% 50%, #34100f, #1c0909);
-  box-shadow: 0 0 1.2rem rgba(226, 42, 38, 0.45), inset 0 0 0.8rem rgba(226, 42, 38, 0.3);
+  background: linear-gradient(180deg, #8c2319, #6a160f);
+  box-shadow: 0 0.25rem 0 #3a0a07, 0 0 1.2rem rgba(200, 40, 30, 0.35);
+  color: #fff3ea;
 }
+/* a pilha de papéis do canto saiu: tomava o lugar das ações */
 .pilha-mapa {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  width: 15.2rem;
-  height: 12.4rem;
-  overflow: hidden;
-  pointer-events: none;
-}
-.pilha-mapa span {
-  position: absolute;
-  display: block;
-  width: 12rem;
-  height: 9rem;
-}
-.pm-a {
-  right: -2rem;
-  top: 2.5rem;
-  transform: rotate(14deg);
-}
-.pm-b {
-  right: 2.5rem;
-  top: 5rem;
-  transform: rotate(-8deg);
-}
-.pm-c {
-  right: 5.5rem;
-  top: 7.5rem;
-  transform: rotate(5deg);
+  display: none;
 }
 
 /* ---------- objetivos e registro, no botão de documento ---------- */
@@ -772,4 +1151,688 @@
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: #8a785f transparent;
+}
+
+
+/* ---------- objeto: CONTÉM em linhas, como na referência, e o carimbo apagado ---------- */
+.p-insp .ipane.items .icard {
+  min-height: 0;
+  padding: 0.25rem 0.4rem;
+  border: 0;
+  border-bottom: 0.1rem solid rgba(84, 66, 44, 0.28);
+  border-radius: 0;
+  background: rgba(255, 250, 240, 0.28);
+}
+.p-insp .ipane.items .icard .ic-icon {
+  width: 2.6rem;
+  height: 2.6rem;
+}
+.p-insp .ipane.items .icard .ic-icon > * {
+  width: 100%;
+  height: 100%;
+}
+.p-insp .ipane.items .icard small {
+  font-size: 1.1rem;
+}
+.p-insp .insp-selo {
+  position: absolute;
+  right: 1.6rem;
+  bottom: 1.6rem;
+  width: 8.4rem;
+  height: 8.4rem;
+  color: rgba(84, 66, 44, 0.2);
+  transform: rotate(-12deg);
+  pointer-events: none;
+  z-index: 0;
+}
+.p-insp .insp-selo svg {
+  width: 100%;
+  height: 100%;
+}
+.p-insp .insp-selo i {
+  position: absolute;
+  inset: 2.6rem;
+  background: rgba(84, 66, 44, 0.22);
+  -webkit-mask: var(--logo-mascara, linear-gradient(transparent, transparent)) center / contain no-repeat;
+  mask: var(--logo-mascara, linear-gradient(transparent, transparent)) center / contain no-repeat;
+}
+
+/* ---------- as ferramentas da mesa: Apontar, Desenhar e Névoa (canto de cima do tabuleiro) ---------- */
+.board-mesa {
+  position: absolute;
+  left: 2.8rem;
+  top: 2.6rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+  z-index: 2;
+  pointer-events: none;
+}
+.board-mesa > * {
+  pointer-events: auto;
+}
+.board-mesa .bm-botoes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.3rem;
+  border: 0.1rem solid rgba(143, 176, 210, 0.35);
+  border-radius: 0.6rem;
+  background: rgba(9, 12, 18, 0.78);
+  box-shadow: 0 0 1.2rem rgba(0, 0, 0, 0.6);
+}
+.board-mesa .bv {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  height: 3rem;
+  padding: 0 1rem 0 0.8rem;
+  border: 0;
+  border-radius: 0.4rem;
+  background: none;
+  color: #8fb0d2;
+  opacity: 0.72;
+  font: 700 1.1rem/1 var(--f-maquina);
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, opacity 0.2s;
+}
+.board-mesa .bv .ic {
+  width: 1.7rem;
+  height: 1.7rem;
+}
+.board-mesa .bv:hover {
+  opacity: 1;
+}
+.board-mesa .bv.on {
+  background: rgba(143, 176, 210, 0.2);
+  color: #e2eefa;
+  opacity: 1;
+  box-shadow: inset 0 0 0 0.1rem rgba(143, 176, 210, 0.55);
+}
+/* a névoa ligada na cena: um pontinho no botão, mesmo sem o pincel */
+.board-mesa .bv.tem::after {
+  content: '';
+  position: absolute;
+  right: 0.5rem;
+  top: 0.5rem;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: #9fd0ff;
+  box-shadow: 0 0 0.6rem #6fb4ff;
+}
+.board-mesa .bm-opcoes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-width: 26rem;
+  padding: 0.9rem 1rem;
+  border: 0.1rem solid rgba(143, 176, 210, 0.35);
+  border-radius: 0.6rem;
+  background: rgba(9, 12, 18, 0.86);
+  box-shadow: 0 0 1.2rem rgba(0, 0, 0, 0.6);
+  color: #c9dbee;
+  font: 400 1.15rem/1.3 var(--f-maquina);
+  animation: fadeIn 0.18s ease;
+}
+.board-mesa .bm-opcoes.hidden {
+  display: none;
+}
+.board-mesa .bm-texto {
+  margin: 0;
+  color: #9fb8d2;
+}
+.board-mesa .bm-grupo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+.board-mesa .bm-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 3rem;
+  height: 3rem;
+  padding: 0 0.9rem;
+  border: 0.1rem solid rgba(143, 176, 210, 0.3);
+  border-radius: 0.4rem;
+  background: rgba(20, 26, 36, 0.9);
+  color: #b4cbe2;
+  font: 700 1.05rem/1 var(--f-maquina);
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.board-mesa .bm-chip.quadrado {
+  justify-content: center;
+  padding: 0;
+}
+.board-mesa .bm-chip .ic {
+  width: 1.6rem;
+  height: 1.6rem;
+}
+.board-mesa .bm-chip:hover {
+  border-color: rgba(170, 200, 240, 0.7);
+  color: #eef6ff;
+}
+.board-mesa .bm-chip.on {
+  background: rgba(143, 176, 210, 0.24);
+  border-color: rgba(190, 215, 245, 0.85);
+  color: #fff;
+}
+.board-mesa .bm-chip.forte {
+  background: rgba(70, 100, 140, 0.5);
+  color: #fff;
+}
+.board-mesa .bm-chip:focus-visible,
+.board-mesa .bv:focus-visible {
+  outline: 0.2rem solid #9fd0ff;
+  outline-offset: 0.2rem;
+}
+.board-mesa .bm-cor {
+  display: block;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  box-shadow: 0 0 0 0.15rem rgba(0, 0, 0, 0.6), 0 0 0.6rem currentColor;
+}
+.board-mesa .bm-cor.giz {
+  background: #f3ede2;
+  color: #f3ede2;
+}
+.board-mesa .bm-cor.sangue {
+  background: #e2483d;
+  color: #e2483d;
+}
+.board-mesa .bm-cor.ouro {
+  background: #f4c45a;
+  color: #f4c45a;
+}
+/* o tamanho do pincel: um losango de 1, 3 ou 7 casas */
+.board-mesa .bm-pincel {
+  display: block;
+  background: currentColor;
+  transform: rotate(45deg) scaleY(0.7);
+  opacity: 0.85;
+}
+.board-mesa .bm-pincel.r0 {
+  width: 0.6rem;
+  height: 0.6rem;
+}
+.board-mesa .bm-pincel.r1 {
+  width: 1rem;
+  height: 1rem;
+}
+.board-mesa .bm-pincel.r3 {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+.board-mesa .bm-raio {
+  min-width: 2rem;
+  text-align: center;
+  font-weight: 700;
+  color: #eef6ff;
+}
+
+/* ---------- a janela do mapa improvisado ---------- */
+.mi-dica {
+  margin: 0 0 1rem;
+  font-size: 1.3rem;
+  line-height: 1.4;
+  color: #4a4034;
+}
+.mi-linha {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  margin-bottom: 0.8rem;
+}
+.mi-escolher {
+  position: relative;
+  cursor: pointer;
+}
+.mi-escolher input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.mi-escolher:focus-within {
+  outline: 0.2rem solid #8a6a44;
+  outline-offset: 0.2rem;
+}
+.mi-medida {
+  font: 700 1.25rem/1.3 var(--f-maquina);
+  color: #3a322a;
+}
+.mi-previa {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 16rem;
+  max-height: 34rem;
+  margin-bottom: 1rem;
+  padding: 0.6rem;
+  border: 0.12rem solid #6f604c;
+  border-radius: 0.3rem;
+  background: #1a1612;
+  overflow: hidden;
+}
+.mi-previa img {
+  display: block;
+  max-width: 100%;
+  max-height: 32rem;
+}
+.mi-previa .mi-grade {
+  position: absolute;
+  pointer-events: none;
+}
+.mi-previa.vazia .mi-grade {
+  display: none;
+}
+.mi-vazio {
+  font: 400 1.3rem var(--f-maquina);
+  color: #8a7a64;
+}
+.mi-campos {
+  display: grid;
+  grid-template-columns: 1fr 22rem;
+  gap: 1rem;
+  margin-bottom: 0.8rem;
+}
+.mi-num {
+  text-align: center;
+}
+/* o ícone pintado das ferramentas da mesa (arte/icones/mesa-*.png) */
+.board-mesa .bv .arte-ic img {
+  display: block;
+  width: 2rem;
+  height: 2rem;
+  object-fit: contain;
+}
+
+/* ---------- a aba INTERLÚDIO (LR p. 92–93) ---------- */
+.il {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  height: 100%;
+  min-height: 0;
+  font: 400 1.2rem/1.3 var(--f-maquina);
+  color: #2a231c;
+}
+.il-dica {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #5a4c3c;
+}
+.il-lugar,
+.il-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.il-chip {
+  height: 2.3rem;
+  padding: 0 0.55rem;
+  border: 0.1rem solid rgba(70, 55, 38, 0.45);
+  border-radius: 0.3rem;
+  background: rgba(255, 250, 238, 0.35);
+  color: #3a2f24;
+  font: 700 0.95rem/1 var(--f-maquina);
+  cursor: pointer;
+}
+.il-chip:hover:not(:disabled) {
+  border-color: #8a2a22;
+}
+.il-chip.on {
+  border-color: #8a2219;
+  background: #8a2219;
+  color: #f6ecdc;
+}
+.il-chip:focus-visible {
+  outline: 0.2rem solid #8a2219;
+  outline-offset: 0.1rem;
+}
+.il-lista {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  padding-right: 0.2rem;
+}
+.il-agente {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.5rem 0.6rem;
+  border-left: 0.4rem solid var(--cor, #8a2219);
+  background: rgba(255, 250, 238, 0.28);
+  box-shadow: inset 0 0 0 0.1rem rgba(70, 55, 38, 0.2);
+}
+.il-cab {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.il-cab b {
+  font-size: 1.25rem;
+}
+.il-vit {
+  font-size: 1rem;
+  color: #5a4c3c;
+  white-space: nowrap;
+}
+.il-prato {
+  height: 2.6rem;
+  border: 0.1rem solid rgba(70, 55, 38, 0.45);
+  border-radius: 0.3rem;
+  background: rgba(255, 250, 238, 0.6);
+  font: 400 1.1rem var(--f-maquina);
+  color: #2a231c;
+}
+.il-pe {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.8rem;
+}
+.il-ganho {
+  font-weight: 700;
+  color: #1f5a2a;
+}
+.il-erro {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-weight: 700;
+  color: #8a2219;
+}
+.il-erro .ic {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+.il-guardados {
+  display: inline-flex;
+  gap: 0.6rem;
+}
+.il-bonus {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 1.05rem;
+  color: #7a6a56;
+}
+.il-bonus.tem {
+  font-weight: 700;
+  color: #2a231c;
+}
+.il-usar {
+  display: grid;
+  place-items: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  padding: 0;
+  border: 0.1rem solid rgba(70, 55, 38, 0.45);
+  border-radius: 0.3rem;
+  background: none;
+  color: #3a2f24;
+  cursor: pointer;
+}
+.il-usar .ic {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+.il-rodape {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+.il-rodape .pbtn {
+  flex: 1;
+}
+.il-nada {
+  color: #7a6a56;
+}
+
+/* =====================================================================
+   DISPOSIÇÃO DE 06/10 (docs/ref-mapa-3.webp, fora do git; 1rem = 10 px da referência):
+   as colunas dos lados mais largas, até embaixo; o tabuleiro no meio, com as ferramentas numa
+   fileira no canto de cima à direita, a plaquinha do cômodo e a faixa do estado; embaixo dele,
+   os agentes, o inventário rápido (3 × 2) e as ações em lista
+   ===================================================================== */
+.shell .col-map {
+  left: 1rem;
+  width: 37.4rem;
+  top: 9rem;
+  bottom: 1rem;
+}
+.shell .col-map .p-plan.wide {
+  height: 31rem;
+}
+.shell .col-rpg {
+  right: 1rem;
+  width: 36rem;
+  top: 9rem;
+  bottom: 1rem;
+}
+.shell .board {
+  left: 39.6rem;
+  right: 38.2rem;
+  top: 9rem;
+  bottom: 26.2rem;
+}
+.shell .bottom {
+  position: absolute;
+  left: 39.6rem;
+  right: 38.2rem;
+  bottom: 1rem;
+  height: 24.2rem;
+  display: grid;
+  grid-template-columns: 36fr 34fr 19fr;
+  align-items: stretch;
+  gap: 1.2rem;
+  padding: 0;
+}
+.shell .bottom > .sheet {
+  position: relative;
+  left: auto;
+  top: auto;
+  width: auto;
+  height: auto;
+  transform: none;
+  min-width: 0;
+}
+/* os agentes: as polaroides dentro de um papel com título */
+.p-agentes {
+  padding: 1.5rem 1.4rem 1rem;
+}
+.p-agentes .p-title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  font-size: 1.4rem;
+  letter-spacing: 0.1em;
+  color: #1c1915;
+  -webkit-text-stroke: 0;
+}
+.p-agentes .party {
+  margin-top: 1.4rem;
+  padding: 0;
+  gap: 1rem;
+  --cw: min(7.8rem, calc((33rem - (var(--n, 4) - 1) * 1rem) / var(--n, 4)));
+}
+/* o inventário rápido: 3 × 2 */
+.shell .p-quick {
+  padding: 1.5rem 1.6rem 1rem;
+}
+.shell .quick-slots {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: 7.6rem;
+  gap: 0.8rem;
+}
+.shell .qslot {
+  height: auto;
+}
+/* as ações: uma lista, o ícone e o nome lado a lado */
+.shell .p-acoes {
+  padding: 1.5rem 1.4rem 1rem;
+}
+.shell .acoes {
+  grid-template-columns: 1fr;
+  gap: 0.6rem;
+  margin-top: 1.3rem;
+}
+.shell .acao {
+  height: 3.8rem;
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: 1rem;
+  padding: 0 1.2rem;
+  font-size: 1.3rem;
+}
+.shell .acao .ic {
+  width: 2rem;
+  height: 2rem;
+}
+/* o tabuleiro: as ferramentas numa fileira só, no canto de cima à direita */
+.board-ferr {
+  position: absolute;
+  top: 2.2rem;
+  right: 2.6rem;
+  z-index: 3;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+.board-ferr > * {
+  position: relative;
+  inset: auto;
+}
+.board-ferr .board-mesa {
+  flex-direction: row-reverse;
+}
+.board-ferr .board-mesa .bm-botoes {
+  flex-direction: row;
+}
+.board-ferr .board-mesa .bm-opcoes {
+  position: absolute;
+  top: calc(100% + 0.6rem);
+  right: 0;
+}
+.board-ferr .board-centro {
+  width: 3.6rem;
+  height: 3.6rem;
+}
+.board-ferr .bv span {
+  font-size: 1rem;
+}
+/* a plaquinha do cômodo */
+.board-placa {
+  position: absolute;
+  top: 2.2rem;
+  left: 2.6rem;
+  z-index: 3;
+  max-width: 34%;
+  padding: 0.8rem 1.4rem;
+  border: 0.1rem solid rgba(143, 176, 210, 0.45);
+  border-radius: 0.3rem;
+  background: rgba(9, 12, 18, 0.82);
+  color: #e2eefa;
+  font: 600 1.5rem/1.1 var(--f-titulo, serif);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+/* a faixa do estado, embaixo */
+.board-estado {
+  position: absolute;
+  left: 2.6rem;
+  right: 2.6rem;
+  bottom: 2rem;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+  pointer-events: none;
+}
+.be-cel {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  height: 3.4rem;
+  padding: 0 1.2rem;
+  border: 0.1rem solid rgba(143, 176, 210, 0.4);
+  border-radius: 0.3rem;
+  background: rgba(9, 12, 18, 0.82);
+  color: #b4cbe2;
+  font: 400 1.25rem var(--f-maquina);
+  pointer-events: auto;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.be-cel:disabled {
+  cursor: default;
+}
+.be-cel:not(:disabled):hover {
+  border-color: rgba(190, 215, 245, 0.85);
+}
+.be-cel .ic {
+  width: 1.8rem;
+  height: 1.8rem;
+  flex: none;
+}
+.be-cel b {
+  color: #f0c46a;
+  font-weight: 700;
+}
+/* o zoom, que aparece com o mouse: acima da faixa, à direita */
+.shell .board-zoom {
+  top: auto;
+  right: 2.6rem;
+  bottom: 6.6rem;
+}
+/* ajustes do Felipe (06/10): sem a faixa de estado; ISO e TÁTICA no canto de baixo; as ferramentas
+   de cima sem o fundo escuro atrás; a fonte pixelada da tela de entrada no título e nos botões */
+.board-estado {
+  display: none;
+}
+.board-ferr .bm-botoes,
+.board-ferr .board-mesa {
+  border: 0;
+  background: none;
+  box-shadow: none;
+  padding: 0;
+}
+.shell .board-vista {
+  left: 2.6rem;
+  bottom: 2.2rem;
+}
+.shell .board-zoom {
+  bottom: 2.4rem;
+}
+.board-placa,
+.board-ferr .bv span,
+.shell .board-vista .bv span {
+  font-family: 'Pixelify Sans', 'Ubuntu Mono', monospace;
+  letter-spacing: 0.04em;
+}
+.board-placa {
+  font-weight: 600;
+  font-size: 1.7rem;
+}
+.board-ferr .bv span,
+.shell .board-vista .bv span {
+  font-size: 1.25rem;
+  font-weight: 500;
 }

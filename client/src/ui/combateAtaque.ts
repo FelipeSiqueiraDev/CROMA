@@ -3,11 +3,11 @@
  * em docs/COMBATE.md, seções 5.6 a 8): 1. Arma, 2. Situação, 3. Rolagem e
  * 4. Dano, com Desfazer e Confirmar ação. Os dados são físicos: o mestre digita
  * o d20 que ficou, o d10 da falha e a soma dos dados de dano. As contas saem de
- * @croma/shared (combate/ataque.ts); o servidor aplica o dano e escreve o
+ * @crona/shared (combate/ataque.ts); o servidor aplica o dano e escreve o
  * registro quando o mestre confirma.
  */
-import { combate as cb, type Vitals } from '@croma/shared';
-import type { regras } from '@croma/shared';
+import { combate as cb, type Vitals } from '@crona/shared';
+import type { regras } from '@crona/shared';
 import type { Cobertura } from '../room/combateGeo';
 import { h } from './dom';
 import { textoTeste } from './fichaRegras';
@@ -20,8 +20,10 @@ type TipoDano = regras.TipoDano;
 export interface ArmaOpcao {
   nome: string;
   pericia: 'luta' | 'pontaria';
-  /** d20 já com as penalidades da arma */
+  /** d20 do atributo e os ganhos */
   dados: number;
+  /** d20 perdidos (0 ou negativo): a conta de "menos de 1 dado" usa os dois (LR p. 11) */
+  penalidade?: number;
   bonus: number;
   /** "3d8+5" */
   dano: string;
@@ -31,6 +33,16 @@ export interface ArmaOpcao {
   /** faixa de alcance; null = corpo a corpo */
   faixa: cb.Faixa | null;
   notas: string[];
+  /** ataques por ação (o "×2" da ameaça) */
+  vezes?: number;
+  /** dano a mais de outro tipo, rolado à parte ("e 1d8 mental") */
+  extra?: { dano: string; tipo: TipoDano };
+  /** a arma está na mão (da ficha): só assim ataca; a da mochila precisa sacar antes */
+  naMao?: boolean;
+  /** o item da mochila (para sacar) */
+  uid?: number;
+  /** a jogada pronta do agente (regras/jogadas.ts): já somada; os PE saem junto com o ataque */
+  jogada?: { nome: string; pe: number; linhas: string[]; erros: string[]; avisos: string[]; nota?: string };
 }
 
 export interface AlvoAtaque {
@@ -72,6 +84,8 @@ export interface CtxAtaque {
   nevoa: 'nenhuma' | 'camuflagem' | 'espessa';
   acoes: cb.AcoesTurno;
   enviar: (a: cb.AcaoCombate) => void;
+  /** saca a arma da mochila (gasta a ação de movimento) */
+  sacar?: (a: ArmaOpcao) => void;
   /** pede para desenhar de novo (mudou uma escolha) */
   mudou: () => void;
 }
@@ -85,8 +99,11 @@ interface Estado {
   /** Defesa digitada, para alvo sem ficha */
   defesaManual: number | null;
   d20: number | null;
+  /** o dado da chance de falha (d10; d4 nos 75%) */
   d10: number | null;
   soma: number | null;
+  /** soma do dano a mais de outro tipo */
+  somaExtra: number | null;
 }
 
 const ICONE_SIT: Partial<Record<cb.SituacaoId, NomeIcone>> = {
@@ -121,17 +138,50 @@ const numero = (s: string): number | null => {
 
 export const PASSOS_ATAQUE = ['Ação', 'Arma', 'Alvo', 'Reação do alvo', 'Rolagem', 'Dano', 'Confirmar'];
 
+/** Caixinha de um número rolado na mesa (d20, d10, soma do dano). */
+export function campoDado(rotulo: string, valor: number | null, max: number, fn: (n: number | null) => void, foco: string, grande = false): HTMLElement {
+  const inp = h('input', {
+    class: `cb-dado${grande ? ' grande' : ''}`,
+    type: 'text',
+    inputmode: 'numeric',
+    maxlength: String(max).length,
+    value: valor === null ? '' : String(valor),
+    placeholder: '—',
+    'data-foco': foco,
+    'aria-label': rotulo,
+  });
+  const enviar = () => {
+    const n = numero(inp.value);
+    fn(n === null ? null : Math.max(0, Math.min(max, n)));
+  };
+  inp.addEventListener('change', enviar);
+  inp.addEventListener('keydown', (ev) => ev.key === 'Enter' && inp.blur());
+  return h('label', { class: 'cb-caixa-dado' }, h('small', null, rotulo), inp);
+}
+
+/** Linha de aviso (sem chave) nas colunas da resolução. */
+export function linhaInfo(icone: NomeIcone, texto: string, cls: string): HTMLElement {
+  return h('div', { class: `cb-sit info ${cls}` }, h('span', { class: 'cb-sit-ic' }, ic(icone)), h('span', { class: 'cb-sit-txt' }, texto));
+}
+
 /** Junta sem espaço: a linha não quebra no meio do crítico ("20/×2"). */
 const JUNTA = String.fromCodePoint(0x2060);
 
 export class ResolucaoAtaque {
-  private e: Estado = { chave: '', arma: 0, reacao: 'nenhuma', manual: {}, defesaManual: null, d20: null, d10: null, soma: null };
+  private e: Estado = { chave: '', arma: 0, reacao: 'nenhuma', manual: {}, defesaManual: null, d20: null, d10: null, soma: null, somaExtra: null };
 
   /** Zera a rolagem quando muda quem age, o alvo ou a rodada. */
   private sincronizar(x: CtxAtaque) {
     const chave = `${x.combate.rodada}|${x.combate.vez}|${x.ator.id}|${x.alvo?.p.id ?? 0}`;
-    if (chave === this.e.chave) return;
-    this.e = { chave, arma: Math.min(this.e.arma, Math.max(0, x.armas.length - 1)), reacao: 'nenhuma', manual: {}, defesaManual: null, d20: null, d10: null, soma: null };
+    // a escolhida tem de estar na mão (a da mochila precisa sacar)
+    const naMao = (i: number) => x.armas[i] && x.armas[i].naMao !== false;
+    if (chave === this.e.chave) {
+      if (!naMao(this.e.arma)) this.e.arma = Math.max(0, x.armas.findIndex((a) => a.naMao !== false));
+      return;
+    }
+    let arma = Math.min(this.e.arma, Math.max(0, x.armas.length - 1));
+    if (!naMao(arma)) arma = Math.max(0, x.armas.findIndex((a) => a.naMao !== false));
+    this.e = { chave, arma, reacao: 'nenhuma', manual: {}, defesaManual: null, d20: null, d10: null, soma: null, somaExtra: null };
   }
 
   /** Arma escolhida (a tela usa para o anel de alcance). */
@@ -193,7 +243,7 @@ export class ResolucaoAtaque {
     const alvo = x.alvo;
     const defesaBase = alvo?.defesa ?? this.e.defesaManual;
     const esquiva = this.e.reacao === 'esquiva' && alvo?.reacoes?.esquiva != null && alvo.defesa != null ? alvo.reacoes.esquiva - alvo.defesa : 0;
-    const bruto = arma ? cb.montarTeste({ dados: arma.dados, bonus: arma.bonus, defesaBase: (defesaBase ?? 0) + esquiva, distancia: !!arma.faixa, situacoes: ids }) : null;
+    const bruto = arma ? cb.montarTeste({ dados: arma.dados, penalidade: arma.penalidade ?? 0, bonus: arma.bonus, defesaBase: (defesaBase ?? 0) + esquiva, distancia: !!arma.faixa, situacoes: ids }) : null;
     // a esquiva aparece como parte da Defesa ("21 (16 + 5 esquiva)")
     const teste = bruto && esquiva ? { ...bruto, partesDefesa: [{ nome: 'esquiva', valor: esquiva }, ...bruto.partesDefesa] } : bruto;
     const res =
@@ -207,7 +257,10 @@ export class ResolucaoAtaque {
     const mult = res?.resultado === 'critico' ? arma!.multiplicador : 1;
     const naoLetal = ids.includes('naoLetal');
     const bloqueio = this.e.reacao === 'bloqueio' ? (alvo?.reacoes?.bloqueio ?? 0) : 0;
-    let dano: { partes: cb.PartesDano; conta: cb.ContaDano; q: cb.Consequencia | null } | null = null;
+    type Dano = { partes: cb.PartesDano; conta: cb.ContaDano; previa: ReturnType<typeof cb.previaDano> };
+    let dano: Dano | null = null;
+    // o que o dano faz no alvo: PV, o dano não letal à parte ou a SAN (LR p. 82, 88)
+    const previa = (final: number, tipo: TipoDano, nl: boolean) => (alvo ? cb.previaDano(alvo.vitais, final, { tipo, naoLetal: nl, naoLetalAntes: alvo.p.naoLetal, agente: alvo.agente }) : null);
     if (arma && acertou && this.e.soma !== null && alvo) {
       const partes = cb.danoCritico(arma.dano, mult);
       const conta = cb.contaDano({ soma: this.e.soma, fixo: partes.fixo, tipo: arma.tipo, rd: alvo.rd, imunidades: alvo.imunidades, vulnerabilidades: alvo.vulnerabilidades });
@@ -217,9 +270,16 @@ export class ResolucaoAtaque {
         conta.conta = `${conta.conta} − bloqueio ${bloqueio} = ${f}`;
         conta.final = f;
       }
-      dano = { partes, conta, q: alvo.vitais ? cb.consequencia(alvo.vitais, conta.final) : null };
+      dano = { partes, conta, previa: previa(conta.final, arma.tipo, naoLetal) };
     }
-    return { arma, det, ids, teste, defesaBase, res, pedeD10, falhaPendente, acertou, mult, naoLetal, bloqueio, dano };
+    // o dano a mais de outro tipo ("e 1d8 mental"): rolado à parte; no crítico, não multiplica (LR p. 82)
+    let extra: Dano | null = null;
+    if (arma?.extra && acertou && this.e.somaExtra !== null && alvo) {
+      const partes = cb.lerDano(arma.extra.dano);
+      const conta = cb.contaDano({ soma: this.e.somaExtra, fixo: partes.fixo, tipo: arma.extra.tipo, rd: alvo.rd, imunidades: alvo.imunidades, vulnerabilidades: alvo.vulnerabilidades });
+      extra = { partes, conta, previa: previa(conta.final, arma.extra.tipo, false) };
+    }
+    return { arma, det, ids, teste, defesaBase, res, pedeD10, falhaPendente, acertou, mult, naoLetal, bloqueio, dano, extra };
   }
 
   /** Em que passo está (para a barra de passos). */
@@ -228,7 +288,7 @@ export class ResolucaoAtaque {
     if (!k.arma) return 1;
     if (!x.alvo) return 2;
     if (k.defesaBase === null || this.e.d20 === null || k.falhaPendente) return 4;
-    if (k.acertou && this.e.soma === null) return 5;
+    if (k.acertou && (this.e.soma === null || (k.arma.extra && this.e.somaExtra === null))) return 5;
     return 6;
   }
 
@@ -241,8 +301,32 @@ export class ResolucaoAtaque {
   }
 
   private colArma(x: CtxAtaque): HTMLElement {
+    const movimentoUsado = x.acoes.movimento || x.acoes.completa;
     const cards = x.armas.map((a, i) =>
-      h(
+      a.naMao === false
+        ? // na mochila: não ataca; sacar gasta a ação de movimento (LR p. 54)
+          h(
+            'div',
+            { class: 'cb-arma fora' },
+            h('span', { class: 'cb-arma-ic' }, ic(a.pericia === 'pontaria' ? 'pistola' : 'faca')),
+            h('span', { class: 'cb-arma-txt' }, h('b', null, a.nome), h('small', null, `na mochila · ${a.dano}`)),
+            x.sacar && a.uid !== undefined
+              ? h(
+                  'button',
+                  {
+                    class: 'cb-sacar',
+                    type: 'button',
+                    disabled: movimentoUsado,
+                    title: movimentoUsado ? 'A ação de movimento já foi usada nesta rodada.' : 'Sacar: a arma vai para a mão (ação de movimento)',
+                    onclick: () => (sfx.click(), x.sacar!(a)),
+                  },
+                  'Sacar',
+                )
+              : null,
+          )
+        : a.jogada
+          ? this.cartaoJogada(x, a, i)
+          : h(
         'button',
         {
           class: `cb-arma${i === this.e.arma ? ' on' : ''}`,
@@ -251,7 +335,7 @@ export class ResolucaoAtaque {
           onclick: () => {
             sfx.click();
             this.e.arma = i;
-            this.e.d20 = this.e.d10 = this.e.soma = null;
+            this.e.d20 = this.e.d10 = this.e.soma = this.e.somaExtra = null;
             x.mudou();
           },
         },
@@ -260,15 +344,15 @@ export class ResolucaoAtaque {
           ? h(
               'span',
               { class: 'cb-arma-txt' },
-              h('b', null, a.nome),
-              h('small', null, `${a.pericia === 'luta' ? 'Luta' : 'Pontaria'} ${textoTeste(a.dados, a.bonus)} · dano ${a.dano}`),
+              h('b', null, a.vezes ? `${a.nome} ×${a.vezes}` : a.nome),
+              h('small', null, `${a.pericia === 'luta' ? 'Luta' : 'Pontaria'} ${textoTeste(a.dados, a.bonus, a.penalidade)} · dano ${a.dano}${a.extra ? ` e ${a.extra.dano} ${cb.NOME_TIPO_DANO[a.extra.tipo]}` : ''}`),
               h('small', null, [`${a.margem}/${JUNTA}×${a.multiplicador}`, a.faixa ? cb.NOME_FAIXA[a.faixa] : 'corpo a corpo', ...a.notas].join(' · ')),
             )
           : h(
               'span',
               { class: 'cb-arma-txt' },
-              h('b', null, a.nome),
-              h('small', null, [`${a.pericia === 'luta' ? 'Luta' : 'Pontaria'} ${textoTeste(a.dados, a.bonus)}`, a.dano, a.margem < 20 ? String(a.margem) : '', a.faixa ? cb.NOME_FAIXA[a.faixa] : ''].filter(Boolean).join(' · ')),
+              h('b', null, a.vezes ? `${a.nome} ×${a.vezes}` : a.nome),
+              h('small', null, [`${a.pericia === 'luta' ? 'Luta' : 'Pontaria'} ${textoTeste(a.dados, a.bonus, a.penalidade)}`, a.dano, a.margem < 20 ? String(a.margem) : '', a.faixa ? cb.NOME_FAIXA[a.faixa] : ''].filter(Boolean).join(' · ')),
             ),
       ),
     );
@@ -277,6 +361,40 @@ export class ResolucaoAtaque {
       { class: 'cb-col cb-col-arma' },
       h('h4', null, h('span', null, '1.'), ' ARMA'),
       h('div', { class: 'cb-col-lista cb-rola' }, ...(cards.length ? cards : [h('p', { class: 'cb-vazio' }, 'Sem ataques: crie a ficha da ameaça no painel do alvo.')])),
+    );
+  }
+
+  /** A jogada pronta: o nome, o que ela soma (passo a passo) e o que o motor achou. Com erro, não escolhe. */
+  private cartaoJogada(x: CtxAtaque, a: ArmaOpcao, i: number): HTMLElement {
+    const jg = a.jogada!;
+    const on = i === this.e.arma;
+    const travada = jg.erros.length > 0;
+    return h(
+      'button',
+      {
+        class: `cb-arma cb-jogada${on ? ' on' : ''}${travada ? ' travada' : ''}`,
+        type: 'button',
+        disabled: travada && !on,
+        'aria-pressed': String(on),
+        title: travada ? jg.erros.join(' · ') : `Jogada pronta: ${jg.linhas.join('; ')}`,
+        onclick: () => {
+          if (travada) return;
+          sfx.click();
+          this.e.arma = i;
+          this.e.d20 = this.e.d10 = this.e.soma = this.e.somaExtra = null;
+          x.mudou();
+        },
+      },
+      h('span', { class: 'cb-arma-ic' }, ic('estrela')),
+      h(
+        'span',
+        { class: 'cb-arma-txt' },
+        h('b', null, jg.nome, jg.pe ? h('em', { class: 'cb-jogada-pe' }, ` ${jg.pe} PE`) : null),
+        ...(on || travada ? jg.linhas.map((l) => h('small', null, l)) : [h('small', null, `${a.pericia === 'luta' ? 'Luta' : 'Pontaria'} ${textoTeste(a.dados, a.bonus, a.penalidade)} · ${a.dano} · ${a.margem}/${JUNTA}×${a.multiplicador}`)]),
+        ...jg.erros.map((e) => h('small', { class: 'cb-jogada-erro' }, '✕ ', e)),
+        ...(on ? jg.avisos.map((e) => h('small', { class: 'cb-jogada-aviso' }, '! ', e)) : []),
+        on && jg.nota ? h('small', { class: 'cb-jogada-nota' }, `“${jg.nota}”`) : null,
+      ),
     );
   }
 
@@ -343,27 +461,11 @@ export class ResolucaoAtaque {
   }
 
   private info(icone: NomeIcone, texto: string, cls: string) {
-    return h('div', { class: `cb-sit info ${cls}` }, h('span', { class: 'cb-sit-ic' }, ic(icone)), h('span', { class: 'cb-sit-txt' }, texto));
+    return linhaInfo(icone, texto, cls);
   }
 
   private campo(rotulo: string, valor: number | null, max: number, fn: (n: number | null) => void, foco: string, grande = false): HTMLElement {
-    const inp = h('input', {
-      class: `cb-dado${grande ? ' grande' : ''}`,
-      type: 'text',
-      inputmode: 'numeric',
-      maxlength: String(max).length,
-      value: valor === null ? '' : String(valor),
-      placeholder: '—',
-      'data-foco': foco,
-      'aria-label': rotulo,
-    });
-    const enviar = () => {
-      const n = numero(inp.value);
-      fn(n === null ? null : Math.max(0, Math.min(max, n)));
-    };
-    inp.addEventListener('change', enviar);
-    inp.addEventListener('keydown', (ev) => ev.key === 'Enter' && inp.blur());
-    return h('label', { class: 'cb-caixa-dado' }, h('small', null, rotulo), inp);
+    return campoDado(rotulo, valor, max, fn, foco, grande);
   }
 
   private colRolagem(x: CtxAtaque, k: ReturnType<ResolucaoAtaque['conta']>): HTMLElement {
@@ -410,26 +512,27 @@ export class ResolucaoAtaque {
           ),
         );
       if (k.teste) {
-        corpo.push(h('div', { class: 'cb-instrucao' }, ic('dados'), h('span', null, cb.textoRolagem(k.teste.dados, k.teste.bonus))));
+        corpo.push(h('div', { class: 'cb-instrucao' }, ic('dados'), h('span', null, cb.textoRolagem(k.teste.dados, k.teste.bonus, k.teste.penalidade))));
         const res = k.res;
         const carimbo = res && !k.falhaPendente ? this.carimbo(res.resultado, k.mult) : null;
-        corpo.push(h('div', { class: 'cb-linha-dado' }, this.campo('d20 que ficou', this.e.d20, 20, (n) => ((this.e.d20 = n && n >= 1 ? n : null), (this.e.d10 = null), (this.e.soma = null), x.mudou()), 'atk:d20', true)));
+        corpo.push(h('div', { class: 'cb-linha-dado' }, this.campo('d20 que ficou', this.e.d20, 20, (n) => ((this.e.d20 = n && n >= 1 ? n : null), (this.e.d10 = null), (this.e.soma = this.e.somaExtra = null), x.mudou()), 'atk:d20', true)));
         if (carimbo) corpo.push(carimbo);
         if (res && k.defesaBase !== null) corpo.push(h('p', { class: 'cb-total' }, `Total ${res.total} vs Defesa ${cb.textoDefesa(k.teste, k.defesaBase)}${this.e.d20 === 20 ? ' · 20 natural' : ''}`));
         if (k.pedeD10) {
-          const pedaco = cb.falhaNoD10(k.teste.falha);
+          // d10 nas dezenas; os 75% (o teto da soma) não cabem no d10: 1 a 3 no d4 (LR p. 89, 313)
+          const { faces, ate } = cb.dadoDaFalha(k.teste.falha);
           corpo.push(
             h(
               'div',
               { class: 'cb-linha-dado falha' },
-              this.campo(`d10 da falha (${k.teste.falha}%)`, this.e.d10, 10, (n) => ((this.e.d10 = n && n >= 1 ? n : null), x.mudou()), 'atk:d10'),
-              h('small', null, this.e.d10 === null ? `Falha com 1${pedaco > 1 ? ` a ${pedaco}` : ''} no d10.` : `d10 = ${this.e.d10} · ${res?.falhou ? 'falhou' : 'não falhou'}`),
+              this.campo(`d${faces} da falha (${k.teste.falha}%)`, this.e.d10, faces, (n) => ((this.e.d10 = n && n >= 1 ? n : null), x.mudou()), 'atk:d10'),
+              h('small', null, this.e.d10 === null ? `Falha com 1${ate > 1 ? ` a ${ate}` : ''} no d${faces}.` : `d${faces} = ${this.e.d10} · ${res?.falhou ? 'falhou' : 'não falhou'}`),
             ),
           );
         }
       }
     }
-    return h('section', { class: 'cb-col cb-col-rol' }, h('h4', null, h('span', null, '3.'), ' ROLAGEM'), h('div', { class: 'cb-col-corpo' }, ...corpo));
+    return h('section', { class: 'cb-col cb-col-rol' }, h('h4', null, h('span', null, '3.'), ' ROLAGEM'), h('div', { class: 'cb-col-corpo cb-rola' }, ...corpo));
   }
 
   private carimbo(r: cb.ResultadoAtaque, mult: number): HTMLElement {
@@ -449,17 +552,20 @@ export class ResolucaoAtaque {
       const contra = !arma.faixa && alvo.agente && alvo.reacoes?.contraAtaque && !alvo.p.reacao;
       partes.push(h('p', { class: 'cb-dano-conta' }, h('b', null, k.res.falhou ? 'A camuflagem desviou o golpe: sem dano.' : 'Errou: sem dano.'), contra ? h('span', { class: 'alerta' }, ` ${alvo.p.nome} pode contra-atacar.`) : null));
     } else {
-      instrucao = h('div', { class: 'cb-instrucao' }, ic('dados'), h('span', null, cb.textoDano(arma.dano, k.mult)));
+      const ex = arma.extra;
+      instrucao = h('div', { class: 'cb-instrucao' }, ic('dados'), h('span', null, `${cb.textoDano(arma.dano, k.mult)}${ex ? `; à parte, ${ex.dano} ${cb.NOME_TIPO_DANO[ex.tipo]}` : ''}`));
       partes.push(this.campo('soma dos dados', this.e.soma, 999, (n) => ((this.e.soma = n), x.mudou()), 'atk:dano', true));
-      if (k.dano) {
+      if (ex) partes.push(this.campo(`soma do ${ex.dano} ${cb.NOME_TIPO_DANO[ex.tipo]}`, this.e.somaExtra, 999, (n) => ((this.e.somaExtra = n), x.mudou()), 'atk:extra'));
+      if (k.dano && (!ex || k.extra)) {
         pronto = true;
-        const q = k.dano.q;
-        const v = alvo.vitais;
         const nome = alvo.p.nome;
-        const linhas: HTMLElement[] = [h('span', null, k.dano.conta.conta)];
-        if (q && v) linhas.push(h('span', { class: 'alerta' }, `${nome}: PV ${v.pv} → ${q.pv}${q.zerou ? (alvo.agente ? ' (inconsciente e morrendo)' : ' (0 PV)') : q.machucado ? ' (machucado)' : ''}`));
-        else linhas.push(h('span', { class: 'alerta' }, `${nome} não tem PV marcados: o dano só vai para o registro.`));
-        if (q?.massivo) linhas.push(h('span', { class: 'alerta' }, `Dano massivo: Fortitude DT ${q.massivo} (LR p. 88)`));
+        const linhas: HTMLElement[] = [];
+        for (const d of [k.dano, k.extra]) {
+          if (!d) continue;
+          linhas.push(h('span', null, d.conta.conta));
+          linhas.push(h('span', { class: 'alerta' }, d.previa ? `${nome}: ${d.previa.texto}` : `${nome} não tem PV marcados: o dano só vai para o registro.`));
+          if (d.previa?.massivo) linhas.push(h('span', { class: 'alerta' }, `Dano massivo: Fortitude DT ${d.previa.massivo} (LR p. 88)`));
+        }
         if (alvo.p.sustenta) linhas.push(h('span', { class: 'alerta' }, `Sustenta ${alvo.p.sustenta}.`));
         partes.push(h('div', { class: 'cb-dano-conta' }, ...linhas));
       }
@@ -473,7 +579,8 @@ export class ResolucaoAtaque {
         title: 'Volta um passo da rolagem',
         onclick: () => {
           sfx.click();
-          if (this.e.soma !== null) this.e.soma = null;
+          if (this.e.somaExtra !== null) this.e.somaExtra = null;
+          else if (this.e.soma !== null) this.e.soma = null;
           else if (this.e.d10 !== null) this.e.d10 = null;
           else this.e.d20 = null;
           x.mudou();
@@ -482,13 +589,14 @@ export class ResolucaoAtaque {
       ic('girarE'),
       h('span', null, 'Desfazer'),
     );
-    const semAcao = x.acoes.completa || (x.acoes.padrao && !k.ids.includes('investida'));
+    // o "×2" da ameaça deixa mais ataques na mesma ação padrão
+    const semAcao = x.acoes.completa || (x.acoes.padrao && !k.ids.includes('investida') && !x.acoes.golpes);
     const confirmar = h(
       'button',
       {
         class: 'cb-bt forte',
         type: 'button',
-        disabled: !pronto || semAcao,
+        disabled: !pronto || semAcao || !!arma?.jogada?.erros.length,
         title: semAcao ? 'A ação padrão deste turno já foi usada' : 'Aplica o dano e escreve no registro',
         onclick: () => {
           if (!arma || !alvo || !k.res || !k.teste) return;
@@ -517,10 +625,24 @@ export class ResolucaoAtaque {
                   },
                 }
               : {}),
+            ...(k.extra && arma.extra
+              ? {
+                  danoExtra: {
+                    formula: cb.textoFormula(k.extra.partes),
+                    soma: this.e.somaExtra!,
+                    total: k.extra.conta.total,
+                    tipo: arma.extra.tipo,
+                    conta: k.extra.conta.conta,
+                    final: k.extra.conta.final,
+                  },
+                }
+              : {}),
             ...(k.res.resultado === 'erro' && !arma.faixa && alvo.agente && alvo.reacoes?.contraAtaque && !alvo.p.reacao ? { contraAtaque: true } : {}),
+            ...(arma.vezes ? { vezes: arma.vezes } : {}),
+            ...(arma.jogada ? { jogada: { nome: arma.jogada.nome, pe: arma.jogada.pe } } : {}),
           };
           x.enviar({ tipo: 'ataque', ataque });
-          this.e.d20 = this.e.d10 = this.e.soma = null;
+          this.e.d20 = this.e.d10 = this.e.soma = this.e.somaExtra = null;
           this.e.reacao = 'nenhuma';
           this.e.manual = {};
           x.mudou();

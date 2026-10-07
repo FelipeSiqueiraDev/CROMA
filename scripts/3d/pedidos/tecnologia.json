@@ -1,0 +1,90 @@
+[
+ {
+  "nome": "mesa-telas-fundo",
+  "titulo": "Mesa de telas: o fundo do U, inteiro (com os dois cantos)",
+  "casas": [
+   6,
+   1
+  ],
+  "real": [
+   4.5,
+   0.75,
+   1.25
+  ]
+ },
+ {
+  "nome": "mesa-telas-lado",
+  "titulo": "Mesa de telas: uma perna do U, inteira",
+  "casas": [
+   1,
+   3
+  ],
+  "real": [
+   0.75,
+   2.25,
+   1.25
+  ]
+ },
+ {
+  "nome": "cadeira-gamer",
+  "titulo": "Cadeira gamer",
+  "casas": [
+   1,
+   1
+  ],
+  "real": [
+   0.65,
+   0.65,
+   1.3
+  ]
+ },
+ {
+  "nome": "rack-moderno",
+  "titulo": "Rack de servidores moderno",
+  "casas": [
+   1,
+   2
+  ],
+  "real": [
+   0.6,
+   1.0,
+   2.0
+  ],
+  "encosta": true
+ },
+ {
+  "nome": "lixeira-lanches",
+  "titulo": "Lixeira transbordando",
+  "casas": [
+   1,
+   1
+  ],
+  "real": [
+   0.4,
+   0.4,
+   0.6
+  ]
+ },
+ {
+  "nome": "painel-telas",
+  "titulo": "Painel de telas na parede",
+  "parede": true,
+  "real": [
+   2.0,
+   0.08,
+   1.1
+  ],
+  "alto": 1.3
+ },
+ {
+  "nome": "mural-polaroids",
+  "titulo": "Mural de polaroids do Kaiser",
+  "parede": true,
+  "real": [
+   0.9,
+   0.03,
+   0.6
+  ],
+  "alto": 1.2
+ }
+]

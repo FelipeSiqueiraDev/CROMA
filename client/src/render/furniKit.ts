@@ -1,4 +1,4 @@
-import type { FurniDef } from '@croma/shared';
+import type { FurniDef } from '@crona/shared';
 import { rgba, shade } from './color';
 import type { LBox, LFace, Painter } from './painter';
 
@@ -20,6 +20,10 @@ export interface LightDef {
 export interface FNode {
   b: LBox;
   draw(p: Painter): void;
+  /** quanto o desenho passa da caixa, em px de tela (a copa da árvore): vale no raio-x e no corte da tela */
+  pad?: number;
+  /** a caixa para a ordem de desenho, quando não é a do desenho (ver `naParede`) */
+  ordem?: LBox;
 }
 export interface FVisual {
   nodes: FNode[];
@@ -31,6 +35,21 @@ export type Builder = (def: FurniDef, state: number, seed: number) => FVisual;
 export const N = (b: LBox, draw: (p: Painter) => void): FNode => ({ b, draw });
 export const B = (b: LBox, color: string, o?: Parameters<Painter['box']>[2]): FNode => N(b, (p) => p.box(b, color, o));
 export const V = (nodes: FNode[], lights: LightDef[] = []): FVisual => ({ nodes, lights });
+
+/**
+ * A peça como parte da parede na ordem de desenho: a mesma caixa, só que atrás do plano da parede.
+ * A moldura da porta passa para as casas vizinhas (a porta tem 0,9 m e a casa, 0,75 m); sem isso,
+ * ela saía por cima do que fica na sala encostado nela (a estante do lado, quem para ali).
+ */
+export const naParede = (n: FNode): FNode => ({ ...n, ordem: [n.b[0] - 0.3, n.b[1] - 0.3, n.b[2], n.b[3], n.b[4], n.b[5]] });
+
+/**
+ * A porta no tamanho da arte dela (desde 05/10, 0,75 m com o batente, a largura da casa): o vão tem
+ * 0,65 m e o batente, 5 cm de cada lado. Na ordem de desenho, a moldura é parede (`naParede`), e o
+ * que fica encostado nela vem na frente.
+ */
+export const VAO_PORTA_M = 0.65;
+export const BATENTE_PORTA_M = 0.05;
 
 export const WARM = '#ffb45a';
 export const PAPER = '#d8cdb0';

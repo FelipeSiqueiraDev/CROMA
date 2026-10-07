@@ -3,10 +3,10 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { beforeEach, describe, test } from 'node:test';
-import { applyVital, DEFAULT_VITALS, findPath, getFurni, vitalConditions, Z_PER_M, type ClientMsg, type FloorItem, type ServerMsg } from '@croma/shared';
+import { applyVital, DEFAULT_VITALS, findPath, getFurni, vitalConditions, Z_PER_M, type ClientMsg, type FloorItem, type ServerMsg } from '@crona/shared';
 import type { RoomData } from '../src/db';
 import { Hotel } from '../src/hotel';
-import { findPortraits } from '../src/portraits';
+import { findAnim, findBoneco, findPassos, findPortraits, findPoses, refreshPortraits } from '../src/portraits';
 import { restackRoom, seedDb, upgradeDb } from '../src/seed';
 import { rebuildSede, SEDE, SEDE_CODE } from '../src/seedSede';
 
@@ -142,6 +142,30 @@ describe('passagem secreta (geladeira)', () => {
     assert.equal(stairs().state, 0);
   });
 
+  test('arrastar a geladeira aberta de volta para cima da escada fecha a passagem (a senha volta a abrir)', () => {
+    const id = fridge().id;
+    gm.send({ t: 'unlock', id, code: SEDE_CODE });
+    assert.deepEqual([fridge().x, fridge().y], [19, 0]);
+    gm.send({ t: 'moveItem', id, x: 20, y: 0, rot: 4 });
+    assert.deepEqual([fridge().x, fridge().y], [20, 0]);
+    assert.equal(fridge().lock?.open, false);
+    assert.equal(stairs().state, 0);
+    gm.send({ t: 'unlock', id, code: SEDE_CODE });
+    assert.deepEqual([fridge().x, fridge().y], [19, 0]);
+    assert.equal(stairs().state, 1);
+    gm.send({ t: 'relock', id });
+    assert.deepEqual([fridge().x, fridge().y], [20, 0]);
+  });
+
+  test('girar a geladeira no lugar mantém a passagem fechada', () => {
+    const id = fridge().id;
+    gm.send({ t: 'moveItem', id, x: 20, y: 0, rot: 2 });
+    assert.equal(fridge().rot, 2);
+    assert.equal(fridge().lock?.open, false);
+    assert.equal(stairs().state, 0);
+    gm.send({ t: 'moveItem', id, x: 20, y: 0, rot: 4 });
+  });
+
   test('quem sobe pela escada com a passagem fechada abre por dentro', () => {
     const bar = room('Bar');
     const salao = room('Salão Principal');
@@ -152,6 +176,35 @@ describe('passagem secreta (geladeira)', () => {
     assert.equal(fridge().lock?.open, true);
     const t = bar.tokensLive().find((x) => x.name === tk.name)!;
     assert.deepEqual([t.token.tile.x, t.token.tile.y], [20, 0]);
+  });
+
+  test('quem desce do bar chega no pé da escada do salão, virado para a sala', () => {
+    const bar = room('Bar');
+    const salao = room('Salão Principal');
+    const tk = bar.tokenList()[0];
+    hotel.moveToken(bar, tk.id, salao.data.id);
+    const escada = salao.map.allItems().find((i) => i.defId === 'stairs_up')!;
+    const t = salao.tokensLive().find((x) => x.name === tk.name)!;
+    // a escada (giro 2) sobe para a parede da esquerda: o pé fica na frente dela, em +x
+    assert.equal(escada.rot, 2);
+    assert.deepEqual([t.token.tile.x, t.token.tile.y], [escada.x + 2, escada.y]);
+    assert.equal(t.token.dir, 2);
+  });
+
+  test('porta: clique duplo fecha, tranca e abre; fechada ou trancada ninguém passa', () => {
+    const salao = room('Salão Principal');
+    gm.send({ t: 'join', roomId: salao.data.id });
+    const porta = salao.map.allItems().find((i) => i.defId === 'portal' && i.x === 16 && i.y === 0)!;
+    assert.equal(salao.map.walkState(16, 0), 'walk');
+    gm.send({ t: 'use', id: porta.id });
+    assert.equal(salao.map.getItem(porta.id)!.state, 1, 'fechada');
+    assert.equal(salao.map.walkState(16, 0), 'blocked');
+    gm.send({ t: 'use', id: porta.id });
+    assert.equal(salao.map.getItem(porta.id)!.state, 2, 'trancada');
+    assert.equal(salao.map.walkState(16, 0), 'blocked');
+    gm.send({ t: 'use', id: porta.id });
+    assert.equal(salao.map.getItem(porta.id)!.state, 0, 'aberta de novo');
+    assert.equal(salao.map.walkState(16, 0), 'walk');
   });
 
   test('peça salva em cima de uma passagem não troca de cena ao reiniciar', () => {
@@ -183,7 +236,7 @@ describe('passagem secreta (geladeira)', () => {
     assert.ok(salao.hasToken(-tk.id), 'a peça está no salão');
   });
 
-  test('sem ninguém no bar, a passagem se fecha sozinha', () => {
+  test('sem ninguém no bar (nenhuma peça e o mestre fora da cena), a passagem se fecha sozinha', () => {
     const bar = room('Bar');
     const salao = room('Salão Principal');
     gm.send({ t: 'unlock', id: fridge().id, code: SEDE_CODE });
@@ -191,9 +244,12 @@ describe('passagem secreta (geladeira)', () => {
     // enquanto sobra alguém, continua aberta
     for (const tk of tokens.slice(0, -1)) hotel.moveToken(bar, tk.id, salao.data.id);
     assert.equal(fridge().lock?.open, true);
-    // o último desce: a geladeira volta para cima da escada
+    // o último desce: com o mestre olhando o bar, ela continua aberta
     hotel.moveToken(bar, tokens[tokens.length - 1].id, salao.data.id);
     assert.equal(bar.tokenList().length, 0);
+    assert.equal(fridge().lock?.open, true);
+    // o mestre sai da cena: a geladeira volta para cima da escada
+    gm.send({ t: 'join', roomId: salao.data.id });
     assert.equal(fridge().lock?.open, false);
     assert.deepEqual([fridge().x, fridge().y], [20, 0]);
     assert.equal(stairs().state, 0);
@@ -202,6 +258,36 @@ describe('passagem secreta (geladeira)', () => {
     // quem volta pela escada abre de novo por dentro
     hotel.moveToken(salao, tokens[0].id, bar.data.id);
     assert.equal(fridge().lock?.open, true);
+  });
+
+  test('com o bar vazio, o mestre abre mesmo assim; quando ele sai da cena, ela se fecha', () => {
+    const bar = room('Bar');
+    const salao = room('Salão Principal');
+    for (const tk of bar.tokenList()) hotel.moveToken(bar, tk.id, salao.data.id);
+    gm.send({ t: 'unlock', id: fridge().id, code: SEDE_CODE });
+    assert.equal(gm.last('lockResult')?.ok, true);
+    assert.equal(fridge().lock?.open, true);
+    assert.deepEqual([fridge().x, fridge().y], [19, 0]);
+    gm.send({ t: 'join', roomId: salao.data.id });
+    assert.equal(fridge().lock?.open, false);
+    assert.deepEqual([fridge().x, fridge().y], [20, 0]);
+  });
+
+  test('regra absoluta: carregou com a passagem aberta e o bar vazio, ela se fecha', () => {
+    const db = seedDb();
+    upgradeDb(db);
+    const bar = db.rooms.find((r) => r.name === SEDE + 'Bar')!;
+    const g = bar.items.find((i) => i.lock)!;
+    g.lock = { ...g.lock!, open: true };
+    g.x = 19;
+    bar.items.find((i) => i.defId === 'stairs_down')!.state = 1;
+    bar.tokens = [];
+    const h = new Hotel({ db, persist: false, timers: false });
+    const r = h.rooms.get(bar.id)!;
+    const f = r.map.allItems().find((i) => i.lock)!;
+    assert.equal(f.lock?.open, false);
+    assert.deepEqual([f.x, f.y], [20, 0]);
+    assert.equal(r.map.allItems().find((i) => i.defId === 'stairs_down')!.state, 0);
   });
 });
 
@@ -231,15 +317,34 @@ describe('montagem nova da Sede', () => {
     const camp = db.campaigns![String(bar.id)];
     camp.log.push({ at: 1, icon: 'scene', text: 'teste' });
     const tk = bar.tokens![0];
-    // simula a montagem antiga
+    // simula a montagem antiga do bar; a do salão não mudou e fica como o mestre deixou
     db.sedeRev = 1;
+    bar.montagem = 'antiga';
     bar.items = bar.items.filter((i) => i.defId !== 'dirt');
+    const salao = db.rooms.find((r) => r.name === SEDE + 'Salão Principal')!;
+    salao.items = salao.items.slice(1);
+    const noSalao = salao.items.length;
     assert.ok(rebuildSede(db));
+    assert.equal(salao.items.length, noSalao);
     assert.deepEqual(db.rooms.filter((r) => r.name.startsWith(SEDE)).map((r) => r.id), ids);
     assert.ok(bar.items.some((i) => i.defId === 'dirt'));
     assert.ok(bar.tokens!.some((t) => t.id === tk.id && t.x === tk.x && t.y === tk.y));
     assert.ok(camp.log.some((l) => l.text === 'teste'));
     assert.equal(rebuildSede(db), false);
+  });
+
+  test('cômodo de antes do resumo: fica como está e ganha só as peças novas da parede', () => {
+    const db = seedDb();
+    upgradeDb(db);
+    const bar = db.rooms.find((r) => r.name === SEDE + 'Bar')!;
+    db.sedeRev = 1;
+    delete bar.montagem;
+    bar.wallItems = bar.wallItems.filter((w) => w.defId !== 'dartboard');
+    bar.items = bar.items.filter((i) => i.defId !== 'dirt');
+    assert.ok(rebuildSede(db));
+    assert.ok(!bar.items.some((i) => i.defId === 'dirt'));
+    assert.equal(bar.wallItems.filter((w) => w.defId === 'dartboard').length, 1);
+    assert.ok(bar.montagem);
   });
 });
 
@@ -316,7 +421,7 @@ describe('proporção dos móveis', () => {
 
 describe('retratos por estado', () => {
   test('acha os retratos (e os de olhos fechados) na pasta do personagem', () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'croma-'));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crona-'));
     fs.mkdirSync(path.join(dir, 'tepes'));
     for (const f of ['retrato-desarmado.png', 'retrato-desarmado-olhos-fechados.png', 'retrato-armado-machucado.webp', 'folha.webp']) fs.writeFileSync(path.join(dir, 'tepes', f), '');
     const p = findPortraits('/arte/personagens/tepes/folha.webp', dir);
@@ -325,6 +430,134 @@ describe('retratos por estado', () => {
       'armado-machucado': { open: '/arte/personagens/tepes/retrato-armado-machucado.webp' },
     });
     assert.equal(findPortraits('/uploads/abc.png', dir), undefined);
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+describe('poses do tabuleiro (32 bits)', () => {
+  test('acha as poses por estado e direção; sem a direção no nome, é a frente para a direita (se)', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crona-'));
+    const pasta = path.join(dir, 'tepes', 'tabuleiro-32bits');
+    fs.mkdirSync(pasta, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'tepes', 'folha.webp'), '');
+    for (const f of ['idle-desarmado.png', 'idle-desarmado-ne.png', 'idle-armado-machucado.webp', 'idle-armado-machucado-sw.png', 'leia.txt']) fs.writeFileSync(path.join(pasta, f), '');
+    const url = (f: string) => `/arte/personagens/tepes/tabuleiro-32bits/${f}`;
+    assert.deepEqual(findPoses('/arte/personagens/tepes/folha.webp', dir), {
+      desarmado: { se: url('idle-desarmado.png'), ne: url('idle-desarmado-ne.png') },
+      'armado-machucado': { sw: url('idle-armado-machucado-sw.png'), se: url('idle-armado-machucado.webp') },
+    });
+    // a imagem com a direção no nome vale mais que a sem direção
+    fs.writeFileSync(path.join(pasta, 'idle-desarmado-se.png'), '');
+    assert.equal(findPoses('/arte/personagens/tepes/folha.webp', dir)?.desarmado?.se, url('idle-desarmado-se.png'));
+    assert.equal(findPoses('/uploads/abc.png', dir), undefined);
+    assert.equal(findPoses('/arte/personagens/alosi/folha.webp', dir), undefined, 'sem a pasta, sem poses');
+    // o personagem ganha as poses (e perde quando a pasta some)
+    const def = { id: 1, name: 'D.Tepes', owner: '', sheet: '/arte/personagens/tepes/folha.webp', cols: 4, rows: 4, dirs: [], height: 104, fps: 4, sequence: [], removeBg: false } as Parameters<typeof refreshPortraits>[0][number];
+    assert.equal(refreshPortraits([def], dir), true);
+    assert.equal(def.poses?.desarmado?.ne, url('idle-desarmado-ne.png'));
+    assert.equal(refreshPortraits([def], dir), false, 'nada mudou');
+    fs.rmSync(pasta, { recursive: true, force: true });
+    assert.equal(refreshPortraits([def], dir), true);
+    assert.equal(def.poses, undefined);
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  test('acha os quadros de andar por estado e direção, em ordem, e para no primeiro que falta', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crona-'));
+    const pasta = path.join(dir, 'alosi', 'tabuleiro-32bits');
+    fs.mkdirSync(pasta, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'alosi', 'folha.webp'), '');
+    for (const f of ['idle-desarmado-se.png', 'andar-desarmado-se-2.png', 'andar-desarmado-se-1.png', 'andar-desarmado-se-4.png', 'andar-armado-n-1.webp', 'andar-desarmado-x-1.png']) fs.writeFileSync(path.join(pasta, f), '');
+    const url = (f: string) => `/arte/personagens/alosi/tabuleiro-32bits/${f}`;
+    assert.deepEqual(findPassos('/arte/personagens/alosi/folha.webp', dir), {
+      desarmado: { se: [url('andar-desarmado-se-1.png'), url('andar-desarmado-se-2.png')] },
+      armado: { n: [url('andar-armado-n-1.webp')] },
+    });
+    assert.equal(findPassos('/uploads/abc.png', dir), undefined);
+    // o personagem ganha os passos junto com as poses
+    const def = { id: 3, name: 'Alosi Walker', owner: '', sheet: '/arte/personagens/alosi/folha.webp', cols: 4, rows: 4, dirs: [], height: 104, fps: 4, sequence: [], removeBg: false } as Parameters<typeof refreshPortraits>[0][number];
+    assert.equal(refreshPortraits([def], dir), true);
+    assert.equal(def.passos?.desarmado?.se?.length, 2);
+    assert.equal(def.poses?.desarmado?.se, url('idle-desarmado-se.png'));
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  test('acha o boneco filmado em 3D (tabuleiro-3d/anim.json, versão 2): cada animação com a sua tira', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crona-'));
+    const pasta = path.join(dir, 'alosi', 'tabuleiro-3d');
+    fs.mkdirSync(pasta, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'alosi', 'folha.webp'), '');
+    const clipe = (arquivo: string, extra: Record<string, unknown> = {}) => ({ arquivo, quadros: 16, w: 90, h: 220, ax: 45, ay: 210, laco: true, pes: [[[-6, 2, 0], [6, -2, 0]]], ...extra });
+    const anim = {
+      versao: 2,
+      escala: 0.5,
+      estados: {
+        desarmado: {
+          s: { andar: clipe('andar-desarmado-s.png', { casasPorCiclo: 1.91 }), parado: clipe('parado-desarmado-s.png', { ms: 125 }), pegar: clipe('pegar-desarmado-s.png', { laco: false }) },
+          n: { andar: clipe('andar-desarmado-n.png'), 'Nome Ruim': clipe('x.png') },
+        },
+      },
+    };
+    fs.writeFileSync(path.join(pasta, 'anim.json'), JSON.stringify(anim));
+    // falta a tira do pegar: a animação sai; a de nome ruim também
+    for (const f of ['andar-desarmado-s.png', 'parado-desarmado-s.png', 'andar-desarmado-n.png', 'x.png']) fs.writeFileSync(path.join(pasta, f), '');
+    const url = (f: string) => `/arte/personagens/alosi/tabuleiro-3d/${f}`;
+    const b = findBoneco('/arte/personagens/alosi/folha.webp', dir);
+    assert.equal(b?.escala, 0.5);
+    assert.deepEqual(Object.keys(b?.estados.desarmado?.s ?? {}).sort(), ['andar', 'parado']);
+    assert.equal(b?.estados.desarmado?.s?.andar.url, url('andar-desarmado-s.png'));
+    assert.equal(b?.estados.desarmado?.s?.andar.casasPorCiclo, 1.91);
+    assert.equal(b?.estados.desarmado?.s?.parado.ms, 125);
+    assert.deepEqual(Object.keys(b?.estados.desarmado?.n ?? {}), ['andar']);
+    assert.equal(findBoneco('/uploads/abc.png', dir), undefined);
+    // o personagem ganha o boneco; com outra versão, perde
+    const def = { id: 3, name: 'Alosi Walker', owner: '', sheet: '/arte/personagens/alosi/folha.webp', cols: 4, rows: 4, dirs: [], height: 104, fps: 4, sequence: [], removeBg: false } as Parameters<typeof refreshPortraits>[0][number];
+    assert.equal(refreshPortraits([def], dir), true);
+    assert.equal(def.boneco?.estados.desarmado?.s?.parado.url, url('parado-desarmado-s.png'));
+    fs.writeFileSync(path.join(pasta, 'anim.json'), JSON.stringify({ ...anim, versao: 3 }));
+    assert.equal(refreshPortraits([def], dir), true);
+    assert.equal(def.boneco, undefined);
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  test('acha o boneco animado (anim.json): as tiras viram endereços e a direção sem tira sai', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crona-'));
+    const pasta = path.join(dir, 'alosi', 'tabuleiro-32bits');
+    fs.mkdirSync(pasta, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'alosi', 'folha.webp'), '');
+    const direcao = (d: string) => ({
+      w: 57,
+      h: 111,
+      ax: 30,
+      ay: 101,
+      olhos: d !== 'n',
+      parado: { arquivo: `parado-desarmado-${d}.png`, quadros: 24 },
+      andar: { arquivo: `andar-desarmado-${d}.png`, quadros: 16 },
+      pesParado: [[[-11, 0, 0], [11, -1, 0]]],
+      pesAndar: [[[-11, 4.5, 0], [11, -4.7, 0]]],
+    });
+    const anim = { versao: 1, msParado: 150, faseAndar: 0.25, estados: { desarmado: { s: direcao('s'), n: direcao('n'), e: direcao('e') } } };
+    fs.writeFileSync(path.join(pasta, 'anim.json'), JSON.stringify(anim));
+    // a direção e só tem a tira parada: sai
+    for (const f of ['parado-desarmado-s.png', 'andar-desarmado-s.png', 'parado-desarmado-n.png', 'andar-desarmado-n.png', 'parado-desarmado-e.png']) fs.writeFileSync(path.join(pasta, f), '');
+    const url = (f: string) => `/arte/personagens/alosi/tabuleiro-32bits/${f}`;
+    const a = findAnim('/arte/personagens/alosi/folha.webp', dir);
+    assert.equal(a?.msParado, 150);
+    assert.equal(a?.faseAndar, 0.25);
+    assert.deepEqual(Object.keys(a?.estados.desarmado ?? {}).sort(), ['n', 's']);
+    assert.equal(a?.estados.desarmado?.s?.andar.url, url('andar-desarmado-s.png'));
+    assert.equal(a?.estados.desarmado?.s?.andar.quadros, 16);
+    assert.equal(a?.estados.desarmado?.s?.olhos, true);
+    assert.equal(a?.estados.desarmado?.n?.olhos, false);
+    assert.deepEqual(a?.estados.desarmado?.s?.pesAndar[0], [[-11, 4.5, 0], [11, -4.7, 0]]);
+    assert.equal(findAnim('/uploads/abc.png', dir), undefined);
+    // o personagem ganha o boneco; sem o anim.json (ou com outra versão), perde
+    const def = { id: 3, name: 'Alosi Walker', owner: '', sheet: '/arte/personagens/alosi/folha.webp', cols: 4, rows: 4, dirs: [], height: 104, fps: 4, sequence: [], removeBg: false } as Parameters<typeof refreshPortraits>[0][number];
+    assert.equal(refreshPortraits([def], dir), true);
+    assert.equal(def.anim?.estados.desarmado?.s?.parado.url, url('parado-desarmado-s.png'));
+    fs.writeFileSync(path.join(pasta, 'anim.json'), JSON.stringify({ ...anim, versao: 2 }));
+    assert.equal(refreshPortraits([def], dir), true);
+    assert.equal(def.anim, undefined);
     fs.rmSync(dir, { recursive: true, force: true });
   });
 });

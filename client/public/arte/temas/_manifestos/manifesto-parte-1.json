@@ -1,0 +1,1829 @@
+{
+  "parte": 1,
+  "completo": true,
+  "arquivos": [
+    {
+      "arquivo": "temas/ordem/interface/topo/barra-topo.png",
+      "tamanho": [
+        1024,
+        160
+      ],
+      "estica": null,
+      "repete": true,
+      "quadros": 0,
+      "tema": "ordem",
+      "origem": "imagegen integrado",
+      "sha256": "a60c374e533964991775e52588831ddb2dbdcd44487307273ef2e285055d5c73"
+    },
+    {
+      "arquivo": "temas/sangue/interface/topo/barra-topo.png",
+      "tamanho": [
+        1024,
+        160
+      ],
+      "estica": null,
+      "repete": true,
+      "quadros": 0,
+      "tema": "sangue",
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "e53b241dcaac552090f11871dbeadff7085814940a1e5919e9fec2773fe76c31"
+    },
+    {
+      "arquivo": "temas/morte/interface/topo/barra-topo.png",
+      "tamanho": [
+        1024,
+        160
+      ],
+      "estica": null,
+      "repete": true,
+      "quadros": 0,
+      "tema": "morte",
+      "origem": "imagegen integrado",
+      "sha256": "a3b32f7c97a76b17d6af2eaf795a6434396d25a8f3bf0626636834684c714940"
+    },
+    {
+      "arquivo": "temas/conhecimento/interface/topo/barra-topo.png",
+      "tamanho": [
+        1024,
+        160
+      ],
+      "estica": null,
+      "repete": true,
+      "quadros": 0,
+      "tema": "conhecimento",
+      "origem": "imagegen integrado",
+      "sha256": "f641cc98eb55d9074357faf84fefe30433d99ed1b4a7533084d491c894006c3b"
+    },
+    {
+      "arquivo": "temas/energia/interface/topo/barra-topo.png",
+      "tamanho": [
+        1024,
+        160
+      ],
+      "estica": null,
+      "repete": true,
+      "quadros": 0,
+      "tema": "energia",
+      "origem": "imagegen integrado",
+      "sha256": "83f007b55129aabf9bd6ffb77d23bda69b93d13db23c5061131d56a817ab52ec"
+    },
+    {
+      "arquivo": "interface/topo/aba-topo-normal.png",
+      "tamanho": [
+        340,
+        112
+      ],
+      "estica": 28,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "76c306c71892f547cef8c93f064f0c4b33f332d6f7bd393c8e47b6fedcbb7c56"
+    },
+    {
+      "arquivo": "interface/topo/aba-topo-foco.png",
+      "tamanho": [
+        340,
+        112
+      ],
+      "estica": 28,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "047191130f7ee4f66eeea4dcd64103cd167110a8dd64d1f03f3ea4239f9756c8"
+    },
+    {
+      "arquivo": "interface/topo/aba-topo-apertado.png",
+      "tamanho": [
+        340,
+        112
+      ],
+      "estica": 28,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "9c517b3bb97751a3527751a6e3a08cf49f0ab259004f032056077a8a2158ac3d"
+    },
+    {
+      "arquivo": "temas/ordem/interface/topo/aba-topo-ativo.png",
+      "tamanho": [
+        340,
+        112
+      ],
+      "estica": 28,
+      "repete": false,
+      "quadros": 0,
+      "tema": "ordem",
+      "origem": "imagegen integrado",
+      "sha256": "09c8a5a5e482b10b6532bbd52bba94a21fba162aa51d7943627a4781c4781431"
+    },
+    {
+      "arquivo": "temas/sangue/interface/topo/aba-topo-ativo.png",
+      "tamanho": [
+        340,
+        112
+      ],
+      "estica": 28,
+      "repete": false,
+      "quadros": 0,
+      "tema": "sangue",
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "f2c618df8551fdeb30269188c8655599ce25fd037ff2ea4074a7c4d286df59aa"
+    },
+    {
+      "arquivo": "temas/morte/interface/topo/aba-topo-ativo.png",
+      "tamanho": [
+        340,
+        112
+      ],
+      "estica": 28,
+      "repete": false,
+      "quadros": 0,
+      "tema": "morte",
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "4298e686b96920fa27f8694fc9f6375768701d5cf8acf1636dea1e55f8254662"
+    },
+    {
+      "arquivo": "temas/conhecimento/interface/topo/aba-topo-ativo.png",
+      "tamanho": [
+        340,
+        112
+      ],
+      "estica": 28,
+      "repete": false,
+      "quadros": 0,
+      "tema": "conhecimento",
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "f9cd2a41063e0d836584fcc06eb10ee626e06a0e8341f9f8bad67757af088d54"
+    },
+    {
+      "arquivo": "temas/energia/interface/topo/aba-topo-ativo.png",
+      "tamanho": [
+        340,
+        112
+      ],
+      "estica": 28,
+      "repete": false,
+      "quadros": 0,
+      "tema": "energia",
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "0db3581df9fcb5ceade894dd355e69a9be74aaffe2acef6c1ce8714697e71e58"
+    },
+    {
+      "arquivo": "temas/ordem/interface/topo/aba-topo-brilho.png",
+      "tamanho": [
+        388,
+        160
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "ordem",
+      "origem": "imagegen integrado",
+      "sha256": "02736e0c7dfb67a36009e1f0d599788fd940799524263b260cba0978ff23fb84"
+    },
+    {
+      "arquivo": "temas/sangue/interface/topo/aba-topo-brilho.png",
+      "tamanho": [
+        388,
+        160
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "sangue",
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "a9c1ba02a77132973969e8cd39523cd7bc797645ac351ef9c9030886f799a156"
+    },
+    {
+      "arquivo": "temas/morte/interface/topo/aba-topo-brilho.png",
+      "tamanho": [
+        388,
+        160
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "morte",
+      "origem": "imagegen integrado",
+      "sha256": "8b191cdb0e175342acdfd58bf2c9398b488214a998a5b3def30d231fda1bd4c2"
+    },
+    {
+      "arquivo": "temas/conhecimento/interface/topo/aba-topo-brilho.png",
+      "tamanho": [
+        388,
+        160
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "conhecimento",
+      "origem": "imagegen integrado",
+      "sha256": "5bd3b668d2e4661e37a1d5af0775d9f88077f5cd8e0f3b2410acd3a4a4f1137d"
+    },
+    {
+      "arquivo": "temas/energia/interface/topo/aba-topo-brilho.png",
+      "tamanho": [
+        388,
+        160
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "energia",
+      "origem": "imagegen integrado",
+      "sha256": "b6ba947775fd25fd4fb9371ea0908237df434d6415420de425072d2612ce7ff0"
+    },
+    {
+      "arquivo": "interface/topo/botao-icone-normal.png",
+      "tamanho": [
+        112,
+        112
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "8948f17f4909d2ec17d911861d77af61e10a80815402ee295871460f994db723"
+    },
+    {
+      "arquivo": "interface/topo/botao-icone-foco.png",
+      "tamanho": [
+        112,
+        112
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "53d9ce1bbd4b58f363b73697e5153e9474db6a9fcf26651777e7b539dca93105"
+    },
+    {
+      "arquivo": "interface/topo/botao-icone-apertado.png",
+      "tamanho": [
+        112,
+        112
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "e5357eb3503ed4c115764d502ccb5580faa2a46c9263f0f3489e49ac91bd4edb"
+    },
+    {
+      "arquivo": "interface/topo/botao-icone-perigo-normal.png",
+      "tamanho": [
+        112,
+        112
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "a7a8072bc19019c7a3cbc68f98048ba1510a41eb0aa89aba7d479ef067c70f19"
+    },
+    {
+      "arquivo": "interface/topo/botao-icone-perigo-foco.png",
+      "tamanho": [
+        112,
+        112
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "526f14f218092d1f3ca4ba3d64a0f1f323f73e42bb0b7ecf9b14b968e99ddcb7"
+    },
+    {
+      "arquivo": "interface/topo/botao-icone-perigo-apertado.png",
+      "tamanho": [
+        112,
+        112
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "cd20debb9eb2d6685e0a5128f50fc8b34d6f6e5eb6bf6ed7a5bfeb555683714a"
+    },
+    {
+      "arquivo": "interface/topo/separador-topo.png",
+      "tamanho": [
+        8,
+        100
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "af5e4fb5ef2b54beb79d723fbd11cbde19c899cb25d2df2a347cce2ec5882621"
+    },
+    {
+      "arquivo": "interface/topo/emblema.png",
+      "tamanho": [
+        256,
+        256
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "b956bc4094dc0e2b65cb1ffa6553429aab78f213989971be24ce52b773d4a704"
+    },
+    {
+      "arquivo": "icones/topo-mapa.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "06d94e29718859deb04512d44b809f1ef86bb514584818838a032a8cefaefe7c"
+    },
+    {
+      "arquivo": "icones/topo-combate.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "393f2c4a86455a7d8775a1eebb6588957407e4b1f3db2cb698c36188d3e821b5"
+    },
+    {
+      "arquivo": "icones/topo-fichas.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "ac0dad06cb527949867b9e2bb7f29c5496fa8a39ab48a081f841daff7d3a24aa"
+    },
+    {
+      "arquivo": "icones/topo-clima.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "3749a940bd38cbc36579ea3e2edfcc1effe9667beca3492358de350738334f29"
+    },
+    {
+      "arquivo": "icones/topo-config.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "38659ad407ed431b6cbfb7368bdfbed277c2b5f54e33529fb37c84fd721d7640"
+    },
+    {
+      "arquivo": "icones/topo-registro.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "c45d60ed29fd0cdf61068379fc5f72bd40c3c1845ae740fc888caf92a8ee0c63"
+    },
+    {
+      "arquivo": "icones/topo-sair.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "0cdb2cc122145c9c697f236a239d4ccf5c918cc55b5563edffd0ca47e49a91d3"
+    },
+    {
+      "arquivo": "interface/kit/botao-grande-normal.png",
+      "tamanho": [
+        440,
+        112
+      ],
+      "estica": 28,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "030635fa3afeb9bcf99b84f0814296d6e5295d04eed0b392447fb6042e5bb24b"
+    },
+    {
+      "arquivo": "interface/kit/botao-grande-foco.png",
+      "tamanho": [
+        440,
+        112
+      ],
+      "estica": 28,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "2deae2d69c1d777d54315e70132d5963204cf1408d2696ac80f6fb7b39f93383"
+    },
+    {
+      "arquivo": "interface/kit/botao-grande-apertado.png",
+      "tamanho": [
+        440,
+        112
+      ],
+      "estica": 28,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "1ab8735afe1ce4384f1e97587b911cefc90ab7f10043d910ce0e513c81c1205d"
+    },
+    {
+      "arquivo": "interface/kit/botao-grande-desligado.png",
+      "tamanho": [
+        440,
+        112
+      ],
+      "estica": 28,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "ccfe889dd44eff8e4d605a901e2eca3bc68e9e084d741fbcd88d877ac3bd7b43"
+    },
+    {
+      "arquivo": "temas/ordem/interface/kit/botao-grande-ativo.png",
+      "tamanho": [
+        440,
+        112
+      ],
+      "estica": 28,
+      "repete": false,
+      "quadros": 0,
+      "tema": "ordem",
+      "origem": "imagegen integrado",
+      "sha256": "27067a7a007085334626439a3fc14ee7f1c00fb368c88c7e36308858f41e938a"
+    },
+    {
+      "arquivo": "temas/sangue/interface/kit/botao-grande-ativo.png",
+      "tamanho": [
+        440,
+        112
+      ],
+      "estica": 28,
+      "repete": false,
+      "quadros": 0,
+      "tema": "sangue",
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "739c3980bde8be1f32fce637b8ebc6f18f48bc13458793cf4ec4fdad360b34da"
+    },
+    {
+      "arquivo": "temas/morte/interface/kit/botao-grande-ativo.png",
+      "tamanho": [
+        440,
+        112
+      ],
+      "estica": 28,
+      "repete": false,
+      "quadros": 0,
+      "tema": "morte",
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "9d2f2b6e550b68a7cf3a540652d9d0253504782d5ff0c71b129a2e6234ee0539"
+    },
+    {
+      "arquivo": "temas/conhecimento/interface/kit/botao-grande-ativo.png",
+      "tamanho": [
+        440,
+        112
+      ],
+      "estica": 28,
+      "repete": false,
+      "quadros": 0,
+      "tema": "conhecimento",
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "9751750bbe24fccbaf4d9ba10a27c925e10de609aca4f27025808f7d821e2aae"
+    },
+    {
+      "arquivo": "temas/energia/interface/kit/botao-grande-ativo.png",
+      "tamanho": [
+        440,
+        112
+      ],
+      "estica": 28,
+      "repete": false,
+      "quadros": 0,
+      "tema": "energia",
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "a02cf053c4b6c0b326e72a5651aeb84c4503d12da4986976526bafc0032bcc97"
+    },
+    {
+      "arquivo": "temas/ordem/interface/kit/botao-grande-brilho.png",
+      "tamanho": [
+        488,
+        160
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "ordem",
+      "origem": "imagegen integrado",
+      "sha256": "d23aff42e03ca17c6fef4f8e3044edb5694e5fec42e1100e37db68c35f155a3b"
+    },
+    {
+      "arquivo": "temas/sangue/interface/kit/botao-grande-brilho.png",
+      "tamanho": [
+        488,
+        160
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "sangue",
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "5086b13e9371342453b64a80fcd50b029e30f88f643d035c85382445da48a7be"
+    },
+    {
+      "arquivo": "temas/morte/interface/kit/botao-grande-brilho.png",
+      "tamanho": [
+        488,
+        160
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "morte",
+      "origem": "imagegen integrado",
+      "sha256": "f74fc11b59d0f55b285ab3bf80cf14921883dfdcc5f691467596728ef53fe93b"
+    },
+    {
+      "arquivo": "temas/conhecimento/interface/kit/botao-grande-brilho.png",
+      "tamanho": [
+        488,
+        160
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "conhecimento",
+      "origem": "imagegen integrado",
+      "sha256": "636bcfddd25f8bc143696a4af12c4a060fb5234f2959a0268e9df5c55a079e2a"
+    },
+    {
+      "arquivo": "temas/energia/interface/kit/botao-grande-brilho.png",
+      "tamanho": [
+        488,
+        160
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "energia",
+      "origem": "imagegen integrado",
+      "sha256": "befc31004a98e0d07dcb0d0993c511f596b45f3d141ba4dd7f8b8dd927768b26"
+    },
+    {
+      "arquivo": "interface/kit/botao-pequeno-normal.png",
+      "tamanho": [
+        64,
+        64
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "90871e7cd43e85a9376d0338c015a56a705d8d1dd2c15bbba6a577b0bb710438"
+    },
+    {
+      "arquivo": "interface/kit/botao-pequeno-foco.png",
+      "tamanho": [
+        64,
+        64
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "892a6a1d5d06b92352354ad9542a9c9ae582f6b1c3659f8040004433121e5240"
+    },
+    {
+      "arquivo": "interface/kit/botao-pequeno-apertado.png",
+      "tamanho": [
+        64,
+        64
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "802e5fd8e1abb27fe81e6795125c439ca30ab4ec850874ffa14c55a496921b7c"
+    },
+    {
+      "arquivo": "interface/kit/varredura.png",
+      "tamanho": [
+        256,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "6381e51b31de1bd5eac1a39d7bc092289109344477661c5a21b48ba381bc463d"
+    },
+    {
+      "arquivo": "interface/kit/campo-texto-normal.png",
+      "tamanho": [
+        400,
+        88
+      ],
+      "estica": 20,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "057371b0fc947ac53a6ebed30ce3ea5392a8114265c3c6364d4399ab0666b29f"
+    },
+    {
+      "arquivo": "temas/ordem/interface/kit/campo-texto-foco.png",
+      "tamanho": [
+        400,
+        88
+      ],
+      "estica": 20,
+      "repete": false,
+      "quadros": 0,
+      "tema": "ordem",
+      "origem": "imagegen integrado",
+      "sha256": "c0e6aec1ccce8295e3cacf1b4a682314c3cca44678b631d5cbe1db05cd595bc8"
+    },
+    {
+      "arquivo": "temas/sangue/interface/kit/campo-texto-foco.png",
+      "tamanho": [
+        400,
+        88
+      ],
+      "estica": 20,
+      "repete": false,
+      "quadros": 0,
+      "tema": "sangue",
+      "origem": "imagegen integrado",
+      "sha256": "2b99689821fabc810f3c5e6efbd7b205a68b1360dd50207aa334ed98b5fca7f1"
+    },
+    {
+      "arquivo": "temas/morte/interface/kit/campo-texto-foco.png",
+      "tamanho": [
+        400,
+        88
+      ],
+      "estica": 20,
+      "repete": false,
+      "quadros": 0,
+      "tema": "morte",
+      "origem": "imagegen integrado",
+      "sha256": "c1ad36c07f783c7710105457d5dde26f0841e0dfdff5e38481e13845050a4144"
+    },
+    {
+      "arquivo": "temas/conhecimento/interface/kit/campo-texto-foco.png",
+      "tamanho": [
+        400,
+        88
+      ],
+      "estica": 20,
+      "repete": false,
+      "quadros": 0,
+      "tema": "conhecimento",
+      "origem": "imagegen integrado",
+      "sha256": "e9d27c10924549cf4185409588173e54306addeecae514070a4b4e6f352407c7"
+    },
+    {
+      "arquivo": "temas/energia/interface/kit/campo-texto-foco.png",
+      "tamanho": [
+        400,
+        88
+      ],
+      "estica": 20,
+      "repete": false,
+      "quadros": 0,
+      "tema": "energia",
+      "origem": "imagegen integrado",
+      "sha256": "14d7fe6c6920cddc2364ad11b81c282e25dc23e794d7b44c2e8bd2e3dafb4a0d"
+    },
+    {
+      "arquivo": "interface/kit/campo-numero.png",
+      "tamanho": [
+        112,
+        88
+      ],
+      "estica": 20,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Reuso de pintura aprovada/gerada, registro técnico por regiões com cantos fixos; fonte: interface/kit/campo-texto-normal.png",
+      "sha256": "f265297ef8a5e17b2039c2ae47669da0af9218337abc34469797f7d23a7f1712"
+    },
+    {
+      "arquivo": "interface/kit/seletor.png",
+      "tamanho": [
+        400,
+        88
+      ],
+      "estica": 20,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Reuso de pintura aprovada/gerada, registro técnico por regiões com cantos fixos; fonte: interface/kit/campo-texto-normal.png",
+      "sha256": "0aef826bb6f9b3e3981e40c6a040f87b08d291a80a538276e9c095bfe1ebf221"
+    },
+    {
+      "arquivo": "interface/kit/seta-seletor.png",
+      "tamanho": [
+        40,
+        40
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "0810681032ee105781fbb51001a7ef6c7d0abee752e89c104d61495542525187"
+    },
+    {
+      "arquivo": "interface/kit/interruptor-desligado.png",
+      "tamanho": [
+        112,
+        64
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "dc843434dbeae4ba34d58063aff68a7b29a7555d18acbb8fd51c110cf4a0f6f4"
+    },
+    {
+      "arquivo": "interface/kit/interruptor-ligado.png",
+      "tamanho": [
+        112,
+        64
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "2f271da6529a227504e80842f0edd2236483ddea823f921e4f88fefe0bf6259a"
+    },
+    {
+      "arquivo": "interface/kit/marcador-desligado.png",
+      "tamanho": [
+        48,
+        48
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "9281d631b7a1c1dcd32792c0d1522c0f5b0fd25a2613901f84fb488c7335fa7e"
+    },
+    {
+      "arquivo": "temas/ordem/interface/kit/marcador-ligado.png",
+      "tamanho": [
+        48,
+        48
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "ordem",
+      "origem": "imagegen integrado",
+      "sha256": "1eb83e1fc3b727fe7d2ff887711da8e41788e8ab013e8631518eb36e7fee0f92"
+    },
+    {
+      "arquivo": "temas/sangue/interface/kit/marcador-ligado.png",
+      "tamanho": [
+        48,
+        48
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "sangue",
+      "origem": "imagegen integrado",
+      "sha256": "696d536a919489816978f4c1a46a02b7b2dd1a7a9b4b639f63ac4f39d535bca0"
+    },
+    {
+      "arquivo": "temas/morte/interface/kit/marcador-ligado.png",
+      "tamanho": [
+        48,
+        48
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "morte",
+      "origem": "imagegen integrado",
+      "sha256": "a4f65bad2915837f815412ee724f9aa2a554a6dd1799dcde3eaf73d2aeb36c81"
+    },
+    {
+      "arquivo": "temas/conhecimento/interface/kit/marcador-ligado.png",
+      "tamanho": [
+        48,
+        48
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "conhecimento",
+      "origem": "imagegen integrado",
+      "sha256": "00f4dcd432e4d194c31d01419a42351fe63c8f0cadce62150c6e729ceaedb287"
+    },
+    {
+      "arquivo": "temas/energia/interface/kit/marcador-ligado.png",
+      "tamanho": [
+        48,
+        48
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "energia",
+      "origem": "imagegen integrado",
+      "sha256": "775299f4eb0ff0a9418316042cdfab6cf8614e5f76a2b5be0a0342b9b3265af2"
+    },
+    {
+      "arquivo": "interface/kit/opcao-desligada.png",
+      "tamanho": [
+        48,
+        48
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "51be3f168bafe60b9375fcdaf6b77d11da9156500e61258c6b94d956fba24939"
+    },
+    {
+      "arquivo": "temas/ordem/interface/kit/opcao-ligada.png",
+      "tamanho": [
+        48,
+        48
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "ordem",
+      "origem": "imagegen integrado",
+      "sha256": "6db2f256a07e40b8512532c8c198a01f651efe2c7353d3f0a8c842000c283154"
+    },
+    {
+      "arquivo": "temas/sangue/interface/kit/opcao-ligada.png",
+      "tamanho": [
+        48,
+        48
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "sangue",
+      "origem": "imagegen integrado",
+      "sha256": "7238248c21e73fcf2cf4124ddda6f13ee9d38a95ca13e82dafcba3b9e815c6f5"
+    },
+    {
+      "arquivo": "temas/morte/interface/kit/opcao-ligada.png",
+      "tamanho": [
+        48,
+        48
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "morte",
+      "origem": "imagegen integrado",
+      "sha256": "30081bcb4a369d2c87a68311d9e542151be485c6e6f9b5287b1680aa4e122bd1"
+    },
+    {
+      "arquivo": "temas/conhecimento/interface/kit/opcao-ligada.png",
+      "tamanho": [
+        48,
+        48
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "conhecimento",
+      "origem": "imagegen integrado",
+      "sha256": "1b3152251a07e4999a6a5ab668af36e1a7880d74cf76e0590fd39968af45d2fe"
+    },
+    {
+      "arquivo": "temas/energia/interface/kit/opcao-ligada.png",
+      "tamanho": [
+        48,
+        48
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "energia",
+      "origem": "imagegen integrado",
+      "sha256": "673f5b9cb905a711acd1187b8729ba867d9252f065dcec6db4e021b6ac3f024e"
+    },
+    {
+      "arquivo": "interface/kit/chip-normal.png",
+      "tamanho": [
+        240,
+        64
+      ],
+      "estica": 16,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "afc03038a675b8fe6b4362b167199c7482b6ad11ee53f9c567b9ba0a1362111c"
+    },
+    {
+      "arquivo": "temas/ordem/interface/kit/chip-ativo.png",
+      "tamanho": [
+        240,
+        64
+      ],
+      "estica": 16,
+      "repete": false,
+      "quadros": 0,
+      "tema": "ordem",
+      "origem": "Reuso de pintura aprovada/gerada, registro técnico por regiões com cantos fixos; fonte: temas/ordem/interface/kit/botao-grande-ativo.png",
+      "sha256": "5a965df0f8ee73d630a4c5c44e1cdbb9312a333533d1590e0d5903618bbbef97"
+    },
+    {
+      "arquivo": "temas/sangue/interface/kit/chip-ativo.png",
+      "tamanho": [
+        240,
+        64
+      ],
+      "estica": 16,
+      "repete": false,
+      "quadros": 0,
+      "tema": "sangue",
+      "origem": "Reuso de pintura aprovada/gerada, registro técnico por regiões com cantos fixos; fonte: temas/sangue/interface/kit/botao-grande-ativo.png",
+      "sha256": "9933d4ea68af7311db77f43c689b63f403da7fba806305cb77f55ca09b102727"
+    },
+    {
+      "arquivo": "temas/morte/interface/kit/chip-ativo.png",
+      "tamanho": [
+        240,
+        64
+      ],
+      "estica": 16,
+      "repete": false,
+      "quadros": 0,
+      "tema": "morte",
+      "origem": "Reuso de pintura aprovada/gerada, registro técnico por regiões com cantos fixos; fonte: temas/morte/interface/kit/botao-grande-ativo.png",
+      "sha256": "1cadc741c74487d73e71ce53548e61439ab41875a5bd84b42274ffdacb7c0f60"
+    },
+    {
+      "arquivo": "temas/conhecimento/interface/kit/chip-ativo.png",
+      "tamanho": [
+        240,
+        64
+      ],
+      "estica": 16,
+      "repete": false,
+      "quadros": 0,
+      "tema": "conhecimento",
+      "origem": "Reuso de pintura aprovada/gerada, registro técnico por regiões com cantos fixos; fonte: temas/conhecimento/interface/kit/botao-grande-ativo.png",
+      "sha256": "57e5e5b84b0db7b5e6dc85d1a2c67471895935a21750191ed91ef1952e43bdd2"
+    },
+    {
+      "arquivo": "temas/energia/interface/kit/chip-ativo.png",
+      "tamanho": [
+        240,
+        64
+      ],
+      "estica": 16,
+      "repete": false,
+      "quadros": 0,
+      "tema": "energia",
+      "origem": "Reuso de pintura aprovada/gerada, registro técnico por regiões com cantos fixos; fonte: temas/energia/interface/kit/botao-grande-ativo.png",
+      "sha256": "332d17e7263b2d81682e0fdd2729575dbcfb2cf96fc5918378c3186def0387b3"
+    },
+    {
+      "arquivo": "interface/kit/chip-verde.png",
+      "tamanho": [
+        240,
+        64
+      ],
+      "estica": 16,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "24201f6e7b8ba48e31dee252c18ca8f6a12d794cf5fcd73c955649bad0c0aae8"
+    },
+    {
+      "arquivo": "interface/kit/chip-vermelho.png",
+      "tamanho": [
+        240,
+        64
+      ],
+      "estica": 16,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "4511fa4af094061f3d2640467ae13b0cafe5b9cad5e72239a4c42616bff045f2"
+    },
+    {
+      "arquivo": "interface/kit/dica.png",
+      "tamanho": [
+        480,
+        160
+      ],
+      "estica": 24,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "5ca5b00a958ec6db3abef8c7630150888c495917f4ef845e146a9139023fa3bf",
+      "fonte": "interface/kit/dica-fonte.png",
+      "miolo": "interface/kit/dica-miolo.png",
+      "fonte_borda": 24
+    },
+    {
+      "arquivo": "interface/kit/rolagem-trilho.png",
+      "tamanho": [
+        24,
+        200
+      ],
+      "estica": 10,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "2413e2c2d37746abac619af7d6c2cf6f44ada0b5cfe1ce88f46b603878894ec2"
+    },
+    {
+      "arquivo": "interface/kit/rolagem-pegador.png",
+      "tamanho": [
+        24,
+        80
+      ],
+      "estica": 10,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "ed81e63555aabca982b098875bfa57c4b07d72b79503bf552607953c328ea092"
+    },
+    {
+      "arquivo": "interface/kit/ornamento-linha.png",
+      "tamanho": [
+        600,
+        24
+      ],
+      "estica": 40,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "f9c706e1564d88ed2437b60f1e9dac7bdb3dd61a9c8f5456f088ddfc91619a6a"
+    },
+    {
+      "arquivo": "interface/cartas/carta-agente-normal.png",
+      "tamanho": [
+        300,
+        400
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "9f18555e063457366f84ed494491e0461caa412df96eaf9dff0a5f161f762c2a",
+      "fonte": "interface/cartas/carta-agente-normal-fonte.png",
+      "miolo": "interface/cartas/carta-agente-normal-miolo.png",
+      "fonte_borda": 24,
+      "fonte_cortes": [
+        24,
+        24,
+        80,
+        24
+      ]
+    },
+    {
+      "arquivo": "interface/cartas/carta-agente-foco.png",
+      "tamanho": [
+        300,
+        400
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "2ac7a7b625c6281738e71e2e11eccf0f24554e67408d56f5498af8d3324019fb",
+      "fonte": "interface/cartas/carta-agente-foco-fonte.png",
+      "miolo": "interface/cartas/carta-agente-foco-miolo.png",
+      "fonte_borda": 24,
+      "fonte_cortes": [
+        24,
+        24,
+        80,
+        24
+      ]
+    },
+    {
+      "arquivo": "temas/ordem/interface/cartas/carta-agente-ativo.png",
+      "tamanho": [
+        300,
+        400
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "ordem",
+      "origem": "imagegen integrado",
+      "sha256": "f41e9af716067419e0336a3e52e1a90f7b21172f22792dbe35c7dbce98ef773e",
+      "fonte": "temas/ordem/interface/cartas/carta-agente-ativo-fonte.png",
+      "miolo": "temas/ordem/interface/cartas/carta-agente-ativo-miolo.png",
+      "fonte_borda": 24,
+      "fonte_cortes": [
+        24,
+        24,
+        80,
+        24
+      ]
+    },
+    {
+      "arquivo": "temas/sangue/interface/cartas/carta-agente-ativo.png",
+      "tamanho": [
+        300,
+        400
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "sangue",
+      "origem": "imagegen integrado",
+      "sha256": "c7a9567b92f2ae061362153371e22b76da3e691abc1877d50c8b710344d4352e",
+      "fonte": "temas/sangue/interface/cartas/carta-agente-ativo-fonte.png",
+      "miolo": "temas/sangue/interface/cartas/carta-agente-ativo-miolo.png",
+      "fonte_borda": 24,
+      "fonte_cortes": [
+        24,
+        24,
+        80,
+        24
+      ]
+    },
+    {
+      "arquivo": "temas/morte/interface/cartas/carta-agente-ativo.png",
+      "tamanho": [
+        300,
+        400
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "morte",
+      "origem": "imagegen integrado",
+      "sha256": "178a649cd15ce0fcbfba259ea268108b7302430ec13826d30f332d0372893867",
+      "fonte": "temas/morte/interface/cartas/carta-agente-ativo-fonte.png",
+      "miolo": "temas/morte/interface/cartas/carta-agente-ativo-miolo.png",
+      "fonte_borda": 24,
+      "fonte_cortes": [
+        24,
+        24,
+        80,
+        24
+      ]
+    },
+    {
+      "arquivo": "temas/conhecimento/interface/cartas/carta-agente-ativo.png",
+      "tamanho": [
+        300,
+        400
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "conhecimento",
+      "origem": "imagegen integrado",
+      "sha256": "03f147298ae2720a235b8462275fd7beac46b7fc7731a57813e968cdeada534f",
+      "fonte": "temas/conhecimento/interface/cartas/carta-agente-ativo-fonte.png",
+      "miolo": "temas/conhecimento/interface/cartas/carta-agente-ativo-miolo.png",
+      "fonte_borda": 24,
+      "fonte_cortes": [
+        24,
+        24,
+        80,
+        24
+      ]
+    },
+    {
+      "arquivo": "temas/energia/interface/cartas/carta-agente-ativo.png",
+      "tamanho": [
+        300,
+        400
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "energia",
+      "origem": "imagegen integrado",
+      "sha256": "3e410e66a4e769ba8eb03a098dc6a43d365619911ae542a0f11dfef947fe16b8",
+      "fonte": "temas/energia/interface/cartas/carta-agente-ativo-fonte.png",
+      "miolo": "temas/energia/interface/cartas/carta-agente-ativo-miolo.png",
+      "fonte_borda": 24,
+      "fonte_cortes": [
+        24,
+        24,
+        80,
+        24
+      ]
+    },
+    {
+      "arquivo": "temas/ordem/interface/cartas/carta-agente-brilho.png",
+      "tamanho": [
+        348,
+        448
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "ordem",
+      "origem": "Reuso de pintura aprovada/gerada, registro técnico por regiões com cantos fixos; fonte: temas/ordem/interface/kit/botao-grande-brilho.png",
+      "sha256": "acb06c29027f934d1fe82dcd46178f104954553db379626a9e9c7a609d1de546"
+    },
+    {
+      "arquivo": "temas/sangue/interface/cartas/carta-agente-brilho.png",
+      "tamanho": [
+        348,
+        448
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "sangue",
+      "origem": "Reuso de pintura aprovada/gerada, registro técnico por regiões com cantos fixos; fonte: temas/sangue/interface/kit/botao-grande-brilho.png",
+      "sha256": "010584404bd7f1f5a1b998556ab5dc5cc5f964a3b9261dc39bb7bcb2fcea6071"
+    },
+    {
+      "arquivo": "temas/morte/interface/cartas/carta-agente-brilho.png",
+      "tamanho": [
+        348,
+        448
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "morte",
+      "origem": "Reuso de pintura aprovada/gerada, registro técnico por regiões com cantos fixos; fonte: temas/morte/interface/kit/botao-grande-brilho.png",
+      "sha256": "406719f4be8f4ee71a5d09fabdba42e3c3aecdce7c0d20fe9ce78ab8e7642750"
+    },
+    {
+      "arquivo": "temas/conhecimento/interface/cartas/carta-agente-brilho.png",
+      "tamanho": [
+        348,
+        448
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "conhecimento",
+      "origem": "Reuso de pintura aprovada/gerada, registro técnico por regiões com cantos fixos; fonte: temas/conhecimento/interface/kit/botao-grande-brilho.png",
+      "sha256": "02966cb8a1e3a15c31b5ba9a0023924c7b3e9bc22cc65447732f355773b2dcc4"
+    },
+    {
+      "arquivo": "temas/energia/interface/cartas/carta-agente-brilho.png",
+      "tamanho": [
+        348,
+        448
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "energia",
+      "origem": "Reuso de pintura aprovada/gerada, registro técnico por regiões com cantos fixos; fonte: temas/energia/interface/kit/botao-grande-brilho.png",
+      "sha256": "73730ea178f3cd9f4bca56614ef37ce743a15b8518f696dee7e10d649b337c3c"
+    },
+    {
+      "arquivo": "interface/cartas/carta-novo-agente.png",
+      "tamanho": [
+        300,
+        400
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "ab5709b672aafce59a2a549fef72cf53fcbd457380f748ab984f90cfec222bf0",
+      "fonte": "interface/cartas/carta-novo-agente-fonte.png",
+      "miolo": "interface/cartas/carta-novo-agente-miolo.png",
+      "fonte_borda": 24,
+      "fonte_cortes": [
+        24,
+        24,
+        80,
+        24
+      ]
+    },
+    {
+      "arquivo": "interface/cartas/marca-pendencia.png",
+      "tamanho": [
+        64,
+        64
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "293e90d72b0d31deb20927efc6d29d874951a9af225604098ebe85b4d8598423"
+    },
+    {
+      "arquivo": "interface/tabuleiro/moldura-tabuleiro.png",
+      "tamanho": [
+        1200,
+        800
+      ],
+      "estica": 80,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "73eb8331112f3e2a8208ced77d589029f746c920a7cda7d00b6b44e9a90e0176",
+      "fonte": "interface/tabuleiro/moldura-tabuleiro-fonte.png",
+      "miolo": "interface/tabuleiro/moldura-tabuleiro-miolo.png",
+      "fonte_borda": 80
+    },
+    {
+      "arquivo": "interface/tabuleiro/moldura-tabuleiro-brilho.png",
+      "tamanho": [
+        1248,
+        848
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "7e36ad79d7b8aa9b837f419e296b90a4771be13af9581fea87f93125b526a97a"
+    },
+    {
+      "arquivo": "interface/tabuleiro/botao-hud-normal.png",
+      "tamanho": [
+        240,
+        72
+      ],
+      "estica": 20,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "11c943f42c7f576c63d3b4a10611ef10218072c2d595ce39bc177d3c3fa81141"
+    },
+    {
+      "arquivo": "interface/tabuleiro/botao-hud-foco.png",
+      "tamanho": [
+        240,
+        72
+      ],
+      "estica": 20,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "e5d52665fcb32e3c12c4e5038280bce33e159f69fb04936cbc3a6e543d28d13b"
+    },
+    {
+      "arquivo": "interface/tabuleiro/botao-hud-ativo.png",
+      "tamanho": [
+        240,
+        72
+      ],
+      "estica": 20,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "4af047833a3bc6ec5d864396fdaaec0a9e15239992be02eadc65057edd131216"
+    },
+    {
+      "arquivo": "interface/efeitos/faisca.png",
+      "tamanho": [
+        1024,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 8,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "23a30c5a5c0cd0d76193582260424f580bef676549770a09956413f014a92fac"
+    },
+    {
+      "arquivo": "interface/efeitos/fumaca.png",
+      "tamanho": [
+        2048,
+        256
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 8,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "dc4d765708cff6942f9e14a294f07172c55ec67c5d1d0f3a8b67b2bf0754817b"
+    },
+    {
+      "arquivo": "interface/efeitos/brasas.png",
+      "tamanho": [
+        512,
+        512
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "352725e5b93b67b0cd7756cff563c88882fd8242bf0057789a776f23d1266293"
+    },
+    {
+      "arquivo": "temas/ordem/interface/fichas/papel-painel.png",
+      "tamanho": [
+        1200,
+        900
+      ],
+      "estica": 48,
+      "repete": false,
+      "quadros": 0,
+      "tema": "ordem",
+      "origem": "imagegen integrado",
+      "sha256": "895d9e6e0dc85196e93a8b6296f14c6124fd721cdd1f6fd1f5260727037758f1",
+      "fonte": "temas/ordem/interface/fichas/papel-painel-fonte.png",
+      "miolo": "temas/ordem/interface/fichas/papel-painel-miolo.png",
+      "fonte_borda": 48
+    },
+    {
+      "arquivo": "temas/sangue/interface/fichas/papel-painel.png",
+      "tamanho": [
+        1200,
+        900
+      ],
+      "estica": 48,
+      "repete": false,
+      "quadros": 0,
+      "tema": "sangue",
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "30b36c909758537a9d17b3deb954db19e5a63cdeb099b66e2a56f7dcbd4e3dd2",
+      "fonte": "temas/sangue/interface/fichas/papel-painel-fonte.png",
+      "miolo": "temas/sangue/interface/fichas/papel-painel-miolo.png",
+      "fonte_borda": 48
+    },
+    {
+      "arquivo": "temas/morte/interface/fichas/papel-painel.png",
+      "tamanho": [
+        1200,
+        900
+      ],
+      "estica": 48,
+      "repete": false,
+      "quadros": 0,
+      "tema": "morte",
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "54e9b7906f0845234eef1e3676a153e23428138305430857e9c70e1394b9c2f3",
+      "fonte": "temas/morte/interface/fichas/papel-painel-fonte.png",
+      "miolo": "temas/morte/interface/fichas/papel-painel-miolo.png",
+      "fonte_borda": 48
+    },
+    {
+      "arquivo": "temas/conhecimento/interface/fichas/papel-painel.png",
+      "tamanho": [
+        1200,
+        900
+      ],
+      "estica": 48,
+      "repete": false,
+      "quadros": 0,
+      "tema": "conhecimento",
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "7bca732148cd8ba4750689e33bf14029df522b8ba149a699f575846975e0c705",
+      "fonte": "temas/conhecimento/interface/fichas/papel-painel-fonte.png",
+      "miolo": "temas/conhecimento/interface/fichas/papel-painel-miolo.png",
+      "fonte_borda": 48
+    },
+    {
+      "arquivo": "temas/energia/interface/fichas/papel-painel.png",
+      "tamanho": [
+        1200,
+        900
+      ],
+      "estica": 48,
+      "repete": false,
+      "quadros": 0,
+      "tema": "energia",
+      "origem": "imagegen integrado",
+      "sha256": "169a9c1f14f7eb2cbfa0f0da7669ee5f1d0fef09042453d89ce30ffdb9fa804a",
+      "fonte": "temas/energia/interface/fichas/papel-painel-fonte.png",
+      "miolo": "temas/energia/interface/fichas/papel-painel-miolo.png",
+      "fonte_borda": 48
+    },
+    {
+      "arquivo": "temas/ordem/interface/fichas/faixa-titulo.png",
+      "tamanho": [
+        600,
+        64
+      ],
+      "estica": 24,
+      "repete": false,
+      "quadros": 0,
+      "tema": "ordem",
+      "origem": "imagegen integrado",
+      "sha256": "c2ff46e6d47004a1b7fc861cadfd8eb74c49c690a2ca6b45f21f3e3fc18c56c9"
+    },
+    {
+      "arquivo": "temas/sangue/interface/fichas/faixa-titulo.png",
+      "tamanho": [
+        600,
+        64
+      ],
+      "estica": 24,
+      "repete": false,
+      "quadros": 0,
+      "tema": "sangue",
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "66f47f6f7ba72eda94f735d527fa04b4399a589a11129b58c4118c7dcbe795bb"
+    },
+    {
+      "arquivo": "temas/morte/interface/fichas/faixa-titulo.png",
+      "tamanho": [
+        600,
+        64
+      ],
+      "estica": 24,
+      "repete": false,
+      "quadros": 0,
+      "tema": "morte",
+      "origem": "imagegen integrado",
+      "sha256": "b825ee07e87d10a1af7130fe9b61a0872965557f70ffd6e2b7961e87fd8151ff"
+    },
+    {
+      "arquivo": "temas/conhecimento/interface/fichas/faixa-titulo.png",
+      "tamanho": [
+        600,
+        64
+      ],
+      "estica": 24,
+      "repete": false,
+      "quadros": 0,
+      "tema": "conhecimento",
+      "origem": "imagegen integrado",
+      "sha256": "d7796b972b6ee4daee39dea25aa1c050ce02251de3f70e1af089b86e389813ac"
+    },
+    {
+      "arquivo": "temas/energia/interface/fichas/faixa-titulo.png",
+      "tamanho": [
+        600,
+        64
+      ],
+      "estica": 24,
+      "repete": false,
+      "quadros": 0,
+      "tema": "energia",
+      "origem": "imagegen integrado",
+      "sha256": "fdae4e0979225f4b0901005aa700e4d9ed73e307d893975a17cbe75652b33416"
+    },
+    {
+      "arquivo": "interface/fichas/ladrilho-titulo.png",
+      "tamanho": [
+        64,
+        64
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "a3280e9203b9ea7166770b82d049389d92d515976d278fd1636ac52b09a842a5"
+    },
+    {
+      "arquivo": "interface/fichas/casa-item-normal.png",
+      "tamanho": [
+        160,
+        160
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "591ce49ce17ce31e5b341298391b2f7e8c9315c53d919fca76f6567c3c0320f6"
+    },
+    {
+      "arquivo": "interface/fichas/casa-item-foco.png",
+      "tamanho": [
+        160,
+        160
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "00024c3a90f24c9eae58d9e2bdc9cedcabcefdff86107a0264ebdf1499aa8c34"
+    },
+    {
+      "arquivo": "temas/ordem/interface/fichas/casa-item-escolhida.png",
+      "tamanho": [
+        160,
+        160
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "ordem",
+      "origem": "Reuso de pintura aprovada/gerada, registro técnico por regiões com cantos fixos; fonte: temas/ordem/interface/kit/botao-grande-ativo.png",
+      "sha256": "3cf0b8c6bdab0f275965fde1e195e73388fed2b6285975cc53aed6facc759cdf"
+    },
+    {
+      "arquivo": "temas/sangue/interface/fichas/casa-item-escolhida.png",
+      "tamanho": [
+        160,
+        160
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "sangue",
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "dcbd256f36a2d04e97c4d38355dca539323bc79708bea8471fa7d6ed0aedb5b2"
+    },
+    {
+      "arquivo": "temas/morte/interface/fichas/casa-item-escolhida.png",
+      "tamanho": [
+        160,
+        160
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "morte",
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "29ec1e94ea71774cf3e99b55b96f8c3b493167e265011bd09ce965f4ed431ae4"
+    },
+    {
+      "arquivo": "temas/conhecimento/interface/fichas/casa-item-escolhida.png",
+      "tamanho": [
+        160,
+        160
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "conhecimento",
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "bafb269c5596f9c04c51889f35cdd57a17c80d930c39bb1377dd3de582f05adf"
+    },
+    {
+      "arquivo": "temas/energia/interface/fichas/casa-item-escolhida.png",
+      "tamanho": [
+        160,
+        160
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "energia",
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "113ca5aa0ac1f1679c903b881abc40f4fc971df9c2c518e94ed1e6caf018b978"
+    },
+    {
+      "arquivo": "interface/fichas/casa-item-vazia.png",
+      "tamanho": [
+        160,
+        160
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "f43784db843d145d46008e379aa4aac687f73dcace9f182914e9d12bcd9c6686"
+    },
+    {
+      "arquivo": "interface/fichas/casa-item-travada.png",
+      "tamanho": [
+        160,
+        160
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "fa3eeaccf1b68fde5a03c82419dbfa5a8fd1a47f5c1a0b561d1750bbdcaea725"
+    },
+    {
+      "arquivo": "temas/ordem/interface/fichas/casa-item-brilho.png",
+      "tamanho": [
+        208,
+        208
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "ordem",
+      "origem": "Reuso de pintura aprovada/gerada, registro técnico por regiões com cantos fixos; fonte: temas/ordem/interface/kit/botao-grande-brilho.png",
+      "sha256": "00b369a4ff12fb7e005c65ea1c04532d6603c490fbce7f2dcc497bf579be3542"
+    },
+    {
+      "arquivo": "temas/sangue/interface/fichas/casa-item-brilho.png",
+      "tamanho": [
+        208,
+        208
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "sangue",
+      "origem": "Teste aprovado — reutilizado sem regenerar",
+      "sha256": "beea9e64d62dbbc4a84c0605de356d46fbdc43663c4b565fcb9c1a4b68a3ed87"
+    },
+    {
+      "arquivo": "temas/morte/interface/fichas/casa-item-brilho.png",
+      "tamanho": [
+        208,
+        208
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "morte",
+      "origem": "Reuso de pintura aprovada/gerada, registro técnico por regiões com cantos fixos; fonte: temas/morte/interface/kit/botao-grande-brilho.png",
+      "sha256": "b0b0617806298d87163c4de5ab176c5dafd3cadd0285eeb87b7668213bf9a6fa"
+    },
+    {
+      "arquivo": "temas/conhecimento/interface/fichas/casa-item-brilho.png",
+      "tamanho": [
+        208,
+        208
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "conhecimento",
+      "origem": "Reuso de pintura aprovada/gerada, registro técnico por regiões com cantos fixos; fonte: temas/conhecimento/interface/kit/botao-grande-brilho.png",
+      "sha256": "d09b28248cbcc25f302874c0086478fafe43011bdc9ca3bb405fad8d57afc1b6"
+    },
+    {
+      "arquivo": "temas/energia/interface/fichas/casa-item-brilho.png",
+      "tamanho": [
+        208,
+        208
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "energia",
+      "origem": "Reuso de pintura aprovada/gerada, registro técnico por regiões com cantos fixos; fonte: temas/energia/interface/kit/botao-grande-brilho.png",
+      "sha256": "c484eba4706495b7dc12bfc47b03ff62314a19c0f1e46b37b349c5e35e43c5bd"
+    }
+  ],
+  "pendentes": []
+}

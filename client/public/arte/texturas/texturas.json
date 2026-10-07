@@ -1,0 +1,110 @@
+{
+ "madeira": {
+  "piso": {
+   "arquivo": "piso-madeira.png",
+   "casas": 3.5
+  },
+  "parede": {
+   "arquivo": "parede-lambri.png"
+  }
+ },
+ "ladrilho": {
+  "piso": {
+   "arquivo": "piso-ladrilho.png",
+   "casas": 3.53
+  },
+  "parede": {
+   "arquivo": "parede-hospital.png"
+  }
+ },
+ "concreto": {
+  "piso": {
+   "arquivo": "piso-concreto.png",
+   "casas": 3.53
+  },
+  "parede": {
+   "arquivo": "parede-pedra.png"
+  }
+ },
+ "xadrez": {
+  "piso": {
+   "arquivo": "piso-xadrez.png",
+   "casas": 2.35
+  },
+  "parede": {
+   "arquivo": "parede-banheiro.png"
+  }
+ },
+ "taco": {
+  "piso": {
+   "arquivo": "piso-taco.png",
+   "casas": 2.2
+  },
+  "parede": {
+   "arquivo": "parede-gabinete.png"
+  }
+ },
+ "azulejo": {
+  "piso": {
+   "arquivo": "piso-azulejo.png",
+   "casas": 3.53
+  },
+  "parede": {
+   "arquivo": "parede-laboratorio.png"
+  }
+ },
+ "musgo": {
+  "piso": {
+   "arquivo": "piso-musgo.png",
+   "casas": 3.53
+  },
+  "parede": {
+   "arquivo": "parede-musgo.png"
+  }
+ },
+ "carpete": {
+  "piso": {
+   "arquivo": "piso-carpete.png",
+   "casas": 3.53
+  },
+  "parede": {
+   "arquivo": "parede-tecnologia.png"
+  }
+ },
+ "metal": {
+  "piso": {
+   "arquivo": "piso-metal.png",
+   "casas": 3.53
+  },
+  "parede": {
+   "arquivo": "parede-arsenal.png"
+  }
+ },
+ "bloco": {
+  "piso": {
+   "arquivo": "piso-bloco.png",
+   "casas": 3.53
+  },
+  "parede": {
+   "arquivo": "parede-bloco.png"
+  }
+ },
+ "cela": {
+  "piso": {
+   "arquivo": "piso-cela.png",
+   "casas": 3.53
+  },
+  "parede": {
+   "arquivo": "parede-cela.png"
+  }
+ },
+ "selo": {
+  "piso": {
+   "arquivo": "piso-selo.png",
+   "casas": 4.0
+  },
+  "parede": {
+   "arquivo": "parede-selo.png"
+  }
+ }
+}

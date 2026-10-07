@@ -2,10 +2,17 @@ import './style.css';
 import './ui/shell.css';
 import './ui/table.css';
 import './ui/tema.css';
+import './ui/iconesAnimados.css';
 import './ui/mapa.css';
 import './ui/fichas.css';
 import './ui/combate.css';
-import { anyFurniName, getFurni, getWallFurni, type ServerMsg } from '@croma/shared';
+import './ui/itens.css';
+import './ui/teclado.css';
+import './ui/requisicao.css';
+import './ui/entrada.css';
+import './ui/kit.css';
+import './ui/jogador.css';
+import { anyFurniName, getFurni, getWallFurni, portraitState, vitalConditions, type ServerMsg } from '@crona/shared';
 import { Net } from './net';
 import { clearIconCache } from './render/bubbles';
 import { sprites } from './render/sprites';
@@ -13,22 +20,29 @@ import { RoomView } from './room/RoomView';
 import { App } from './ui/app';
 import { CatalogWin, InventoryWin } from './ui/catalog';
 import { CharactersWin } from './ui/characters';
-import { closeTopWindow, h, toast } from './ui/dom';
+import { closeTopWindow, fecharJanelas, h, toast } from './ui/dom';
 import { FxWin } from './ui/fx';
 import { HelpWin } from './ui/help';
 import { HintViewer } from './ui/infostand';
 import { Shell } from './ui/shell';
 import { loadLogin, saveLogin } from './ui/login';
 import { TableScreen } from './ui/table';
-import { esquecerChaveFicha, lerChaveFicha, TelaFicha } from './ui/telaFicha';
+import { esquecerChaveFicha, guardarChaveFicha, lerChaveFicha, TelaFicha } from './ui/telaFicha';
+import { Entrada } from './ui/entrada';
+import { esquecerSessao, guardarSessao, lerSessao } from './session/conta';
+import { janelaAberta } from './ui/fichaModal';
 import { NavigatorWin } from './ui/navigator';
 import { RoomSettingsWin } from './ui/roomSettings';
 import { forgetGmKey, readGmKey, tableName, tableRequested } from './session/access';
+import { montarTemas } from './ui/temaUi';
+import { NEVOA_NA_TELA } from './ui/ferramentasMesa';
 
-const LAST_ROOM = 'croma.lastRoom';
-const HOME_SEEN = 'croma.homeSeen';
+const LAST_ROOM = 'crona.lastRoom';
+const HOME_SEEN = 'crona.homeSeen';
 const net = new Net();
 const app = new App(net);
+// as peças do kit de interface viram variáveis de CSS, por tema
+montarTemas();
 /** chave do link do mestre (?mestre=...), para mestre em outro aparelho */
 const gmKey = readGmKey();
 /**
@@ -40,6 +54,13 @@ const tableMode = tableRequested();
 /** link da ficha do jogador (?ficha=CHAVE): só a ficha dele, no celular */
 const fichaKey = tableMode ? null : lerChaveFicha();
 const fichaMode = !!fichaKey;
+/** a conta deste aparelho (a tela de entrada) */
+let sessaoConta = lerSessao();
+/** em desenvolvimento, ?auto entra direto, sem a tela de entrada */
+const devAuto = import.meta.env.DEV && new URLSearchParams(location.search).has('auto');
+/** quem entra pela conta: o mestre e o jogador sem link (a mesa e os links continuam como antes) */
+const pedeConta = !tableMode && !fichaMode && !gmKey && !devAuto;
+let entrada: Entrada | null = null;
 const root = document.getElementById('app')!;
 const canvas = h('canvas', { class: 'room-canvas', 'aria-label': 'Tabuleiro' });
 
@@ -53,6 +74,8 @@ function endPlacement() {
 
 function startPlace(defId: string, invId?: number) {
   usedInv.clear();
+  // colocando no tabuleiro: as janelas saem da frente
+  fecharJanelas();
   const name = anyFurniName(defId);
   if (getWallFurni(defId)) app.view.startPlacement({ kind: 'wall', defId, invId });
   else {
@@ -103,12 +126,29 @@ const view = new RoomView(canvas, {
       else endPlacement();
     } else if (!keep) endPlacement();
   },
-  use: (id) => net.send({ t: 'use', id }),
+  // clique duplo num mobi com senha (a geladeira do bar): o teclado grande no meio do tabuleiro;
+  // sem senha (o feno do celeiro), o servidor empurra o mobi
+  use: (id) => {
+    const it = view.map?.getItem(id);
+    if (it?.lock && !it.lock.open && !it.lock.semSenha && shell?.abrirTeclado(it)) return;
+    net.send({ t: 'use', id });
+  },
   select: () => app.emit('selection'),
   openHint: (kind, id) => hintViewer.open(kind, id),
+  aviso: (texto) => toast(texto),
 });
 app.view = view;
-if (import.meta.env.DEV) (window as unknown as { __croma: App }).__croma = app;
+// pose de cada peça no tabuleiro: Armado (no painel da peça) e machucado (menos da metade dos PV)
+view.estadoDe = (id) => {
+  const ch = app.session.session?.characters.find((c) => c.id === -id);
+  return ch ? portraitState(ch.armed, vitalConditions(ch.vitals).machucado) : null;
+};
+// os PV de cada peça (de 0 a 1), para o arco da ficha no mapa tático
+view.pvDe = (id) => {
+  const v = app.session.session?.characters.find((c) => c.id === -id)?.vitals;
+  return v && v.pvMax > 0 ? Math.max(0, Math.min(1, v.pv / v.pvMax)) : null;
+};
+if (import.meta.env.DEV) (window as unknown as { __crona: App }).__crona = app;
 
 const navigator = new NavigatorWin(app);
 const catalog = new CatalogWin(app, startPlace);
@@ -123,12 +163,14 @@ const shell = tableMode || fichaMode
   : new Shell(app, {
       navigator: () => navigator.toggle(),
       catalog: () => catalog.toggle(),
+      trocar: (id, defId) => catalog.trocar(id, defId),
       inventory: () => inventory.toggle(),
       characters: () => characters.toggle(),
       settings: () => settings.toggle(),
       fx: () => fx.toggle(),
       help: () => help.toggle(),
       logout: () => {
+        if (sessaoConta) return sairDaConta();
         net.close();
         sessionEnded();
       },
@@ -137,6 +179,7 @@ const params = new URLSearchParams(location.search);
 const table = tableMode ? new TableScreen(app) : null;
 const telaFicha = fichaMode
   ? new TelaFicha(app, () => {
+      if (sessaoConta) return sairDaConta();
       net.close();
       sessionEnded();
     })
@@ -159,19 +202,58 @@ app.on('placement', () => {
   if (p) shell?.setPlacement(`Movendo ${anyFurniName(p.defId)}: clique no destino · R gira · Esc cancela`);
 });
 
-/** Entra sem tela de login: o mestre com o nome salvo (ou "Mestre"), a mesa com o nome dela. */
+/**
+ * Entra no tabuleiro. Com a conta (tela de entrada), o nome e o papel saem dela; sem conta, o
+ * mestre com o nome salvo (ou "Mestre") e a mesa com o nome dela, como antes.
+ */
 function login(fresh = false) {
   const saved = loadLogin();
   const dev = import.meta.env.DEV ? params.get('auto') : null;
+  const sessao = sessaoConta && !tableMode ? { sessao: sessaoConta.sessao } : {};
   if (fichaMode) {
     // o nome da conexão sai da chave (o mesmo link em outro aparelho assume a sessão)
-    net.send({ t: 'login', name: `Agente ${fichaKey!.replace(/[^\p{L}\p{N}]/gu, '').slice(0, 6)}`, look: saved.look, fichaKey: fichaKey! });
+    net.send({ t: 'login', name: `Agente ${fichaKey!.replace(/[^\p{L}\p{N}]/gu, '').slice(0, 6)}`, look: saved.look, fichaKey: fichaKey!, ...sessao });
     return;
   }
   const name = tableMode ? tableName(fresh) : dev || saved.name || 'Mestre';
-  net.send({ t: 'login', name, look: saved.look, gmKey, mesa: tableMode });
+  net.send({ t: 'login', name, look: saved.look, gmKey, mesa: tableMode, ...sessao });
 }
-login();
+
+/** A tela de entrada (conta da plataforma), com um aviso se houver. */
+function mostrarEntrada(aviso?: string) {
+  entrada ??= new Entrada({
+    enviar: (m) => net.send(m),
+    verMesa: () => location.replace(`${location.pathname}?mesa`),
+    sairDaConta: () => sairDaConta(),
+  });
+  entrada.mostrar(aviso);
+}
+
+/** Sair da conta neste aparelho: a sessão deixa de valer e volta a tela de entrada. */
+function sairDaConta() {
+  if (sessaoConta) net.send({ t: 'contaSair', sessao: sessaoConta.sessao });
+  esquecerSessao();
+  esquecerChaveFicha();
+  sessaoConta = null;
+  setTimeout(() => location.replace(location.pathname), 250);
+}
+
+const temChaveFicha = () => {
+  try {
+    return !!localStorage.getItem('crona.fichaKey');
+  } catch {
+    return false;
+  }
+};
+if (pedeConta && sessaoConta?.papel === 'jogador') {
+  // o jogador com conta: a tela dele é a ficha que a conta lembra
+  if (temChaveFicha()) location.replace(`${location.pathname}?ficha`);
+  else {
+    mostrarEntrada();
+    entrada!.semFicha(sessaoConta.nome);
+  }
+} else if (pedeConta && !sessaoConta) mostrarEntrada();
+else login();
 let loginTries = 0;
 
 /** "Encerrar sessão": desconecta e mostra um aviso para voltar. */
@@ -201,9 +283,34 @@ net.onMessage = (m: ServerMsg) => {
       sprites.setDefs(m.characters);
       app.emit('characters');
       if (me && reconnecting) {
-        if (fichaMode) net.send({ t: 'login', name: me.name, look: me.look, fichaKey: fichaKey! });
-        else net.send({ t: 'login', name: me.name, look: me.look, gmKey, mesa: tableMode });
+        const sessao = sessaoConta && !tableMode ? { sessao: sessaoConta.sessao } : {};
+        if (fichaMode) net.send({ t: 'login', name: me.name, look: me.look, fichaKey: fichaKey!, ...sessao });
+        else net.send({ t: 'login', name: me.name, look: me.look, gmKey, mesa: tableMode, ...sessao });
       }
+      break;
+    case 'conta':
+      if (m.ok) {
+        sessaoConta = { sessao: m.sessao, nome: m.nome, papel: m.papel };
+        guardarSessao(sessaoConta);
+        if (m.papel === 'jogador') {
+          // o jogador vai para a ficha dele; sem ficha ligada, o aviso
+          if (m.fichaKey) {
+            guardarChaveFicha(m.fichaKey);
+            entrada?.sucesso(m.nome);
+            setTimeout(() => location.replace(`${location.pathname}?ficha`), 600);
+          } else entrada?.semFicha(m.nome);
+        } else {
+          entrada?.sucesso(m.nome);
+          login();
+        }
+      } else if (m.expirou) {
+        esquecerSessao();
+        sessaoConta = null;
+        // o link (da ficha ou do mestre) continua valendo sem a conta
+        if (pedeConta) mostrarEntrada(m.erro);
+        else login();
+      } else if (entrada) entrada.erro(m.erro);
+      else toast(m.erro, 'error');
       break;
     case 'welcome': {
       app.state.me = { id: m.id, name: m.name, look: m.look, token: m.token };
@@ -226,6 +333,9 @@ net.onMessage = (m: ServerMsg) => {
       loginTries = 0;
       shell?.show();
       table?.show();
+      // o tabuleiro abriu: a tela de entrada some devagar por cima dele
+      entrada?.sair();
+      entrada = null;
       app.emit('me');
       app.emit('inventory');
       if (reconnecting && app.state.room) wantRoom = app.state.room.id;
@@ -252,15 +362,21 @@ net.onMessage = (m: ServerMsg) => {
       else if (!app.state.me && fichaMode) {
         if (/inválido/.test(m.msg)) esquecerChaveFicha();
         telaFicha?.erro(m.msg);
-      } else toast(m.msg, 'error');
+      } else if (!app.state.me && entrada) entrada.erro(m.msg);
+      else toast(m.msg, 'error');
       break;
     case 'notice':
       toast(m.msg);
       break;
     case 'fichas':
       shell?.fichas.setFichas(m.fichas, m.nova);
+      shell?.setFichasMapa(m.fichas);
       shell?.combate.setFichas(m.fichas);
-      telaFicha?.fichas.setFichas(m.fichas, m.nova);
+      telaFicha?.setFichas(m.fichas, m.nova, m.equipe);
+      break;
+    case 'docs':
+      telaFicha?.jogo.setDocs(m.docs);
+      shell?.setDocs(m.docs);
       break;
     case 'combate':
       shell?.combate.setCombate(m.combate, m.podeDesfazer, m.ameacas);
@@ -302,6 +418,9 @@ net.onMessage = (m: ServerMsg) => {
       app.state.room = m.room;
       view.updateInfo(m.room);
       app.emit('room');
+      break;
+    case 'marca':
+      view.receberMarca(m.marca);
       break;
     case 'userJoin':
       view.addUser(m.user);
@@ -402,9 +521,12 @@ window.addEventListener('keydown', (e) => {
   if (tgt && (tgt.tagName === 'INPUT' || tgt.tagName === 'TEXTAREA' || tgt.tagName === 'SELECT')) return;
   // a tela da mesa é só para ver
   if (!app.state.me || !shell) return;
+  // com uma janela da ficha aberta (a requisição, uma escolha), os atalhos do tabuleiro ficam quietos; o Esc fecha a janela
+  if (janelaAberta()) return;
   const v = app.view;
   if (e.key === 'Escape') {
     if (v.placement) endPlacement();
+    else if (shell.ferramentas.desligar()) return;
     else if (!closeTopWindow()) v.select(null);
     return;
   }
@@ -420,6 +542,18 @@ window.addEventListener('keydown', (e) => {
   if ((e.key === 'q' || e.key === 'Q' || e.key === 'e' || e.key === 'E') && !v.placement && !e.ctrlKey && !e.metaKey && !e.altKey) {
     const target = v.selection?.kind === 'user' ? v.selection.id : v.myId;
     if (target) shell.turnToken(target, e.key.toLowerCase() === 'e');
+    return;
+  }
+  // P, D e N: as ferramentas da mesa (apontar, desenhar, névoa)
+  const ferr = { p: 'ponto', d: 'traco', n: 'nevoa' } as const;
+  const k = e.key.toLowerCase();
+  if (k in ferr && (k !== 'n' || NEVOA_NA_TELA) && !v.placement && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    shell.ferramentas.alternar(ferr[k as keyof typeof ferr]);
+    return;
+  }
+  // T troca a câmera do tabuleiro: isométrica ou tática (a sala de cima)
+  if ((e.key === 't' || e.key === 'T') && !v.placement && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    shell.trocarVista();
     return;
   }
   // 1-9: comanda o personagem da barra

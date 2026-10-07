@@ -1,5 +1,5 @@
 /**
- * Tipos das regras de Ordem Paranormal RPG no CROMA: os catálogos (classes,
+ * Tipos das regras de Ordem Paranormal RPG no CRONA: os catálogos (classes,
  * origens, trilhas, poderes, rituais, itens) e a linguagem de requisitos e
  * efeitos que amarra uma escolha na outra.
  *
@@ -154,7 +154,7 @@ export type Requisito =
   | { tipo: 'algum'; de: Requisito[] }
   /** não pode cumprir este requisito (ex.: não ter o poder X) */
   | { tipo: 'nao'; req: Requisito }
-  /** requisito que o CROMA não confere sozinho: o mestre decide */
+  /** requisito que o CRONA não confere sozinho: o mestre decide */
   | { tipo: 'texto'; texto: string };
 
 // ================= escolhas =================
@@ -184,7 +184,10 @@ export type Valor = number | AtributoId;
 /** A que armas um bônus vale. Armas de fogo contam como armas de disparo (LR p. 59). */
 export type Escopo =
   | 'todos'
+  /** ataques corpo a corpo, o desarmado incluído */
   | 'corpoACorpo'
+  /** armas corpo a corpo: o desarmado fica de fora (LR p. 57) */
+  | 'armasCorpoACorpo'
   | 'distancia'
   | 'disparo'
   | 'fogo'
@@ -256,7 +259,7 @@ export type Efeito = { condicional?: string; afinidade?: boolean; soElemento?: E
   | { alvo: 'multiplicador'; escopo: Escopo; valor: number }
   /** vestimentas a mais que dão bônus ao mesmo tempo (o normal são 2) */
   | { alvo: 'vestimentas'; valor: number }
-  /** efeito que o CROMA só mostra */
+  /** efeito que o CRONA só mostra */
   | { alvo: 'nota'; texto: string }
 );
 
@@ -424,6 +427,12 @@ export interface Arma {
   municao?: Municao;
   /** d20 a menos nos testes de ataque (arma improvisada: −1, LR p. 57) */
   penalidadeAtaque?: number;
+  /** número somado aos testes de ataque (moto-serra: −2, LR p. 59) */
+  bonusAtaque?: number;
+  /** penalidade no ataque de quem tem menos Força que a pedida (metralhadora: −5 sem Força 4, LR p. 59) */
+  forcaMinima?: { forca: number; bonus: number; nota: string };
+  /** soma a Força no dano mesmo sendo de disparo (arco composto, LR p. 58; estilingue, SaH p. 37) */
+  somaForca?: boolean;
   /** outras regras da arma, em palavras curtas (ex.: "arremessável", "duas mãos: 1d10") */
   especial?: string[];
   resumo?: string;

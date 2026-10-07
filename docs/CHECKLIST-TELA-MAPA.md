@@ -59,9 +59,9 @@ Planta:
 - [x] **Claude:** título do andar e as etiquetas TÉRREO / SUBSOLO
 - [x] **Claude:** salas em cinza com textura de pedra, contorno grosso e portas
 - [x] **Claude:** sala atual em vermelho; nome das salas
-- [ ] **Claude:** alfinete na sala atual e o nome das salas em plaquinhas
+- [x] **Claude:** alfinete na sala atual e o nome das salas em plaquinhas (o alfinete troca pela arte `interface/alfinete.png` quando ela chegar)
 - [x] **Claude:** rosa dos ventos (desenho padrão)
-- [ ] **Claude:** anotações à mão na planta (Caveat, inclinadas), que o mestre escreve
+- [x] **Claude:** anotações à mão na planta (Caveat, inclinadas), que o mestre escreve: o lápis no canto da planta anota; arrastar move; dois cliques mudam ou apagam
 - [ ] **Você:** as anotações de cada andar (ex.: "Instalações Técnicas", "Acesso Restrito")
 
 Cartão da sala:
@@ -69,15 +69,15 @@ Cartão da sala:
 - [ ] **Claude:** fitas nos cantos da polaroid (esperando `fita-*.png`)
 - [x] **Claude:** traço vermelho, título e descrição
 - [x] **Claude:** plaquinhas com ícones (andar; hoje a segunda mostra quantos cômodos)
-- [ ] **Claude:** campo "área" em cada cena (a segunda plaquinha passa a mostrar a área)
+- [x] **Claude:** campo "área" em cada cena, em Configurar cena (a segunda plaquinha mostra a área)
 - [ ] **Você:** a área de cada cômodo (ex.: "Área técnica")
 
 Objeto selecionado:
 - [x] **Claude:** título vermelho com o traço ("OBJETO SELECIONADO"; sem seleção, "NESTA CENA")
 - [x] **Claude:** foto do objeto (o próprio móvel desenhado) na moldura
 - [x] **Claude:** nome e descrição
-- [ ] **Claude:** lista "Contém" no estilo da referência (hoje: as abas Descrição, Interações e Itens)
-- [ ] **Claude:** carimbo da Ordem bem apagado (desenhado com o logo)
+- [x] **Claude:** lista "Contém" no estilo da referência: a aba dos itens virou CONTÉM, primeira e em linhas (Descrição e Interações continuam ao lado)
+- [x] **Claude:** carimbo da Ordem bem apagado (o anel com o nome; o emblema no meio vem do logo local)
 
 Cartas do grupo (embaixo):
 - [x] **Claude:** moldura, retrato e faixa escura com o nome (girar: ↺ ↻ ao passar o mouse, ou Q e E)
@@ -90,7 +90,7 @@ Cartas do grupo (embaixo):
 
 ## 7. Sala de Tecnologia (o que está no tabuleiro)
 
-Pasta: `client/public/arte/moveis/`. Isométrico 2:1; casa de 128×64 (já no dobro); 1 m de altura = 115 px (no dobro). Duas imagens por móvel: frente (virada para baixo à esquerda) e `_costas`. Sem sombra no chão. Formato completo em `docs/SEDE-DA-ORDEM.md`.
+Pasta: `client/public/arte/moveis/`. Pixel art chibi na grade 1:1 do tabuleiro (`docs/ARTE.md`): casa = losango de 64×32 pixels de arte; 1 m de altura ≈ 58 pixels de arte. Duas imagens por móvel: frente (virada para baixo à esquerda) e `_costas`. Sem sombra no chão. Formato completo em `docs/SEDE-DA-ORDEM.md`.
 
 - [ ] **Você:** `console.png` e `console_costas.png`: bancada 2×1 casas, 0,78 m, dois monitores azuis acesos e teclado
 - [ ] **Você:** `console_desligado.png` e `console_desligado_costas.png`: a mesma bancada desligada
@@ -98,7 +98,7 @@ Pasta: `client/public/arte/moveis/`. Isométrico 2:1; casa de 128×64 (já no do
 - [ ] **Você:** `chair_office.png` e `chair_office_costas.png`: cadeira de escritório, 1×1 casa, assento a 0,5 m
 - [ ] **Você:** `fluorescent.png` e `fluorescent_aceso.png`: tubo de luz fluorescente
 - [ ] **Você:** porta de madeira escura na parede do fundo, fechada e aberta
-- [ ] **Você:** textura do piso: carpete roxo, uma casa (128×64) que repete sem emenda
+- [ ] **Você:** textura do piso: carpete roxo, uma casa (32×16 pixels de arte) que repete sem emenda
 - [ ] **Você:** textura da parede: tijolo escuro, que repete sem emenda
 - [ ] **Claude:** o motor usar a arte dos móveis, do piso e da parede no lugar do desenho em código
 - [ ] **Claude:** luz roxa embaixo das bancadas, brilho azul das telas e luz fria das fluorescentes
@@ -110,7 +110,21 @@ Pasta: `client/public/arte/moveis/`. Isométrico 2:1; casa de 128×64 (já no do
 - [x] **Claude:** barras de PV, PE e SAN no estilo da referência, com o valor dentro
 - [x] **Você, decisão:** as três barras (PV, PE e SAN) têm − e +
 - [x] **Claude:** − e + nas três barras (Shift: de 5 em 5; clique na barra muda o total)
-- [ ] **Claude:** INTERLÚDIO e ITENS (as abas existem; o conteúdo chega depois)
+- [x] **Claude:** ITENS: a mochila de cada agente (seção 8b)
+- [ ] **Claude:** INTERLÚDIO (a aba existe; o conteúdo chega depois)
+
+## 8b. Aba ITENS (referência `docs/ref-itens.jpg`, fora do git)
+
+- [x] **Claude:** "MOCHILA / ITENS" e os títulos com o traço vermelho, na serifa forte e estreita da referência
+- [x] **Claude:** escolha do agente (retrato e nome; o escolhido em vermelho)
+- [x] **Claude:** cartão do agente: retrato, nome, Carga em espaços com a barra (vermelha quando sobrecarregado, com o −5 e o −3 m), Mãos e os avisos da mochila
+- [x] **Claude:** contadores Consumíveis, Chaves e Ritualísticos
+- [x] **Claude:** EQUIPADO (o que está na mão, a mão livre tracejada e o que está vestido) e MOCHILA em grade, com "x1" e o "+" do catálogo
+- [x] **Claude:** ITEM SELECIONADO: arte (clique inspeciona), nome, texto, Tipo e Espaços, categoria, lugar e página
+- [x] **Claude:** o botão vermelho faz o que o item pede (Empunhar ou Guardar, Abrir o documento, Usar o consumível, Vestir ou Tirar, Inspecionar); Entregar para…, Mover (mão, roupa, mochila, com troca) e Descartar (larga no chão)
+- [x] **Claude:** a arma na mão aparece: pela pose armada da arte (o Tepes) e, sem ela, por um sinal da arma junto da mão no tabuleiro e no canto do retrato do PLAYERS
+- [ ] **Você:** a arte da aba (lista em `docs/CHECKLIST-ARTE.md`, "Aba ITENS")
+- [ ] **Claude:** encaixar as texturas, os botões, os chips e a marca d'água quando chegarem
 
 ## 9. Rodapé
 

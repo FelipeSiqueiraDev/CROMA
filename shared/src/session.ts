@@ -13,6 +13,8 @@ import { computeWalls, type Door } from './walls';
 
 /** Mestre controla a sessão; jogador só acompanha. */
 export type Role = 'gm' | 'player';
+/** Papel de uma conta da plataforma: o mestre controla as sessões; o jogador, a própria ficha. */
+export type PapelConta = 'mestre' | 'jogador';
 
 /** Ponto no quadro da cena: 0..1 nos dois eixos (0,0 = canto superior esquerdo). */
 export interface NormPoint {
@@ -106,6 +108,8 @@ export interface Character {
   sceneId: number;
   /** com a arma e machucado: escolhem o retrato (ver PortraitState) */
   armed: boolean;
+  /** a arma na mão (pela ficha): de fogo ou branca */
+  arma?: 'fogo' | 'branca';
   hurt: boolean;
   /** PV, PE e SAN (atual e total); machucado = menos da metade dos PV */
   vitals?: Vitals;
@@ -132,7 +136,10 @@ export interface Token {
 export interface Item {
   id: number;
   name: string;
-  weight: number;
+  /** espaços que ocupa na mochila */
+  espacos: number;
+  /** texto do mestre */
+  descricao?: string;
   kind: LootKind;
   kindLabel: string;
   sceneId: number;

@@ -3,22 +3,24 @@
  *
  * Só o mestre mexe: monta o combate, digita a Iniciativa, passa os turnos,
  * resolve os ataques e declara as outras ações. Os dados são físicos: o mestre
- * digita o que saiu na mesa. As regras ficam em @croma/shared (combate) e o
+ * digita o que saiu na mesa. As regras ficam em @crona/shared (combate) e o
  * servidor aplica; esta tela mostra, faz as contas e pede. O tabuleiro é o
  * mesmo da tela MAPA, com as marcações do combate por cima.
  */
-import { combate as cb, regras, vitalConditions, type Character, type FichaSalva, type Session, type Vitals } from '@croma/shared';
+import { combate as cb, regras, vitalConditions, type Character, type FichaSalva, type Session, type Vitals } from '@crona/shared';
 import { COR_LADO, marcasVazias } from '../render/combateMarcas';
 import { portraitCanvas } from '../render/portrait';
 import { cobertura as coberturaEntre, elevado, flanqueia, FORMAS, naArea, type Casa, type FormaArea } from '../room/combateGeo';
 import type { App } from './app';
 import { editarAmeaca } from './combateAmeaca';
 import { PASSOS_ATAQUE, ResolucaoAtaque, type AlvoAtaque, type ArmaOpcao, type CtxAtaque, type TabuleiroAtaque } from './combateAtaque';
+import { PASSOS_MANOBRA, ResolucaoManobra, type CtxManobra, type TesteLuta } from './combateManobra';
+import { PASSOS_RITUAL, ResolucaoRitual, type CtxRitual, type RitualOpcao } from './combateRitual';
 import { h, toast } from './dom';
 import { confirmar, janela, perguntarTexto } from './fichaModal';
 import { textoTeste } from './fichaRegras';
-import { NOME_DANO } from './fichas';
-import { ic, type NomeIcone } from './icons';
+import { NOME_DANO, resistenciasParaMostrar } from './fichas';
+import { arteOu, ic, type NomeIcone } from './icons';
 import { paperize } from './paperArt';
 import { sfx } from './sfx';
 
@@ -49,16 +51,8 @@ interface OpcaoAcao {
   alvo?: boolean;
 }
 
-/** As ações de cada aba (LR p. 44–46, 58, 85–87, 310; COMBATE.md, seções 5 e 9). */
-const ACOES: Record<'manobra' | 'movimento' | 'outras', OpcaoAcao[]> = {
-  manobra: [
-    { id: 'agarrar', nome: 'Agarrar', qual: 'padrao', dica: 'Luta contra Luta; só com a mão livre', pagina: 85, alvo: true },
-    { id: 'derrubar', nome: 'Derrubar', qual: 'padrao', dica: 'vencendo por 5, também empurra', pagina: 85, alvo: true },
-    { id: 'desarmar', nome: 'Desarmar', qual: 'padrao', dica: 'o item cai; vencendo por 5, vai 1 quadrado', pagina: 85, alvo: true },
-    { id: 'empurrar', nome: 'Empurrar', qual: 'padrao', dica: '1,5 m, mais 1,5 m a cada 5 de diferença', pagina: 85, alvo: true },
-    { id: 'quebrar', nome: 'Quebrar', qual: 'padrao', dica: 'ataca o item que o alvo empunha', pagina: 85, alvo: true },
-    { id: 'atropelar', nome: 'Atropelar', qual: 'livre', dica: 'no meio do movimento ou da investida', pagina: 86, alvo: true },
-  ],
+/** As ações de cada aba (LR p. 44–46, 58, 85–87, 310; COMBATE.md, seção 5). As manobras têm resolução própria (combateManobra.ts). */
+const ACOES: Record<'movimento' | 'outras', OpcaoAcao[]> = {
   movimento: [
     { id: 'mover', nome: 'Movimentar-se', qual: 'movimento', dica: 'até o deslocamento; arraste a peça no tabuleiro', pagina: 87 },
     { id: 'levantar', nome: 'Levantar-se', qual: 'movimento', dica: 'sai do caído', pagina: 87 },
@@ -133,8 +127,21 @@ function titulo(texto: string, ...extra: (Node | null)[]) {
   return h('header', { class: 'cb-tit' }, h('i', { class: 'cb-marca', 'aria-hidden': 'true' }), h('h3', null, texto), h('span', { class: 'cb-tit-extra' }, ...extra));
 }
 
+/** Os ícones de linha que têm o pintado do kit (arte/icones/<nome>.png); sem a arte, fica o de linha. */
+const PINTADO: Partial<Record<NomeIcone, string>> = {
+  mira: 'tabuleiro-alcance',
+  regua: 'tabuleiro-medir',
+  area: 'tabuleiro-area',
+  tatico: 'tabuleiro-tatico',
+  centralizar: 'tabuleiro-centralizar',
+  avancar: 'combate-passar-turno',
+  girarE: 'combate-desfazer',
+  ok: 'combate-confirmar',
+};
+const icPintado = (icone: NomeIcone, pintado = PINTADO[icone]) => (pintado ? arteOu([`/arte/icones/${pintado}.png`], ic(icone)) : ic(icone));
+
 function botao(rotulo: string, icone: NomeIcone | null, fn: () => void, cls = '', dica?: string, desligado = false) {
-  return h('button', { class: `cb-bt ${cls}`, type: 'button', title: dica, disabled: desligado, onclick: () => (sfx.click(), fn()) }, icone ? ic(icone) : null, h('span', null, rotulo));
+  return h('button', { class: `cb-bt ${cls}`, type: 'button', title: dica, disabled: desligado, onclick: () => (sfx.click(), fn()) }, icone ? icPintado(icone) : null, h('span', null, rotulo));
 }
 
 function botaoJanela(rotulo: string, icone: NomeIcone, cls: string, fn: () => void) {
@@ -195,6 +202,8 @@ export class CombateScreen {
   /** a tela está pondo a peça da vez no comando (a seleção que vem daí não troca o alvo) */
   private pondoNaVez = false;
   private ataque = new ResolucaoAtaque();
+  private manobra = new ResolucaoManobra();
+  private ritualRes = new ResolucaoRitual();
   // ferramentas do tabuleiro
   private mostrarAlcance = true;
   private medida: { a: Casa; b: Casa | null } | null = null;
@@ -215,9 +224,14 @@ export class CombateScreen {
   private tabClima: HTMLElement;
   private tabArea: HTMLElement;
   private btAlcance: HTMLButtonElement;
+  private btTatico: HTMLButtonElement;
   private btMedir: HTMLButtonElement;
   private btArea: HTMLButtonElement;
+  private btApontar: HTMLButtonElement;
+  private btDesenhar: HTMLButtonElement;
   private alvoExtra: HTMLElement;
+  /** Apontar e Desenhar (as ferramentas da mesa, as mesmas do MAPA): a tela MAPA liga e desliga */
+  aoFerramentaMesa: ((tipo: 'ponto' | 'traco') => void) | null = null;
 
   constructor(app: App) {
     this.app = app;
@@ -236,7 +250,12 @@ export class CombateScreen {
     this.btAlcance = botao('Alcance', 'mira', () => ((this.mostrarAlcance = !this.mostrarAlcance), this.pintarFerramentas(), this.atualizarMarcas()), 'cb-ferr on', 'Anel de alcance da arma escolhida');
     this.btMedir = botao('Medir', 'regua', () => this.ferramentaMedir(), 'cb-ferr', 'Medir: clique em dois pontos do tabuleiro (Esc sai)');
     this.btArea = botao('Área', 'area', () => this.ferramentaArea(), 'cb-ferr', 'Área de ritual ou granada: escolha o formato e clique no tabuleiro (Esc sai)');
-    const ferr = h('div', { class: 'cb-tab-ferr' }, this.btAlcance, this.btMedir, this.btArea, botao('Centralizar', 'centralizar', () => this.centralizar(), 'cb-ferr', 'Centralizar em quem está na vez'));
+    // a vista tática: a câmera sobe e mostra a sala de cima (a mesa acompanha)
+    this.btTatico = botao('Tática', 'tatico', () => this.trocarVista(), 'cb-ferr', 'Vista tática: a sala de cima, como mapa de batalha (T); de novo volta ao isométrico');
+    // o que o mestre mostra na mesa: o ponto de atenção e o desenho rápido (docs/FERRAMENTAS-DA-MESA.md)
+    this.btApontar = botao('Apontar', 'apontar', () => this.aoFerramentaMesa?.('ponto'), 'cb-ferr', 'Apontar: clique num lugar e a mesa pisca ali (P). Alt + clique aponta sem ligar');
+    this.btDesenhar = botao('Desenhar', 'giz', () => this.aoFerramentaMesa?.('traco'), 'cb-ferr', 'Desenhar: arraste no tabuleiro; some sozinho (D). Formato e cor na aba MAPA');
+    const ferr = h('div', { class: 'cb-tab-ferr' }, this.btAlcance, this.btMedir, this.btArea, this.btTatico, this.btApontar, this.btDesenhar, botao('Centralizar', 'centralizar', () => this.centralizar(), 'cb-ferr', 'Centralizar em quem está na vez'));
     this.quadro = h('section', { class: 'cb-tab' }, this.tabCena, ferr, this.tabArea, this.tabClima);
     // ---------- resolução da ação ----------
     this.resCorpo = h('div', { class: 'cb-res-corpo' });
@@ -414,19 +433,7 @@ export class CombateScreen {
 
   private armasDe(p: Participante): ArmaOpcao[] {
     const calc = this.calcDe(p.id);
-    if (calc)
-      return calc.ataques.map((a) => ({
-        nome: a.nome,
-        pericia: a.pericia === 'pontaria' ? 'pontaria' : 'luta',
-        dados: a.dados + a.penalidadeDados,
-        bonus: a.bonus,
-        dano: a.dano,
-        tipo: a.tipoDano[0] ?? 'impacto',
-        margem: a.critico.margem,
-        multiplicador: a.critico.multiplicador,
-        faixa: cb.faixaArma(a.alcance),
-        notas: a.notas,
-      }));
+    if (calc) return [...this.armasDaFicha(calc), ...this.jogadasDe(p, calc)];
     return (this.ameacaDe(p.id)?.ataques ?? []).map((a) => ({
       nome: a.nome,
       pericia: a.pericia,
@@ -438,7 +445,64 @@ export class CombateScreen {
       multiplicador: a.multiplicador,
       faixa: cb.faixaArma(a.alcance),
       notas: [],
+      ...(a.vezes ? { vezes: a.vezes } : {}),
+      ...(a.extra ? { extra: a.extra } : {}),
     }));
+  }
+
+  /**
+   * As jogadas prontas do agente, conferidas agora: o PE que sobra na peça e o já gasto no turno
+   * (LR p. 23). A margem e o crítico são os da arma da jogada; o dano passa pela resistência e
+   * pela RD do alvo como qualquer ataque.
+   */
+  private jogadasDe(p: Participante, calc: regras.Calculado): ArmaOpcao[] {
+    const fs = this.fichaDe(p.id);
+    if (!fs?.jogadas?.length) return [];
+    const gasto = this.combate ? (cb.acoesDe(this.combate, p.id).pe ?? 0) : 0;
+    const peAtual = this.vitais(p.id)?.pe;
+    return fs.jogadas.map((j) => {
+      const r = regras.conferirJogada(fs.ficha, calc, j, { ...(peAtual !== undefined ? { peAtual } : {}), gastoTurno: gasto });
+      const a = r.ataque;
+      const jogada = { nome: j.nome, pe: r.pe, linhas: r.linhas, erros: r.erros, avisos: r.avisos, ...(j.nota ? { nota: j.nota } : {}) };
+      if (!a) return { nome: j.nome, pericia: 'luta' as const, dados: 0, bonus: 0, dano: '—', tipo: 'impacto' as const, margem: 20, multiplicador: 2, faixa: null, notas: [], jogada: { ...jogada, erros: r.erros.length ? r.erros : ['Sem ataque.'] } };
+      return {
+        naMao: a.naMao,
+        ...(a.uid !== undefined ? { uid: a.uid } : {}),
+        nome: `${j.nome} (${a.nome})`,
+        pericia: a.pericia === 'pontaria' ? ('pontaria' as const) : ('luta' as const),
+        dados: a.dados,
+        penalidade: a.penalidadeDados,
+        bonus: a.bonus,
+        dano: a.dano,
+        tipo: a.tipoDano[0] ?? 'impacto',
+        margem: a.critico.margem,
+        multiplicador: a.critico.multiplicador,
+        faixa: cb.faixaArma(a.alcance),
+        notas: a.notas,
+        jogada: a.naMao ? jogada : { ...jogada, erros: [...jogada.erros, `${a.nome} está guardada: saque antes (ação de movimento).`] },
+      };
+    });
+  }
+
+  private armasDaFicha(calc: regras.Calculado): ArmaOpcao[] {
+    {
+      // a arma na mão primeiro (e o desarmado); a da mochila por último, para sacar
+      return [...calc.ataques].sort((x, y) => Number(y.naMao) - Number(x.naMao)).map((a) => ({
+        naMao: a.naMao,
+        ...(a.uid !== undefined ? { uid: a.uid } : {}),
+        nome: a.nome,
+        pericia: a.pericia === 'pontaria' ? 'pontaria' : 'luta',
+        dados: a.dados,
+        penalidade: a.penalidadeDados,
+        bonus: a.bonus,
+        dano: a.dano,
+        tipo: a.tipoDano[0] ?? 'impacto',
+        margem: a.critico.margem,
+        multiplicador: a.critico.multiplicador,
+        faixa: cb.faixaArma(a.alcance),
+        notas: a.notas,
+      }));
+    }
   }
 
   private alvoAtaque(c: Combate, p: Participante): AlvoAtaque {
@@ -449,7 +513,8 @@ export class CombateScreen {
       agente: p.lado === 'agente',
       defesa: calc?.defesa ?? f?.defesa ?? null,
       rd: calc?.resistencias ?? f?.rd ?? {},
-      imunidades: f?.imunidades ?? [],
+      // a criatura é imune a dano mental mesmo na ficha feita à mão (LR p. 180)
+      imunidades: f ? cb.imunidadesDaAmeaca(f) : [],
       vulnerabilidades: f?.vulnerabilidades ?? [],
       vitais: this.vitais(p.id),
       reacoes: p.lado === 'agente' && calc ? calc.reacoes : null,
@@ -506,6 +571,160 @@ export class CombateScreen {
       ...this.clima(),
       acoes: cb.acoesDe(c, ator.id),
       enviar: (a) => this.acao(a),
+      sacar: (arma) => arma.uid !== undefined && this.acao({ tipo: 'declarar', qual: 'movimento', texto: `sacou ${arma.nome}`, quem: ator.id, sacar: arma.uid }),
+      mudou: () => (this.sigs.delete('res'), this.renderRes(), this.atualizarMarcas()),
+    };
+  }
+
+  // ================================================================ manobra
+
+  /** Luta de quem resiste à manobra: a da ficha, a da ameaça, ou a do primeiro ataque corpo a corpo dela. */
+  private lutaDe(p: Participante): TesteLuta | null {
+    const calc = this.calcDe(p.id);
+    const l = calc?.pericias.luta;
+    if (l) return { dados: l.dados, bonus: l.bonus, penalidade: l.penalidadeDados, origem: 'da ficha' };
+    const f = this.ameacaDe(p.id);
+    if (f?.luta) return { ...f.luta, origem: 'da ficha da ameaça' };
+    const golpe = f?.ataques.find((a) => a.pericia === 'luta');
+    return golpe ? { dados: golpe.dados, bonus: golpe.bonus, origem: `pelo ataque ${golpe.nome}` } : null;
+  }
+
+  private tamanhoDe(p: Participante): cb.Tamanho {
+    return this.ameacaDe(p.id)?.tamanho ?? 'medio';
+  }
+
+  private ctxManobra(c: Combate, ator: Participante): CtxManobra {
+    const alvoP = this.alvoId !== null && this.alvoId !== ator.id ? cb.participante(c, this.alvoId) : undefined;
+    const agarraP = ator.agarra ? cb.participante(c, ator.agarra) : undefined;
+    const porP = c.participantes.find((q) => q.agarra === ator.id && !q.fora);
+    return {
+      combate: c,
+      ator,
+      condicoesAtor: this.condicoesDe(c, ator),
+      armas: this.armasDe(ator),
+      tamanhoAtor: this.tamanhoDe(ator),
+      alvo: alvoP && !alvoP.fora ? this.alvoAtaque(c, alvoP) : null,
+      agarra: agarraP && !agarraP.fora ? this.alvoAtaque(c, agarraP) : null,
+      agarradoPor: porP ? this.alvoAtaque(c, porP) : null,
+      lutaDe: (p) => this.lutaDe(p),
+      tamanhoDe: (p) => this.tamanhoDe(p),
+      tabDe: (p) => this.tabuleiroEntre(c, ator, p),
+      acoes: cb.acoesDe(c, ator.id),
+      enviar: (a) => this.acao(a),
+      empurrar: (alvo, casas) => this.empurrar(ator.id, alvo, casas),
+      mudou: () => (this.sigs.delete('res'), this.renderRes(), this.atualizarMarcas()),
+    };
+  }
+
+  /**
+   * Empurra a peça do alvo para longe de quem age, em linha reta, até `casas`
+   * ou até a primeira casa bloqueada ou ocupada (COMBATE.md 9: o mestre ajusta).
+   */
+  private empurrar(atorId: number, alvoId: number, casas: number) {
+    const map = this.app.view?.map;
+    const a = this.casa(atorId);
+    const b = this.casa(alvoId);
+    if (!map || !a || !b || casas <= 0) return;
+    const ang = Math.atan2(b.y - a.y, b.x - a.x);
+    const dx = Math.round(Math.cos(ang));
+    const dy = Math.round(Math.sin(ang));
+    if (!dx && !dy) return;
+    const ocupadas = new Set<string>();
+    for (const u of this.app.view.users.values()) if (-u.id !== alvoId) ocupadas.add(`${u.x},${u.y}`);
+    let dest = b;
+    for (let i = 1; i <= casas; i++) {
+      const c = { x: b.x + dx * i, y: b.y + dy * i };
+      if (map.walkState(c.x, c.y) === 'blocked' || ocupadas.has(`${c.x},${c.y}`)) break;
+      dest = c;
+    }
+    if (dest === b) return toast('Sem espaço para empurrar: ajuste a peça à mão.');
+    this.app.net.send({ t: 'tokenWalk', tokenId: -alvoId, x: dest.x, y: dest.y });
+  }
+
+  // ================================================================ ritual
+
+  /** Os rituais da ficha, com o custo e a DT de cada forma e o motivo das travadas (LR p. 121). */
+  private rituaisDe(p: Participante): RitualOpcao[] {
+    const calc = this.calcDe(p.id);
+    const ficha = this.fichaDe(p.id)?.ficha;
+    if (!calc || !ficha) return [];
+    const circuloMax = ficha.classe ? regras.circuloMaximo(ficha.classe, ficha.nex) : 0;
+    // a afinidade escolhida em 50% só vale depois do próximo poder paranormal (LR p. 110, 114)
+    let afinidade: regras.Elemento | null = null;
+    try {
+      const st = regras.montarEstado(ficha);
+      afinidade = st.afinidadeAtiva ? st.afinidade : null;
+    } catch {
+      afinidade = null;
+    }
+    const out: RitualOpcao[] = [];
+    for (const r of calc.rituais) {
+      const d = regras.catalogo.ritual(r.id);
+      if (!d) continue;
+      const custo = calc.custoRituais[r.id] ?? { pe: 1, dt: calc.dtRituais, base: 1, ajuste: 0 };
+      // o mínimo de 1 PE vale no custo final, com a forma (LR p. 78, 121)
+      const formas = (['basica', 'discente', 'verdadeira'] as cb.FormaRitual[])
+        .filter((f) => f === 'basica' || (f === 'discente' ? d.discente : d.verdadeiro))
+        .map((f) => ({ forma: f, pe: cb.custoDaForma(custo.base, d, f, custo.ajuste), motivo: cb.formaLiberada(d, f, circuloMax, afinidade) }));
+      const exec = d.execucao;
+      out.push({
+        id: d.id,
+        nome: d.nome,
+        elemento: d.elemento,
+        circulo: d.circulo,
+        qual: exec === 'movimento' || exec === 'completa' || exec === 'livre' || exec === 'reacao' ? exec : 'padrao',
+        alcance: d.alcance,
+        ...(d.alvo ? { alvo: d.alvo } : {}),
+        duracao: d.duracao,
+        ...(d.resistencia ? { resistencia: d.resistencia } : {}),
+        dt: custo.dt,
+        formas,
+        ref: `${d.ref.fonte} p. ${d.ref.pagina}`,
+      });
+    }
+    return out;
+  }
+
+  /** Quem do combate está na área desenhada (a ferramenta Área, já fixada no tabuleiro). */
+  private naAreaDoCombate(c: Combate, ator: Participante): AlvoAtaque[] | null {
+    const a = this.area;
+    if (!a?.fixa || !a.alvo) return null;
+    const origem = this.casa(ator.id) ?? a.alvo;
+    const area = { forma: a.forma, metros: a.metros, origem, alvo: a.alvo };
+    return c.participantes.filter((p) => !p.fora && (() => { const x = this.casa(p.id); return !!x && naArea(area, x); })()).map((p) => this.alvoAtaque(c, p));
+  }
+
+  private ctxRitual(c: Combate, ator: Participante): CtxRitual {
+    const alvoP = this.alvoId !== null ? cb.participante(c, this.alvoId) : undefined;
+    const calc = this.calcDe(ator.id);
+    const ac = cb.acoesDe(c, ator.id);
+    return {
+      combate: c,
+      ator,
+      agente: ator.lado === 'agente' && !!calc,
+      condicoesAtor: this.condicoesDe(c, ator),
+      rituais: this.rituaisDe(ator),
+      ocultismo: calc ? { dados: calc.pericias.ocultismo.dados, bonus: calc.pericias.ocultismo.bonus, penalidade: calc.pericias.ocultismo.penalidadeDados } : null,
+      vontade: calc ? { dados: calc.pericias.vontade.dados, bonus: calc.pericias.vontade.bonus, penalidade: calc.pericias.vontade.penalidadeDados } : null,
+      limite: calc ? (calc.limitePeRituais ?? calc.limitePe) : null,
+      gasto: ac.pe ?? 0,
+      alvo: alvoP && !alvoP.fora ? this.alvoAtaque(c, alvoP) : null,
+      naArea: this.naAreaDoCombate(c, ator),
+      testeDe: (p, t) => {
+        const pc = this.calcDe(p.id)?.pericias[t];
+        if (pc) return { dados: pc.dados, bonus: pc.bonus, penalidade: pc.penalidadeDados };
+        const f = this.ameacaDe(p.id);
+        return f ? { ...f[t] } : null;
+      },
+      elementoDe: (p) => this.ameacaDe(p.id)?.elemento ?? null,
+      metrosAte: (p) => {
+        const a = this.casa(ator.id);
+        const b = this.casa(p.id);
+        return a && b ? cb.metrosDe(cb.distanciaCasas(a, b)) : null;
+      },
+      acoes: ac,
+      pedirArea: () => this.ferramentaArea(),
+      enviar: (a) => this.acao(a),
       mudou: () => (this.sigs.delete('res'), this.renderRes(), this.atualizarMarcas()),
     };
   }
@@ -557,6 +776,12 @@ export class CombateScreen {
     sfx.click();
     this.render();
     return true;
+  }
+
+  /** A ferramenta da mesa ligada (o MAPA avisa). */
+  marcarFerramentaMesa(tipo: string | null) {
+    this.btApontar.classList.toggle('on', tipo === 'ponto');
+    this.btDesenhar.classList.toggle('on', tipo === 'traco');
   }
 
   private pintarFerramentas() {
@@ -623,6 +848,17 @@ export class CombateScreen {
     );
   }
 
+  /** Troca a câmera do tabuleiro: isométrica ou tática (só o mestre; a mesa acompanha). */
+  private trocarVista() {
+    if (!this.app.state.room?.isOwner) return;
+    this.app.net.send({ t: 'roomFx', tatico: !this.app.view.tatico });
+  }
+
+  /** O botão da vista tática aceso enquanto ela está ligada. */
+  marcarVista(tatico: boolean) {
+    this.btTatico.classList.toggle('on', tatico);
+  }
+
   /** Marcações do combate no tabuleiro (bases, deitados, alcance, linha, cobertura, medida, área). */
   private atualizarMarcas() {
     const v = this.app.view;
@@ -645,6 +881,7 @@ export class CombateScreen {
       }
       const vez = this.daVez();
       const ator = vez?.ator;
+      for (const p of vez?.ativos ?? []) m.vez.add(-p.id);
       if (ator && this.aba === 'atacar') {
         const x = this.ctxAtaque(c, ator);
         const arma = this.ataque.armaEscolhida(x);
@@ -664,6 +901,21 @@ export class CombateScreen {
               m.cobertura = { casa: t.cobertura.casa, rotulo: t.cobertura.tipo === 'total' ? 'cobertura total' : 'cobertura +5', total: t.cobertura.tipo === 'total' };
           }
         }
+      } else if (ator && this.aba === 'manobra') {
+        const x = this.ctxManobra(c, ator);
+        const alvo = this.manobra.alvoEscolhido(x);
+        if (this.mostrarAlcance && v.users.has(-ator.id)) m.alcance = { id: -ator.id, casas: 1.5 / cb.METROS_POR_CASA, rotulo: 'corpo a corpo', dobro: false };
+        if (alvo) {
+          m.mira = -alvo.p.id;
+          const t = x.tabDe(alvo.p);
+          if (t && t.metros !== null && v.users.has(-ator.id) && v.users.has(-alvo.p.id))
+            m.linha = { de: -ator.id, ate: -alvo.p.id, rotulo: `${cb.textoMetros(t.metros)} · ${t.adjacente ? 'adjacente' : 'longe'}`, fora: !t.adjacente };
+        }
+      } else if (ator && this.aba === 'ritual' && this.alvoId !== null && this.alvoId !== ator.id && v.users.has(-this.alvoId)) {
+        m.mira = -this.alvoId;
+        const a = this.casa(ator.id);
+        const b = this.casa(this.alvoId);
+        if (a && b && v.users.has(-ator.id)) m.linha = { de: -ator.id, ate: -this.alvoId, rotulo: cb.textoMetros(cb.metrosDe(cb.distanciaCasas(a, b))) };
       } else if (this.alvoId !== null && v.users.has(-this.alvoId)) m.mira = -this.alvoId;
     }
     // ferramentas
@@ -707,7 +959,10 @@ export class CombateScreen {
     const digitado = chave && at && at.tagName === 'INPUT' && at.value !== at.defaultValue ? at.value : undefined;
     const rolagens = [...corpo.querySelectorAll('.cb-rola')].map((x) => x.scrollTop);
     corpo.replaceChildren(...filhos);
-    corpo.querySelectorAll('.cb-rola').forEach((x, i) => (x.scrollTop = rolagens[i] ?? 0));
+    corpo.querySelectorAll<HTMLElement>('.cb-rola').forEach((x, i) => {
+      x.scrollTop = rolagens[i] ?? 0;
+      avisarRolagem(x);
+    });
     if (!chave) return;
     const novo = corpo.querySelector<HTMLInputElement>(`[data-foco="${chave}"]`);
     if (!novo) return;
@@ -822,13 +1077,13 @@ export class CombateScreen {
     if (!p) return null;
     const cond = vitalConditions(this.vitais(p.id));
     const cs = this.condicoesDe(c, p);
-    const est = (icone: NomeIcone, texto: string, cls: string) => h('span', { class: `cb-estado ${cls}` }, ic(icone), h('span', null, texto));
-    if (p.fora) return est('caveira', NOME_FORA[p.fora], 'ruim');
-    if (cond.morrendo) return est('caveira', `Morrendo ${p.morrendo}/3`, 'ruim');
+    const est = (icone: NomeIcone, texto: string, cls: string, pintado?: string) => h('span', { class: `cb-estado ${cls}` }, pintado ? icPintado(icone, pintado) : ic(icone), h('span', null, texto));
+    if (p.fora) return est('caveira', NOME_FORA[p.fora], 'ruim', 'estado-caido');
+    if (cond.morrendo) return est('caveira', `Morrendo ${p.morrendo}/3`, 'ruim', 'estado-morrendo');
     if (cond.enlouquecendo) return est('espiral', `Enlouquecendo ${p.enlouquecendo}/3`, 'ruim');
     if (c.fase !== 'encerrado' && cb.surpreendido(c, p)) return est('alerta', 'Surpreendido', 'aviso');
     if (c.fase === 'andamento' && p.desde > c.rodada) return est('entrar', `Entra na rodada ${p.desde}`, 'aviso');
-    if (p.sustenta) return est('pentagrama', 'Ritual sustentado', 'ritual');
+    if (p.sustenta) return est('pentagrama', 'Ritual sustentado', 'ritual', 'estado-ritual');
     if (cs.includes('caido')) return est('deitado', 'Caído', '');
     const outra = (p.condicoes ?? []).find((x) => ICONE_CONDICAO[x]);
     if (outra) return est(ICONE_CONDICAO[outra], nomeCond(outra), 'aviso');
@@ -842,7 +1097,7 @@ export class CombateScreen {
   private estadoMestre(c: Combate, ps: Participante[]): HTMLElement | null {
     const fora = ps.filter((p) => p.fora || vitalConditions(this.vitais(p.id)).morrendo).length;
     if (fora) return h('span', { class: 'cb-estado ruim' }, ic('caveira'), h('span', null, `${fora} fora`));
-    if (ps.some((p) => p.sustenta)) return h('span', { class: 'cb-estado ritual' }, ic('pentagrama'), h('span', null, 'Ritual'));
+    if (ps.some((p) => p.sustenta)) return h('span', { class: 'cb-estado ritual' }, icPintado('pentagrama', 'estado-ritual'), h('span', null, 'Ritual'));
     void c;
     return null;
   }
@@ -968,8 +1223,12 @@ export class CombateScreen {
     const c = this.combate;
     const v = this.daVez();
     const x = c && v?.ator && this.aba === 'atacar' ? this.ctxAtaque(c, v.ator) : null;
-    const geo = x?.tab ? [x.tab.metros === null ? null : Math.round(x.tab.metros * 10), x.tab.adjacente, x.tab.cobertura.tipo, x.tab.cobertura.nome, x.tab.elevado, x.tab.flanqueia, x.tab.emCorpoACorpo] : null;
-    const dados = [c && { ...c, registro: 0 }, this.aba, this.atorId, this.alvoId, this.assinaturaPecas(), this.assinaturaFichas(), this.app.state.room?.id, this.ameacas, geo, this.clima()];
+    const mx = c && v?.ator && this.aba === 'manobra' ? this.ctxManobra(c, v.ator) : null;
+    const rx = c && v?.ator && this.aba === 'ritual' ? this.ctxRitual(c, v.ator) : null;
+    const tab = x?.tab ?? (mx ? (() => { const a = this.manobra.alvoEscolhido(mx); return a ? mx.tabDe(a.p) : null; })() : null);
+    const geo = tab ? [tab.metros === null ? null : Math.round(tab.metros * 10), tab.adjacente, tab.cobertura.tipo, tab.cobertura.nome, tab.elevado, tab.flanqueia, tab.emCorpoACorpo] : null;
+    const areaSig = rx ? [this.area?.forma, this.area?.metros, this.area?.alvo, this.area?.fixa, rx.naArea?.map((a) => a.p.id), rx.alvo ? rx.metrosAte(rx.alvo.p) : null] : null;
+    const dados = [c && { ...c, registro: 0 }, this.aba, this.atorId, this.alvoId, this.assinaturaPecas(), this.assinaturaFichas(), this.app.state.room?.id, this.ameacas, geo, this.clima(), areaSig];
     if (!this.mudou('res', dados)) return;
     if (!c) return this.trocar(this.resCorpo, this.semCombate());
     if (c.fase === 'montando') return this.trocar(this.resCorpo, this.montagem(c));
@@ -985,9 +1244,10 @@ export class CombateScreen {
           h('div', { class: 'cb-sem-botoes' }, botao('Pôr no combate', 'entrar', () => this.dialogoEntrar(), 'claro'), botao('Encerrar combate', 'bandeira', () => void this.encerrar(), 'forte')),
         ),
       );
-    const corpo = x ? this.ataque.montar(x) : this.conteudoAba(c, v.ator);
-    const passo = x ? this.ataque.passo(x) : 0;
-    this.trocar(this.resCorpo, this.faixaAtor(c, v.e, v.ativos, v.ator), this.passos(x ? PASSOS_ATAQUE : this.passosDaAba(), passo, !!x), corpo);
+    const corpo = x ? this.ataque.montar(x) : mx ? this.manobra.montar(mx) : rx ? this.ritualRes.montar(rx) : this.conteudoAba(c, v.ator);
+    const passo = x ? this.ataque.passo(x) : mx ? this.manobra.passo(mx) : rx ? this.ritualRes.passo(rx) : 0;
+    const nomes = x ? PASSOS_ATAQUE : mx ? PASSOS_MANOBRA : rx ? PASSOS_RITUAL : this.passosDaAba();
+    this.trocar(this.resCorpo, this.faixaAtor(c, v.e, v.ativos, v.ator), this.passos(nomes, passo, !!x || !!mx || !!rx), corpo);
   }
 
   private semCombate(): HTMLElement {
@@ -1054,7 +1314,7 @@ export class CombateScreen {
         };
         inp.addEventListener('change', enviar);
         inp.addEventListener('keydown', (ev) => ev.key === 'Enter' && inp.blur());
-        campo = h('label', { class: 'cb-ini-campo' }, inp, h('small', null, ini ? `rola ${textoTeste(ini.dados, ini.bonus)}` : 'sem ficha'));
+        campo = h('label', { class: 'cb-ini-campo' }, inp, h('small', null, ini ? `rola ${textoTeste(ini.dados, ini.bonus, ini.penalidadeDados)}` : 'sem ficha'));
       } else campo = h('span', { class: 'cb-ini-mestre' }, p ? (this.ameacaDe(ch.id) ? 'no grupo do mestre' : 'no grupo do mestre · sem ficha') : '');
       return h(
         'div',
@@ -1253,7 +1513,8 @@ export class CombateScreen {
               this.atualizarMarcas();
             },
           },
-          ic(a.icone),
+          // o ícone pintado do kit (arte/icones/combate-<aba>.png); sem ele, o de linha
+          arteOu([`/arte/icones/combate-${a.id}.png`], ic(a.icone)),
           h('span', null, a.rotulo),
         ),
       ),
@@ -1262,10 +1523,6 @@ export class CombateScreen {
 
   private passosDaAba(): string[] {
     switch (this.aba) {
-      case 'manobra':
-        return ['Ação', 'Manobra', 'Alvo', 'Teste oposto', 'Efeito', 'Confirmar'];
-      case 'ritual':
-        return ['Ação', 'Ritual e forma', 'Alvo ou área', 'Resistências', 'Efeito', 'Custo do Paranormal', 'Confirmar'];
       case 'movimento':
         return ['Ação', 'Caminho no tabuleiro', 'Confirmar'];
       default:
@@ -1300,18 +1557,6 @@ export class CombateScreen {
     let lista: HTMLElement[] = [];
     let nota = 'Declarar escreve no registro e gasta a ação do turno. O resultado dos dados que não tem conta aqui vai no lápis do registro.';
     switch (this.aba) {
-      case 'ritual':
-        lista = (calc?.rituais ?? []).map((r) => {
-          const d = regras.catalogo.ritual(r.id);
-          const custo = calc?.custoRituais[r.id];
-          const exec = d?.execucao;
-          const qual: cb.TipoAcao = exec === 'movimento' || exec === 'completa' || exec === 'livre' || exec === 'reacao' ? exec : 'padrao';
-          const partes = [d ? `${d.circulo}º círculo` : '', custo ? `${custo.pe} PE · DT ${custo.dt}` : '', d?.alcance ?? '', d?.duracao ?? ''].filter(Boolean);
-          return opcao('pentagrama', d?.nome ?? r.id, partes.join(' · '), qual, () => this.conjurar(ator, d?.nome ?? r.id, custo?.pe ?? 0, custo?.dt, qual, contra, /sustentad/i.test(d?.duracao ?? ''), d?.elemento === 'medo', calc!.limitePe, gasto), d ? `${d.ref.fonte} p. ${d.ref.pagina}` : undefined);
-        });
-        if (!lista.length) nota = calc ? 'Sem rituais na ficha.' : 'Ritual de ameaça: declare e anote a DT no lápis do registro.';
-        else nota = 'Conjurar gasta o PE, escreve no registro e, se for sustentado, entra no começo de cada turno. Resistências e Custo do Paranormal: role na mesa.';
-        break;
       case 'habilidade':
         if (ficha && calc)
           for (const p of calc.poderes) {
@@ -1334,10 +1579,9 @@ export class CombateScreen {
         if (!lista.length) nota = ficha ? 'Nenhum item de usar na mochila.' : 'Item de ameaça: declare em Outras ou anote no registro.';
         break;
       default: {
-        const aba = this.aba as 'manobra' | 'movimento' | 'outras';
-        const icone: NomeIcone = aba === 'movimento' ? 'bota' : aba === 'manobra' ? 'mao' : 'reticencias';
+        const aba = this.aba as 'movimento' | 'outras';
+        const icone: NomeIcone = aba === 'movimento' ? 'bota' : 'reticencias';
         lista = ACOES[aba].map((o) => opcao(icone, o.nome, o.dica, o.qual, () => this.acaoDoLivro(c, ator, o, alvo), `LR p. ${o.pagina}`));
-        if (aba === 'manobra') nota = 'Teste oposto: Luta contra Luta (tamanho muda: LR p. 179). Declare aqui e anote os dois resultados no lápis do registro.';
       }
     }
     return h(
@@ -1413,30 +1657,6 @@ export class CombateScreen {
     });
   }
 
-  private conjurar(ator: Participante, nome: string, pe: number, dt: number | undefined, qual: cb.TipoAcao, contra: string, sustentado: boolean, medo: boolean, limite: number, gasto: number) {
-    const j = janela(`CONJURAR ${nome.toUpperCase()}`, 'pentagrama', () => {}, 56);
-    const sust = h('input', { type: 'checkbox', class: 'cb-check', checked: sustentado });
-    j.corpo.append(
-      h(
-        'p',
-        { class: 'fj-texto' },
-        `Ação ${NOME_QUAL[qual]}; ${pe} PE (limite ${limite}, já gastos ${gasto})${dt ? `; resistência DT ${dt}` : ''}. ${medo ? 'Ritual de Medo: dano mental igual ao custo e perde SAN para sempre (LR p. 121).' : `Custo do Paranormal: Ocultismo DT ${15 + pe}; falhou, dano mental igual ao custo (LR p. 121).`}`,
-      ),
-      gasto + pe > limite ? h('p', { class: 'fj-texto alerta' }, 'Passa do limite de PE do turno (LR p. 121).') : '',
-      h('label', { class: 'cb-dlg-check' }, sust, h('span', null, 'Sustentado: 1 PE no começo de cada turno (LR p. 120)')),
-    );
-    j.rodape.append(
-      h('span', { class: 'fj-esp' }),
-      botaoJanela('Cancelar', 'fechar', '', () => j.fechar()),
-      botaoJanela('Conjurar', 'pentagrama', 'forte', () => {
-        if (pe > 0) this.acao({ tipo: 'gastarPe', quem: ator.id, pe, motivo: `conjura ${nome}` });
-        this.acao({ tipo: 'declarar', qual, texto: `conjura ${nome}${contra}`, quem: ator.id });
-        if (sust.checked) this.acao({ tipo: 'sustentar', id: ator.id, ritual: nome });
-        j.fechar();
-      }),
-    );
-  }
-
   // ---------------------------------------------------------------- alvo
 
   private renderAlvo() {
@@ -1458,7 +1678,9 @@ export class CombateScreen {
     const tipo =
       lado === 'agente'
         ? `Agente${f?.ficha.classe ? ` · ${regras.catalogo.classe(f.ficha.classe).nome} · NEX ${f.ficha.nex}%` : ''}`
-        : `${lado === 'inimigo' ? 'Ameaça' : 'Neutro'}${am ? ` · ${am.tipo}${am.vd !== undefined ? ` · VD ${am.vd}` : ''}` : ' · sem ficha'}`;
+        : `${lado === 'inimigo' ? 'Ameaça' : 'Neutro'}${am ? ` · ${am.tipo}${am.tamanho ? ` ${cb.NOME_TAMANHO[am.tamanho]}` : ''}${am.vd !== undefined ? ` · VD ${am.vd}` : ''}${am.livro ? ` · LR p. ${cb.ameacaLivro(am.livro)?.pagina ?? ''}` : ''}` : ' · sem ficha'}`;
+    // a página do livro já vai na linha do tipo; nas notas fica o resto
+    const notasAm = am?.notas ? (am.livro ? am.notas.replace(/^LR p\. \d+( · )?/, '') : am.notas) : '';
     const editarPv = () => void this.editarPv(ch.id, ch.name, vit);
     const pv = vit
       ? h(
@@ -1476,11 +1698,16 @@ export class CombateScreen {
       : h('div', { class: 'cb-alvo-pv' }, botao('Marcar PV', 'coracao', editarPv, 'cb-mini'));
     const caixa = (rot: string, val: string) => h('span', { class: 'cb-caixa' }, h('small', null, rot), h('b', null, val));
     const res = (per: 'fortitude' | 'reflexos' | 'vontade', rot: string) => {
-      const x = calc?.pericias[per] ?? am?.[per];
-      return caixa(rot, x ? textoTeste(x.dados, x.bonus) : '—');
+      const pc = calc?.pericias[per];
+      const x = pc ? { dados: pc.dados, bonus: pc.bonus, penalidade: pc.penalidadeDados } : am?.[per];
+      return caixa(rot, x ? textoTeste(x.dados, x.bonus, 'penalidade' in x ? x.penalidade : 0) : '—');
     };
+    // RD numa linha, como no livro: os tipos com o mesmo valor juntos ("balístico, impacto e perfuração 5 · Sangue 10")
     const rdFonte: Partial<Record<string, number>> = calc?.resistencias ?? am?.rd ?? {};
-    const rds = Object.entries(rdFonte).map(([t, n]) => caixa(`RD ${(NOME_DANO[t] ?? t).toLowerCase()}`, String(n)));
+    const porValor = new Map<number, string[]>();
+    for (const [t, n] of resistenciasParaMostrar(rdFonte)) porValor.set(n, [...(porValor.get(n) ?? []), t === 'todos' ? 'todo dano' : (NOME_DANO[t] ?? t).toLowerCase()]);
+    const junta = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} e ${xs.at(-1)}` : xs[0]);
+    const rdTexto = [...porValor].map(([n, ts]) => `${junta(ts)} ${n}`).join(' · ');
     const defesa = calc?.defesa ?? am?.defesa;
     const esquiva = calc?.reacoes.esquiva;
     const bloqueio = calc?.reacoes.bloqueio;
@@ -1526,7 +1753,17 @@ export class CombateScreen {
         c?.fase === 'andamento' ? (noCombate ? icone('sair', 'Tirar do combate', () => this.dialogoSair(ch.id)) : icone('entrar', 'Pôr no combate', () => this.dialogoEntrar(ch.id))) : null,
       ].filter((x): x is HTMLButtonElement => !!x),
     );
-    const semFicha = lado !== 'agente' && !am ? h('p', { class: 'cb-alvo-nota aviso' }, ic('lapis'), h('span', null, 'Sem ficha: crie no lápis do cabeçalho para o ataque usar Defesa e RD.')) : null;
+    const semFicha = lado !== 'agente' && !am ? h('p', { class: 'cb-alvo-nota aviso' }, ic('lapis'), h('span', null, 'Sem ficha: no lápis do cabeçalho, escolha uma ameaça do livro ou preencha à mão.')) : null;
+    // dano não letal: fica à parte dos PV; desmaia quando passa deles, sem morrendo (LR p. 88)
+    const naoLetal = p?.naoLetal
+      ? h(
+          'div',
+          { class: 'cb-alvo-ritual nl', title: 'Dano não letal: soma com o letal para desmaiar, mas não deixa morrendo. A cura tira primeiro ele (LR p. 88).' },
+          ic('punho'),
+          h('span', null, `Dano não letal ${p.naoLetal}${vit && vit.pv - p.naoLetal <= 0 ? ' · desmaiado' : ''}`),
+          podeMexer ? botao('Mudar', null, () => void this.editarNaoLetal(p), 'cb-mini') : null,
+        )
+      : null;
     this.alvoCorpo.replaceChildren(
       h(
         'div',
@@ -1534,21 +1771,27 @@ export class CombateScreen {
         h('span', { class: 'cb-foto alvo' }, this.retrato(ch.id, 132)),
         h('div', { class: 'cb-alvo-id' }, h('b', null, ch.name), h('small', null, c && !noCombate && c.fase !== 'montando' ? `${tipo} · fora do combate` : tipo), pv),
       ),
+      naoLetal ?? '',
       linhaDefesa,
       h('div', { class: 'cb-alvo-linha tres' }, res('fortitude', 'Fortitude'), res('reflexos', 'Reflexos'), res('vontade', 'Vontade')),
-      rds.length ? h('div', { class: 'cb-alvo-linha dois' }, ...rds.slice(0, 4)) : '',
-      am?.imunidades.length || am?.vulnerabilidades.length
+      rdTexto ? h('small', { class: 'cb-alvo-nota rd' }, h('b', null, 'RD '), rdTexto) : '',
+      // imunidades, vulnerabilidades e presença perturbadora numa linha só
+      am && (am.imunidades.length || am.vulnerabilidades.length || am.presenca)
         ? h(
             'small',
             { class: 'cb-alvo-nota' },
-            [am.imunidades.length ? `Imune a ${am.imunidades.map((t) => cb.NOME_TIPO_DANO[t]).join(', ')}` : '', am.vulnerabilidades.length ? `vulnerável a ${am.vulnerabilidades.map((t) => cb.NOME_TIPO_DANO[t]).join(', ')}` : '']
+            [
+              am.imunidades.length ? `Imune a ${am.imunidades.map((t) => this.nomeImune(t)).join(', ')}` : '',
+              am.vulnerabilidades.length ? `vulnerável a ${am.vulnerabilidades.map((t) => cb.NOME_TIPO_DANO[t]).join(', ')}` : '',
+              am.presenca ? `presença: Vontade DT ${am.presenca.dt}, ${am.presenca.dano} mental (NEX ${am.presenca.nex}% imune)` : '',
+            ]
               .filter(Boolean)
-              .join('; ') + '.',
+              .join(' · ') + '.',
           )
         : '',
       condicoes,
       sustenta ?? '',
-      am?.notas ? h('small', { class: 'cb-alvo-nota' }, am.notas) : '',
+      notasAm ? h('small', { class: 'cb-alvo-nota' }, notasAm) : '',
       semFicha ?? '',
     );
   }
@@ -1591,6 +1834,11 @@ export class CombateScreen {
     });
   }
 
+  /** "Imune a todo dano" quando a ficha diz `todos`. */
+  private nomeImune(t: regras.TipoDano) {
+    return t === 'todos' ? 'todo dano' : cb.NOME_TIPO_DANO[t];
+  }
+
   private async editarPv(id: number, nome: string, vit: Vitals | undefined) {
     const t = await perguntarTexto(`PV · ${nome.toUpperCase()}`, 'PV atual / total (ex.: 42/42)', vit ? `${vit.pv}/${vit.pvMax}` : '', 9);
     if (t === null) return;
@@ -1598,6 +1846,15 @@ export class CombateScreen {
     const max = b ?? vit?.pvMax ?? a;
     if (typeof a !== 'number' || typeof max !== 'number' || max < 1) return toast('Escreva como 42/42.', 'error');
     this.mandarPv(id, Math.min(a, max), max);
+  }
+
+  /** Dano não letal do ser: a cura tira primeiro ele (LR p. 88), e o mestre ajusta aqui. */
+  private async editarNaoLetal(p: Participante) {
+    const t = await perguntarTexto(`NÃO LETAL · ${p.nome.toUpperCase()}`, 'Dano não letal (a cura tira primeiro ele)', String(p.naoLetal ?? 0), 4);
+    if (t === null) return;
+    const n = numero(t);
+    if (typeof n !== 'number' || n < 0) return toast('Escreva um número.', 'error');
+    this.acao({ tipo: 'naoLetal', id: p.id, valor: n, motivo: 'cura ou ajuste' });
   }
 
   /** PV da peça direto no tabuleiro (fora do desfazer do combate, como na tela MAPA). */
@@ -1671,7 +1928,7 @@ export class CombateScreen {
       const agente = lado.value === 'agente';
       const grupoTem = c.mestre.iniciativa !== null;
       campoIni.classList.toggle('hidden', !agente && grupoTem);
-      dica.textContent = agente ? (calc ? `Rola ${textoTeste(calc.dados, calc.bonus)}.` : 'Sem ficha: o mestre diz o número.') : grupoTem ? '' : 'O grupo do mestre ainda não tem Iniciativa: esta vira a do grupo.';
+      dica.textContent = agente ? (calc ? `Rola ${textoTeste(calc.dados, calc.bonus, calc.penalidadeDados)}.` : 'Sem ficha: o mestre diz o número.') : grupoTem ? '' : 'O grupo do mestre ainda não tem Iniciativa: esta vira a do grupo.';
     };
     const desenhar = () => {
       lista.replaceChildren(
@@ -1778,3 +2035,12 @@ export class CombateScreen {
   }
 }
 
+/** Lista que rola por dentro: some embaixo enquanto tem mais para ver (a SITUAÇÃO, as armas, a ordem). */
+function avisarRolagem(el: HTMLElement) {
+  const ver = () => el.classList.toggle('tem-mais', el.scrollTop + el.clientHeight < el.scrollHeight - 4);
+  if (!el.dataset.avisa) {
+    el.dataset.avisa = '1';
+    el.addEventListener('scroll', ver, { passive: true });
+  }
+  requestAnimationFrame(ver);
+}

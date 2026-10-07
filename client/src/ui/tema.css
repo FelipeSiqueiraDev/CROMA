@@ -48,6 +48,31 @@ html {
   --verde: #6cc03a;
 }
 
+/* O tema do agente (temaUi.ts): a cor de destaque de cada um, do PROMPT-INTERFACE-GAME. Ordem é o
+   padrão (as telas do mestre e a mesa); os outros vestem só a tela do agente ([data-tema]). As peças
+   do kit (--ui-<grupo>-<peça>) vêm da folha montada pelo temaUi.ts. */
+:root,
+[data-tema='ordem'] {
+  --destaque: #e8dcc0;
+  --destaque-2: #b08d4a;
+}
+[data-tema='sangue'] {
+  --destaque: #d8322f;
+  --destaque-2: #8a2219;
+}
+[data-tema='morte'] {
+  --destaque: #b9bec4;
+  --destaque-2: #4a4d52;
+}
+[data-tema='conhecimento'] {
+  --destaque: #e0b23c;
+  --destaque-2: #8a6a1a;
+}
+[data-tema='energia'] {
+  --destaque: #9b5cff;
+  --destaque-2: #4a2a8a;
+}
+
 /* as telas novas não herdam o traço de lápis da tela antiga (.shell) */
 .tb2,
 .fx,

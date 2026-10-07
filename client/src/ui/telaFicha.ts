@@ -1,16 +1,17 @@
 /**
- * Tela do jogador (link ?ficha=CHAVE que o mestre manda): só a ficha dele,
- * pensada para o celular. MAPA e COMBATE aparecem na barra, mas ficam com o
- * mestre; NEX e pontos de prestígio também.
+ * Tela do jogador (link ?ficha=CHAVE que o mestre manda, ou a conta dele): abre no modo jogo
+ * (TelaJogador: Agente, Mochila, Poderes, Rituais, Docs, Notas), pensado para o celular; a ficha
+ * inteira fica na engrenagem. NEX e pontos de prestígio ficam com o mestre.
  */
+import type { FichaSalva } from '@crona/shared';
 import type { App } from './app';
 import { h } from './dom';
-import { FichasScreen } from './fichas';
-import { ic } from './icons';
+import { botao, janela } from './fichaModal';
+import { FichaCelular } from './fichaCelular';
+import { TelaJogador } from './jogador';
 import { sfx } from './sfx';
-import { TopBar } from './topbar';
 
-const CHAVE = 'croma.fichaKey';
+const CHAVE = 'crona.fichaKey';
 
 /** Chave do link da ficha (?ficha=...), guardada para abrir de novo sem o link. */
 export function lerChaveFicha(): string | null {
@@ -24,6 +25,15 @@ export function lerChaveFicha(): string | null {
   }
 }
 
+/** Guarda a chave da ficha que a conta do jogador trouxe (abre com ?ficha, sem o link). */
+export function guardarChaveFicha(chave: string) {
+  try {
+    localStorage.setItem(CHAVE, chave);
+  } catch {
+    /* sem armazenamento */
+  }
+}
+
 export function esquecerChaveFicha() {
   try {
     localStorage.removeItem(CHAVE);
@@ -34,38 +44,46 @@ export function esquecerChaveFicha() {
 
 export class TelaFicha {
   readonly el: HTMLElement;
-  readonly fichas: FichasScreen;
+  /** o modo jogo (abre nele); a ficha fica na engrenagem */
+  readonly jogo: TelaJogador;
+  readonly ficha: FichaCelular;
   private aviso: HTMLElement;
 
   constructor(app: App, sair: () => void) {
-    this.fichas = new FichasScreen(app, { jogador: true });
-    const som = h('button', { role: 'menuitemcheckbox', onclick: () => (sfx.setEnabled(!sfx.enabled), desenharSom()) });
-    const desenharSom = () => som.replaceChildren(ic('sol'), sfx.enabled ? 'Sons: ligados' : 'Sons: desligados');
-    desenharSom();
-    const menu = h('div', { class: 'tb2-menu hidden', role: 'menu' }, som);
-    const topo = new TopBar({
-      abas: [
-        { id: 'MAPA', rotulo: 'MAPA', icone: 'mapa', fora: true },
-        { id: 'COMBATE', rotulo: 'COMBATE', icone: 'espadas', fora: true },
-        { id: 'FICHAS', rotulo: 'FICHAS', icone: 'ficha' },
-      ],
-      ativa: 'FICHAS',
-      aoTrocar: () => {},
-      botoes: [
-        { id: 'config', icone: 'engrenagem', titulo: 'Configurações', cheio: true, onclick: (e) => (e.stopPropagation(), menu.classList.toggle('hidden')) },
-        { id: 'sair', icone: 'sair', titulo: 'Sair', sair: true, onclick: () => sair() },
-      ],
-    });
-    topo.botoes.get('config')!.parentElement!.append(menu);
-    document.addEventListener('click', () => menu.classList.add('hidden'));
+    this.jogo = new TelaJogador(app, { fichaCompleta: () => this.verFicha(true), menu: () => this.menu(), sair });
+    this.ficha = new FichaCelular(app, () => this.verFicha(false), (uid) => this.jogo.abrirItem(uid));
     this.aviso = h('div', { class: 'tf-aviso hidden' });
-    this.el = h('div', { class: 'tela-ficha hidden' }, topo.el, this.fichas.el, this.aviso);
+    this.el = h('div', { class: 'tela-ficha hidden' }, this.jogo.el, this.ficha.el, this.aviso);
+  }
+
+  /** A ficha chegou (só a dele) e a equipe, para entregar itens. */
+  setFichas(fichas: FichaSalva[], _nova?: number, equipe?: { id: number; nome: string }[]) {
+    this.jogo.setFicha(fichas[0] ?? null);
+    this.ficha.setFicha(fichas[0] ?? null);
+    if (equipe) this.jogo.setEquipe(equipe);
+  }
+
+  private verFicha(sim: boolean) {
+    sfx.paper();
+    this.ficha.el.classList.toggle('hidden', !sim);
+    this.jogo.el.classList.toggle('hidden', sim);
+  }
+
+  /** A engrenagem: a ficha e o som. */
+  private menu() {
+    const naFicha = !this.ficha.el.classList.contains('hidden');
+    const j = janela('MENU', 'engrenagem', () => {}, 30);
+    const som = botao(sfx.enabled ? 'Sons: ligados' : 'Sons: desligados', 'sol', '', () => {
+      sfx.setEnabled(!sfx.enabled);
+      som.querySelector('span')!.textContent = sfx.enabled ? 'Sons: ligados' : 'Sons: desligados';
+    });
+    j.el.classList.add('tela-toda');
+    j.corpo.append(h('div', { class: 'tf-menu' }, botao(naFicha ? 'Voltar ao jogo' : 'Ver a ficha', naFicha ? 'esquerda' : 'ficha', 'forte', () => (j.fechar(), this.verFicha(!naFicha))), som));
   }
 
   show() {
     this.el.classList.remove('hidden');
     this.aviso.classList.add('hidden');
-    this.fichas.show();
   }
 
   /** Link inválido ou conexão perdida. */

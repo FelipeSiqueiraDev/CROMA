@@ -1,6 +1,8 @@
-import type { FloorStyle, RoomMap, WallSeg } from '@croma/shared';
+import { DIRS, M_POR_CASA, terrenoEm, Z_PER_M, type FloorStyle, type RoomMap, type WallSeg } from '@crona/shared';
 import { hash, shade } from './color';
+import { BATENTE_PORTA_M, VAO_PORTA_M } from './furniKit';
 import { iso } from './iso';
+import { texturaParede, texturaPiso } from './texturas';
 
 export interface StaticLayer {
   canvas: HTMLCanvasElement;
@@ -15,13 +17,15 @@ export interface StaticLayer {
 interface FloorLook {
   base: string;
   grout: string;
-  kind: 'stone' | 'plank' | 'tile' | 'checker' | 'carpet' | 'plate' | 'dirt';
+  kind: 'stone' | 'plank' | 'tile' | 'checker' | 'carpet' | 'plate' | 'dirt' | 'grass' | 'rows' | 'gravel';
   alt?: string;
 }
 
 const FLOORS: Record<FloorStyle, FloorLook> = {
   pedra: { base: '#4f4841', grout: 'rgba(18,14,12,0.6)', kind: 'stone' },
   concreto: { base: '#585650', grout: 'rgba(20,20,18,0.28)', kind: 'stone' },
+  bloco: { base: '#5c5c58', grout: 'rgba(20,20,18,0.3)', kind: 'stone' },
+  cela: { base: '#4a4c48', grout: 'rgba(20,20,18,0.3)', kind: 'stone' },
   madeira: { base: '#3b2718', grout: 'rgba(10,6,4,0.7)', kind: 'plank' },
   taco: { base: '#8a4a22', grout: 'rgba(40,16,6,0.6)', kind: 'plank' },
   ladrilho: { base: '#c2beb2', grout: 'rgba(80,80,74,0.6)', kind: 'tile' },
@@ -31,7 +35,14 @@ const FLOORS: Record<FloorStyle, FloorLook> = {
   musgo: { base: '#213b33', grout: 'rgba(0,10,6,0.6)', kind: 'stone' },
   metal: { base: '#30343a', grout: 'rgba(0,0,0,0.55)', kind: 'plate' },
   terra: { base: '#3a2e22', grout: 'rgba(0,0,0,0)', kind: 'dirt' },
+  grama: { base: '#4d6a2e', alt: '#6c8c3a', grout: 'rgba(0,0,0,0)', kind: 'grass' },
+  estrada: { base: '#86663f', grout: 'rgba(0,0,0,0)', kind: 'dirt' },
+  lavoura: { base: '#553823', alt: '#6c4a2c', grout: 'rgba(0,0,0,0)', kind: 'rows' },
+  cascalho: { base: '#9a9384', grout: 'rgba(40,36,30,0.35)', kind: 'gravel' },
+  selo: { base: '#3e3a36', grout: 'rgba(10,8,6,0.6)', kind: 'stone' },
 };
+/** a água (casa vazia da planta com terreno 'a'): mais baixa que a margem */
+const AGUA = '#2f5f72';
 
 export function floorLook(style: FloorStyle | undefined): FloorLook {
   return FLOORS[style ?? 'pedra'] ?? FLOORS.pedra;
@@ -46,8 +57,15 @@ const WALL_TOP = '#5a524b';
 const WALL_CAP = '#221d1a';
 const T = 0.3;
 const FLOOR_THICK = 0.35;
-/** altura do vão da porta: 2,15 m (Z_PER_M) */
-const DOOR_H = 3.9;
+/** altura do vão da porta: 2,1 m (Z_PER_M) */
+const DOOR_H = 2.1 * Z_PER_M;
+/**
+ * o buraco na parede, centrado na casa da porta: o vão mais meio batente de cada lado, para a moldura
+ * da porta cobrir a borda dele (o quanto ele passa da casa para cada lado)
+ */
+const VAO_SOBRA = ((VAO_PORTA_M + BATENTE_PORTA_M) / M_POR_CASA - 1) / 2;
+/** o degrau de cima da escada que sobe para a porta (o vão começa nele) */
+const ESCADA_TOPO = 1.0 * Z_PER_M;
 const MAX_PIXELS = 14_000_000;
 
 type Pt = [number, number];
@@ -77,7 +95,7 @@ function minFloor(map: RoomMap) {
   return Number.isFinite(m) ? m : 0;
 }
 
-export function roomBounds(map: RoomMap) {
+export function roomBounds(map: RoomMap, aberto = false) {
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -Infinity;
@@ -99,7 +117,7 @@ export function roomBounds(map: RoomMap) {
       add(iso(x + 1, y, h));
       add(iso(x, y + 1, h));
     }
-  for (const s of map.walls.segs) {
+  for (const s of aberto ? [] : map.walls.segs) {
     if (s.wall === 'l') {
       add(iso(s.plane - T, s.at, top));
       add(iso(s.plane - T, s.at + 1, top));
@@ -110,6 +128,29 @@ export function roomBounds(map: RoomMap) {
   }
   if (!Number.isFinite(minX)) return { minX: 0, minY: 0, maxX: 1, maxY: 1 };
   return { minX, minY, maxX, maxY };
+}
+
+/**
+ * O vão da porta do cômodo: na parede da porta, de a0 até a1 (passa da casa da porta
+ * para os lados) e de z0 até z1. Com a escada que sobe na frente da porta, o vão começa
+ * no degrau de cima e vai até o topo da parede (a escada continua para cima).
+ */
+function vaoDaPorta(map: RoomMap): { seg: WallSeg; a0: number; a1: number; z0: number; z1: number; escada: boolean } | null {
+  const seg = map.walls.segs.find((s) => s.door);
+  if (!seg) return null;
+  const [dx, dy] = DIRS[map.door.dir] ?? [0, 0];
+  const escada = map.itemsAt(map.door.x + dx, map.door.y + dy).some((it) => it.defId === 'stairs_up');
+  const z0 = seg.base + (escada ? ESCADA_TOPO : 0);
+  return { seg, a0: seg.at - VAO_SOBRA, a1: seg.at + 1 + VAO_SOBRA, z0, z1: escada ? map.walls.top : z0 + DOOR_H, escada };
+}
+
+/** O pedaço do vão da porta que cai neste trecho de parede (o vão passa por três trechos). */
+function buracoNoTrecho(map: RoomMap, s: WallSeg): Pt[] | null {
+  const v = vaoDaPorta(map);
+  if (!v || v.seg.wall !== s.wall || v.seg.plane !== s.plane) return null;
+  const a0 = Math.max(s.at, v.a0);
+  const a1 = Math.min(s.at + 1, v.a1);
+  return a1 > a0 ? wallQuad(s, a0, a1, v.z0, v.z1) : null;
 }
 
 /**
@@ -128,7 +169,8 @@ export function doorClipPath(map: RoomMap): { seg: WallSeg; path: Path2D } | nul
   };
   for (const s of map.walls.segs)
     if (s.wall === seg.wall && s.plane === seg.plane && Math.abs(s.at - seg.at) <= 2) add(wallQuad(s, s.at, s.at + 1, s.base - FLOOR_THICK, map.walls.top));
-  add(wallQuad(seg, seg.at + 0.1, seg.at + 0.9, seg.base - FLOOR_THICK, seg.base + DOOR_H));
+  const v = vaoDaPorta(map)!;
+  add(wallQuad(seg, v.a0, v.a1, seg.base - FLOOR_THICK, v.z1));
   return { seg, path };
 }
 
@@ -143,13 +185,16 @@ function wallLine(s: WallSeg, a0: number, z0: number, a1: number, z1: number): [
   return [iso(a0, s.plane, z0), iso(a1, s.plane, z1)];
 }
 
-function drawWallSeg(ctx: CanvasRenderingContext2D, map: RoomMap, s: WallSeg) {
+/** Pinta com a textura o que estiver recortado: uma face de parede ou uma casa do chão. */
+type Pintor<T> = (alvo: T) => void;
+
+function drawWallSeg(ctx: CanvasRenderingContext2D, map: RoomMap, s: WallSeg, pintarParede?: Pintor<WallSeg>) {
   const top = map.walls.top;
   const b = s.base;
   const a0 = s.at;
   const a1 = s.at + 1;
   const face = wallQuad(s, a0, a1, b, top);
-  const hole = s.door ? wallQuad(s, a0 + 0.1, a1 - 0.1, b, b + DOOR_H) : null;
+  const hole = buracoNoTrecho(map, s);
   const base = s.wall === 'l' ? WALL_L : WALL_R;
 
   ctx.save();
@@ -162,6 +207,27 @@ function drawWallSeg(ctx: CanvasRenderingContext2D, map: RoomMap, s: WallSeg) {
   ctx.fillStyle = base;
   ctx.fill('evenodd');
   ctx.clip('evenodd');
+
+  if (pintarParede) {
+    // a textura desenhada (do chão ao topo); a parede da esquerda fica um pouco mais escura
+    pintarParede(s);
+    if (s.wall === 'l') {
+      ctx.fillStyle = 'rgba(0,0,0,0.16)';
+      poly(ctx, face);
+      ctx.fill();
+    }
+    const [, yb] = iso(s.wall === 'l' ? s.plane : a0, s.wall === 'l' ? a0 : s.plane, b);
+    const [, yt] = iso(s.wall === 'l' ? s.plane : a0, s.wall === 'l' ? a0 : s.plane, b + 1.8);
+    const g = ctx.createLinearGradient(0, yb + 16, 0, yt);
+    g.addColorStop(0, 'rgba(0,0,0,0.35)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    poly(ctx, face);
+    ctx.fill();
+    ctx.restore();
+    acabamento(ctx, map, s, hole);
+    return;
+  }
 
   // tijolos
   const course = 0.3;
@@ -210,22 +276,16 @@ function drawWallSeg(ctx: CanvasRenderingContext2D, map: RoomMap, s: WallSeg) {
     ctx.fillRect(cx - 24, cy - 24, 48, 48);
   }
   ctx.restore();
+  acabamento(ctx, map, s, hole);
+}
 
-  if (hole) {
-    ctx.lineWidth = 2;
-    const fr = wallQuad(s, a0 + 0.08, a1 - 0.08, b, b + DOOR_H + 0.06);
-    ctx.beginPath();
-    ctx.moveTo(fr[0][0], fr[0][1]);
-    ctx.lineTo(fr[3][0], fr[3][1]);
-    ctx.lineTo(fr[2][0], fr[2][1]);
-    ctx.lineTo(fr[1][0], fr[1][1]);
-    ctx.strokeStyle = '#1b1512';
-    ctx.stroke();
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = 'rgba(200,160,110,0.25)';
-    ctx.stroke();
-  }
-
+/** A moldura da porta, o topo com espessura e as tampas nas pontas da parede. */
+function acabamento(ctx: CanvasRenderingContext2D, map: RoomMap, s: WallSeg, hole: Pt[] | null) {
+  const top = map.walls.top;
+  const b = s.base;
+  const a0 = s.at;
+  const a1 = s.at + 1;
+  void hole;
   // topo com espessura
   const topStrip: Pt[] =
     s.wall === 'l'
@@ -368,6 +428,49 @@ function drawPattern(ctx: CanvasRenderingContext2D, x: number, y: number, h: num
       ctx.stroke();
       break;
     }
+    case 'grass': {
+      poly(ctx, quad(x, y, x + 1, y + 1, h), shade(base, (hash(x, y, 31) - 0.5) * 0.12));
+      // manchas mais claras e tufos de capim
+      if (hash(x, y, 32) < 0.45) {
+        const [cx, cy] = iso(x + 0.2 + hash(x, y, 33) * 0.6, y + 0.2 + hash(y, x, 34) * 0.6, h);
+        ctx.fillStyle = 'rgba(140,170,80,0.16)';
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, 10 + hash(x, y, 35) * 10, 5 + hash(y, x, 36) * 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      for (let k = 0; k < 9; k++) {
+        const [px, py] = iso(x + hash(x, y, k, 37), y + hash(y, x, k, 38), h);
+        const r = hash(k, x, y, 39);
+        ctx.fillStyle = r < 0.45 ? shade(look.alt ?? base, 0.1) : r < 0.85 ? shade(base, -0.28) : 'rgba(210,200,120,0.7)';
+        ctx.fillRect(Math.round(px), Math.round(py) - 2, 1, 3);
+        if (r < 0.3) ctx.fillRect(Math.round(px) + 1, Math.round(py) - 1, 1, 2);
+      }
+      if (hash(x, y, 40) < 0.04) {
+        const [px, py] = iso(x + 0.5, y + 0.5, h);
+        ctx.fillStyle = hash(x, y, 41) < 0.5 ? '#e8d870' : '#e8e0f0';
+        ctx.fillRect(Math.round(px), Math.round(py), 2, 2);
+      }
+      break;
+    }
+    case 'rows': {
+      poly(ctx, quad(x, y, x + 1, y + 1, h), shade(base, (hash(x, y, 42) - 0.5) * 0.08));
+      // os sulcos da terra arada, correndo em x
+      for (let k = 0; k < 3; k++) {
+        const v = y + (k + 0.5) / 3;
+        line(ctx, iso(x, v - 0.06, h), iso(x + 1, v - 0.06, h), shade(look.alt ?? base, 0.12), 2);
+        line(ctx, iso(x, v + 0.06, h), iso(x + 1, v + 0.06, h), 'rgba(0,0,0,0.3)');
+      }
+      break;
+    }
+    case 'gravel': {
+      poly(ctx, quad(x, y, x + 1, y + 1, h), shade(base, (hash(x, y, 43) - 0.5) * 0.08));
+      for (let k = 0; k < 16; k++) {
+        const [px, py] = iso(x + hash(x, y, k, 44), y + hash(y, x, k, 45), h);
+        ctx.fillStyle = hash(k, y, x, 46) < 0.5 ? 'rgba(0,0,0,0.22)' : 'rgba(255,250,235,0.2)';
+        ctx.fillRect(Math.round(px), Math.round(py), 2, 1);
+      }
+      break;
+    }
     case 'dirt': {
       poly(ctx, quad(x, y, x + 1, y + 1, h), shade(base, (hash(x, y, 8) - 0.5) * 0.15));
       for (let k = 0; k < 4; k++) {
@@ -389,7 +492,7 @@ function drawPattern(ctx: CanvasRenderingContext2D, x: number, y: number, h: num
   }
 }
 
-function drawTile(ctx: CanvasRenderingContext2D, map: RoomMap, x: number, y: number, h: number, door: boolean, minH: number, look: FloorLook = FLOORS.pedra) {
+function drawTile(ctx: CanvasRenderingContext2D, map: RoomMap, x: number, y: number, h: number, door: boolean, minH: number, look: FloorLook = FLOORS.pedra, pintarPiso?: Pintor<[number, number, number]>) {
   // bordas (espessura) para frente; na beira da sala descem até a base
   const nx = map.floorHeight(x + 1, y);
   const bx = nx === null ? minH - FLOOR_THICK : nx;
@@ -414,8 +517,9 @@ function drawTile(ctx: CanvasRenderingContext2D, map: RoomMap, x: number, y: num
     }
   }
 
-  if (!door && look.kind !== 'stone') {
-    drawPattern(ctx, x, y, h, look);
+  if (!door && (pintarPiso || look.kind !== 'stone')) {
+    if (pintarPiso) pintarPiso([x, y, h]);
+    else drawPattern(ctx, x, y, h, look);
     // sombra de degrau: piso mais alto atrás
     const backX = map.floorHeight(x - 1, y);
     const backY = map.floorHeight(x, y - 1);
@@ -475,6 +579,16 @@ function drawTile(ctx: CanvasRenderingContext2D, map: RoomMap, x: number, y: num
     }
 }
 
+/** A água numa casa vazia da planta: plana, mais baixa que a margem, com reflexos. */
+function drawAgua(ctx: CanvasRenderingContext2D, x: number, y: number, h: number) {
+  poly(ctx, quad(x - 0.01, y - 0.01, x + 1.01, y + 1.01, h), shade(AGUA, (hash(x, y, 47) - 0.5) * 0.06));
+  for (let k = 0; k < 2; k++) {
+    const u = x + 0.2 + hash(x, y, k, 48) * 0.6;
+    const v = y + 0.2 + hash(y, x, k, 49) * 0.6;
+    line(ctx, iso(u - 0.14, v, h), iso(u + 0.14, v, h), 'rgba(200,232,240,0.22)');
+  }
+}
+
 /** Linha clara na borda de trás de um piso mais alto que o vizinho (leitura do degrau). */
 function drawLedges(ctx: CanvasRenderingContext2D, map: RoomMap, x: number, y: number, h: number) {
   const bx = map.floorHeight(x - 1, y);
@@ -500,9 +614,49 @@ function drawLedges(ctx: CanvasRenderingContext2D, map: RoomMap, x: number, y: n
   ctx.lineWidth = 1;
 }
 
-export function buildStatic(map: RoomMap, wantScale: number, style?: FloorStyle): StaticLayer {
+/** O padrão que leva cada pixel da textura para a tela: a origem e os passos de um pixel em x e em y. */
+function padrao(ctx: CanvasRenderingContext2D, img: HTMLImageElement, o: Pt, px: Pt, py: Pt) {
+  const p = ctx.createPattern(img, 'repeat');
+  p?.setTransform(new DOMMatrix([px[0] - o[0], px[1] - o[1], py[0] - o[0], py[1] - o[1], o[0], o[1]]));
+  return p;
+}
+
+/** O chão com a textura vista de cima: uma volta dela cobre casas x casas (um fio a mais, sem frestas entre as casas). */
+function pintorPiso(ctx: CanvasRenderingContext2D, img: HTMLImageElement, casas: number): Pintor<[number, number, number]> {
+  const W = img.naturalWidth;
+  const H = img.naturalHeight;
+  return ([x, y, h]) => {
+    const p = padrao(ctx, img, iso(0, 0, h), iso(casas / W, 0, h), iso(0, casas / H, h));
+    if (!p) return;
+    const e = 0.012;
+    poly(ctx, quad(x - e, y - e, x + 1 + e, y + 1 + e, h));
+    ctx.fillStyle = p;
+    ctx.fill();
+  };
+}
+
+/** A parede com a textura vista de frente: do chão ao topo, e a largura de uma volta pela proporção da imagem. */
+function pintorParede(ctx: CanvasRenderingContext2D, map: RoomMap, img: HTMLImageElement): Pintor<WallSeg> {
+  const W = img.naturalWidth;
+  const H = img.naturalHeight;
+  const top = map.walls.top;
+  return (s) => {
+    const alto = top - s.base;
+    const volta = ((W / H) * (alto / Z_PER_M)) / M_POR_CASA;
+    const em = (a: number, z: number): Pt => (s.wall === 'l' ? iso(s.plane, a, z) : iso(a, s.plane, z));
+    const p = padrao(ctx, img, em(0, top), em(volta / W, top), em(0, top - alto / H));
+    if (!p) return;
+    const q = wallQuad(s, s.at, s.at + 1, s.base, top);
+    const xs = q.map((v) => v[0]);
+    const ys = q.map((v) => v[1]);
+    ctx.fillStyle = p;
+    ctx.fillRect(Math.min(...xs) - 1, Math.min(...ys) - 1, Math.max(...xs) - Math.min(...xs) + 2, Math.max(...ys) - Math.min(...ys) + 2);
+  };
+}
+
+export function buildStatic(map: RoomMap, wantScale: number, style?: FloorStyle, terreno?: string, aberto = false): StaticLayer {
   const look = floorLook(style);
-  const bd = roomBounds(map);
+  const bd = roomBounds(map, aberto);
   const pad = 8;
   const x = Math.floor(bd.minX - pad);
   const y = Math.floor(bd.minY - pad);
@@ -515,13 +669,30 @@ export function buildStatic(map: RoomMap, wantScale: number, style?: FloorStyle)
   const ctx = canvas.getContext('2d')!;
   ctx.setTransform(scale, 0, 0, scale, -x * scale, -y * scale);
   ctx.lineJoin = 'round';
+  // texturas desenhadas do estilo do cômodo (chão e parede), quando já chegaram
+  const tPiso = texturaPiso(style);
+  const tParede = texturaParede(style);
+  const pintarPiso = tPiso ? pintorPiso(ctx, tPiso.img, tPiso.casas) : undefined;
+  const pintarParede = tParede ? pintorParede(ctx, map, tParede.img) : undefined;
+  // ao ar livre, o chão de cada casa pode ser outro (terreno): o desenho e a textura de cada estilo
+  const linhas = terreno ? terreno.replace(/\r/g, '').split('\n') : undefined;
+  const pintores = new Map<FloorStyle, Pintor<[number, number, number]> | undefined>();
+  const pisoDe = (tx: number, ty: number): [FloorLook, Pintor<[number, number, number]> | undefined] => {
+    const t = terrenoEm(linhas, tx, ty);
+    if (!t || t === 'agua' || t === style) return [look, pintarPiso];
+    if (!pintores.has(t)) {
+      const tt = texturaPiso(t);
+      pintores.set(t, tt ? pintorPiso(ctx, tt.img, tt.casas) : undefined);
+    }
+    return [floorLook(t), pintores.get(t)];
+  };
 
   const minH = minFloor(map);
   const door = map.door;
   const doorH = map.floorHeight(door.x, door.y);
-  const doorSeg = map.walls.segs.find((s) => s.door);
-  if (doorSeg && doorH !== null) {
-    const hole = wallQuad(doorSeg, doorSeg.at + 0.1, doorSeg.at + 0.9, doorSeg.base, doorSeg.base + DOOR_H);
+  const vao = aberto ? null : vaoDaPorta(map);
+  if (vao && doorH !== null) {
+    const hole = wallQuad(vao.seg, vao.a0, vao.a1, vao.z0, vao.z1);
     poly(ctx, hole, '#050405');
     drawTile(ctx, map, door.x, door.y, doorH, true, minH);
     const [gx, gy] = iso(door.x + 0.5, door.y + 0.5, doorH + 1.2);
@@ -533,10 +704,30 @@ export function buildStatic(map: RoomMap, wantScale: number, style?: FloorStyle)
     ctx.fill();
   }
 
-  const segs = [...map.walls.segs].sort((a, b) => (a.wall === b.wall ? 0 : a.wall === 'r' ? -1 : 1));
-  for (const s of segs) drawWallSeg(ctx, map, s);
+  const segs = aberto ? [] : [...map.walls.segs].sort((a, b) => (a.wall === b.wall ? 0 : a.wall === 'r' ? -1 : 1));
+  for (const s of segs) drawWallSeg(ctx, map, s, pintarParede);
+  if (vao) {
+    // a borda do vão, depois das paredes, embaixo da moldura da porta
+    const fr = wallQuad(vao.seg, vao.a0, vao.a1, vao.z0, vao.z1 + (vao.escada ? 0 : 0.1));
+    ctx.beginPath();
+    if (vao.escada) {
+      ctx.moveTo(fr[0][0], fr[0][1]);
+      ctx.lineTo(fr[1][0], fr[1][1]);
+    }
+    ctx.moveTo(fr[0][0], fr[0][1]);
+    ctx.lineTo(fr[3][0], fr[3][1]);
+    if (!vao.escada) ctx.lineTo(fr[2][0], fr[2][1]);
+    else ctx.moveTo(fr[2][0], fr[2][1]);
+    ctx.lineTo(fr[1][0], fr[1][1]);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#1b1512';
+    ctx.stroke();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(200,160,110,0.25)';
+    ctx.stroke();
+  }
   // cantos
-  for (const s of map.walls.segs) {
+  for (const s of aberto ? [] : map.walls.segs) {
     if (s.wall !== 'l') continue;
     const r = map.walls.find('r', s.at, s.plane);
     if (!r) continue;
@@ -544,15 +735,21 @@ export function buildStatic(map: RoomMap, wantScale: number, style?: FloorStyle)
     poly(ctx, [iso(s.plane - T, s.at - T, top), iso(s.plane, s.at - T, top), iso(s.plane, s.at, top), iso(s.plane - T, s.at, top)], WALL_TOP, WALL_TOP);
   }
 
+  // a água primeiro: as margens (a borda das casas da frente) vêm por cima
+  if (linhas)
+    for (let ty = 0; ty < map.height; ty++)
+      for (let tx = 0; tx < map.width; tx++) if (map.floorHeight(tx, ty) === null && terrenoEm(linhas, tx, ty) === 'agua') drawAgua(ctx, tx, ty, minH - FLOOR_THICK);
+
   const tiles: [number, number, number][] = [];
   for (let ty = 0; ty < map.height; ty++)
     for (let tx = 0; tx < map.width; tx++) {
       const th = map.floorHeight(tx, ty);
-      if (th !== null && !map.isDoor(tx, ty)) tiles.push([tx, ty, th]);
+      if (th !== null && (aberto || !map.isDoor(tx, ty))) tiles.push([tx, ty, th]);
     }
   tiles.sort((a, b) => a[0] + a[1] - (b[0] + b[1]) || a[2] - b[2]);
   for (const [tx, ty, th] of tiles) {
-    drawTile(ctx, map, tx, ty, th, false, minH, look);
+    const [lk, pintor] = linhas ? pisoDe(tx, ty) : [look, pintarPiso];
+    drawTile(ctx, map, tx, ty, th, false, minH, lk, pintor);
     drawLedges(ctx, map, tx, ty, th);
   }
 

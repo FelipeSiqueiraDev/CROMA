@@ -1,4 +1,5 @@
-import { getFurni, getWallFurni } from '@croma/shared';
+import { arteDaMiniatura } from './furniArte';
+import { getFurni, getWallFurni } from '@crona/shared';
 import { furniVisual } from './furniFloor';
 import { drawWallFurni } from './furniWall';
 import { boxSilhouette, Mapper, Painter } from './painter';
@@ -70,6 +71,21 @@ export function thumbCopy(defId: string, size = 64): HTMLCanvasElement {
   c.height = src.height;
   c.style.width = src.style.width;
   c.style.height = src.style.height;
-  c.getContext('2d')!.drawImage(src, 0, 0);
+  const g = c.getContext('2d')!;
+  g.drawImage(src, 0, 0);
+  // com arte, a miniatura é a arte do jogo (o desenho padrão fica até a imagem chegar)
+  const url = arteDaMiniatura(defId);
+  if (url) {
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(c.width / img.naturalWidth, c.height / img.naturalHeight) * 0.92;
+      const w = img.naturalWidth * k;
+      const hh = img.naturalHeight * k;
+      g.clearRect(0, 0, c.width, c.height);
+      g.imageSmoothingQuality = 'high';
+      g.drawImage(img, (c.width - w) / 2, (c.height - hh) / 2, w, hh);
+    };
+    img.src = url;
+  }
   return c;
 }

@@ -1,0 +1,17 @@
+{
+  "destino": "client/public/arte/mobiliario",
+  "escala": 0.5,
+  "limpar": 56,
+  "moveis": [
+    {"def": "counter_wood", "folha": "client/public/arte/mobiliario/folhas/balcao-modular.png", "W": 2, "D": 1, "real": [1.5, 0.6, 0.9], "como_esta": true, "largura": true, "giros": {"4": 0, "6": 1, "0": 2, "2": 3}},
+    {"def": "table_tools", "folha": "client/public/arte/mobiliario/folhas/mesa-ferramentas.png", "W": 2, "D": 1, "real": [1.5, 0.72, 0.8], "como_esta": true, "largura": true, "giros": {"4": 0, "6": 1, "0": 2, "2": 3}},
+    {"def": "chair_wood", "folha": "client/public/arte/mobiliario/folhas/cadeira-madeira.png", "real": [0.45, 0.45, 0.9], "como_esta": true, "altura": true, "giros": {"4": 0, "6": 1, "0": 2, "2": 3}},
+    {"def": "stool", "folha": "client/public/arte/mobiliario/folhas/banqueta-madeira.png", "real": [0.35, 0.35, 0.55], "como_esta": true, "altura": "todas", "giros": {"4": 0, "6": 1, "0": 2, "2": 3}},
+    {"def": "candles", "folha": "client/public/arte/mobiliario/folhas/velas-acesas.png", "real": [0.4, 0.3, 0.35], "como_esta": true, "altura": "todas", "chamas": "auto", "giros": {"4": 0, "6": 1, "0": 2, "2": 3}, "estados": {"1": "client/public/arte/mobiliario/folhas/velas-apagadas.png"}},
+    {"def": "skull", "folha": "client/public/arte/mobiliario/folhas/cranio-vela.png", "real": [0.18, 0.22, 0.3], "como_esta": true, "altura": "todas", "giros": {"4": 0, "6": 1, "0": 2, "2": 3}},
+    {"def": "poster_sigil", "folha": "client/public/arte/mobiliario/folhas/cartaz-sigilo.png", "real": [0.5, 0.01, 0.7], "parede": {"r": [0, 0.5, 0.5], "l": [1, 0.5, 0.5]}},
+    {"def": "sigil_floor", "folha": "client/public/arte/mobiliario/folhas/circulo-ritual.png", "W": 3, "D": 3, "chao": true},
+    {"def": "blood_drops", "folha": "client/public/arte/mobiliario/folhas/gotas-sangue.png", "W": 1, "D": 1, "chao": true},
+    {"def": "blood_pool", "folha": "client/public/arte/mobiliario/folhas/poca-sangue.png", "W": 1, "D": 1, "chao": true}
+  ]
+}

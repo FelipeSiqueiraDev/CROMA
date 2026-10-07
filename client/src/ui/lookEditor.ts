@@ -7,7 +7,7 @@ import {
   SKIN_TONES,
   type AvatarLook,
   type CharacterDef,
-} from '@croma/shared';
+} from '@crona/shared';
 import { drawPixelAvatar, PIXEL_AVATAR_HEIGHT } from '../render/avatarPixel';
 import { drawSprite, framesFor, sprites } from '../render/sprites';
 import { clear, h } from './dom';

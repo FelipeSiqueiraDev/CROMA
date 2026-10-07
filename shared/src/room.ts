@@ -22,12 +22,16 @@ export interface ItemLock {
   open: boolean;
   /** quanto o mobi anda ao abrir, em casas */
   slide: { dx: number; dy: number };
+  /** sem senha (o feno em cima do alçapão do celeiro): o clique duplo do mestre empurra e revela, e de novo cobre */
+  semSenha?: boolean;
 }
 
 /** Piso do cômodo (cor e desenho do chão). */
 export const FLOOR_STYLES = [
   { id: 'pedra', name: 'Pedra' },
   { id: 'concreto', name: 'Concreto' },
+  { id: 'bloco', name: 'Bloco de concreto' },
+  { id: 'cela', name: 'Concreto da prisão' },
   { id: 'madeira', name: 'Madeira escura' },
   { id: 'taco', name: 'Madeira clara' },
   { id: 'ladrilho', name: 'Ladrilho branco' },
@@ -37,9 +41,35 @@ export const FLOOR_STYLES = [
   { id: 'musgo', name: 'Pedra verde' },
   { id: 'metal', name: 'Chapa de metal' },
   { id: 'terra', name: 'Terra' },
+  { id: 'grama', name: 'Grama' },
+  { id: 'estrada', name: 'Estrada de terra' },
+  { id: 'lavoura', name: 'Terra arada' },
+  { id: 'cascalho', name: 'Pedra clara' },
+  { id: 'selo', name: 'Pedra antiga' },
 ] as const;
 export type FloorStyle = (typeof FLOOR_STYLES)[number]['id'];
 export const isFloorStyle = (s: unknown): s is FloorStyle => FLOOR_STYLES.some((f) => f.id === s);
+
+/**
+ * Chão ao ar livre, casa por casa (`terreno` do cômodo): uma letra por casa, nas
+ * mesmas linhas e colunas da planta. Letra fora da lista (ou '.') = o piso do cômodo.
+ * A água fica numa casa vazia da planta ('x'): ninguém pisa, e o tabuleiro desenha a
+ * água ali, mais baixa que a margem.
+ */
+export const TERRENOS: Record<string, FloorStyle | 'agua'> = {
+  g: 'grama',
+  t: 'estrada',
+  l: 'lavoura',
+  p: 'cascalho',
+  d: 'terra',
+  m: 'taco',
+  a: 'agua',
+};
+
+/** O chão da casa (x, y) pelo terreno, ou null (vale o piso do cômodo). */
+export function terrenoEm(terreno: string[] | undefined, x: number, y: number): FloorStyle | 'agua' | null {
+  return TERRENOS[terreno?.[y]?.[x] ?? ''] ?? null;
+}
 
 /** Partículas do cômodo (enfeite): poeira que brilha na luz, fumaça e brasas do fogo. */
 export const PARTICLE_KINDS = [
@@ -82,6 +112,8 @@ export interface FloorItem {
   actions?: ItemAction[];
   /** fechadura com senha (passagem secreta) */
   lock?: ItemLock;
+  /** tamanho do desenho (quadro na parede, tapete no chão), 1 = o do catálogo; o mestre muda no painel do objeto */
+  escala?: number;
 }
 
 export interface WallItem {
@@ -98,6 +130,8 @@ export interface WallItem {
   hint?: Hint;
   loot?: Loot[];
   actions?: ItemAction[];
+  /** tamanho do desenho (quadro na parede, tapete no chão), 1 = o do catálogo; o mestre muda no painel do objeto */
+  escala?: number;
 }
 
 export type WalkState = 'blocked' | 'walk' | 'sit';
@@ -135,8 +169,11 @@ export class RoomMap {
   }
 
   floorHeight(x: number, y: number): number | null {
-    if (x < 0 || y < 0 || x >= this.hm.width || y >= this.hm.height) return null;
-    return this.hm.tiles[y][x];
+    // posição quebrada (um mobi deslizando, com o tremido): vale a casa embaixo
+    const tx = Math.floor(x + 1e-6);
+    const ty = Math.floor(y + 1e-6);
+    if (tx < 0 || ty < 0 || tx >= this.hm.width || ty >= this.hm.height) return null;
+    return this.hm.tiles[ty][tx];
   }
 
   isDoor(x: number, y: number) {
@@ -218,8 +255,8 @@ export class RoomMap {
       const def = getFurni(it.defId);
       if (!def) continue;
       if (def.sit) sit = true;
-      // porta aberta deixa passar; fechada, bloqueia
-      else if (!def.walkable && !(def.openState !== undefined && it.state === def.openState)) return 'blocked';
+      // porta aberta deixa passar; fechada (ou trancada), bloqueia, mesmo a passagem de pisar em cima
+      else if (def.openState !== undefined ? it.state !== def.openState : !def.walkable) return 'blocked';
     }
     return sit ? 'sit' : 'walk';
   }
@@ -259,6 +296,11 @@ export class RoomMap {
         if (base === null) base = h;
         else if (h !== base) return fail('O piso precisa estar nivelado.');
         let tileTop = h;
+        // tapete, símbolo no chão, mancha: vai para baixo dos móveis (fica no chão, por baixo de tudo)
+        if (def.flat) {
+          z = Math.max(z, h);
+          continue;
+        }
         for (const it of this.itemsAt(tx, ty)) {
           if (it.id === ignoreId) continue;
           const idef = getFurni(it.defId);

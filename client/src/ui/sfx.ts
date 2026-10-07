@@ -3,7 +3,7 @@
  * lápis riscando, borracha, papel, pincel, carimbo, teclas da máquina de
  * escrever, item voando e caindo. Volume baixo; dá para desligar no menu.
  */
-const KEY = 'croma.sfx';
+const KEY = 'crona.sfx';
 
 interface Burst {
   dur: number;

@@ -1,0 +1,976 @@
+{
+  "parte": 2,
+  "completo": true,
+  "arquivos": [
+    {
+      "arquivo": "temas/ordem/interface/fichas/papel-painel-2.png",
+      "tamanho": [
+        1200,
+        900
+      ],
+      "estica": 48,
+      "repete": false,
+      "quadros": 0,
+      "tema": "ordem",
+      "origem": "imagegen integrado",
+      "sha256": "5f4cf75d511726310803387794271bc8b81bbeed76c94f38eceff6ed5ec6116a",
+      "fonte": "temas/ordem/interface/fichas/papel-painel-2-fonte.png",
+      "miolo": "temas/ordem/interface/fichas/papel-painel-2-miolo.png",
+      "fonte_borda": 48
+    },
+    {
+      "arquivo": "temas/sangue/interface/fichas/papel-painel-2.png",
+      "tamanho": [
+        1200,
+        900
+      ],
+      "estica": 48,
+      "repete": false,
+      "quadros": 0,
+      "tema": "sangue",
+      "origem": "imagegen integrado",
+      "sha256": "5bb70d30409a6e717d687e96c3b692e25291c669e1051e45b163c4c0a1ebf931",
+      "fonte": "temas/sangue/interface/fichas/papel-painel-2-fonte.png",
+      "miolo": "temas/sangue/interface/fichas/papel-painel-2-miolo.png",
+      "fonte_borda": 48
+    },
+    {
+      "arquivo": "temas/morte/interface/fichas/papel-painel-2.png",
+      "tamanho": [
+        1200,
+        900
+      ],
+      "estica": 48,
+      "repete": false,
+      "quadros": 0,
+      "tema": "morte",
+      "origem": "imagegen integrado",
+      "sha256": "d3a41a89939c487c80f38a373263a9ace72f849be5bea6d418bf82a7e509f167",
+      "fonte": "temas/morte/interface/fichas/papel-painel-2-fonte.png",
+      "miolo": "temas/morte/interface/fichas/papel-painel-2-miolo.png",
+      "fonte_borda": 48
+    },
+    {
+      "arquivo": "temas/conhecimento/interface/fichas/papel-painel-2.png",
+      "tamanho": [
+        1200,
+        900
+      ],
+      "estica": 48,
+      "repete": false,
+      "quadros": 0,
+      "tema": "conhecimento",
+      "origem": "imagegen integrado",
+      "sha256": "49b9389c27d947f626684f6c73902522952e38e1214c8c3f1d7a064ccbab4295",
+      "fonte": "temas/conhecimento/interface/fichas/papel-painel-2-fonte.png",
+      "miolo": "temas/conhecimento/interface/fichas/papel-painel-2-miolo.png",
+      "fonte_borda": 48
+    },
+    {
+      "arquivo": "temas/energia/interface/fichas/papel-painel-2.png",
+      "tamanho": [
+        1200,
+        900
+      ],
+      "estica": 48,
+      "repete": false,
+      "quadros": 0,
+      "tema": "energia",
+      "origem": "imagegen integrado",
+      "sha256": "632ee84c2bc6eb7cf4346b87249e778bcda5e3dfcd78a59d701687b49ccb5175",
+      "fonte": "temas/energia/interface/fichas/papel-painel-2-fonte.png",
+      "miolo": "temas/energia/interface/fichas/papel-painel-2-miolo.png",
+      "fonte_borda": 48
+    },
+    {
+      "arquivo": "temas/ordem/interface/fichas/papel-escuro.png",
+      "tamanho": [
+        1200,
+        900
+      ],
+      "estica": 48,
+      "repete": false,
+      "quadros": 0,
+      "tema": "ordem",
+      "origem": "imagegen integrado",
+      "sha256": "b459c95673a14c67bd5ade56a62580cad4b1a25b6fc285e05cfb2b17c0a53007",
+      "fonte": "temas/ordem/interface/fichas/papel-escuro-fonte.png",
+      "miolo": "temas/ordem/interface/fichas/papel-escuro-miolo.png",
+      "fonte_borda": 48
+    },
+    {
+      "arquivo": "temas/sangue/interface/fichas/papel-escuro.png",
+      "tamanho": [
+        1200,
+        900
+      ],
+      "estica": 48,
+      "repete": false,
+      "quadros": 0,
+      "tema": "sangue",
+      "origem": "imagegen integrado",
+      "sha256": "5468256ade4cdbb304e495073e29ffa5b1e5da9ac4ccf23e83edd0c7da7972ed",
+      "fonte": "temas/sangue/interface/fichas/papel-escuro-fonte.png",
+      "miolo": "temas/sangue/interface/fichas/papel-escuro-miolo.png",
+      "fonte_borda": 48
+    },
+    {
+      "arquivo": "temas/morte/interface/fichas/papel-escuro.png",
+      "tamanho": [
+        1200,
+        900
+      ],
+      "estica": 48,
+      "repete": false,
+      "quadros": 0,
+      "tema": "morte",
+      "origem": "imagegen integrado",
+      "sha256": "83b1dfaea8d279dcac35623d56b1f44b6495085c981bcfd2db5818d6c1b9448e",
+      "fonte": "temas/morte/interface/fichas/papel-escuro-fonte.png",
+      "miolo": "temas/morte/interface/fichas/papel-escuro-miolo.png",
+      "fonte_borda": 48
+    },
+    {
+      "arquivo": "temas/conhecimento/interface/fichas/papel-escuro.png",
+      "tamanho": [
+        1200,
+        900
+      ],
+      "estica": 48,
+      "repete": false,
+      "quadros": 0,
+      "tema": "conhecimento",
+      "origem": "imagegen integrado",
+      "sha256": "e3609afd2734f827963ea08748c500584b6a8291cdd85c17c90629eac57d7e3b",
+      "fonte": "temas/conhecimento/interface/fichas/papel-escuro-fonte.png",
+      "miolo": "temas/conhecimento/interface/fichas/papel-escuro-miolo.png",
+      "fonte_borda": 48
+    },
+    {
+      "arquivo": "temas/energia/interface/fichas/papel-escuro.png",
+      "tamanho": [
+        1200,
+        900
+      ],
+      "estica": 48,
+      "repete": false,
+      "quadros": 0,
+      "tema": "energia",
+      "origem": "imagegen integrado",
+      "sha256": "999a8b914a6229efa9a73dac7401f459ba81dfaac8427ba93229d511955f3172",
+      "fonte": "temas/energia/interface/fichas/papel-escuro-fonte.png",
+      "miolo": "temas/energia/interface/fichas/papel-escuro-miolo.png",
+      "fonte_borda": 48
+    },
+    {
+      "arquivo": "interface/fichas/moldura-personagem.png",
+      "tamanho": [
+        620,
+        1140
+      ],
+      "estica": 60,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "046ce167c11d3e3709e802400cfa204fa07bd7084d7d444c7c3d36aafc85c5c9",
+      "fonte": "interface/fichas/moldura-personagem-fonte.png",
+      "miolo": "interface/fichas/moldura-personagem-miolo.png",
+      "fonte_borda": 60
+    },
+    {
+      "arquivo": "interface/fichas/fundo-personagem.jpg",
+      "tamanho": [
+        620,
+        1140
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "a56821317a58b8dab2cfbd0b5e7a6204214b374c7746bf03ae23942587ea93ef"
+    },
+    {
+      "arquivo": "interface/fichas/barra-moldura.png",
+      "tamanho": [
+        600,
+        64
+      ],
+      "estica": 20,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "76ed2a802fd6ef50ed58bdd14e6acdd6b2760c9813f3174d2c1725a978bf7b81"
+    },
+    {
+      "arquivo": "interface/fichas/barra-pv.png",
+      "tamanho": [
+        256,
+        48
+      ],
+      "estica": null,
+      "repete": true,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "e42cfcf2689e184f326c8edbcaf5b37d14e886570683d0c0c70a1db36dba44ab"
+    },
+    {
+      "arquivo": "interface/fichas/barra-pe.png",
+      "tamanho": [
+        256,
+        48
+      ],
+      "estica": null,
+      "repete": true,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "0dfd91baf51aa43fa3df777a7e10351024b528a12e8dd450d3ce528f09e49d62"
+    },
+    {
+      "arquivo": "interface/fichas/barra-san.png",
+      "tamanho": [
+        256,
+        48
+      ],
+      "estica": null,
+      "repete": true,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "43992565f82f1d0ae2f16ee65876bfa64eaf8d12f6f875b754a6000d89632157"
+    },
+    {
+      "arquivo": "interface/fichas/barra-brilho.png",
+      "tamanho": [
+        256,
+        48
+      ],
+      "estica": null,
+      "repete": true,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "89598c24c3d3efe1e6ffe144730d8039a4026d474abc719f36c3a69a6b36522e"
+    },
+    {
+      "arquivo": "interface/fichas/ladrilho-atributo-normal.png",
+      "tamanho": [
+        96,
+        96
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "426fd48bad50340647eeb22b12dd6a40a4ccd2f12b9c6b84c34e74f77b3f198c"
+    },
+    {
+      "arquivo": "interface/fichas/ladrilho-atributo-foco.png",
+      "tamanho": [
+        96,
+        96
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "23edf6b6475e2f3ae8d01e79c329978300e96016c50666ed61d119f68c5c9415"
+    },
+    {
+      "arquivo": "interface/fichas/placa-derivado.png",
+      "tamanho": [
+        220,
+        140
+      ],
+      "estica": 20,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "64e5aea34936d7501e61e4881d922e8b3513912e562aa1b8af0a3d33f3386eb0"
+    },
+    {
+      "arquivo": "interface/fichas/linha-tabela-normal.png",
+      "tamanho": [
+        800,
+        56
+      ],
+      "estica": 24,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Reuso técnico de pintura, fonte: interface/kit/botao-grande-normal.png",
+      "sha256": "16734c4585de75d0ee5b4d5aa9d5dde98228a3c30f2746cd6d13a9d56377460f"
+    },
+    {
+      "arquivo": "interface/fichas/linha-tabela-foco.png",
+      "tamanho": [
+        800,
+        56
+      ],
+      "estica": 24,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Reuso técnico de pintura, fonte: interface/kit/botao-grande-foco.png",
+      "sha256": "1cfaa516cad49c943519fd9576a49abfac0d9d3b71a14d191603a2f0001d3bd4"
+    },
+    {
+      "arquivo": "interface/enfeites/pilha-papeis.png",
+      "tamanho": [
+        600,
+        520
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "cafd3ea249503c2c965ec979297140d9d13a45a75302bb39d3e4e99828c4a8d1"
+    },
+    {
+      "arquivo": "interface/enfeites/foto-presa.png",
+      "tamanho": [
+        320,
+        360
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "afba04a92b5ebb79c414e974b3687735fe50b096173f94a461f635cbc8cfdf36"
+    },
+    {
+      "arquivo": "interface/enfeites/clipe.png",
+      "tamanho": [
+        120,
+        280
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "b0f1dbc64567f33c161e1d0451b774637ae29e17bfbea3594ae8b88fc1ee71b8"
+    },
+    {
+      "arquivo": "interface/enfeites/fita.png",
+      "tamanho": [
+        320,
+        100
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "da4f30ae98c4b602f27b8bac3f4b7ee585ed7731d28295a8852dc6556218c4f2"
+    },
+    {
+      "arquivo": "icones/pv.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "c4f8069d944fdde45a7b78f8ecb032eb9360e84938a17c4d98b893bb6157eae0"
+    },
+    {
+      "arquivo": "icones/pe.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "5889294677172c7f7f5a822bbe624b7e3db60e1309f721479e7debf60f64e486"
+    },
+    {
+      "arquivo": "icones/san.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "6bcfef867f38a6b06d26db96108bb2094a8557c32186f5faa9903439d9d7ef45"
+    },
+    {
+      "arquivo": "icones/agi.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "4491cf7119543db10df85389f63245c07d5ee08656b3b3e3db28934e1827c370"
+    },
+    {
+      "arquivo": "icones/for.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "27cfa7342b8733cc806e94847463dea65c8faeb1ea10ae7206f8c6d58de356c1"
+    },
+    {
+      "arquivo": "icones/int.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "c871827b60a4c0242b034c6b1462c6cfef5641f23d8dfd434ff40149c0255519"
+    },
+    {
+      "arquivo": "icones/pre.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "7f061974dffaf752c7c7a4c81fa955ca7aca1409dbe61e0c22e54394127b67f7"
+    },
+    {
+      "arquivo": "icones/vig.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "cd1596154b0251644cc416c3db34d5fda39d8d16e60c517d2925350f6133cf60"
+    },
+    {
+      "arquivo": "icones/defesa.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "65930f45c1f2b93f4d681957f0539c1caa4bde95eb5407eaf1b2055eb14ac01f"
+    },
+    {
+      "arquivo": "icones/deslocamento.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "73e3c8c1bdb3d2f127e2af601753ef5c0063e34158b997f4eb257018d537febe"
+    },
+    {
+      "arquivo": "icones/protecao.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "f6b0d2643a92b863693a8aed84563e11ffc61fa165136fbaa3fc72a43f220841"
+    },
+    {
+      "arquivo": "icones/resistencias.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "7bdf8c13cd68c9c7b2868208274e8eafcec7085816373a097a2c10fad3f222a3"
+    },
+    {
+      "arquivo": "icones/titulo-identificacao.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Reuso técnico de pintura, fonte: icones/topo-fichas.png",
+      "sha256": "ac0dad06cb527949867b9e2bb7f29c5496fa8a39ab48a081f841daff7d3a24aa"
+    },
+    {
+      "arquivo": "icones/titulo-atributos.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "1f3fbc52c979ccdbcf2b8c8507f44fecd07cf82b68eb3355f1ee89d6f42c743c"
+    },
+    {
+      "arquivo": "icones/titulo-recursos.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "49bf61f7386ff25058de56a21d62160a252f1625f8262823f541d9ae17b13d99"
+    },
+    {
+      "arquivo": "icones/titulo-derivados.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "5d586c488271150303850e40c6e88dea8c15b13d6ebf1beff8c4d98b041ca063"
+    },
+    {
+      "arquivo": "icones/titulo-condicoes.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "d20ea1335be1ca26698b52102cf8879fce1667bcde313a0002e07fcf6606cb62"
+    },
+    {
+      "arquivo": "icones/titulo-pericias.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "8216d0cb84118b3208278d154b27b3286e6f77534ecb06cfa39af6d2986fe36a"
+    },
+    {
+      "arquivo": "icones/titulo-poderes.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "1dc125013b57ee1524d7a5201a6ee83b7074a48f30ecbdad66154535b5f5c1e7"
+    },
+    {
+      "arquivo": "icones/titulo-rituais.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Reuso técnico de pintura, fonte: icones/botao-adicionar-ritual.png",
+      "sha256": "487a150825e48e5f13119221ae57ef3afb43ebbe282a81acc10482abc1b432dc"
+    },
+    {
+      "arquivo": "icones/titulo-equipamentos.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Reuso técnico de pintura, fonte: icones/topo-combate.png",
+      "sha256": "393f2c4a86455a7d8775a1eebb6588957407e4b1f3db2cb698c36188d3e821b5"
+    },
+    {
+      "arquivo": "icones/titulo-inventario.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Reuso técnico de pintura, fonte: icones/botao-adicionar-item.png",
+      "sha256": "c15b1378fb0bd25d6a7b895f8da0999e1bd8c971d137263365fa3aa2bd84dd64"
+    },
+    {
+      "arquivo": "icones/titulo-companheiro.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "eeff58e88439fc9ce249699077beb8f84e5fe8adea1c494a44a3dd491230616d"
+    },
+    {
+      "arquivo": "icones/titulo-anotacoes.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Reuso técnico de pintura, fonte: icones/topo-registro.png",
+      "sha256": "c45d60ed29fd0cdf61068379fc5f72bd40c3c1845ae740fc888caf92a8ee0c63"
+    },
+    {
+      "arquivo": "icones/cond-normal.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "825b18ed6b9abe18f69ccc9a3f11719c59b0680f2645e4552118d0c08b0772ee"
+    },
+    {
+      "arquivo": "icones/cond-machucado.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "426dc38a9e7c96154e2a51e9cd20d0068e3ce5c22b1c455cd8c2e9eadfb08ab3"
+    },
+    {
+      "arquivo": "icones/cond-sangrando.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "7f84a095974f42512281dc4a89fe49750aa887a61842c3e3e6b53f3838f8f8a0"
+    },
+    {
+      "arquivo": "icones/cond-atordoado.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "536843b2baa3ca70ba6e9a6be07f083d82d3500c0422c758995c71a60603fe12"
+    },
+    {
+      "arquivo": "icones/cond-amedrontado.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "d7e6846c5d7c13152c479e911b693a27f664bb676c1a542f0011fba748cc5077"
+    },
+    {
+      "arquivo": "icones/cond-envenenado.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "917b5871907df8cd057d525973fbce1d0d2a0fa44352a103f2640d96fba76760"
+    },
+    {
+      "arquivo": "icones/cond-inconsciente.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "71edc3fa3a52a2236930396098feb254a43934fdb61b6a21db4e514d7c0ce8d6"
+    },
+    {
+      "arquivo": "icones/cond-outro.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "e91de55d651236a804264a0710fecc6e418ee06a3aa5519f2956f080e47e2aa9"
+    },
+    {
+      "arquivo": "icones/poder-origem.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "7e9f64912c1f4ddcb8b05eccba40fbe8cb9ef82b2d7332d5d838fc2cfe10ab56"
+    },
+    {
+      "arquivo": "icones/poder-classe.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "e98211bf8fa4a0b899b1fbe93d626fdcfeef196970e3237029527e2e6d3b93a7"
+    },
+    {
+      "arquivo": "icones/poder-trilha.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "757a20204fc9dcadb19178544042089a12e6d9dc30aac71b8c2d0750acdb6736"
+    },
+    {
+      "arquivo": "icones/poder-paranormal.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "8b998431fb00c8e71f82bd0cf145b9e6757bfdc2f07f2e2b510077e150b92603"
+    },
+    {
+      "arquivo": "icones/sigilo-sangue.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "a99e77f8bdd5d0acd22b2663c8023980cba01042e25e20c7443da95d49f25056"
+    },
+    {
+      "arquivo": "icones/sigilo-morte.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "53279a5e85263957180c3cfd39e0b9fcacf33705be022a3be1dc614d73280692"
+    },
+    {
+      "arquivo": "icones/sigilo-conhecimento.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "0e36681d73f587a20f10ce9e34c093bc637a47f10dded424ab0322aed86b0fe1"
+    },
+    {
+      "arquivo": "icones/sigilo-energia.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "366d1ec09cff79ec58a957c968c6762c87675c85279ed7561af888ce974813e1"
+    },
+    {
+      "arquivo": "icones/sigilo-medo.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "35d6da6b60e59eedfd4ddc1ad22dea04100e5d0b4b7fb890c1b8d1d02eaefa58"
+    },
+    {
+      "arquivo": "icones/botao-editar.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "e8d01bfa322349464d4646733492c93072729e01f135176e877d2d499187411d"
+    },
+    {
+      "arquivo": "icones/botao-adicionar-item.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "c15b1378fb0bd25d6a7b895f8da0999e1bd8c971d137263365fa3aa2bd84dd64"
+    },
+    {
+      "arquivo": "icones/botao-adicionar-ritual.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "487a150825e48e5f13119221ae57ef3afb43ebbe282a81acc10482abc1b432dc"
+    },
+    {
+      "arquivo": "icones/botao-salvar.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "6c2b64c588e16327f41279a7e3cc29b3f79ee9285175a6f8c50e4caef4110b0d"
+    },
+    {
+      "arquivo": "icones/botao-novo-agente.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "e3feb4d52688b20196ad220978fb031a9e577ba133a90ca21eab4112d6f52003"
+    }
+  ],
+  "pendentes": []
+}

@@ -1,4 +1,4 @@
-import type { AvatarLook, CharacterDef, InvItem, Role, RoomInfo, RoomSummary } from '@croma/shared';
+import type { AvatarLook, CharacterDef, InvItem, Role, RoomInfo, RoomSummary } from '@crona/shared';
 import type { Net } from '../net';
 import type { RoomView } from '../room/RoomView';
 import { SessionStore } from '../session/store';

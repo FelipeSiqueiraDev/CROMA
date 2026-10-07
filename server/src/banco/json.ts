@@ -1,4 +1,4 @@
-// Banco em arquivo: server/data/db.json (o jeito antigo, e o padrão sem CROMA_DB_URL).
+// Banco em arquivo: server/data/db.json (o jeito antigo, e o padrão sem CRONA_DB_URL).
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Banco } from '.';

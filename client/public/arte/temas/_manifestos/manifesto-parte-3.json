@@ -1,0 +1,877 @@
+{
+  "parte": 3,
+  "completo": false,
+  "arquivos": [
+    {
+      "arquivo": "interface/combate/carta-iniciativa-normal.png",
+      "tamanho": [
+        640,
+        112
+      ],
+      "estica": 24,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Reuso técnico de pintura, fonte: interface/kit/botao-grande-normal.png",
+      "sha256": "87a33f425a1bf251507b2d38687ad2a126d31f3af0ed3b4e9bb63d59114484a9",
+      "fonte": "interface/combate/carta-iniciativa-normal-fonte.png",
+      "miolo": "interface/combate/carta-iniciativa-normal-miolo.png",
+      "fonte_borda": 24
+    },
+    {
+      "arquivo": "temas/ordem/interface/combate/carta-iniciativa-vez.png",
+      "tamanho": [
+        640,
+        112
+      ],
+      "estica": 24,
+      "repete": false,
+      "quadros": 0,
+      "tema": "ordem",
+      "origem": "Reuso técnico de pintura, fonte: temas/ordem/interface/kit/botao-grande-ativo.png",
+      "sha256": "0e1d097594ca61ae7dc73d4e1cbca3de9362703f3acfb6bc7410743c2f595ee7",
+      "fonte": "temas/ordem/interface/combate/carta-iniciativa-vez-fonte.png",
+      "miolo": "temas/ordem/interface/combate/carta-iniciativa-vez-miolo.png",
+      "fonte_borda": 24
+    },
+    {
+      "arquivo": "temas/sangue/interface/combate/carta-iniciativa-vez.png",
+      "tamanho": [
+        640,
+        112
+      ],
+      "estica": 24,
+      "repete": false,
+      "quadros": 0,
+      "tema": "sangue",
+      "origem": "Reuso técnico de pintura, fonte: temas/sangue/interface/kit/botao-grande-ativo.png",
+      "sha256": "8eb03d4de89a537a368eb307d04d71a218ad789766433717eb13cd3a13981514",
+      "fonte": "temas/sangue/interface/combate/carta-iniciativa-vez-fonte.png",
+      "miolo": "temas/sangue/interface/combate/carta-iniciativa-vez-miolo.png",
+      "fonte_borda": 24
+    },
+    {
+      "arquivo": "temas/morte/interface/combate/carta-iniciativa-vez.png",
+      "tamanho": [
+        640,
+        112
+      ],
+      "estica": 24,
+      "repete": false,
+      "quadros": 0,
+      "tema": "morte",
+      "origem": "Reuso técnico de pintura, fonte: temas/morte/interface/kit/botao-grande-ativo.png",
+      "sha256": "1afa14b88ff8271c99b48479be46c7d912ee38cdc5c542edb252050c72a51697",
+      "fonte": "temas/morte/interface/combate/carta-iniciativa-vez-fonte.png",
+      "miolo": "temas/morte/interface/combate/carta-iniciativa-vez-miolo.png",
+      "fonte_borda": 24
+    },
+    {
+      "arquivo": "temas/conhecimento/interface/combate/carta-iniciativa-vez.png",
+      "tamanho": [
+        640,
+        112
+      ],
+      "estica": 24,
+      "repete": false,
+      "quadros": 0,
+      "tema": "conhecimento",
+      "origem": "Reuso técnico de pintura, fonte: temas/conhecimento/interface/kit/botao-grande-ativo.png",
+      "sha256": "1a907529b0bb296fd95c1dad7b6de78da1548b27956698e56d0c948c62386a27",
+      "fonte": "temas/conhecimento/interface/combate/carta-iniciativa-vez-fonte.png",
+      "miolo": "temas/conhecimento/interface/combate/carta-iniciativa-vez-miolo.png",
+      "fonte_borda": 24
+    },
+    {
+      "arquivo": "temas/energia/interface/combate/carta-iniciativa-vez.png",
+      "tamanho": [
+        640,
+        112
+      ],
+      "estica": 24,
+      "repete": false,
+      "quadros": 0,
+      "tema": "energia",
+      "origem": "Reuso técnico de pintura, fonte: temas/energia/interface/kit/botao-grande-ativo.png",
+      "sha256": "5602c7889bd2a12c27348243e4c3165744d71df203408ac21eca0cd393c727ba",
+      "fonte": "temas/energia/interface/combate/carta-iniciativa-vez-fonte.png",
+      "miolo": "temas/energia/interface/combate/carta-iniciativa-vez-miolo.png",
+      "fonte_borda": 24
+    },
+    {
+      "arquivo": "interface/combate/carta-iniciativa-agiu.png",
+      "tamanho": [
+        640,
+        112
+      ],
+      "estica": 24,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Reuso técnico de pintura, fonte: interface/kit/botao-grande-desligado.png",
+      "sha256": "d6cb6b20de75dab39e8898080c0c8993192e20af9b965a24d93498333a6cb27f",
+      "fonte": "interface/combate/carta-iniciativa-agiu-fonte.png",
+      "miolo": "interface/combate/carta-iniciativa-agiu-miolo.png",
+      "fonte_borda": 24
+    },
+    {
+      "arquivo": "temas/ordem/interface/combate/carta-iniciativa-brilho.png",
+      "tamanho": [
+        688,
+        160
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "ordem",
+      "origem": "Reuso técnico de pintura, fonte: temas/ordem/interface/kit/botao-grande-brilho.png",
+      "sha256": "c05363081e78122d98bc656656a25dc1438c885cfb71e1384fdc21d7ba6b71af"
+    },
+    {
+      "arquivo": "temas/sangue/interface/combate/carta-iniciativa-brilho.png",
+      "tamanho": [
+        688,
+        160
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "sangue",
+      "origem": "Reuso técnico de pintura, fonte: temas/sangue/interface/kit/botao-grande-brilho.png",
+      "sha256": "1c999253125e0ba83877cdf0cccc8bf52ca7972f721e38bb5473fde1e26b7e3c"
+    },
+    {
+      "arquivo": "temas/morte/interface/combate/carta-iniciativa-brilho.png",
+      "tamanho": [
+        688,
+        160
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "morte",
+      "origem": "Reuso técnico de pintura, fonte: temas/morte/interface/kit/botao-grande-brilho.png",
+      "sha256": "c95ee353f120f0e1120f6d4af53bd05a3965ee3be2b5df87ce60fda15fcb2e71"
+    },
+    {
+      "arquivo": "temas/conhecimento/interface/combate/carta-iniciativa-brilho.png",
+      "tamanho": [
+        688,
+        160
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "conhecimento",
+      "origem": "Reuso técnico de pintura, fonte: temas/conhecimento/interface/kit/botao-grande-brilho.png",
+      "sha256": "7c77e98df43b3c16782b3c125398d0dfdb9ff1a3f5b8279e858738ecf2a3b742"
+    },
+    {
+      "arquivo": "temas/energia/interface/combate/carta-iniciativa-brilho.png",
+      "tamanho": [
+        688,
+        160
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "energia",
+      "origem": "Reuso técnico de pintura, fonte: temas/energia/interface/kit/botao-grande-brilho.png",
+      "sha256": "e239872cec6d3ad59c6cf63ea9e07c7020d578da0d677cf5da6af841ca121b12"
+    },
+    {
+      "arquivo": "interface/combate/caixa-iniciativa.png",
+      "tamanho": [
+        72,
+        72
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Reuso técnico de pintura, fonte: interface/kit/campo-numero.png",
+      "sha256": "4f314c8e42cdea3bce1a71f1c1c5ac32f31a53bf9bad1ae45c7591819cf5aebc"
+    },
+    {
+      "arquivo": "interface/combate/aba-acao-normal.png",
+      "tamanho": [
+        260,
+        64
+      ],
+      "estica": 16,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Reuso técnico de pintura, fonte: interface/kit/botao-grande-normal.png",
+      "sha256": "e50e8f2ac95a0378190d52058f37fc6b14e10b3c35e9c685eb80ba13c427ae5b"
+    },
+    {
+      "arquivo": "interface/combate/aba-acao-foco.png",
+      "tamanho": [
+        260,
+        64
+      ],
+      "estica": 16,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Reuso técnico de pintura, fonte: interface/kit/botao-grande-foco.png",
+      "sha256": "20d205e3076af3e2387f6f1e2b0a245d6bb2473f2affb7433cec096bf6928517"
+    },
+    {
+      "arquivo": "temas/ordem/interface/combate/aba-acao-ativa.png",
+      "tamanho": [
+        260,
+        64
+      ],
+      "estica": 16,
+      "repete": false,
+      "quadros": 0,
+      "tema": "ordem",
+      "origem": "Reuso técnico de pintura, fonte: temas/ordem/interface/kit/botao-grande-ativo.png",
+      "sha256": "81b0c385832553ea5ece2cbe3040b67e070b9a899fafc2202185c41e969505e5"
+    },
+    {
+      "arquivo": "temas/sangue/interface/combate/aba-acao-ativa.png",
+      "tamanho": [
+        260,
+        64
+      ],
+      "estica": 16,
+      "repete": false,
+      "quadros": 0,
+      "tema": "sangue",
+      "origem": "Reuso técnico de pintura, fonte: temas/sangue/interface/kit/botao-grande-ativo.png",
+      "sha256": "29091c27b7d6b3e914c816bd343c94f8748e7a8821ce68daa09bcffe98697f12"
+    },
+    {
+      "arquivo": "temas/morte/interface/combate/aba-acao-ativa.png",
+      "tamanho": [
+        260,
+        64
+      ],
+      "estica": 16,
+      "repete": false,
+      "quadros": 0,
+      "tema": "morte",
+      "origem": "Reuso técnico de pintura, fonte: temas/morte/interface/kit/botao-grande-ativo.png",
+      "sha256": "8ae76f86fb9908b1b52472c8e6b4efbeed9cf1116d454b27bb7b42713064641d"
+    },
+    {
+      "arquivo": "temas/conhecimento/interface/combate/aba-acao-ativa.png",
+      "tamanho": [
+        260,
+        64
+      ],
+      "estica": 16,
+      "repete": false,
+      "quadros": 0,
+      "tema": "conhecimento",
+      "origem": "Reuso técnico de pintura, fonte: temas/conhecimento/interface/kit/botao-grande-ativo.png",
+      "sha256": "be5393d5461ee1de2fd684e7f17513e9bb86bf98cd158faa8676bc0ecb6bd028"
+    },
+    {
+      "arquivo": "temas/energia/interface/combate/aba-acao-ativa.png",
+      "tamanho": [
+        260,
+        64
+      ],
+      "estica": 16,
+      "repete": false,
+      "quadros": 0,
+      "tema": "energia",
+      "origem": "Reuso técnico de pintura, fonte: temas/energia/interface/kit/botao-grande-ativo.png",
+      "sha256": "e2fac007482222c4f1c2579d97d13cfcd57a099cf7b6afa11b5833945f336609"
+    },
+    {
+      "arquivo": "temas/ordem/interface/combate/aba-acao-brilho.png",
+      "tamanho": [
+        308,
+        112
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "ordem",
+      "origem": "Reuso técnico de pintura, fonte: temas/ordem/interface/kit/botao-grande-brilho.png",
+      "sha256": "e4b22b0848137d72ba1820397481a080d26c8cc6698fbcd352962b4bf1b36125"
+    },
+    {
+      "arquivo": "temas/sangue/interface/combate/aba-acao-brilho.png",
+      "tamanho": [
+        308,
+        112
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "sangue",
+      "origem": "Reuso técnico de pintura, fonte: temas/sangue/interface/kit/botao-grande-brilho.png",
+      "sha256": "ffb99305b4e5cff3b10b351cb027356280760e4bc0145cad16a1b13cd610d238"
+    },
+    {
+      "arquivo": "temas/morte/interface/combate/aba-acao-brilho.png",
+      "tamanho": [
+        308,
+        112
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "morte",
+      "origem": "Reuso técnico de pintura, fonte: temas/morte/interface/kit/botao-grande-brilho.png",
+      "sha256": "f2a9f9ef9578c8c9795511f911e25e8f72a004dfd9a1bec31e0ee39a07660bb5"
+    },
+    {
+      "arquivo": "temas/conhecimento/interface/combate/aba-acao-brilho.png",
+      "tamanho": [
+        308,
+        112
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "conhecimento",
+      "origem": "Reuso técnico de pintura, fonte: temas/conhecimento/interface/kit/botao-grande-brilho.png",
+      "sha256": "02535e03bb5fa7d7316847ee46262d32bc2eed5a365a26f1f1e69dccae0ea33a"
+    },
+    {
+      "arquivo": "temas/energia/interface/combate/aba-acao-brilho.png",
+      "tamanho": [
+        308,
+        112
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "energia",
+      "origem": "Reuso técnico de pintura, fonte: temas/energia/interface/kit/botao-grande-brilho.png",
+      "sha256": "75cd4c58b2cce1d62f5e83e9e1a6a6fee41a31cd3cc785d20fb6cfa48ffd3755"
+    },
+    {
+      "arquivo": "interface/combate/passo-futuro.png",
+      "tamanho": [
+        56,
+        56
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "85423f25ef8ab6e72a15bca79899467b3e02479e98144c09adbe690fda405cb2"
+    },
+    {
+      "arquivo": "temas/ordem/interface/combate/passo-atual.png",
+      "tamanho": [
+        56,
+        56
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "ordem",
+      "origem": "imagegen integrado",
+      "sha256": "9a2e45f414dae899e6738ae834b1afb368ab8812b62d239b8185138fb3fc71f0"
+    },
+    {
+      "arquivo": "temas/sangue/interface/combate/passo-atual.png",
+      "tamanho": [
+        56,
+        56
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "sangue",
+      "origem": "imagegen integrado",
+      "sha256": "1e619597c8740e0fa41f82eeaea9aea667b750f904c2cfad513874e1adadddce"
+    },
+    {
+      "arquivo": "temas/morte/interface/combate/passo-atual.png",
+      "tamanho": [
+        56,
+        56
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "morte",
+      "origem": "imagegen integrado",
+      "sha256": "2f866a25e15a4838fd66895211983095b0bb2d29f32ad21e81596c7c016a9265"
+    },
+    {
+      "arquivo": "temas/conhecimento/interface/combate/passo-atual.png",
+      "tamanho": [
+        56,
+        56
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "conhecimento",
+      "origem": "imagegen integrado",
+      "sha256": "05fdda001aa79f17866f5dc53a3769b1cf151b967c30df00851ceeac215e99ab"
+    },
+    {
+      "arquivo": "temas/energia/interface/combate/passo-atual.png",
+      "tamanho": [
+        56,
+        56
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "energia",
+      "origem": "imagegen integrado",
+      "sha256": "17ebfe26f9d0811f07cb217e75346f521c5a844b3a08581184e75606637127df"
+    },
+    {
+      "arquivo": "temas/ordem/interface/combate/passo-feito.png",
+      "tamanho": [
+        56,
+        56
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "ordem",
+      "origem": "imagegen integrado",
+      "sha256": "00f03ef29604a5d6481842958cbfd4bba2b6061a98ecd84352d66cf3def92e78"
+    },
+    {
+      "arquivo": "temas/sangue/interface/combate/passo-feito.png",
+      "tamanho": [
+        56,
+        56
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "sangue",
+      "origem": "imagegen integrado",
+      "sha256": "42f970436b8096979c6941cef93a1d174dab96af3ddfe76c3f25c5e9f597eca5"
+    },
+    {
+      "arquivo": "temas/morte/interface/combate/passo-feito.png",
+      "tamanho": [
+        56,
+        56
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "morte",
+      "origem": "imagegen integrado",
+      "sha256": "ce94a7df6a85b576a3bfd15ce1b1c6a8b23654982c4d36b6ccd78fac842dd4be"
+    },
+    {
+      "arquivo": "temas/conhecimento/interface/combate/passo-feito.png",
+      "tamanho": [
+        56,
+        56
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "conhecimento",
+      "origem": "imagegen integrado",
+      "sha256": "23a2b7a38aa9e4dcb37fc44b1bc7d85072b70499a3925f70862959e9541dcf8c"
+    },
+    {
+      "arquivo": "temas/energia/interface/combate/passo-feito.png",
+      "tamanho": [
+        56,
+        56
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": "energia",
+      "origem": "imagegen integrado",
+      "sha256": "36842c8b5b04bd545a3dc87f81f01271c83a64ecac6150aa19cd0a9ff63e7509"
+    },
+    {
+      "arquivo": "interface/combate/passo-linha.png",
+      "tamanho": [
+        256,
+        8
+      ],
+      "estica": null,
+      "repete": true,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "9fb20ce1460483686181872a2aca05d0af57035e0a36d6f81755bd4edcd32c66"
+    },
+    {
+      "arquivo": "interface/combate/cartao-arma-normal.png",
+      "tamanho": [
+        560,
+        120
+      ],
+      "estica": 24,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Reuso técnico de pintura, fonte: interface/kit/botao-grande-normal.png",
+      "sha256": "c58fdc28969cd7df0b19a8c3ce40460967b1cf59a29dc42a10f97224cb25d487",
+      "fonte": "interface/combate/cartao-arma-normal-fonte.png",
+      "miolo": "interface/combate/cartao-arma-normal-miolo.png",
+      "fonte_borda": 24
+    },
+    {
+      "arquivo": "interface/combate/cartao-arma-foco.png",
+      "tamanho": [
+        560,
+        120
+      ],
+      "estica": 24,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Reuso técnico de pintura, fonte: interface/kit/botao-grande-foco.png",
+      "sha256": "2c909dcd966ebf76c038dc3f1f46aefb16aa1a1ff914084de1598d6ee7edf7c0",
+      "fonte": "interface/combate/cartao-arma-foco-fonte.png",
+      "miolo": "interface/combate/cartao-arma-foco-miolo.png",
+      "fonte_borda": 24
+    },
+    {
+      "arquivo": "temas/ordem/interface/combate/cartao-arma-escolhido.png",
+      "tamanho": [
+        560,
+        120
+      ],
+      "estica": 24,
+      "repete": false,
+      "quadros": 0,
+      "tema": "ordem",
+      "origem": "Reuso técnico de pintura, fonte: temas/ordem/interface/kit/botao-grande-ativo.png",
+      "sha256": "781538a6d07a9885e1aa8c4cbad14799e3ec77fde546599efe09f735457c73be",
+      "fonte": "temas/ordem/interface/combate/cartao-arma-escolhido-fonte.png",
+      "miolo": "temas/ordem/interface/combate/cartao-arma-escolhido-miolo.png",
+      "fonte_borda": 24
+    },
+    {
+      "arquivo": "temas/sangue/interface/combate/cartao-arma-escolhido.png",
+      "tamanho": [
+        560,
+        120
+      ],
+      "estica": 24,
+      "repete": false,
+      "quadros": 0,
+      "tema": "sangue",
+      "origem": "Reuso técnico de pintura, fonte: temas/sangue/interface/kit/botao-grande-ativo.png",
+      "sha256": "2911e9f737049c3677832d397e1e13601f353cf48a76afcae3e2143f12b3673f",
+      "fonte": "temas/sangue/interface/combate/cartao-arma-escolhido-fonte.png",
+      "miolo": "temas/sangue/interface/combate/cartao-arma-escolhido-miolo.png",
+      "fonte_borda": 24
+    },
+    {
+      "arquivo": "temas/morte/interface/combate/cartao-arma-escolhido.png",
+      "tamanho": [
+        560,
+        120
+      ],
+      "estica": 24,
+      "repete": false,
+      "quadros": 0,
+      "tema": "morte",
+      "origem": "Reuso técnico de pintura, fonte: temas/morte/interface/kit/botao-grande-ativo.png",
+      "sha256": "79b84e7144f0961378ad98a6db0d9ba3f8ce03c859130a39fa36e5b40f357860",
+      "fonte": "temas/morte/interface/combate/cartao-arma-escolhido-fonte.png",
+      "miolo": "temas/morte/interface/combate/cartao-arma-escolhido-miolo.png",
+      "fonte_borda": 24
+    },
+    {
+      "arquivo": "temas/conhecimento/interface/combate/cartao-arma-escolhido.png",
+      "tamanho": [
+        560,
+        120
+      ],
+      "estica": 24,
+      "repete": false,
+      "quadros": 0,
+      "tema": "conhecimento",
+      "origem": "Reuso técnico de pintura, fonte: temas/conhecimento/interface/kit/botao-grande-ativo.png",
+      "sha256": "1cf4c777299d4c8db5ecc7a80797155cce4fdd403d8199f27357a6d5749f4e8f",
+      "fonte": "temas/conhecimento/interface/combate/cartao-arma-escolhido-fonte.png",
+      "miolo": "temas/conhecimento/interface/combate/cartao-arma-escolhido-miolo.png",
+      "fonte_borda": 24
+    },
+    {
+      "arquivo": "temas/energia/interface/combate/cartao-arma-escolhido.png",
+      "tamanho": [
+        560,
+        120
+      ],
+      "estica": 24,
+      "repete": false,
+      "quadros": 0,
+      "tema": "energia",
+      "origem": "Reuso técnico de pintura, fonte: temas/energia/interface/kit/botao-grande-ativo.png",
+      "sha256": "394b4f90ab96369e521d0f545657f49f63fab30a597871236e6254425b6e766b",
+      "fonte": "temas/energia/interface/combate/cartao-arma-escolhido-fonte.png",
+      "miolo": "temas/energia/interface/combate/cartao-arma-escolhido-miolo.png",
+      "fonte_borda": 24
+    },
+    {
+      "arquivo": "interface/combate/caixa-dado.png",
+      "tamanho": [
+        220,
+        160
+      ],
+      "estica": 24,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Reuso técnico de pintura, fonte: interface/kit/campo-numero.png",
+      "sha256": "fd23176b44f2678a19d5a06eb36b58a471506113d92b4ae4da30d0515242e24d"
+    },
+    {
+      "arquivo": "interface/combate/carimbo.png",
+      "tamanho": [
+        520,
+        280
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "4f00f44c23232d76f03b472ae3938899a6cceb50c96092e51d9e6ef2301f4835"
+    },
+    {
+      "arquivo": "interface/combate/selo.png",
+      "tamanho": [
+        200,
+        200
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "07e4af6ee82feb7851cb4b8ddd3df1d1fccddaf2f09614f14810f4e39a55fe97"
+    },
+    {
+      "arquivo": "interface/combate/tinta-carimbo.png",
+      "tamanho": [
+        3120,
+        280
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 6,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "ae783a738bfe4e37b7e303397933784ee50341733e02f9a3eb8df949b3d1f727"
+    },
+    {
+      "arquivo": "interface/combate/chip-acao-livre.png",
+      "tamanho": [
+        220,
+        56
+      ],
+      "estica": 16,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Reuso técnico de pintura, fonte: interface/kit/chip-verde.png",
+      "sha256": "f19cf0cbdf31511c02d1f890e0380ff2813983f2814f2ba9f1914de83bd822c2"
+    },
+    {
+      "arquivo": "interface/combate/chip-acao-usada.png",
+      "tamanho": [
+        220,
+        56
+      ],
+      "estica": 16,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Reuso técnico de pintura, fonte: interface/kit/botao-grande-desligado.png",
+      "sha256": "a563ff17cffd4d75ad36f9772c3c4a333d126eddfbea7598a532fa654cc2ee36"
+    },
+    {
+      "arquivo": "interface/combate/moldura-retrato-alvo.png",
+      "tamanho": [
+        300,
+        380
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "5a31a3ae698ce9554cc580e9be26f0c7f625f71bf12b47340c06bbd2fdfaba89",
+      "fonte": "interface/combate/moldura-retrato-alvo-fonte.png",
+      "miolo": "interface/combate/moldura-retrato-alvo-miolo.png",
+      "fonte_borda": 24
+    },
+    {
+      "arquivo": "combate/base-agente.png",
+      "tamanho": [
+        256,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "1abf1cce7e36df2a26dca3353749b3e7f9ebadd12c3793c658b1c30b3ffce487"
+    },
+    {
+      "arquivo": "combate/base-inimigo.png",
+      "tamanho": [
+        256,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "b99daca90d44965253d56313f0997e2e903f0a6f7bf5aad2ff4dbd80a8f4509f"
+    },
+    {
+      "arquivo": "combate/mira.png",
+      "tamanho": [
+        256,
+        256
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "3d3de5b69d81461b031fec2fd1d77d9f25240cd97e167867783ad785c7942986"
+    },
+    {
+      "arquivo": "combate/circulo-ritual.png",
+      "tamanho": [
+        512,
+        256
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "733a21a2f7fe8ed0fd7ee0cb81e9e24ed1f220d4d8ac24e227619fa8a1f34510"
+    },
+    {
+      "arquivo": "icones/combate-atrasar.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "imagegen integrado",
+      "sha256": "3bcfba4a72c673b7f9e2dc3129c38afffdd1b404ecd85d344b96f52414dcc277"
+    },
+    {
+      "arquivo": "icones/combate-preparar.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Reuso técnico de pintura, fonte: icones/vig.png",
+      "sha256": "cd1596154b0251644cc416c3db34d5fda39d8d16e60c517d2925350f6133cf60"
+    },
+    {
+      "arquivo": "icones/combate-atacar.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Reuso técnico de pintura, fonte: icones/topo-combate.png",
+      "sha256": "393f2c4a86455a7d8775a1eebb6588957407e4b1f3db2cb698c36188d3e821b5"
+    },
+    {
+      "arquivo": "icones/combate-ritual.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Reuso técnico de pintura, fonte: icones/botao-adicionar-ritual.png",
+      "sha256": "487a150825e48e5f13119221ae57ef3afb43ebbe282a81acc10482abc1b432dc"
+    },
+    {
+      "arquivo": "icones/combate-habilidade.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Reuso técnico de pintura, fonte: icones/topo-config.png",
+      "sha256": "38659ad407ed431b6cbfb7368bdfbed277c2b5f54e33529fb37c84fd721d7640"
+    },
+    {
+      "arquivo": "icones/combate-movimento.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Reuso técnico de pintura, fonte: icones/deslocamento.png",
+      "sha256": "73e3c8c1bdb3d2f127e2af601753ef5c0063e34158b997f4eb257018d537febe"
+    },
+    {
+      "arquivo": "icones/clima-iluminacao.png",
+      "tamanho": [
+        128,
+        128
+      ],
+      "estica": null,
+      "repete": false,
+      "quadros": 0,
+      "tema": null,
+      "origem": "Reuso técnico de pintura, fonte: icones/topo-clima.png",
+      "sha256": "3749a940bd38cbc36579ea3e2edfcc1effe9667beca3492358de350738334f29"
+    }
+  ],
+  "pendentes": [
+    "icones/combate-passar-turno.png",
+    "icones/combate-manobra.png",
+    "icones/combate-item.png",
+    "icones/combate-outras.png",
+    "icones/combate-dado.png",
+    "icones/combate-desfazer.png",
+    "icones/combate-confirmar.png",
+    "icones/tabuleiro-alcance.png",
+    "icones/tabuleiro-medir.png",
+    "icones/tabuleiro-area.png",
+    "icones/tabuleiro-tatico.png",
+    "icones/tabuleiro-centralizar.png",
+    "icones/clima-nevoa.png",
+    "icones/clima-terreno.png",
+    "icones/estado-ok.png",
+    "icones/estado-morrendo.png",
+    "icones/estado-ritual.png",
+    "icones/estado-caido.png"
+  ]
+}

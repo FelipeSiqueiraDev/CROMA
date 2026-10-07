@@ -7,6 +7,7 @@ import * as cat from './dados';
 import { BONUS_GRAU, CREDITOS, ELEMENTO_OPRIME, ITENS_NEX_ZERO, PENALIDADE_CARGA, PRECO_MALDICAO, patentePorPP } from './dados';
 import { montarEstado, type Estado, type PoderObtido, type Problema, type Pendencia, type RitualObtido } from './estado';
 import type { Ficha, ItemFicha } from './ficha';
+import { lugarDoItem, maosDoItem, maosOcupadas, MAOS, vestivel } from './mochila';
 import { limitePeDoNex, patamar } from './nex';
 import { NOME_ATRIBUTO } from './requisitos';
 import type { AlvoModificacao, Arma, AtributoId, Categoria, ClasseId, Efeito, Elemento, Escopo, Grau, Nex, PericiaId, Proficiencia, TipoDano, Valor } from './tipos';
@@ -16,8 +17,10 @@ export interface PericiaCalculada {
   grau: Grau;
   /** atributo usado (o maior, quando um poder deixa trocar) */
   atributo: AtributoId;
-  /** quantos d20 rola (o valor do atributo; 0 = rola 2 e fica o menor) */
+  /** quantos d20 rola: o atributo e os dados ganhos (0 = rola 2 e fica o menor) */
   dados: number;
+  /** d20 perdidos (0 ou negativo); a conta com os dois está em rolagem.ts (LR p. 11) */
+  penalidadeDados: number;
   /** bônus total somado ao d20 */
   bonus: number;
   somenteTreinada: boolean;
@@ -38,6 +41,10 @@ export interface Ataque {
   alcance?: string;
   tipoDano: TipoDano[];
   notas: string[];
+  /** a arma está na mão (o desarmado, sempre): só assim ataca */
+  naMao: boolean;
+  /** o item da mochila (sem ele, o ataque desarmado) */
+  uid?: number;
 }
 
 export interface LimiteItens {
@@ -75,8 +82,12 @@ export interface Calculado {
   rituais: RitualObtido[];
   /** rituais aprendidos por Aprender Ritual e o limite (Intelecto) */
   rituaisPorPoder: { usados: number; limite: number };
-  /** custo em PE (forma básica) e DT de cada ritual conhecido, com os poderes que mudam */
-  custoRituais: Record<string, { pe: number; dt: number }>;
+  /**
+   * Custo em PE (forma básica) e DT de cada ritual conhecido, com os poderes
+   * que mudam. `base` é o custo do círculo e `ajuste`, o que os poderes somam
+   * (negativo = reduz): a forma avançada soma antes do mínimo de 1 PE (LR p. 78, 121).
+   */
+  custoRituais: Record<string, { pe: number; dt: number; base: number; ajuste: number }>;
   itens: LimiteItens[];
   ataques: Ataque[];
   /** efeitos que só valem numa situação (para mostrar) */
@@ -86,6 +97,15 @@ export interface Calculado {
 }
 
 const ESCOPO_FISICO: TipoDano[] = ['balistico', 'corte', 'impacto', 'perfuracao'];
+/** O dano paranormal tem sempre o subtipo de um elemento (LR p. 82). */
+const ESCOPO_PARANORMAL: TipoDano[] = ['sangue', 'morte', 'conhecimento', 'energia', 'medo'];
+/** Os tipos que uma RD ou imunidade cobre: "físico" e "paranormal" são grupos. */
+export function tiposDoDano(dano: TipoDano): TipoDano[] {
+  return dano === 'fisico' ? ESCOPO_FISICO : dano === 'paranormal' ? ESCOPO_PARANORMAL : [dano];
+}
+
+/** Efeito que veio de um item da mochila (`mochila:<posição>`): itens diferentes não somam entre si (LR p. 312–313). */
+const deItem = (x: { origem: PoderObtido }) => x.origem.id.startsWith('mochila:');
 
 /** Soma todos os efeitos ativos (sem condição e, os de afinidade, só com o poder escolhido com afinidade). */
 function efeitosAtivos(st: Estado): { efeito: Efeito; origem: PoderObtido }[] {
@@ -132,6 +152,9 @@ function vale(escopo: Escopo, a: Arma, favorita?: string): boolean {
       return true;
     case 'corpoACorpo':
       return a.tipo === 'corpoACorpo';
+    case 'armasCorpoACorpo':
+      // efeitos que falam de armas não valem no ataque desarmado (LR p. 57)
+      return a.tipo === 'corpoACorpo' && a.id !== 'ataque-desarmado';
     case 'distancia':
       return a.tipo !== 'corpoACorpo';
     case 'disparo':
@@ -156,7 +179,7 @@ function vale(escopo: Escopo, a: Arma, favorita?: string): boolean {
 }
 
 /** Sabe usar a arma? Proficiência geral ou a parcial que cobre a arma (LR p. 29 e 30). */
-function proficiente(a: Arma, tem: Set<Proficiencia>): boolean {
+export function proficiente(a: Arma, tem: Set<Proficiencia>): boolean {
   if (a.proficiencia === 'simples') return tem.has('armasSimples');
   if (a.tipo === 'fogo' && a.municao === 'balas-longas' && tem.has('armasFogoBalasLongas')) return true;
   if (a.proficiencia === 'pesada') return tem.has('armasPesadas');
@@ -178,6 +201,9 @@ export function categoriaDoItem(it: ItemFicha, reducao = 0): number {
 
 export function baseDoItem(it: ItemFicha): { nome: string; categoria: Categoria; espacos: number } | undefined {
   switch (it.tipo) {
+    case 'cena':
+      // achado no cenário: fora do catálogo, sem categoria
+      return { nome: it.nome || it.id, categoria: 0, espacos: it.espacos ?? 1 };
     case 'arma':
       return cat.arma(it.id);
     case 'protecao':
@@ -200,23 +226,27 @@ function efeitosDaMochila(f: Ficha, nex: Nex, problemas: Problema[], st: Estado)
   const atributos: Partial<Record<AtributoId, number>> = {};
   const vistos = new Set<string>();
   const erro = (texto: string) => problemas.push({ nex, onde: 'Mochila', texto, severidade: 'erro' });
-  const por = (nome: string, lista: Efeito[] | undefined) => {
-    const origem: PoderObtido = { id: 'mochila', nome, tipo: 'habilidade', nex, efeitos: [] };
+  // a origem guarda o item (`mochila:<posição>`): o que vem do mesmo item soma, de itens diferentes não
+  const por = (chave: string, nome: string, lista: Efeito[] | undefined) => {
+    const origem: PoderObtido = { id: chave, nome, tipo: 'habilidade', nex, efeitos: [] };
     for (const e of lista ?? []) {
       if (e.alvo === 'atributo' && !e.condicional) atributos[e.atributo] = (atributos[e.atributo] ?? 0) + e.valor;
       else efeitos.push({ efeito: e, origem });
     }
   };
   const oprime = ELEMENTO_OPRIME as Partial<Record<Elemento, Elemento>>;
-  for (const it of f.inventario) {
+  for (const [i, it] of f.inventario.entries()) {
     const base = baseDoItem(it);
     if (!base) continue;
-    const emUso = it.vestido !== false && it.empunhado !== false;
+    const chave = `mochila:${i}`;
+    // em uso: o que se empunha, na mão; o que se veste, vestido; o resto, na mochila
+    const lugar = lugarDoItem(it);
+    const emUso = maosDoItem(it) ? lugar === 'mao' : vestivel(it) ? lugar === 'vestido' : true;
     if (it.tipo === 'amaldicoado') {
       const a = cat.amaldicoado(it.id);
       if (a && emUso && !vistos.has(a.id)) {
         vistos.add(a.id);
-        por(a.nome, a.efeitos);
+        por(chave, a.nome, a.efeitos);
       }
     }
     // equipamento em uso: os efeitos dele (perícias e espaços têm conta própria)
@@ -224,7 +254,7 @@ function efeitosDaMochila(f: Ficha, nex: Nex, problemas: Problema[], st: Estado)
       const e = cat.equipamento(it.id);
       if (e && (!e.exigeTreino || st.graus[e.exigeTreino] !== 'destreinado')) {
         vistos.add(`eq:${it.id}`);
-        por(it.apelido || e.nome, e.efeitos?.filter((x) => (x.alvo !== 'pericia' && x.alvo !== 'espacos') || x.condicional));
+        por(chave, it.apelido || e.nome, e.efeitos?.filter((x) => (x.alvo !== 'pericia' && x.alvo !== 'espacos') || x.condicional));
       }
     }
     const grupo = it.tipo === 'equipamento' ? cat.equipamento(it.id)?.grupo : undefined;
@@ -245,14 +275,14 @@ function efeitosDaMochila(f: Ficha, nex: Nex, problemas: Problema[], st: Estado)
       elementos.push(m.elemento);
       if (!emUso || vistos.has(m.id)) continue;
       vistos.add(m.id);
-      por(`${base.nome} (${m.nome})`, m.efeitos);
+      por(chave, `${base.nome} (${m.nome})`, m.efeitos);
       // Cinética: RD 2 na proteção leve, 5 na pesada (LR p. 147)
-      if (m.id === 'cinetica') por(`${base.nome} (${m.nome})`, [{ alvo: 'resistencia', dano: 'fisico', valor: cat.protecao(it.id)?.tipo === 'pesada' ? 5 : 2 }]);
+      if (m.id === 'cinetica') por(chave, `${base.nome} (${m.nome})`, [{ alvo: 'resistencia', dano: 'fisico', valor: cat.protecao(it.id)?.tipo === 'pesada' ? 5 : 2 }]);
     }
-    if (it.tipo === 'protecao' && it.vestido !== false)
+    if (it.tipo === 'protecao' && emUso)
       for (const mId of it.modificacoes ?? []) {
         const m = cat.modificacao(mId);
-        if (m) por(`${base.nome} (${m.nome})`, m.efeitos?.filter((e) => e.alvo !== 'defesa'));
+        if (m) por(chave, `${base.nome} (${m.nome})`, m.efeitos?.filter((e) => e.alvo !== 'defesa'));
       }
   }
   return { efeitos, atributos };
@@ -308,12 +338,21 @@ export function calcular(f: Ficha): Calculado {
   let reducaoFavorita = 0;
   for (const x of doTipo('categoria')) if (x.efeito.item === 'favorita') reducaoFavorita = Math.max(reducaoFavorita, x.efeito.valor);
 
-  const itensVestidos = f.inventario.filter((it) => it.tipo === 'protecao' && it.vestido !== false);
+  // proteção vestida; o escudo vale na mão (LR p. 62)
   let protDef = 0;
   let escudoDef = 0;
   let pesada = false;
-  const protRes: Partial<Record<TipoDano, number>> = {};
-  for (const it of itensVestidos) {
+  /** RD de cada item em uso: a da proteção, a das modificações e a das maldições dele somam; entre itens, vale a maior (LR p. 144, 312–313) */
+  const rdItens = new Map<string, Partial<Record<TipoDano, number>>>();
+  const somarRd = (chave: string, t: TipoDano, v: number) => {
+    const rd = rdItens.get(chave) ?? {};
+    rd[t] = (rd[t] ?? 0) + v;
+    rdItens.set(chave, rd);
+  };
+  /** proteções em uso sem a proficiência: −2d20 nos testes de Força e Agilidade (LR p. 62) */
+  const semProficiencia: string[] = [];
+  for (const [i, it] of f.inventario.entries()) {
+    if (it.tipo !== 'protecao' || lugarDoItem(it) === 'mochila') continue;
     const p = cat.protecao(it.id);
     if (!p) continue;
     let d = p.defesa;
@@ -322,11 +361,16 @@ export function calcular(f: Ficha): Calculado {
     else {
       protDef = Math.max(protDef, d);
       if (p.tipo === 'pesada') pesada = true;
-      if (p.resistencia) for (const t of p.resistencia.dano) protRes[t] = Math.max(protRes[t] ?? 0, p.resistencia.valor);
+      if (p.resistencia) for (const t of p.resistencia.dano) somarRd(`mochila:${i}`, t, p.resistencia.valor);
     }
+    // o escudo conta como proteção pesada para a proficiência (LR p. 62)
     const prof: Proficiencia = p.tipo === 'leve' ? 'protecoesLeves' : 'protecoesPesadas';
-    if (!st.proficiencias.has(prof)) problemas.push({ nex, onde: 'Mochila', texto: `Sem proficiência com ${p.nome}: −2d20 em testes de Força e Agilidade.`, severidade: 'aviso' });
+    if (!st.proficiencias.has(prof)) {
+      semProficiencia.push(p.nome);
+      problemas.push({ nex, onde: 'Mochila', texto: `Sem proficiência com ${p.nome}: −2d20 nos testes de Força e Agilidade, ataques incluídos (LR p. 62).`, severidade: 'aviso' });
+    }
   }
+  const penalidadeProtecao = semProficiencia.length ? -2 : 0;
 
   // carga
   let espacos = atr.for > 0 ? 5 * atr.for : 2;
@@ -368,13 +412,17 @@ export function calcular(f: Ficha): Calculado {
       for (const x of m.incompativel ?? []) if (mods.includes(x) && mods.indexOf(x) > i) problemas.push({ nex, onde: 'Mochila', texto: `${b?.nome ?? it.id}: ${m.nome} não combina com ${cat.modificacao(x)?.nome ?? x}.`, severidade: 'erro' });
     }
   }
+  // mãos: no máximo dois itens empunhados; a arma de duas mãos ocupa as duas (LR p. 53)
+  const naMao = maosOcupadas(f.inventario);
+  if (naMao > MAOS) problemas.push({ nex, onde: 'Mochila', texto: `Mãos: ${naMao} ocupadas, o máximo é ${MAOS} (LR p. 53).`, severidade: 'erro' });
   // vestimentas: só duas dão bônus ao mesmo tempo (LR p. 63)
   let maxVest = 2;
   for (const x of doTipo('vestimentas')) maxVest += x.efeito.valor;
-  const vestidas = f.inventario.filter((it) => it.tipo === 'equipamento' && cat.equipamento(it.id)?.grupo === 'vestimenta' && it.vestido !== false).length;
+  const vestidas = f.inventario.filter((it) => it.tipo === 'equipamento' && cat.equipamento(it.id)?.grupo === 'vestimenta' && lugarDoItem(it) === 'vestido').length;
   if (vestidas > maxVest) problemas.push({ nex, onde: 'Mochila', texto: `${vestidas} vestimentas: só ${maxVest} dão bônus ao mesmo tempo (LR p. 63).`, severidade: 'aviso' });
-  // o preço das maldições: falhar num teste do atributo do elemento custa Sanidade (LR p. 145)
-  const precos = new Set<string>();
+  // o preço das maldições: falhar num teste do atributo do elemento custa 2 de Sanidade por
+  // maldição dele nos itens, somando; o item especial conta como uma (LR p. 145, 148)
+  const maldicoesPor = new Map<Elemento, number>();
   for (const it of f.inventario) {
     const els: Elemento[] = [];
     if (it.tipo === 'amaldicoado') {
@@ -385,12 +433,12 @@ export function calcular(f: Ficha): Calculado {
       const m = cat.maldicao(mId);
       if (m) els.push(m.elemento);
     }
-    for (const el of els) {
-      if (el === 'medo' || precos.has(el)) continue;
-      precos.add(el);
-      const atrs = PRECO_MALDICAO.atributos[el].map((a) => NOME_ATRIBUTO[a]).join(' ou ');
-      condicionais.push({ origem: `Preço de ${el}`, texto: `falhar num teste de ${atrs} custa ${PRECO_MALDICAO.san} de Sanidade (item amaldiçoado, LR p. 145)` });
-    }
+    for (const el of els) if (el !== 'medo') maldicoesPor.set(el, (maldicoesPor.get(el) ?? 0) + 1);
+  }
+  for (const [el, n] of maldicoesPor) {
+    const atrs = PRECO_MALDICAO.atributos[el as Exclude<Elemento, 'medo'>].map((a) => NOME_ATRIBUTO[a]).join(' ou ');
+    const vezes = n > 1 ? ` (${n} maldições de ${el})` : '';
+    condicionais.push({ origem: `Preço de ${el}`, texto: `falhar num teste de ${atrs} custa ${PRECO_MALDICAO.san * n} de Sanidade${vezes} (item amaldiçoado, LR p. 145)` });
   }
 
   // limites por patente
@@ -404,7 +452,8 @@ export function calcular(f: Ficha): Calculado {
   const usadosCat: Record<1 | 2 | 3 | 4, number> = { 1: 0, 2: 0, 3: 0, 4: 0 };
   for (const it of f.inventario) {
     const b = baseDoItem(it);
-    if (!b) continue;
+    // o achado na missão não foi fornecido pela Ordem: não ocupa vaga da patente (LR p. 53)
+    if (!b || it.achado) continue;
     const c = categoriaDoItem(it, it.tipo === 'arma' && it.id === favorita ? reducaoFavorita : 0);
     if (c > 4) problemas.push({ nex, onde: 'Mochila', texto: `${b.nome}: categoria acima de IV.`, severidade: 'erro' });
     else if (c >= 1) usadosCat[c as 1 | 2 | 3 | 4] += it.qtd ?? 1;
@@ -412,7 +461,7 @@ export function calcular(f: Ficha): Calculado {
   const itens: LimiteItens[] = ([1, 2, 3, 4] as const).map((k) => ({ categoria: k, usados: usadosCat[k], limite: limites[k] }));
   for (const l of itens) if (l.usados > l.limite) problemas.push({ nex, onde: 'Mochila', texto: `Itens de categoria ${'I'.repeat(l.categoria).replace('IIII', 'IV')}: ${l.usados} de ${l.limite}.`, severidade: 'erro' });
   if (nex > 0) {
-    const temAmaldicoado = f.inventario.some((it) => it.tipo === 'amaldicoado' || (it.maldicoes ?? []).length);
+    const temAmaldicoado = f.inventario.some((it) => !it.achado && (it.tipo === 'amaldicoado' || (it.maldicoes ?? []).length));
     if (temAmaldicoado && f.pp < 50) problemas.push({ nex, onde: 'Mochila', texto: 'Itens amaldiçoados só a partir de agente especial (50 PP).', severidade: 'aviso' });
   }
 
@@ -427,19 +476,27 @@ export function calcular(f: Ficha): Calculado {
 
   // ---------- perícias ----------
   const pericias = {} as Record<PericiaId, PericiaCalculada>;
-  // bônus de acessórios: vale o maior em cada perícia (LR p. 63)
-  const acessorio: Partial<Record<PericiaId, number>> = {};
-  for (const it of f.inventario) {
+  // bônus de itens nas perícias: os de um mesmo item somam (o item, as modificações e as
+  // maldições dele); entre itens, vale o maior em cada perícia (LR p. 63, 144, 312–313)
+  const porItem = new Map<string, Partial<Record<PericiaId, number>>>();
+  const somarItem = (chave: string, p: PericiaId, v: number) => {
+    const m = porItem.get(chave) ?? {};
+    m[p] = (m[p] ?? 0) + v;
+    porItem.set(chave, m);
+  };
+  for (const [i, it] of f.inventario.entries()) {
     if (it.tipo !== 'equipamento') continue;
     // guardado (nem vestido nem empunhado): não ajuda (LR p. 63)
     if (it.vestido === false && !it.empunhado) continue;
     const eq = cat.equipamento(it.id);
     if (eq?.exigeTreino && st.graus[eq.exigeTreino] === 'destreinado') continue;
-    // o bônus do item mais o das modificações dele (Aprimorado: +2 → +5); entre itens, vale o maior
+    // o bônus do item mais o das modificações dele (Aprimorado: +2 → +5)
     const doItem: Partial<Record<PericiaId, number>> = {};
     for (const e of eq?.efeitos ?? []) {
-      if (e.alvo !== 'pericia' || e.condicional || e.pericia === 'todas' || e.pericia === 'escolhida') continue;
-      doItem[e.pericia] = (doItem[e.pericia] ?? 0) + valor(e.valor, atr);
+      if (e.alvo !== 'pericia' || e.condicional || e.pericia === 'todas') continue;
+      // a perícia escolhida ao requisitar (utensílio, vestimenta); sem ela, ainda não ajuda
+      const p = e.pericia === 'escolhida' ? it.escolha?.pericia : e.pericia;
+      if (p) doItem[p] = (doItem[p] ?? 0) + valor(e.valor, atr);
     }
     const principal = Object.keys(doItem)[0] as PericiaId | undefined;
     for (const m of it.modificacoes ?? [])
@@ -448,28 +505,53 @@ export function calcular(f: Ficha): Calculado {
         const alvo = e.pericia === 'escolhida' ? principal : e.pericia;
         if (alvo) doItem[alvo] = (doItem[alvo] ?? 0) + valor(e.valor, atr);
       }
-    for (const [p, v] of Object.entries(doItem) as [PericiaId, number][]) acessorio[p] = Math.max(acessorio[p] ?? 0, v);
+    for (const [p, v] of Object.entries(doItem) as [PericiaId, number][]) somarItem(`mochila:${i}`, p, v);
   }
+  // os itens amaldiçoados e as maldições (Sombria) entram na conta do item em que estão
+  for (const x of doTipo('pericia')) {
+    if (!deItem(x) || !x.efeito.valor) continue;
+    const alvos = x.efeito.pericia === 'todas' ? cat.CATALOGO.pericias.map((p) => p.id) : x.efeito.pericia === 'escolhida' ? (x.origem.escolha?.pericias ?? []) : [x.efeito.pericia];
+    for (const p of alvos) somarItem(x.origem.id, p, valor(x.efeito.valor, atr));
+  }
+  const deItens: Partial<Record<PericiaId, number>> = {};
+  for (const m of porItem.values()) for (const [p, v] of Object.entries(m) as [PericiaId, number][]) deItens[p] = Math.max(deItens[p] ?? 0, v);
+  // "+N em testes de resistência" vale em Fortitude, Reflexos e Vontade (Precognição, LR p. 114)
+  let resistBonus = 0;
+  let resistDados = 0;
+  for (const x of doTipo('resistenciaTeste')) {
+    resistBonus += valor(x.efeito.valor, atr);
+    resistDados += x.efeito.dados ?? 0;
+  }
+  const RESISTENCIAS: PericiaId[] = ['fortitude', 'reflexos', 'vontade'];
   for (const p of cat.CATALOGO.pericias) {
     const grau = st.graus[p.id];
     let atributo = p.atributo;
     for (const x of doTipo('atributoPericia')) if (x.efeito.pericia === p.id && atr[x.efeito.atributo] > atr[atributo]) atributo = x.efeito.atributo;
-    let bonus = BONUS_GRAU[grau] + (st.bonusTreino[p.id] ?? 0) + (acessorio[p.id] ?? 0);
-    let dadosExtra = 0;
+    let bonus = BONUS_GRAU[grau] + (st.bonusTreino[p.id] ?? 0) + (deItens[p.id] ?? 0);
+    // dados ganhos e perdidos ficam separados: a conta de "menos de 1 dado" usa os dois (LR p. 11)
+    let ganhos = 0;
+    let perdidos = 0;
+    const somaDados = (d: number) => (d > 0 ? (ganhos += d) : (perdidos += d));
     for (const x of doTipo('pericia')) {
       const alvo = x.efeito.pericia === 'escolhida' ? x.origem.escolha?.pericias ?? [] : [x.efeito.pericia];
       if (alvo.includes(p.id) || x.efeito.pericia === 'todas') {
-        bonus += valor(x.efeito.valor, atr);
-        dadosExtra += x.efeito.dados ?? 0;
+        if (!deItem(x)) bonus += valor(x.efeito.valor, atr);
+        somaDados(x.efeito.dados ?? 0);
       }
     }
+    if (RESISTENCIAS.includes(p.id)) {
+      bonus += resistBonus;
+      somaDados(resistDados);
+    }
+    // proteção sem proficiência: −2d20 nos testes de Força e Agilidade (LR p. 62)
+    if (atributo === 'for' || atributo === 'agi') somaDados(penalidadeProtecao);
     // Sombria: Furtividade ignora a penalidade de carga (LR p. 147)
     const sombria = p.id === 'furtividade' && f.inventario.some((it) => it.tipo === 'protecao' && it.vestido !== false && it.maldicoes?.includes('sombria'));
     if (p.carga && !sombria) {
       if (sobrecarregado) bonus += PENALIDADE_CARGA;
       if (pesada) bonus += PENALIDADE_CARGA;
     }
-    pericias[p.id] = { grau, atributo, dados: atr[atributo] + dadosExtra, bonus, somenteTreinada: p.somenteTreinada, podeUsar: !p.somenteTreinada || grau !== 'destreinado' };
+    pericias[p.id] = { grau, atributo, dados: atr[atributo] + ganhos, penalidadeDados: perdidos, bonus, somenteTreinada: p.somenteTreinada, podeUsar: !p.somenteTreinada || grau !== 'destreinado' };
   }
 
   // ---------- DTs, resistências, reações ----------
@@ -478,19 +560,27 @@ export function calcular(f: Ficha): Calculado {
   let dtRituais = 10 + limitePe + atr.pre;
   for (const x of doTipo('dtRituais')) if (!x.efeito.elemento) dtRituais += x.efeito.valor;
 
+  // RD: "físico" vale nos quatro tipos das armas e "paranormal" nos cinco elementos (LR p. 82).
+  // Fontes diferentes somam; itens diferentes não: vale a maior RD de item em cada tipo (LR p. 312–313)
   const resistencias: Partial<Record<TipoDano, number>> = {};
   for (const x of doTipo('resistencia')) {
     const dano = x.efeito.dano === 'escolhido' ? x.origem.escolha?.elemento ?? x.origem.elemento : x.efeito.dano;
     if (!dano) continue;
-    const alvos: TipoDano[] = dano === 'fisico' ? ESCOPO_FISICO : [dano];
-    for (const t of alvos) resistencias[t] = (resistencias[t] ?? 0) + valor(x.efeito.valor, atr);
+    const v = valor(x.efeito.valor, atr);
+    for (const t of tiposDoDano(dano)) {
+      if (deItem(x)) somarRd(x.origem.id, t, v);
+      else resistencias[t] = (resistencias[t] ?? 0) + v;
+    }
   }
-  for (const [t, v] of Object.entries(protRes) as [TipoDano, number][]) resistencias[t] = (resistencias[t] ?? 0) + v;
+  const rdDeItens: Partial<Record<TipoDano, number>> = {};
+  for (const rd of rdItens.values()) for (const [t, v] of Object.entries(rd) as [TipoDano, number][]) rdDeItens[t] = Math.max(rdDeItens[t] ?? 0, v);
+  for (const [t, v] of Object.entries(rdDeItens) as [TipoDano, number][]) resistencias[t] = (resistencias[t] ?? 0) + v;
 
   const treinada = (p: PericiaId) => st.graus[p] !== 'destreinado';
+  // a esquiva e o bloqueio usam o bônus da perícia; o "+N em testes de resistência" vale só no teste (LR p. 88, 114)
   const reacoes = {
-    esquiva: treinada('reflexos') ? defesa + pericias.reflexos.bonus : null,
-    bloqueio: treinada('fortitude') ? pericias.fortitude.bonus : null,
+    esquiva: treinada('reflexos') ? defesa + pericias.reflexos.bonus - resistBonus : null,
+    bloqueio: treinada('fortitude') ? pericias.fortitude.bonus - resistBonus : null,
     contraAtaque: treinada('luta'),
   };
 
@@ -511,22 +601,38 @@ export function calcular(f: Ficha): Calculado {
     // efeitos das modificações desta arma valem só nela (escopo 'todos' = esta arma)
     const daArma = (it.modificacoes ?? []).flatMap((m) => cat.modificacao(m)?.efeitos ?? []).filter((e) => !e.condicional);
     const deArma = <A extends Efeito['alvo']>(alvo: A) => [...doTipo(alvo).filter((x) => vale((x.efeito as { escopo: Escopo }).escopo, a, favorita)).map((x) => x.efeito), ...daArma.filter((e) => e.alvo === alvo)] as Extract<Efeito, { alvo: A }>[];
-    for (const e of deArma('ataque')) {
-      bonus += valor(e.valor, atr);
-      dadosExtra += e.dados ?? 0;
-    }
     const notas: string[] = [];
     let penalidade = 0;
+    for (const e of deArma('ataque')) {
+      bonus += valor(e.valor, atr);
+      // dados ganhos e perdidos separados (LR p. 11)
+      if ((e.dados ?? 0) > 0) dadosExtra += e.dados!;
+      else penalidade += e.dados ?? 0;
+    }
     if (!proficiente(a, st.proficiencias)) {
-      penalidade = -2;
+      penalidade -= 2;
       notas.push('sem proficiência: −2d20');
     }
     if (a.penalidadeAtaque) {
       penalidade += a.penalidadeAtaque;
-      notas.push(`${a.nome.toLowerCase()}: ${a.penalidadeAtaque}d20`);
+      notas.push(`${a.nome.toLowerCase()}: ${a.penalidadeAtaque}d20${a.id === 'pistola-pesada' ? ' (com as duas mãos, sem a penalidade)' : ''}`);
+    }
+    // o ataque é teste de Força ou Agilidade: a proteção sem proficiência pesa (LR p. 62)
+    if (penalidadeProtecao) {
+      penalidade += penalidadeProtecao;
+      notas.push(`${semProficiencia.join(' e ')} sem proficiência: −2d20`);
+    }
+    if (a.bonusAtaque) {
+      bonus += a.bonusAtaque;
+      notas.push(`${a.nome.toLowerCase()}: ${a.bonusAtaque} no ataque`);
+    }
+    if (a.forcaMinima && atr.for < a.forcaMinima.forca) {
+      bonus += a.forcaMinima.bonus;
+      notas.push(`Força abaixo de ${a.forcaMinima.forca}: ${a.forcaMinima.bonus} (${a.forcaMinima.nota})`);
     }
     let danoFixo = 0;
-    if (corpo || a.tipo === 'arremesso') danoFixo += a.agil && atrAtaque === 'agi' ? atr.agi : atr.for;
+    // corpo a corpo e arremesso somam a Força; disparo e fogo não, fora o arco composto e o estilingue (LR p. 54, 58; SaH p. 37)
+    if (corpo || a.tipo === 'arremesso' || a.somaForca) danoFixo += a.agil && atrAtaque === 'agi' ? atr.agi : atr.for;
     let dadosDano = 0;
     for (const e of deArma('dano')) {
       danoFixo += valor(e.valor, atr);
@@ -551,6 +657,8 @@ export function calcular(f: Ficha): Calculado {
       alcance: a.alcance,
       tipoDano: a.tipoDano,
       notas,
+      naMao: it.id === 'ataque-desarmado' || lugarDoItem(it) === 'mao',
+      uid: it.uid,
     });
   }
 
@@ -560,23 +668,25 @@ export function calcular(f: Ficha): Calculado {
 
   if (pv < 1) problemas.push({ nex, onde: 'PV', texto: 'PV máximo abaixo de 1.', severidade: 'erro' });
 
-  // custo em PE de cada ritual (1, 3, 6 e 10 pelo círculo, LR p. 117) e a DT, com os poderes que mudam
+  // custo em PE de cada ritual (1, 3, 6 e 10 pelo círculo, LR p. 119) e a DT, com os poderes que mudam
   const custoRituais: Calculado['custoRituais'] = {};
   for (const r of st.rituais) {
     const rit = cat.ritual(r.id);
     if (!rit) continue;
-    let pe = CUSTO_CIRCULO[rit.circulo];
+    const base = CUSTO_CIRCULO[rit.circulo];
+    let ajuste = 0;
     let dt = dtRituais;
     for (const x of doTipo('custoRitual')) {
       const el = x.efeito.elemento === 'escolhido' ? x.origem.escolha?.elemento : x.efeito.elemento;
-      if (!x.efeito.elemento || el === rit.elemento) pe += x.efeito.valor;
+      if (!x.efeito.elemento || el === rit.elemento) ajuste += x.efeito.valor;
     }
     for (const x of doTipo('dtRituais')) {
       if (!x.efeito.elemento) continue;
       const el = x.efeito.elemento === 'escolhido' ? x.origem.escolha?.elemento : x.efeito.elemento;
       if (el === rit.elemento) dt += x.efeito.valor;
     }
-    custoRituais[r.id] = { pe: Math.max(1, pe), dt };
+    // o mínimo de 1 PE vale para o custo final, já com a forma avançada (LR p. 78, 121)
+    custoRituais[r.id] = { pe: Math.max(1, base + ajuste), dt, base, ajuste };
   }
 
   return {
@@ -612,7 +722,7 @@ export function calcular(f: Ficha): Calculado {
   };
 }
 
-/** Custo em PE da forma básica de um ritual, pelo círculo (LR p. 117). */
+/** Custo em PE da forma básica de um ritual, pelo círculo (LR p. 119). */
 const CUSTO_CIRCULO: Record<1 | 2 | 3 | 4, number> = { 1: 1, 2: 3, 3: 6, 4: 10 };
 
 /** Nível de crédito da patente subido (ou descido) por poderes (Magnata). */
@@ -623,7 +733,7 @@ function creditoCom(base: string, passos: number): string {
 }
 
 /** A que tipo de modificação o item aceita (LR p. 60). */
-function alvoModificacao(it: ItemFicha): AlvoModificacao | null {
+export function alvoModificacao(it: ItemFicha): AlvoModificacao | null {
   if (it.tipo === 'protecao') return 'protecao';
   if (it.tipo === 'arma') {
     const a = cat.arma(it.id);

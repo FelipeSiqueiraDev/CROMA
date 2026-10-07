@@ -1,5 +1,5 @@
-import type { WallFurniDef } from '@croma/shared';
-import { rng, shade } from './color';
+import type { WallFurniDef } from '@crona/shared';
+import { rgba, rng, shade } from './color';
 import { drawBlood, drawSigil, type LightKind } from './furniFloor';
 import { drawFlame, OUTLINE } from './painter';
 
@@ -367,24 +367,42 @@ const draws: Record<string, Draw> = {
   },
 
   /** Letreiro "BAR" em neon rosa (apaga no apagão). */
-  neon(ctx, d, state) {
+  neon(ctx, d, state, seed, t) {
     const [tube, core] = d.colors;
     const on = state === 0;
+    // o neon zune: quase sempre firme, respira um pouco e de vez em quando dá duas piscadas rápidas
+    const ciclo = (t + seed * 977) % 6100;
+    const pisca = (ciclo > 5600 && ciclo < 5660) || (ciclo > 5740 && ciclo < 5790) ? 0.3 : 1;
+    const vivo = on ? (0.9 + 0.1 * Math.sin(t / 140)) * pisca : 0;
+    if (vivo > 0) {
+      // o brilho rosa que o letreiro joga na parede em volta dele
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const g = ctx.createRadialGradient(d.w / 2, d.h / 2, 2, d.w / 2, d.h / 2, d.w * 0.85);
+      g.addColorStop(0, rgba(tube, 0.34 * vivo));
+      g.addColorStop(0.45, rgba(tube, 0.12 * vivo));
+      g.addColorStop(1, rgba(tube, 0));
+      ctx.fillStyle = g;
+      ctx.fillRect(-d.w * 0.35, -d.h * 1.1, d.w * 1.7, d.h * 3.2);
+      ctx.restore();
+    }
     frameRect(ctx, 0, 2, d.w, d.h - 4, '#141012');
     ctx.save();
     ctx.font = `bold ${d.h - 8}px Georgia, serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    if (on) {
+    if (vivo > 0) {
       ctx.shadowColor = tube;
-      ctx.shadowBlur = 8;
+      ctx.shadowBlur = 14 * vivo;
     }
-    ctx.lineWidth = 2.2;
-    ctx.strokeStyle = on ? tube : shade(tube, -0.6);
+    ctx.lineWidth = 2.4;
+    ctx.strokeStyle = vivo > 0 ? tube : shade(tube, -0.6);
     ctx.strokeText('BAR', d.w / 2, d.h / 2 + 1);
-    ctx.shadowBlur = 0;
-    ctx.lineWidth = 0.8;
-    ctx.strokeStyle = on ? core : shade(tube, -0.4);
+    // segunda passada: o tubo aceso por dentro, quase branco
+    ctx.shadowBlur = 4 * vivo;
+    ctx.lineWidth = 0.9;
+    ctx.strokeStyle = vivo > 0 ? core : shade(tube, -0.4);
+    ctx.globalAlpha = vivo > 0 ? 0.75 + 0.25 * vivo : 1;
     ctx.strokeText('BAR', d.w / 2, d.h / 2 + 1);
     ctx.restore();
   },
@@ -518,6 +536,14 @@ export function wallLights(def: WallFurniDef, state: number): WallLight[] {
       return on ? [{ x: def.w / 2, y: def.h / 2, radius: 110, color: def.colors[0], intensity: 0.65, flicker: 0.03, kind: 'electric' }] : [];
     case 'screen':
       return on ? [{ x: def.w / 2, y: def.h / 2, radius: 120, color: '#f2eadc', intensity: 0.45, kind: 'electric' }] : [];
+    case 'tv':
+      // só uma vida na parede: bem mais fraca que o fliperama (a que desliga, desligada, apaga)
+      return def.states && !on ? [] : [{ x: def.w / 2, y: def.h * 0.35, radius: 85, color: '#a8e8b8', intensity: 0.26, flicker: 0.12, kind: 'electric' }];
+    case 'cage_lamp':
+      return on ? [{ x: def.w / 2, y: def.h * 0.55, radius: 150, color: def.colors[1] ?? '#ffd9a0', intensity: 0.7, flicker: 0.02, kind: 'electric' }] : [];
+    case 'crack':
+      // a luz dourada que vaza de dentro da rachadura (não é da Sede: o apagão não a apaga)
+      return [{ x: def.w / 2, y: def.h * 0.45, radius: 150, color: def.colors[0], intensity: 0.95, flicker: 0.1, kind: 'fire' }];
     default:
       return [];
   }

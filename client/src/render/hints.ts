@@ -1,4 +1,4 @@
-import type { HintIcon } from '@croma/shared';
+import type { HintIcon } from '@crona/shared';
 
 /** Glifo do ícone de pista, centrado em (0,0), ~12px. */
 export function drawHintGlyph(ctx: CanvasRenderingContext2D, icon: HintIcon, color: string) {

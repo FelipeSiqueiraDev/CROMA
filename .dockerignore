@@ -1,0 +1,13 @@
+# Só o que a imagem do CRONA precisa: o código e a arte (client/public/arte, inclusive a local/).
+**/node_modules
+**/dist
+.git
+.claude
+_entregas
+docs
+scripts
+!scripts/webp.mjs
+server/data
+server/.env
+**/*.log
+.vite

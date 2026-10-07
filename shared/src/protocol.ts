@@ -3,8 +3,11 @@ import type { AcaoCombate, Combate, FichaAmeaca } from './combate/tipos';
 import type { RollResult } from './dice';
 import type { FloorItem, FloorStyle, Hint, ParticleKind, WallItem } from './room';
 import type { CampaignState, LootKind } from './rpg';
-import type { Role, Session, SessionAction, Token } from './session';
+import type { PapelConta, Role, Session, SessionAction, Token } from './session';
+import type { Documento } from './documentos';
 import type { FichaSalva } from './fichas';
+import type { AcaoNevoa, MarcaMesa, NevoaCena } from './mesa';
+import type { TipoItemCatalogo } from './regras/ficha';
 import type { VitalKey } from './vitals';
 import type { Door } from './walls';
 
@@ -64,6 +67,10 @@ export function turnFacing(dir: number, cw: boolean, allowed: number[]): number 
   return d;
 }
 
+/** O que se faz com um item da mochila (docs/REGRAS.md, Mochila). */
+export type AcaoMochila = 'empunhar' | 'guardar' | 'vestir' | 'tirar' | 'usar' | 'entregar' | 'largar';
+export const ACOES_MOCHILA: AcaoMochila[] = ['empunhar', 'guardar', 'vestir', 'tirar', 'usar', 'entregar', 'largar'];
+
 /** Animação de cada linha da folha. */
 export type AnimKey = 'idle' | 'walk' | 'sit';
 export const ANIM_KEYS: AnimKey[] = ['idle', 'walk', 'sit'];
@@ -72,6 +79,7 @@ export const ANIM_KEYS: AnimKey[] = ['idle', 'walk', 'sit'];
  * Estado do retrato do personagem (cartas do grupo, na tela do mestre): com ou
  * sem arma, machucado ou não. Cada estado é uma imagem própria, na pasta do
  * personagem: retrato-<estado>.png (e retrato-<estado>-olhos-fechados.png para piscar).
+ * O mesmo estado escolhe a pose do personagem no tabuleiro (CharacterDef.poses).
  */
 export type PortraitState = 'desarmado' | 'armado' | 'desarmado-machucado' | 'armado-machucado';
 export const PORTRAIT_STATES: PortraitState[] = ['desarmado', 'armado', 'desarmado-machucado', 'armado-machucado'];
@@ -114,6 +122,97 @@ export interface CharacterDef {
    * (client/public/arte/personagens/<nome>/). Sem eles, o retrato é recortado da folha.
    */
   portraits?: Partial<Record<PortraitState, PortraitArt>>;
+  /**
+   * Poses do tabuleiro (arte em 32 bits, uma imagem por pose), por estado e
+   * direção, achadas pelo servidor em tabuleiro-32bits/ na pasta do personagem:
+   * idle-<estado>-<direção>.png (sem a direção, é `se`). Sem elas, o tabuleiro usa a folha.
+   */
+  poses?: Partial<Record<PortraitState, Partial<Record<DirKey, string>>>>;
+  /**
+   * Quadros de andar do tabuleiro, por estado e direção, achados na mesma
+   * pasta: andar-<estado>-<direção>-<n>.png (n = 1, 2, 3..., em ordem). Com o
+   * mesmo tamanho e os pés no mesmo ponto da pose parada da direção. Sem eles,
+   * a pose parada desliza com um balanço.
+   */
+  passos?: Partial<Record<PortraitState, Partial<Record<DirKey, string[]>>>>;
+  /**
+   * O boneco animado do tabuleiro (parado respirando e andando, nas 8 direções),
+   * gerado por scripts/boneco.py e achado pelo servidor em tabuleiro-32bits/anim.json.
+   * Quando tem, vale no lugar de `poses` e `passos`.
+   */
+  anim?: AnimTabuleiro;
+  /**
+   * O boneco filmado em 3D (docs/PERSONAGENS-3D.md): várias animações por estado e
+   * direção, achadas pelo servidor em tabuleiro-3d/anim.json. Quando tem, vale no lugar de `anim`.
+   */
+  boneco?: BonecoTabuleiro;
+}
+
+/**
+ * Uma animação do boneco numa direção: a tira (os quadros lado a lado), o tamanho de cada
+ * quadro e a âncora (o chão embaixo do corpo), em pixels da arte, e como tocar.
+ */
+export interface BonecoClipe {
+  url: string;
+  quadros: number;
+  w: number;
+  h: number;
+  ax: number;
+  ay: number;
+  /** volta ao começo quando acaba (parado, andar) ou toca uma vez (pegar, cair) */
+  laco: boolean;
+  /** quanto dura cada quadro */
+  ms?: number;
+  /** andar: quantas casas um ciclo anda (o quadro vem da distância, e o pé fica no chão) */
+  casasPorCiclo?: number;
+  /** andar: a fase do ciclo no meio da casa */
+  fase?: number;
+  /** uma vez: fica no último quadro (caído) */
+  segura?: boolean;
+  /** os pés em cada quadro, em pixels da tela no zoom 1, a partir da âncora */
+  pes: PeQuadro[][];
+}
+
+/** O boneco filmado em 3D: `escala` = pixels da tela (zoom 1) por pixel da arte. */
+export interface BonecoTabuleiro {
+  versao: 2;
+  escala: number;
+  estados: Partial<Record<PortraitState, Partial<Record<DirKey, Record<string, BonecoClipe>>>>>;
+}
+
+/** Um pé num quadro: [dx, dy, altura no ar], em pixels, a partir da âncora (o chão embaixo do corpo). */
+export type PeQuadro = [number, number, number];
+
+/** Uma tira de quadros lado a lado; com olhos, a segunda linha é igual de olhos fechados. */
+export interface AnimTira {
+  url: string;
+  quadros: number;
+}
+
+/** Uma direção do boneco: o tamanho do quadro, a âncora, as duas tiras e onde ficam os pés em cada quadro. */
+export interface AnimDirecao {
+  w: number;
+  h: number;
+  ax: number;
+  ay: number;
+  /** a direção mostra os olhos: as tiras têm a linha de olhos fechados (para piscar) */
+  olhos: boolean;
+  parado: AnimTira;
+  andar: AnimTira;
+  pesParado: PeQuadro[][];
+  pesAndar: PeQuadro[][];
+  /** a fase do andar no meio da casa só desta direção (o andar desenhado pode começar o ciclo em outro ponto) */
+  faseAndar?: number;
+}
+
+/** O boneco animado do tabuleiro (anim.json, gerado por scripts/boneco.py). */
+export interface AnimTabuleiro {
+  versao: 1;
+  /** quanto dura cada quadro parado (a respiração) */
+  msParado: number;
+  /** a fase do ciclo de andar (0..1, um ciclo por casa) quando a peça está no meio da casa: a passagem */
+  faseAndar: number;
+  estados: Partial<Record<PortraitState, Partial<Record<DirKey, AnimDirecao>>>>;
 }
 
 export type CharacterPatch = Partial<Pick<CharacterDef, 'name' | 'cols' | 'rows' | 'dirs' | 'anims' | 'height' | 'fps' | 'sequence' | 'removeBg'>>;
@@ -189,14 +288,26 @@ export interface RoomInfo {
   publicBuild: boolean;
   /** andar do cômodo ("Térreo", "Subsolo"); sem nome = o único andar */
   floor?: string;
+  /** área do cômodo ("Área técnica"), na plaquinha do cartão da sala */
+  area?: string;
   /** piso do cômodo */
   floorStyle?: FloorStyle;
+  /** ao ar livre: sem paredes, sem teto (fazenda, estrada, praça) */
+  aberto?: boolean;
+  /** chão casa por casa, ao ar livre (letras de TERRENOS, linhas como a planta) */
+  terreno?: string;
   /** cor do ambiente (#rrggbb): tinge a escuridão e o ar do cômodo */
   ambient?: string;
   /** partículas do cômodo */
   particles?: ParticleKind[];
   /** quantidade de partículas 0..1 (clima da cena; sem valor = DEFAULT_PARTICLE_LEVEL) */
   particleLevel?: number;
+  /** vista tática: a câmera do tabuleiro em cima, como um mapa de batalha (o mestre liga; a mesa acompanha) */
+  tatico?: boolean;
+  /** a névoa revelada aos poucos (docs/FERRAMENTAS-DA-MESA.md): sem ela, a mesa vê a cena inteira */
+  nevoa?: NevoaCena;
+  /** mapa improvisado: a imagem que o mestre subiu, deitada no chão inteiro da cena */
+  mapa?: string;
   /** o cliente atual pode construir/editar */
   canBuild: boolean;
   /** o cliente atual é o dono (mestre) */
@@ -213,6 +324,11 @@ export interface SceneInfo {
   door: Door;
   portals: { x: number; y: number; link: number }[];
   users: { id: number; name: string; x: number; y: number }[];
+  /** ao ar livre: a planta desenha o terreno (grama, estrada, água) no lugar da pedra */
+  aberto?: boolean;
+  terreno?: string;
+  /** os prédios do lugar (casas que ocupam e o nome), para a planta de quem está ao ar livre */
+  marcos?: { x: number; y: number; w: number; h: number; nome: string }[];
 }
 
 export interface InvItem {
@@ -227,7 +343,15 @@ export type ClientMsg =
    * Mestre: o computador do servidor, ou quem manda a chave do link do mestre
    * (gmKey). mesa = tela da mesa, que sempre entra como jogador.
    */
-  | { t: 'login'; name: string; look: AvatarLook; gmKey?: string; mesa?: boolean; fichaKey?: string }
+  | { t: 'login'; name: string; look: AvatarLook; gmKey?: string; mesa?: boolean; fichaKey?: string; sessao?: string }
+  /**
+   * Contas da plataforma (a tela de entrada): e-mail e senha. A primeira conta, ou a criada no
+   * computador do servidor, é de mestre; as outras, de jogador. A resposta é a mensagem `conta`.
+   */
+  | { t: 'contaCriar'; nome: string; email: string; senha: string }
+  | { t: 'contaEntrar'; email: string; senha: string }
+  /** sair: a sessão deste aparelho deixa de valer */
+  | { t: 'contaSair'; sessao: string }
   /** ações da sessão (contrato em session.ts); só o mestre */
   | { t: 'act'; a: SessionAction }
   | { t: 'rooms' }
@@ -244,23 +368,52 @@ export type ClientMsg =
   | { t: 'moveItem'; id: number; x: number; y: number; rot: number }
   | { t: 'moveWallItem'; id: number; wall: 'l' | 'r'; plane: number; pos: number; z: number }
   | { t: 'pickup'; id: number }
+  /** muda o tamanho do desenho de um quadro (parede) ou de um tapete (chão): de 0,5 a 3 */
+  | { t: 'resizeItem'; id: number; escala: number }
+  /** troca o móvel por outro do catálogo, no mesmo lugar (e no mesmo giro, se der) */
+  | { t: 'swapItem'; id: number; defId: string }
   | { t: 'use'; id: number }
   | { t: 'setHint'; id: number; hint: Hint | null }
-  | { t: 'roomSettings'; name: string; description: string; darkness: number; publicBuild: boolean; floor?: string; floorStyle?: FloorStyle; ambient?: string | null; particles?: ParticleKind[] }
+  | { t: 'roomSettings'; name: string; description: string; darkness: number; publicBuild: boolean; floor?: string; area?: string; floorStyle?: FloorStyle; ambient?: string | null; particles?: ParticleKind[] }
   /** senha de um mobi com fechadura: certa = ele desliza e abre a passagem */
   | { t: 'unlock'; id: number; code: string }
   /** fecha a passagem de novo (o mobi volta para o lugar) */
   | { t: 'relock'; id: number }
   /** cria (id 0) ou atualiza uma ficha (só o mestre) */
   | { t: 'fichaSalvar'; ficha: FichaSalva }
+  /** mexe num item da mochila (só o mestre): mão, roupa, usar, entregar a outra ficha ou largar no chão */
+  | { t: 'mochila'; fichaId: number; uid: number; acao: AcaoMochila; para?: number; trocar?: boolean }
+  /** item do catálogo novo na mochila (só o mestre): requisitado à Ordem, conta na patente */
+  | { t: 'mochilaNova'; fichaId: number; tipo: TipoItemCatalogo; id: string; escolha?: { pericia?: string; elemento?: string } }
+  /** o interlúdio (só o mestre; LR p. 92–93): o lugar e as ações de cada ficha; o servidor aplica tudo */
+  | { t: 'interludio'; lugar: string; escolhas: { fichaId: number; acoes: string[]; prato?: string }[] }
+  /** gasta (delta −1) ou zera (fim da missão) os +1d6 guardados de uma ficha */
+  | { t: 'bonusInterludio'; fichaId: number; tipo: 'exercicio' | 'leitura' | 'todos'; delta: number }
+  /** põe ou tira uma modificação ou maldição de um item da mochila (só o mestre; LR p. 60 e 144) */
+  | { t: 'mochilaMelhorar'; fichaId: number; uid: number; tipo: 'modificacao' | 'maldicao'; id: string; por: boolean }
   | { t: 'fichaApagar'; id: number }
+  /** documentos da investigação (docs/TELA-DO-JOGADOR.md): o mestre cria, muda e apaga */
+  | { t: 'docSalvar'; doc: Documento }
+  | { t: 'docApagar'; id: number }
+  /** o jogador marca um documento dele, ou passa para a equipe */
+  | { t: 'docMarcar'; id: number; marcado: boolean }
+  | { t: 'docEquipe'; id: number }
   /** gera (ou troca) o link do jogador para a ficha (só o mestre) */
   | { t: 'fichaLink'; id: number }
   /** combate da campanha da cena atual (só o mestre; docs/COMBATE.md) */
   | { t: 'combate'; a: AcaoCombate }
   /** ficha rápida de uma ameaça (peça), preenchida pelo mestre; null apaga */
   | { t: 'ameaca'; tokenId: number; ficha: FichaAmeaca | null }
-  | { t: 'roomFx'; lightMode?: LightMode; fog?: number; darkness?: number; particleLevel?: number }
+  | { t: 'roomFx'; lightMode?: LightMode; fog?: number; darkness?: number; particleLevel?: number; tatico?: boolean }
+  /** ponto de atenção ou desenho rápido para a mesa (só o mestre; some sozinho) */
+  | { t: 'marca'; marca: MarcaMesa }
+  /** a névoa revelada aos poucos da cena (só o mestre) */
+  | ({ t: 'nevoa' } & AcaoNevoa)
+  /**
+   * mapa improvisado (só o mestre): a imagem enviada (`/api/mapas`) vira uma cena ao ar livre de
+   * largura × altura casas, ligada à cena atual por uma Entrada; `levar` leva os agentes da cena atual
+   */
+  | { t: 'mapaImprovisado'; nome: string; url: string; largura: number; altura: number; levar?: boolean }
   | { t: 'setLink'; id: number; roomId: number | null }
   | { t: 'sendTo'; userId: number | 'all'; roomId: number }
   | { t: 'tokenAdd'; name: string; look: AvatarLook; color?: string; capacity?: number }
@@ -272,7 +425,8 @@ export type ClientMsg =
   /** PV/PE/SAN da peça: delta soma ao atual, value troca o atual, max troca o total */
   | { t: 'vitals'; tokenId: number; key: VitalKey; delta?: number; value?: number; max?: number }
   | { t: 'tokenScene'; tokenId: number; roomId: number }
-  | { t: 'lootAdd'; itemId: number; name: string; weight: number; kind: LootKind }
+  /** item novo num mobi; `item` = do catálogo (a faca vira arma de verdade) */
+  | { t: 'lootAdd'; itemId: number; name: string; espacos: number; kind: LootKind; item?: { tipo: TipoItemCatalogo; id: string }; qtd?: number; descricao?: string }
   | { t: 'lootRemove'; itemId: number; lootId: number }
   | { t: 'lootGive'; itemId: number; lootId: number; to: string | null }
   | { t: 'lootReveal'; itemId: number; lootId: number; revealed: boolean }
@@ -284,6 +438,8 @@ export type ClientMsg =
   | { t: 'objRemove'; id: number }
   | { t: 'campaignSet'; title: string; subtitle: string; operacao?: string }
   | { t: 'layoutSet'; roomId: number; x: number; y: number }
+  /** anotação na planta: sem id cria; com id muda o texto ou a posição; apagar (ou texto vazio) tira */
+  | { t: 'planNota'; id?: number; andar?: string; texto?: string; x?: number; y?: number; apagar?: boolean }
   | { t: 'capacitySet'; name: string; capacity: number }
   | { t: 'floorPlan'; heightmap: string; door: Door }
   | { t: 'charUpdate'; id: number; patch: CharacterPatch }
@@ -292,6 +448,13 @@ export type ClientMsg =
 export type ServerMsg =
   | { t: 'hello'; characters: CharacterDef[] }
   | { t: 'welcome'; id: number; name: string; look: AvatarLook; token: string; inventory: InvItem[]; home?: number; role: Role }
+  /**
+   * Resposta da conta. ok: a sessão (guardada no aparelho e mandada no login), o nome, o papel e,
+   * para o jogador com a ficha ligada, a chave da ficha. Sem ok: o motivo (expirou = a sessão
+   * guardada não vale mais).
+   */
+  | { t: 'conta'; ok: true; sessao: string; nome: string; papel: PapelConta; fichaKey?: string }
+  | { t: 'conta'; ok: false; erro: string; expirou?: boolean }
   | { t: 'error'; msg: string }
   | { t: 'notice'; msg: string }
   | { t: 'roomList'; rooms: RoomSummary[] }
@@ -300,6 +463,8 @@ export type ServerMsg =
   /** conteúdo de outra cena da campanha (miniatura), sem entrar nela */
   | { t: 'peek'; room: RoomInfo; items: FloorItem[]; wallItems: WallItem[] }
   | { t: 'roomUpdate'; room: RoomInfo }
+  /** ponto de atenção ou desenho do mestre, para todos que olham a cena */
+  | { t: 'marca'; marca: MarcaMesa }
   | { t: 'userJoin'; user: UserInfo }
   | { t: 'userLeave'; id: number }
   /** a peça atravessou uma passagem para outra cena (quem a comanda vai junto) */
@@ -327,6 +492,8 @@ export type ServerMsg =
   /** resposta à senha digitada (só para quem digitou) */
   | { t: 'lockResult'; id: number; ok: boolean; reason?: string }
   /** todas as fichas (só para o mestre); `nova` = id da ficha que acabou de ser criada */
-  | { t: 'fichas'; fichas: FichaSalva[]; nova?: number }
+  | { t: 'fichas'; fichas: FichaSalva[]; nova?: number; equipe?: { id: number; nome: string }[] }
+  /** os documentos: todos para o mestre, os da ficha para o jogador */
+  | { t: 'docs'; docs: Documento[] }
   /** combate da campanha (a mesa recebe só a ordem, a rodada e a vez); null = sem combate */
   | { t: 'combate'; combate: Combate | null; podeDesfazer?: boolean; ameacas?: Record<string, FichaAmeaca> };
