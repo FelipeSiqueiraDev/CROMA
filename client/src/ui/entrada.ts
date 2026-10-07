@@ -1,7 +1,7 @@
 import type { ClientMsg } from '@crona/shared';
 import { h } from './dom';
+import { existeArte } from './icons';
 import { Cena, UNIVERSOS, type CenaLayout } from './entradaCena';
-import REMENDOS from './entradaRemendos.json';
 import BRILHOS from './entradaBrilhos.json';
 import { Trilha } from './entradaTrilha';
 
@@ -86,7 +86,6 @@ const COMPUTADOR: Layout = {
     sol: { x0: 1415, x1: 1650, horizonte: 128, alto: 22 },
     lua: [1448, 27, 15],
     chama: [430, 76, 17, 29],
-    remendos: REMENDOS.computador as CenaLayout['remendos'],
     cantos: [
       [165, 95],
       [1645, 262],
@@ -121,7 +120,6 @@ const CELULAR: Layout = {
     sol: { x0: 540, x1: 860, horizonte: 215, alto: 40 },
     lua: [720, 85, 18],
     chama: [300, 210, 15, 33],
-    remendos: REMENDOS.celular as CenaLayout['remendos'],
     cantos: [
       [150, 70],
       [614, 316],
@@ -286,11 +284,6 @@ export class Entrada {
         .then(() => {
           clearTimeout(espera);
           if (this.layout !== L) return;
-          const e = this.cena.escolhidas;
-          this.el.dataset.pecas = Object.values(e)
-            .map((v) => `${v.lugar}-${v.id}`)
-            .join(' ');
-          this.el.classList.toggle('caneca-fria', !!e.caneca?.fria);
           this.cena.passo(performance.now(), 16);
           this.el.classList.remove('sem-cena');
           this.el.classList.add('pronta');
@@ -562,7 +555,16 @@ export class Entrada {
     this.palco.style.width = `${L.w}px`;
     this.palco.style.height = `${L.h}px`;
     this.palco.style.setProperty('--u', String(L.u));
-    this.fundo.src = L.fundo;
+    // a imagem do universo sorteado, quando o Códex já pintou (fundo-<tela>-<universo>.webp);
+    // sem ela, a de hoje (que é a da fantasia)
+    const universo = this.cena.sorteio.universo;
+    const propria = `/arte/login/fundo-${L.nome}-${universo}.webp`;
+    void (universo === 'fantasia' ? Promise.resolve(false) : existeArte(propria)).then((tem) => {
+      if (this.layout !== L) return;
+      this.cena.fundoProprio = tem;
+      this.el.dataset.fundo = tem ? universo : 'fantasia';
+      this.fundo.src = tem ? propria : L.fundo;
+    });
     this.poeira.width = L.w;
     this.poeira.height = L.h;
     const p = L.painel;

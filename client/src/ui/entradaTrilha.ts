@@ -4,11 +4,11 @@ import type { Clima, Universo } from './entradaCena';
  * A trilha da tela de entrada, sintetizada na hora (Web Audio, sem arquivos), como os sons de
  * sfx.ts: um tema de aventura por universo e o som do ambiente da cena sorteada.
  *
- * - **Os temas:** fantasia (alaúde e flauta), horror cósmico (coro grave e zumbido), paranormal
- *   (caixinha de música) e Tormenta (épico, com tambores). Oito compassos que se repetem, com
- *   variação a cada volta. De noite o som fica mais escuro; de dia, mais aberto.
+ * - **Os temas:** fantasia (alaúde e flauta), horror (coro grave e zumbido) e cyberpunk (synthwave:
+ *   baixo pulsando, bateria eletrônica e um lead de serrote com eco). Oito compassos que se repetem,
+ *   com variação a cada volta. De noite o som fica mais escuro; de dia, mais aberto.
  * - **O ambiente:** a chuva, o trovão em cada relâmpago, o vento na neve e na neblina, o estalar
- *   da vela acesa e os passarinhos de dia.
+ *   da vela acesa (no cyberpunk, o zumbido do neon) e os passarinhos de dia.
  *
  * O navegador só deixa tocar depois do primeiro toque ou tecla na página. A escolha (ligada ou
  * desligada) fica neste aparelho.
@@ -20,14 +20,15 @@ const CHAVE_VOLUME = 'crona.entrada.volume';
 const GANHO = 1;
 
 type Nota = [midi: number | null, tempos: number];
-type Timbre = 'flauta' | 'caixinha' | 'metal' | 'coro';
+type Timbre = 'flauta' | 'caixinha' | 'neon' | 'coro';
 interface Tema {
   bpm: number;
   acordes: string[];
   melodia: Nota[];
   timbre: Timbre;
-  /** o acompanhamento: arpejo subindo (alaúde), caixinha (agudo e lento) ou só o acorde */
-  arpejo: 'subindo' | 'caixinha' | 'nenhum';
+  /** o acompanhamento: arpejo subindo (alaúde), caixinha (agudo e lento), o baixo pulsando em
+   * colcheias com um arpejo de bipes (synthwave) ou só o acorde */
+  arpejo: 'subindo' | 'caixinha' | 'pulso' | 'nenhum';
   tambor?: boolean;
   /** nota grave que fica soando por baixo (o zumbido do horror) */
   zumbido?: number;
@@ -78,21 +79,13 @@ const TEMAS: Record<Universo, Tema> = {
     arpejo: 'nenhum',
     zumbido: midi('A1'),
   },
-  paranormal: {
-    bpm: 66,
-    acordes: ['Em', 'C', 'Am', 'B', 'Em', 'C', 'Am', 'B'],
-    melodia: frase(`B5:1 G5:1 E5:1 G5:1 | C6:2 B5:1 A5:1 | A5:1 C6:1 E6:1 C6:1 | B5:2 D#6:1 F#5:1 |
-      G5:1 B5:1 E6:2 | E6:1 D6:1 C6:2 | A5:1 C6:1 B5:1 A5:1 | B5:3 -:1`),
-    timbre: 'caixinha',
-    arpejo: 'caixinha',
-  },
-  tormenta: {
-    bpm: 100,
-    acordes: ['Dm', 'Bb', 'Gm', 'A', 'Dm', 'Bb', 'Gm', 'A'],
-    melodia: frase(`D5:1 A5:1 G5:.5 F5:.5 E5:1 | F5:2 D5:2 | G5:1 F5:1 E5:1 D5:1 | C#5:2 E5:1 A4:1 |
-      D5:.5 E5:.5 F5:1 A5:1 D6:1 | C6:1 Bb5:1 A5:1 F5:1 | G5:1.5 A5:.5 Bb5:1 G5:1 | A5:4`),
-    timbre: 'metal',
-    arpejo: 'subindo',
+  cyberpunk: {
+    bpm: 96,
+    acordes: ['Am', 'F', 'C', 'G', 'Am', 'F', 'C', 'G'],
+    melodia: frase(`E5:1.5 A5:.5 G5:1 E5:1 | F5:1.5 E5:.5 C5:2 | E5:1 G5:1 C6:1.5 B5:.5 | B5:2 D5:1 G5:1 |
+      A5:1 G5:.5 E5:.5 A5:2 | C6:1 A5:1 F5:1 A5:1 | G5:1.5 E5:.5 G5:1 C6:1 | B5:3 -:1`),
+    timbre: 'neon',
+    arpejo: 'pulso',
     tambor: true,
   },
 };
@@ -329,6 +322,20 @@ export class Trilha {
     // o ambiente
     const chuva = this.clima === 'chuva' || this.clima === 'tempestade';
     this.laco('bandpass', 2200, 0.6, chuva ? (this.clima === 'tempestade' ? 0.16 : 0.11) : 0);
+    if (this.universo === 'cyberpunk') {
+      // o zumbido baixinho do letreiro de neon
+      const o = ac.createOscillator();
+      o.type = 'sawtooth';
+      o.frequency.value = 120;
+      const f = ac.createBiquadFilter();
+      f.type = 'bandpass';
+      f.frequency.value = 1200;
+      f.Q.value = 3;
+      const g = ac.createGain();
+      g.gain.value = 0.012;
+      o.connect(f).connect(g).connect(this.mestre);
+      o.start();
+    }
     const vento = this.laco('bandpass', 420, 1.2, this.clima === 'neve' || this.clima === 'neblina' || this.clima === 'tempestade' ? 0.07 : 0);
     if (vento) {
       // o vento sobe e desce
@@ -413,11 +420,19 @@ export class Trilha {
         this.dedilhado(n, t + i * tempo * 0.5, 0.035);
       }
     else if (tema.arpejo === 'caixinha') for (let i = 0; i < 4; i++) this.dedilhado(notas[(i * 2) % 3] + 24, t + i * tempo, 0.035, 1.6);
+    else if (tema.arpejo === 'pulso') {
+      // o baixo em colcheias, oitava acima e abaixo; por cima, bipes em semicolcheias
+      for (let i = 0; i < 8; i++) this.pulso(notas[0] - 12 + (i % 2 ? 12 : 0), t + i * tempo * 0.5, tempo * 0.45);
+      for (let i = 0; i < 16; i++) this.dedilhado(notas[i % 3] + 24 + (i % 4 === 3 ? 12 : 0), t + i * tempo * 0.25, 0.014, 0.22);
+    }
     else if (Math.random() < 0.5) this.dedilhado(notas[2] + 12, t + tempo * 2, 0.04, 2.2);
     if (tema.tambor) {
+      // bateria eletrônica: bumbo no 1 e no 3, palma no 2 e no 4, chimbal em colcheias
       this.tambor(t, 'bumbo');
       this.tambor(t + tempo * 2, 'bumbo');
-      if (k % 4 === 3) for (let i = 0; i < 4; i++) this.tambor(t + tempo * (2 + i * 0.5), 'caixa');
+      if (k % 2 === 1) this.tambor(t + tempo * 3.5, 'bumbo');
+      this.tambor(t + tempo, 'caixa');
+      this.tambor(t + tempo * 3, 'caixa');
       for (let i = 0; i < 8; i++) this.tambor(t + i * tempo * 0.5, 'chocalho');
     }
     // a melodia: na terceira volta descansa (só o acompanhamento), na segunda sobe uma oitava
@@ -469,6 +484,25 @@ export class Trilha {
     o.stop(t + dur + 0.05);
   }
 
+  /** O baixo de synthwave: serrote curto, filtrado, que pulsa. */
+  private pulso(n: number, t: number, dur: number) {
+    const ac = this.ac!;
+    const o = ac.createOscillator();
+    o.type = 'sawtooth';
+    o.frequency.value = hz(n);
+    const f = ac.createBiquadFilter();
+    f.type = 'lowpass';
+    f.frequency.setValueAtTime(1100, t);
+    f.frequency.exponentialRampToValueAtTime(260, t + dur);
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.09, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(f).connect(g).connect(this.musica!);
+    o.start(t);
+    o.stop(t + dur + 0.02);
+  }
+
   /** A corda beliscada (alaúde, harpa) ou a caixinha de música. */
   private dedilhado(n: number, t: number, vol: number, queda = 0.9) {
     const ac = this.ac!;
@@ -501,34 +535,34 @@ export class Trilha {
     const timbre = this.tema.timbre;
     if (timbre === 'caixinha') return this.dedilhado(n, t, 0.09, Math.max(1.2, dur * 1.5));
     const g = ac.createGain();
-    const vol = timbre === 'metal' ? 0.085 : timbre === 'coro' ? 0.075 : 0.12;
-    const ataque = timbre === 'coro' ? 0.35 : timbre === 'metal' ? 0.05 : 0.06;
+    const vol = timbre === 'neon' ? 0.075 : timbre === 'coro' ? 0.075 : 0.12;
+    const ataque = timbre === 'coro' ? 0.35 : timbre === 'neon' ? 0.02 : 0.06;
     g.gain.setValueAtTime(0.0001, t);
     g.gain.linearRampToValueAtTime(vol, t + ataque);
     g.gain.setValueAtTime(vol * 0.85, t + Math.max(ataque, dur - 0.08));
     g.gain.linearRampToValueAtTime(0.0001, t + dur + (timbre === 'coro' ? 0.6 : 0.12));
     const f = ac.createBiquadFilter();
     f.type = timbre === 'coro' ? 'bandpass' : 'lowpass';
-    f.frequency.value = timbre === 'coro' ? 900 : timbre === 'metal' ? 2200 : 3000;
+    f.frequency.value = timbre === 'coro' ? 900 : timbre === 'neon' ? 2600 : 3000;
     f.Q.value = timbre === 'coro' ? 1.4 : 0.7;
     // o vibrato entra depois do ataque
     const lfo = ac.createOscillator();
     lfo.frequency.value = timbre === 'coro' ? 4.2 : 5.4;
     const prof = ac.createGain();
     prof.gain.setValueAtTime(0, t);
-    prof.gain.linearRampToValueAtTime(timbre === 'metal' ? 4 : 9, t + Math.min(0.4, dur));
+    prof.gain.linearRampToValueAtTime(timbre === 'neon' ? 5 : 9, t + Math.min(0.4, dur));
     lfo.connect(prof);
     lfo.start(t);
     lfo.stop(t + dur + 0.7);
-    const tipos: OscillatorType[] = timbre === 'flauta' ? ['triangle', 'sine'] : timbre === 'metal' ? ['sawtooth', 'square'] : ['sawtooth', 'sawtooth'];
+    const tipos: OscillatorType[] = timbre === 'flauta' ? ['triangle', 'sine'] : ['sawtooth', 'sawtooth'];
     tipos.forEach((tipo, i) => {
       const o = ac.createOscillator();
       o.type = tipo;
       o.frequency.value = hz(n) * (timbre === 'flauta' && i ? 2 : 1);
-      o.detune.value = timbre === 'coro' ? (i ? 9 : -9) : 0;
+      o.detune.value = timbre === 'coro' ? (i ? 9 : -9) : timbre === 'neon' ? (i ? 11 : -11) : 0;
       prof.connect(o.detune);
       const gi = ac.createGain();
-      gi.gain.value = i ? 0.35 : 1;
+      gi.gain.value = i ? (timbre === 'neon' ? 0.8 : 0.35) : 1;
       o.connect(gi).connect(f);
       o.start(t);
       o.stop(t + dur + 0.7);
@@ -541,7 +575,11 @@ export class Trilha {
   private tambor(t: number, tipo: 'bumbo' | 'caixa' | 'chocalho') {
     const ac = this.ac!;
     if (tipo === 'chocalho') return void this.rajada(t, 0.08, 'highpass', 7000, 0.025, 0.002, 0.05, this.musica!);
-    if (tipo === 'caixa') return void this.rajada(t, 0.2, 'bandpass', 1800, 0.12, 0.002, 0.16, this.musica!);
+    if (tipo === 'caixa') {
+      const g = this.rajada(t, 0.32, 'bandpass', 1500, 0.16, 0.002, 0.26, this.musica!);
+      if (g && this.eco) g.connect(this.eco);
+      return;
+    }
     const o = ac.createOscillator();
     o.type = 'sine';
     o.frequency.setValueAtTime(130, t);
@@ -555,9 +593,15 @@ export class Trilha {
     o.stop(t + 0.5);
   }
 
-  /** O ambiente que não é laço: o estalar da vela e os passarinhos de dia. */
+  /** O ambiente que não é laço: o estalar da vela (ou o neon piscando) e os passarinhos de dia. */
   private ambiente(agora: number) {
-    if (this.velaAcesa && agora > this.proximoEstalo) {
+    if (this.universo === 'cyberpunk') {
+      // o neon dá um estalo elétrico de vez em quando
+      if (agora > this.proximoEstalo) {
+        this.proximoEstalo = agora + 3 + Math.random() * 7;
+        this.rajada(agora + 0.05, 0.12, 'bandpass', 3200, 0.03, 0.002, 0.08);
+      }
+    } else if (this.velaAcesa && agora > this.proximoEstalo) {
       this.proximoEstalo = agora + 0.4 + Math.random() * 2.6;
       this.rajada(agora + 0.05, 0.03, 'bandpass', 2500 + Math.random() * 2500, 0.03 + Math.random() * 0.04, 0.001, 0.02);
     }

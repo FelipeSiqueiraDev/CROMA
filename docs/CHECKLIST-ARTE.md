@@ -117,12 +117,13 @@ Nada novo: usa os retratos, os ícones e as folhas da FICHAS. Os cartões de res
 
 ---
 
-## 6. Tela de entrada (06/10)
+## 6. Tela de entrada (07/10)
 
-O fundo da entrada em camadas, com luz neutra, em vários universos de RPG: a paisagem lá fora, a sala com a mesa vazia, os mapas, as miniaturas de heróis e monstros, os dados, os castiçais e as canecas. O pedido pronto (bloco de estilo, formato e nome de cada imagem) é o [`PROMPT-ENTRADA.txt`](PROMPT-ENTRADA.txt); como cada camada entra no jogo, em [`TELA-ENTRADA.md`](TELA-ENTRADA.md#o-kit-em-camadas-pedido-em-0710).
+Três imagens inteiras, uma por tema (fantasia, horror, cyberpunk), cada uma no computador e no celular: a tela de hoje editada, com outra mesa, outra luz e outra vista na janela, e as miniaturas pintadas na cena. O pedido pronto é o [`PROMPT-ENTRADA.txt`](PROMPT-ENTRADA.txt); como a tela usa, em [`TELA-ENTRADA.md`](TELA-ENTRADA.md#as-imagens-dos-temas).
 
-- [ ] ✱ Lote 1, para o Felipe aprovar: `sala-computador`, `sala-celular`, `paisagem-fantasia`, `mapa-reino`, `miniaturas-herois-fantasia`, `miniaturas-monstros-fantasia`, `dados-obsidiana`, `objetos-mesa-1`
-- [ ] Lote 2: as outras paisagens, mapas, miniaturas, dados e objetos (lista no pedido)
+- [ ] ✱ fantasia (computador / celular)
+- [ ] ✱ horror (computador / celular)
+- [ ] ✱ cyberpunk (computador / celular)
 
 ## O tabuleiro (revisto em 02/10)
 

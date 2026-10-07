@@ -1,26 +1,23 @@
-import { existeArte } from './icons';
-
 /**
  * O fundo vivo da tela de entrada (entrada.ts): a mesma arte, mas cada visita é uma cena sorteada.
  *
  * - **A hora de verdade:** de dia o céu da janela fica azul, com sol e nuvens, e a sala clareia; no
  *   fim da tarde e de manhãzinha, dourado; de noite, a arte como foi desenhada (lua e estrelas).
- * - **O clima:** limpo, nuvens, chuva, neblina ou tempestade (rubra, na Tormenta).
- * - **O universo:** fantasia, horror cósmico, paranormal ou Tormenta. Muda a cor da chama, o clima
- *   mais provável, o que voa no céu e as peças da mesa.
+ * - **O clima:** limpo, nuvens, chuva, neblina, neve ou tempestade.
+ * - **O universo:** fantasia, horror ou cyberpunk. Muda a imagem (cada um tem a sua, pintada pelo
+ *   Códex), a cor da chama, o clima mais provável e o que brilha no ar.
  * - **A vela:** acesa ou apagada (apagada à noite, a sala fica no luar e sobe um fio de fumaça).
  * - **O monstro:** às vezes, olhos no escuro, lá fora ou no canto da sala.
- * - **As peças trocáveis** (a caneca, a vela, o mapa da mesa...): remendos da arte, desenhados pelo
- *   Códex, que entram sozinhos quando o arquivo existe (lista em docs/TELA-ENTRADA.md).
+ * - **A imagem do universo:** cada universo pode ter a sua (a mesma sala, com outra mesa e outra
+ *   vista na janela), pintada pelo Códex; sem ela, fica a de hoje (docs/TELA-ENTRADA.md).
  *
  * Tudo em pixels do palco (a arte de 1672×941 ou 941×1672). Para ver uma cena de propósito:
  * `?hora=14.5`, `?hora=ciclo` (o dia inteiro em um minuto), `?universo=horror`, `?clima=chuva`,
  * `?vela=apagada`, `?monstro=sim`.
  */
 
-export type Universo = 'fantasia' | 'horror' | 'paranormal' | 'tormenta';
+export type Universo = 'fantasia' | 'horror' | 'cyberpunk';
 export type Clima = 'limpo' | 'nuvens' | 'chuva' | 'neblina' | 'tempestade' | 'neve';
-export type LugarRemendo = 'caneca' | 'vela' | 'mapa';
 export type LayoutNome = 'computador' | 'celular';
 
 type Rgb = [number, number, number];
@@ -41,8 +38,6 @@ export interface CenaLayout {
   chama: [number, number, number, number];
   /** x0, y0, x1, y1: o painel e o emblema (não são céu, mesmo azul-escuros) */
   painel: Ret4[];
-  /** os remendos: o retângulo exato que cada peça trocável cobre */
-  remendos: Record<LugarRemendo, Ret4>;
   /** cantos escuros da sala, onde olhos podem aparecer */
   cantos: [number, number][];
   /** onde os raios de sol caem (x do topo e x do pé, para a esquerda) */
@@ -62,8 +57,6 @@ export interface DefUniverso {
   climas: Partial<Record<Clima, number>>;
   /** chance do monstro aparecer */
   monstro: number;
-  /** a tempestade é vermelha */
-  rubra?: boolean;
   /** aurora no céu da noite */
   aurora?: Rgb;
   /** névoa dentro da sala (cor) */
@@ -72,6 +65,10 @@ export interface DefUniverso {
   magia?: Rgb;
   /** cor dos olhos do monstro */
   olhos: Rgb;
+  /** a luz da mesa é uma lâmpada (neon), não uma vela: sempre acesa, sem estalo */
+  luzFixa?: boolean;
+  /** o brilho colorido da cidade no horizonte, de noite */
+  neon?: Rgb;
 }
 
 export const UNIVERSOS: Record<Universo, DefUniverso> = {
@@ -98,72 +95,21 @@ export const UNIVERSOS: Record<Universo, DefUniverso> = {
     nevoaSala: [120, 190, 150],
     olhos: [150, 255, 120],
   },
-  paranormal: {
-    nome: 'Paranormal',
-    chama: [
-      [60, 6, 10],
-      [215, 40, 40],
-      [255, 205, 185],
-    ],
-    luz: [255, 80, 70],
-    climas: { neblina: 3, chuva: 3, nuvens: 1, limpo: 1 },
-    monstro: 0.45,
-    nevoaSala: [170, 120, 140],
-    olhos: [255, 60, 50],
-  },
-  tormenta: {
-    nome: 'Tormenta',
+  cyberpunk: {
+    nome: 'Cyberpunk',
+    // a luz é um abajur neon pintado na imagem: não acende nem apaga, e não tem chama para recolorir
     chama: null,
-    luz: [255, 150, 80],
-    climas: { tempestade: 5, nuvens: 1 },
-    monstro: 0.3,
-    rubra: true,
-    olhos: [255, 40, 40],
+    luz: [255, 70, 200],
+    climas: { chuva: 4, neblina: 2, limpo: 1, nuvens: 1 },
+    monstro: 0.45,
+    luzFixa: true,
+    // o brilho da cidade de neon no horizonte, de noite
+    neon: [255, 60, 190],
+    // a poeira vira faísca digital
+    magia: [90, 235, 255],
+    olhos: [255, 40, 60],
   },
 };
-
-/**
- * As peças trocáveis da arte: o Códex desenha o mesmo retângulo com outra caneca, outro mapa,
- * a vela apagada... O arquivo é `/arte/login/variantes/<lugar>-<id>-<computador|celular>.webp`
- * (ou .png). A variante só entra se o arquivo do tamanho da tela existir.
- */
-export interface Variante {
-  lugar: LugarRemendo;
-  id: string;
-  /** os universos em que pode aparecer (vazio = todos) */
-  universos?: Universo[];
-  /** a variante da vela: true = acesa, false = apagada */
-  vela?: boolean;
-  /** tem monstro (só entra quando a cena sorteou monstro) */
-  monstro?: boolean;
-  /** a caneca com bebida gelada (sem o vapor subindo) */
-  fria?: boolean;
-}
-
-export const VARIANTES: Variante[] = [
-  // a vela
-  { lugar: 'vela', id: 'apagada', vela: false },
-  { lugar: 'vela', id: 'castical-cranio', vela: true, universos: ['horror', 'paranormal'] },
-  { lugar: 'vela', id: 'lampiao', vela: true, universos: ['fantasia', 'tormenta'] },
-  // a caneca
-  { lugar: 'caneca', id: 'cerveja', universos: ['fantasia', 'tormenta'], fria: true },
-  { lugar: 'caneca', id: 'cafe' },
-  { lugar: 'caneca', id: 'cha-verde', universos: ['horror'] },
-  { lugar: 'caneca', id: 'xicara-rachada', universos: ['paranormal', 'horror'] },
-  { lugar: 'caneca', id: 'chifre', universos: ['fantasia', 'tormenta'], fria: true },
-  // o mapa da mesa
-  { lugar: 'mapa', id: 'reino', universos: ['fantasia'] },
-  { lugar: 'mapa', id: 'ilha-afundada', universos: ['horror'] },
-  { lugar: 'mapa', id: 'cidade-investigacao', universos: ['paranormal'] },
-  { lugar: 'mapa', id: 'continente-rubro', universos: ['tormenta'] },
-  { lugar: 'mapa', id: 'masmorra', universos: ['fantasia', 'tormenta'] },
-  { lugar: 'mapa', id: 'dragao', universos: ['fantasia'], monstro: true },
-  { lugar: 'mapa', id: 'tentaculos', universos: ['horror'], monstro: true },
-  { lugar: 'mapa', id: 'criatura', universos: ['paranormal'], monstro: true },
-  { lugar: 'mapa', id: 'lefeu', universos: ['tormenta'], monstro: true },
-];
-
-export const arquivoVariante = (v: Variante, layout: LayoutNome, ext: 'webp' | 'png') => `/arte/login/variantes/${v.lugar}-${v.id}-${layout}.${ext}`;
 
 /** O que esta visita sorteou. */
 export interface Sorteio {
@@ -208,7 +154,7 @@ export function sortearCena(hora: number): Sorteio {
   const { noite } = pesosDaHora(hora);
   const velaPedida = q.get('vela');
   // de noite a vela quase sempre está acesa; de dia, quase sempre apagada
-  const vela = velaPedida ? velaPedida !== 'apagada' : Math.random() < 0.3 + 0.55 * noite;
+  const vela = def.luzFixa ? true : velaPedida ? velaPedida !== 'apagada' : Math.random() < 0.3 + 0.55 * noite;
   const monstroPedido = q.get('monstro');
   const monstro = monstroPedido ? monstroPedido === 'sim' : Math.random() < def.monstro;
   return { universo, clima, vela, monstro };
@@ -279,7 +225,6 @@ const CEU = {
 };
 /** O céu fechado (chuva, tempestade) puxa para o cinza. */
 const CINZA = { noite: [18, 20, 28] as Rgb, dia: [120, 128, 140] as Rgb };
-const RUBRO: Rgb = [120, 20, 30];
 
 /** Ordem do Bayer 4×4: o degradê do céu vira faixas pontilhadas, como em pixel art. */
 const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map((v) => (v + 0.5) / 16);
@@ -313,8 +258,8 @@ export class Cena {
   /** por cima da arte: raios de sol, névoa da sala, olhos, relâmpago */
   readonly luz: HTMLCanvasElement;
   sorteio: Sorteio;
-  /** as peças trocáveis que entraram nesta cena */
-  escolhidas: Partial<Record<LugarRemendo, Variante>> = {};
+  /** a imagem é a do universo (a chama já vem pintada na cor dele) */
+  fundoProprio = false;
   private L: CenaLayout | null = null;
   private baixo: HTMLCanvasElement; // o céu em baixa resolução (um pixel da arte)
   private sobre: HTMLCanvasElement; // nuvens, chuva, raio: por cima da lua da arte
@@ -379,58 +324,19 @@ export class Cena {
     this.sobre.height = this.baixo.height;
     this.arte.width = this.luz.width = L.w;
     this.arte.height = this.luz.height = L.h;
-    const fonte = await this.fonteComRemendos(L, img);
-    if (this.L !== L) return;
-    this.preparar(L, fonte);
+    this.preparar(L, this.fonte(L, img));
     this.criarClima(L);
     this.ultimoPeso = '';
   }
 
-  /** A arte com as peças trocáveis sorteadas por cima (as que o Códex já entregou). */
-  private async fonteComRemendos(L: CenaLayout, img: HTMLImageElement): Promise<HTMLCanvasElement> {
-    this.velaDesenhada = false;
-    this.escolhidas = {};
+  /** A arte num canvas, para ler os pixels. */
+  private fonte(L: CenaLayout, img: HTMLImageElement): HTMLCanvasElement {
     const c = document.createElement('canvas');
     c.width = L.w;
     c.height = L.h;
-    const ctx = c.getContext('2d')!;
-    ctx.drawImage(img, 0, 0, L.w, L.h);
-    const s = this.sorteio;
-    const lugares: LugarRemendo[] = ['mapa', 'caneca', 'vela'];
-    await Promise.all(
-      lugares.map(async (lugar) => {
-        const cabem: { v: Variante; url: string }[] = [];
-        for (const v of VARIANTES) {
-          if (v.lugar !== lugar) continue;
-          if (v.universos && !v.universos.includes(s.universo)) continue;
-          if (v.monstro && !s.monstro) continue;
-          if (v.vela !== undefined && v.vela !== s.vela) continue;
-          for (const ext of ['webp', 'png'] as const) {
-            const url = arquivoVariante(v, L.nome, ext);
-            if (await existeArte(url)) {
-              cabem.push({ v, url });
-              break;
-            }
-          }
-        }
-        // com monstro sorteado, o mapa com monstro tem a preferência
-        const comMonstro = cabem.filter((c) => c.v.monstro);
-        const lista = comMonstro.length ? comMonstro : cabem;
-        // a vela apagada sempre entra quando a vela está apagada
-        const escolha = lista.find((c) => c.v.id === 'apagada') ?? lista[Math.floor(Math.random() * lista.length)];
-        if (!escolha) return;
-        const peca = await carregar(escolha.url);
-        if (!peca) return;
-        const [rx, ry, rw, rh] = L.remendos[lugar];
-        ctx.drawImage(peca, rx, ry, rw, rh);
-        this.escolhidas[lugar] = escolha.v;
-        if (lugar === 'vela') this.velaDesenhada = true;
-      }),
-    );
+    c.getContext('2d')!.drawImage(img, 0, 0, L.w, L.h);
     return c;
   }
-  /** a vela veio de um remendo (o código não apaga a chama por cima) */
-  private velaDesenhada = false;
 
   /**
    * As quatro versões da arte, feitas uma vez: a noite (como foi desenhada, com a chama do
@@ -474,8 +380,22 @@ export class Cena {
       for (const i of add) ceu[i] = 1, (luzes[i] = 0);
     }
 
-    // ---- a chama: os pixels claros e quentes em volta do pavio
-    const [cx, cy, cw, ch] = L.chama;
+    // ---- a chama: os pixels claros e quentes em volta do pavio. Nas imagens de cada universo a
+    // vela pode ter mudado um pouco de lugar: o miolo da chama (o mais claro) diz onde ela está.
+    let [cx, cy] = L.chama;
+    const [, , cw, ch] = L.chama;
+    {
+      let sx = 0;
+      let sy = 0;
+      let n = 0;
+      // só acima do pavio (a cera acesa, logo abaixo, também é clara)
+      for (let y = Math.max(0, cy - 60); y < Math.min(H, cy + ch * 0.6); y++)
+        for (let x = Math.max(0, cx - 50); x < Math.min(W, cx + 50); x++) {
+          const o = (y * W + x) * 4;
+          if (d[o] > 235 && d[o + 1] > 200 && d[o] - d[o + 2] > 30) (sx += x), (sy += y), n++;
+        }
+      if (n > 12) (cx = Math.round(sx / n)), (cy = Math.round(sy / n));
+    }
     const chama = new Uint8Array(W * H);
     for (let y = Math.max(0, cy - ch); y < Math.min(H, cy + ch); y++)
       for (let x = Math.max(0, cx - cw); x < Math.min(W, cx + cw); x++) {
@@ -488,8 +408,8 @@ export class Cena {
         if (r > 170 && g > 100 && r - b > 45) chama[i] = 1;
       }
 
-    // a vela apagada (sem remendo do Códex): a chama vira o fundo dos lados e o halo escurece
-    if (!this.sorteio.vela && !this.velaDesenhada) {
+    // a vela apagada: a chama vira o fundo dos lados e o halo escurece
+    if (!this.sorteio.vela) {
       for (let y = cy - ch; y < cy + ch; y++) {
         let x = cx - cw;
         while (x < cx + cw) {
@@ -529,7 +449,7 @@ export class Cena {
 
     const def = UNIVERSOS[this.sorteio.universo];
     // a chama do universo: o brilho da chama vira o degradê da cor nova
-    if (def.chama && !this.velaDesenhada)
+    if (def.chama && !this.fundoProprio)
       for (let i = 0; i < W * H; i++) {
         if (!chama[i]) continue;
         const l = (d[i * 4] * 0.3 + d[i * 4 + 1] * 0.59 + d[i * 4 + 2] * 0.11) / 255;
@@ -734,11 +654,11 @@ export class Cena {
     const def = UNIVERSOS[universo];
     const fechado = { limpo: 0, nuvens: 0.25, chuva: 0.7, neblina: 0.45, tempestade: 0.9, neve: 0.55 }[clima];
     const cinza = mix(CINZA.noite, CINZA.dia, dia + dourado * 0.5);
-    const rubro = def.rubra && clima === 'tempestade';
     const corDe = (k: number) => {
       let c = mix(mix(CEU.noite[k], CEU.dourado[k], dourado / (noite + dourado || 1)), CEU.dia[k], dia);
       c = mix(c, cinza, fechado * 0.85);
-      if (rubro) c = mix(c, RUBRO, 0.35 + 0.15 * noite);
+      // a cidade de neon acende o horizonte de noite
+      if (def.neon && k > 0) c = mix(c, def.neon, (k === 2 ? 0.38 : 0.14) * noite);
       return c;
     };
     const topo = corDe(0);
@@ -824,8 +744,8 @@ export class Cena {
       if (c.vida <= 0 || c.x < 0) this.cadente = null;
     }
     // nuvens
-    const corNuvem = rubro ? mix([90, 20, 26], [200, 60, 50], 0.3 + 0.4 * dia) : mix(mix([34, 38, 62], [236, 150, 140], dourado / (noite + dourado || 1)), [246, 248, 252], dia);
-    const sombraNuvem = mix(corNuvem, rubro ? [40, 6, 12] : mix([14, 16, 30], [120, 130, 156], dia + dourado * 0.5), 0.6 + fechado * 0.2);
+    const corNuvem = mix(mix([34, 38, 62], [236, 150, 140], dourado / (noite + dourado || 1)), [246, 248, 252], dia);
+    const sombraNuvem = mix(corNuvem, mix([14, 16, 30], [120, 130, 156], dia + dourado * 0.5), 0.6 + fechado * 0.2);
     for (const n of this.nuvens) {
       n.x += n.v * dt * (clima === 'tempestade' ? 2.2 : 1);
       if (n.x - 20 > bw) Object.assign(n, this.novaNuvem(bw, bh, -30));
@@ -896,7 +816,8 @@ export class Cena {
     }
     // chuva
     else if (this.gotas.length) {
-      s.fillStyle = rubro ? 'rgba(255, 120, 110, 0.4)' : dia > 0.5 ? 'rgba(220, 230, 245, 0.45)' : 'rgba(150, 170, 210, 0.4)';
+      // de noite, a chuva do cyberpunk reflete o neon
+      s.fillStyle = def.neon && noite > 0.5 ? 'rgba(255, 150, 235, 0.45)' : dia > 0.5 ? 'rgba(220, 230, 245, 0.45)' : 'rgba(150, 170, 210, 0.4)';
       for (const g of this.gotas) {
         g.y += g.v * dt * 0.07;
         g.x -= g.v * dt * 0.018;
@@ -933,10 +854,10 @@ export class Cena {
     }
     if (this.relampago > 0) {
       const a = this.relampago;
-      s.fillStyle = rgb(rubro ? [255, 150, 150] : [220, 230, 255], 0.35 * a);
+      s.fillStyle = rgb([220, 230, 255], 0.35 * a);
       s.fillRect(0, 0, bw, bh);
       if (this.raio && a > 0.35) {
-        s.strokeStyle = rgb(rubro ? [255, 210, 200] : [250, 250, 255], a);
+        s.strokeStyle = rgb([250, 250, 255], a);
         s.lineWidth = 1.4;
         s.beginPath();
         let novo = true;
@@ -1035,7 +956,7 @@ export class Cena {
     // o clarão do relâmpago na sala
     if (this.relampago > 0) {
       ctx.globalCompositeOperation = 'screen';
-      ctx.fillStyle = rgb(def.rubra ? [255, 90, 90] : [190, 205, 255], 0.22 * this.relampago);
+      ctx.fillStyle = rgb([190, 205, 255], 0.22 * this.relampago);
       ctx.fillRect(0, 0, L.w, L.h);
       ctx.globalCompositeOperation = 'source-over';
     }
@@ -1070,13 +991,4 @@ function disco(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number)
     if (w <= 0 && Math.abs(y) > r - 0.5) continue;
     ctx.fillRect(Math.round(cx - w), Math.round(cy + y), w * 2 + 1, 1);
   }
-}
-
-function carregar(url: string): Promise<HTMLImageElement | null> {
-  return new Promise((ok) => {
-    const img = new Image();
-    img.onload = () => ok(img);
-    img.onerror = () => ok(null);
-    img.src = url;
-  });
 }

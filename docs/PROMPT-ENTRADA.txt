@@ -1,156 +1,112 @@
-PEDIDO DE ARTE — TELA DE ENTRADA DO CRONA, EM CAMADAS (06/10)
-=============================================================
+PEDIDO DE ARTE — TELA DE ENTRADA DO CRONA: TRÊS TEMAS (07/10)
+================================================================
 
-A tela de entrada deixa de ser uma imagem só e vira uma cena montada pelo jogo, peça por peça:
-o céu (o jogo desenha), a paisagem lá fora, a sala, o mapa da mesa, as miniaturas (heróis e
-monstros), os dados (que rolam ao abrir a página), a vela e a caneca. Por isso cada peça vem
-SEPARADA e com LUZ NEUTRA: o jogo é que faz o dia, a noite, a vela, a chuva, a neve e o relâmpago.
+A tela de entrada continua sendo UMA imagem inteira, igual à de hoje. O que muda: em vez de uma
+imagem só, três, uma por tema — FANTASIA, HORROR e CYBERPUNK —, cada uma no computador e no
+celular (seis imagens). É sempre a MESMA sala, o MESMO enquadramento e o MESMO painel do CRONA; o
+que muda é o que está na mesa, a luz e a vista pela janela.
 
-Como usar: cole o BLOCO DE ESTILO e depois o pedido de UMA peça por vez. Anexe sempre a imagem de
-referência client/public/arte/login/fundo-computador.webp (a tela de hoje; na sala do celular,
-a fundo-celular.webp). Salve cada imagem com o nome pedido. Comece pelo LOTE 1 (oito imagens):
-o Felipe aprova o estilo antes do resto.
+As miniaturas que o Felipe adorou (lote 1: miniaturas-herois-fantasia.png e
+miniaturas-monstros-fantasia.png) são a referência de estilo das miniaturas: pintadas à mão, base
+redonda preta. Mas agora elas são PINTADAS DENTRO DA CENA, não coladas por cima: no ângulo da mesa,
+com sombra no mapa e iluminadas pela luz da cena. Nada de recorte com cara de figurinha.
 
-O celular vale tanto quanto o computador: as peças (mapa, miniaturas, dados, objetos, paisagem)
-servem para os dois, e só a sala tem uma versão para cada tela. No celular, a tela corta um pouco
-dos dois lados da imagem: o que importa fica longe das bordas.
-
-
--------------------------------------------------------------------------------------------------
-BLOCO DE ESTILO (cole no começo de todo pedido)
--------------------------------------------------------------------------------------------------
-
-Estilo: pixel art pintada de alta qualidade, igual à imagem de referência anexada (uma mesa de
-mestre de RPG): pixels grandes, quadrados e nítidos, bordas sem suavização, sem desfoque, sem
-degradê liso. Paleta rica: madeira, latão e ouro envelhecido, couro, pergaminho, pedra.
-Ângulo: o mesmo da referência, câmera alta olhando a mesa de cima em ângulo (3/4).
-LUZ NEUTRA: iluminação difusa e uniforme, de dia nublado, vinda de cima. Sem luz de vela, sem
-luar, sem pôr do sol, sem brilho colorido, sem sombra comprida projetada. Cada material na cor
-natural dele, nem escurecido nem alaranjado. (O jogo acende tudo depois: dia, noite, vela, raio.)
-Sem texto, sem letras e sem números legíveis, sem logotipo, sem marca d'água.
-Tudo genérico, criado por você: nada de símbolos, personagens ou marcas de jogos reais.
+O que o jogo já faz sozinho, por cima de qualquer uma das três: o dia e a noite (o céu da janela
+vira dia, entardecer ou noite pelo relógio), a chuva, a neve, a neblina, o relâmpago, a vela
+tremendo, a poeira no ar, os brilhos do emblema e a música. Por isso as imagens vêm todas de NOITE,
+com o céu limpo, como a de hoje.
 
 
 -------------------------------------------------------------------------------------------------
-LOTE 1 — PARA APROVAR O ESTILO
+COMO PEDIR
 -------------------------------------------------------------------------------------------------
 
-1) sala-computador.png — 1536×1024, imagem cheia (sem transparência)
-A mesma sala da referência, com o mesmo enquadramento: a mesa de madeira do mestre, a estante com
-os livros à esquerda, o baú e a hera ao fundo, a janela grande ao fundo à direita, o livro grande
-de capa de couro em primeiro plano à esquerda e o pano escuro na frente. MAS A MESA VAZIA: tire o
-mapa, os dados, as miniaturas, a vela e o castiçal, a caneca, a bússola, as moedas, os papéis e a
-pena. O tampo de madeira fica livre (o jogo põe as peças por cima). A área no centro-direita, onde
-fica o painel de login, pode ser só mesa e parede (o painel vai por cima).
-OS VIDROS DA JANELA ficam pintados de MAGENTA PURO chapado (#FF00FF), sem nada atrás: sem céu,
-sem castelo, sem reflexo. A moldura e os caixilhos da janela continuam desenhados, em madeira.
-Luz neutra (bloco de estilo).
+Uma imagem por vez. Anexe:
+  1) a BASE (a imagem a editar): base-computador.png (1536×1024) ou base-celular.png (1024×1536).
+     Saem de: node scripts/entrada-fundos.mjs bases <pasta>
+  2) a referência das miniaturas: miniaturas-herois-fantasia.png e miniaturas-monstros-fantasia.png
+Cole o BLOCO DE EDIÇÃO e depois o pedido do tema. Devolva a imagem no MESMO tamanho da base.
 
-1b) sala-celular.png — 1024×1536, imagem cheia (sem transparência)
-A sala da tela do celular de hoje (anexe client/public/arte/login/fundo-celular.webp), com o
-mesmo enquadramento em pé: a estante com os livros à esquerda, a hera, a janela em cima à direita,
-o livro grande e o pano embaixo à esquerda. Como na 1: A MESA VAZIA (sem mapa, dados, miniaturas,
-vela, caneca, bússola, moedas e pena), os VIDROS DA JANELA em MAGENTA PURO chapado (#FF00FF), luz
-neutra. O meio da imagem, onde fica o painel de login, pode ser só parede e mesa. Deixe a faixa de
-baixo da mesa (o último quarto da imagem) bem livre e à vista: é ali que o mapa, as miniaturas e
-os dados aparecem no celular. Nada importante a menos de 10% das bordas da esquerda e da direita
-(o celular corta essas faixas).
-
-2) paisagem-fantasia.png — 1536×1024
-A vista pela janela, mais nada (sem moldura de janela, sem sala): um vilarejo medieval de fantasia
-com um castelo de torres pontiagudas no alto de uma colina, telhados, muralha, árvores e colinas
-ao longe, em camadas de profundidade (o que está longe, mais claro e azulado). Ocupa a metade de
-baixo e o meio da imagem; o primeiro plano termina em copas de árvores e telhados, sem chão vazio.
-O CÉU INTEIRO fica MAGENTA PURO chapado (#FF00FF): sem nuvens, sem sol, sem lua, sem estrelas (o
-jogo desenha o céu e o clima). As JANELAS das casas e do castelo ficam VERDE PURO chapado
-(#00FF00), cada uma um retângulo pequeno (o jogo acende de noite e apaga de dia).
-Sem neve, sem chuva, sem neblina. Luz neutra.
-
-3) mapa-reino.png — 1536×1024, FUNDO TRANSPARENTE
-Só o mapa, deitado na mesa na mesma perspectiva da referência (visto de cima em ângulo: o papel
-fica um trapézio, mais estreito em cima), com as bordas rasgadas e as pontas um pouco enroladas.
-Mapa de fantasia desenhado à mão: rios, florestas, montanhas, um castelo, uma vila, estradas
-pontilhadas e uma rosa dos ventos. NADA em cima do mapa (sem dados, sem miniaturas, sem objetos).
-Fundo transparente de verdade.
-
-4) miniaturas-herois-fantasia.png — 1536×1024, FUNDO TRANSPARENTE, grade de 4 colunas × 2 linhas
-Oito miniaturas de RPG de mesa, pintadas à mão como miniaturas de resina (cores vivas, pintura
-caprichada), cada uma em pé sobre uma base redonda preta, vistas de frente 3/4 e um pouco de cima,
-como se estivessem em cima da mesa da referência. Uma por célula (384×512), centrada, com a base
-encostando a 85% da altura da célula. Todas do mesmo tamanho (a figura ocupa uns 70% da altura da
-célula) e a base sempre do mesmo diâmetro.
-Na ordem: guerreira com espada e escudo · mago de manto com cajado · ladino encapuzado com duas
-adagas · clérigo com maça e um sol no escudo · arqueira élfica · anão com machado · paladino de
-armadura · bardo com alaúde.
-Sem sombra no chão. Fundo transparente de verdade.
-
-5) miniaturas-monstros-fantasia.png — 1536×1024, FUNDO TRANSPARENTE, grade de 4 × 2
-Oito miniaturas de monstros, no mesmo estilo e no mesmo ângulo das miniaturas de heróis, cada uma
-na sua base redonda preta, uma por célula (384×512). Os monstros grandes podem usar a célula
-inteira e uma base maior; o resto, do mesmo tamanho das miniaturas de heróis.
-Na ordem: dragão vermelho de asas abertas (o maior) · goblin com lança · esqueleto guerreiro com
-escudo · ogro com clava · olho gigante flutuante com tentáculos (criatura própria, genérica) ·
-lobisomem · cubo de gosma verde translúcido · baú-monstro com dentes e língua.
-Sem sombra no chão. Fundo transparente de verdade.
-
-6) dados-obsidiana.png — 1536×1024, FUNDO TRANSPARENTE, grade de 6 colunas × 4 linhas
-Dados de RPG de obsidiana preta com as marcas das faces em dourado, como os da referência, uma
-peça por célula (256×256), centrada.
-Colunas, na ordem: d4 · d6 · d8 · d10 · d12 · d20.
-Linhas: o MESMO dado em quatro posições. Linha 1: parado, apoiado na mesa (como os da referência).
-Linhas 2, 3 e 4: o dado girado em ângulos bem diferentes, como no meio de uma rolagem (de quina,
-de lado, de cabeça para baixo), sem desfoque de movimento.
-Mesmo tamanho do dado nas quatro linhas. Sem sombra no chão. Fundo transparente de verdade.
-
-7) objetos-mesa-1.png — 1536×1024, FUNDO TRANSPARENTE, grade de 4 × 2
-Oito objetos de mesa, no ângulo da referência, um por célula (384×512), apoiados no pé da célula
-(a 85% da altura), sem sombra no chão.
-Na ordem: castiçal de latão com uma vela grossa SEM CHAMA (só o pavio preto; o jogo desenha a
-chama) · castiçal de crânio com vela sem chama · lampião de ferro e vidro, apagado · caneca de
-cerâmica escura com um d20 em relevo (como a da referência), com café, sem vapor · caneca de
-madeira com aros de ferro, cerveja e espuma escorrendo · xícara de porcelana antiga com pires ·
-chifre de beber com bocal de metal · cálice de prata.
-Fundo transparente de verdade.
+Encaixe (o Claude faz): node scripts/entrada-fundos.mjs encaixar <imagem> <tema> <computador|celular>
 
 
 -------------------------------------------------------------------------------------------------
-LOTE 2 — DEPOIS DA APROVAÇÃO (mesmo bloco de estilo; mesmos formatos do lote 1)
+BLOCO DE EDIÇÃO (cole no começo de todo pedido)
 -------------------------------------------------------------------------------------------------
 
-Paisagens (como a 2: céu magenta, janelas verdes, luz neutra):
-- paisagem-costeira.png: vila de pescadores na encosta, farol, cais, mar e rochedos (horror cósmico)
-- paisagem-cidade.png: cidade moderna, prédios, postes, viaduto, caixa-d'água e antenas
-  (paranormal; as janelas dos prédios em verde puro)
-- paisagem-montanhas.png: fortaleza de pedra entre montanhas pontudas e pinheiros (Tormenta)
-- paisagem-floresta.png: floresta antiga com uma torre de mago e ruínas (fantasia)
+Edite a imagem anexada como BASE (a tela de entrada de um app de RPG de mesa, em pixel art). É uma
+EDIÇÃO: devolva a mesma imagem, do mesmo tamanho, com o mesmo enquadramento, a mesma câmera, o
+mesmo ângulo e a mesma perspectiva. Ficam EXATAMENTE onde estão e do mesmo tamanho: o painel do
+CRONA (moldura, emblema, título, campos, botões e textos), a estante e os livros, a janela e a
+moldura dela, a mesa e o pano da frente. As faixas da borda da base (repetidas, borradas) são sobra:
+continue a cena nelas com naturalidade.
+Estilo: o mesmo pixel art pintado da base, pixels grandes e nítidos, sem suavizar, sem desfoque.
+Luz: noite, a luz quente da vela iluminando a mesa (a não ser que o tema diga outra cor), um pouco
+de luar azulado vindo da janela. O céu da janela: noite azul-escura, limpa, com a lua e estrelas,
+como na base (sem chuva, sem neblina e sem nuvens pesadas: o jogo faz o clima).
+Miniaturas: no estilo das miniaturas de referência anexadas (resina pintada à mão, cores vivas,
+base redonda preta), mas PINTADAS NA CENA: em pé em cima do mapa, vistas do mesmo ângulo alto da
+mesa, a base achatada no papel, a sombra caindo no mapa para o lado oposto à vela, o brilho da vela
+nelas. Do tamanho das duas miniaturas de estanho da base, ou um pouco maiores; o monstro, maior.
+Sem texto, sem letras, sem números legíveis, sem logotipo, sem marca d'água. Tudo genérico, criado
+por você: nada de personagens, símbolos ou marcas de jogos reais (nada de D&D, Cyberpunk 2077,
+Shadowrun, Call of Cthulhu, Ordem Paranormal).
 
-Mapas (como o 3: só o mapa, fundo transparente, nada em cima):
-- mapa-ilha-afundada.png: carta náutica velha de uma ilha meio afundada, sondagens, farol, rabiscos
-- mapa-cidade-investigacao.png: planta de bairro com fotos presas, alfinetes e barbante vermelho
-- mapa-continente-rubro.png: continente com uma mancha de tempestade vermelha engolindo uma região
-- mapa-masmorra.png: masmorra em papel quadriculado, salas, portas, armadilhas, escadas
-- mapa-deserto.png: deserto com oásis, pirâmide e ruínas
 
-Miniaturas (como a 4 e a 5: grade 4 × 2, base redonda preta):
-- miniaturas-herois-investigacao.png: detetive de sobretudo com lanterna · ocultista com livro ·
-  caçadora com espingarda · médica com maleta · jornalista com câmera · padre com crucifixo
-  genérico · motoqueiro com taco · hacker com notebook
-- miniaturas-monstros-paranormal.png: criatura de sangue · zumbi · sombra alta de olhos vermelhos ·
-  aranha gigante · boneca possuída · cultista mascarado de manto · coisa de carne com muitas bocas ·
-  vulto que é só fumaça e dentes
-- miniaturas-monstros-cosmicos.png: criatura de tentáculos saindo do mar · homem-peixe com lança ·
-  cultista de túnica verde · ser alado sem rosto · massa de olhos · estátua de ídolo que se mexe ·
-  verme gigante · sombra com estrelas por dentro
-- miniaturas-herois-tormenta.png e miniaturas-monstros-tormenta.png: minotauro gladiador, elfa
-  com arco, anão ferreiro, meio-dragão; demônio-inseto de carapaça vermelha, enxame vermelho,
-  cavaleiro corrompido, cristal vermelho que anda (tudo criado por você, sem copiar o jogo)
+-------------------------------------------------------------------------------------------------
+1) FANTASIA — fundo-fantasia-computador.png e fundo-fantasia-celular.png
+-------------------------------------------------------------------------------------------------
 
-Dados (como o 6, grade 6 × 4):
-- dados-rubi.png (vermelho translúcido, marcas brancas) · dados-osso.png (osso amarelado, marcas
-  pretas) · dados-prata.png (metal prateado) · dados-arcano.png (roxo com brilho de estrelas por
-  dentro) · dados-jade.png (verde jade, marcas douradas)
+A mesa de hoje, só que mais viva. Troque as duas miniaturas de estanho por miniaturas pintadas: um
+grupo de heróis — uma elfa arqueira, um anão com machado e um mago de manto azul — de um lado do
+mapa, encarando do outro lado um pequeno bando de orcs verdes com machados e escudos e, atrás
+deles, um dragão vermelho de asas abertas (o maior, pousado sobre as montanhas do mapa). Os dados
+continuam, de obsidiana com marcas douradas. O resto fica como está (a vela, a caneca com café, os
+livros, a bússola, as moedas, a pena, a vista do castelo na janela).
 
-Objetos (como o 7, grade 4 × 2):
-- objetos-mesa-2.png: pergaminho enrolado · frasco de poção azul · bússola de latão · pilha de
-  moedas de ouro · ampulheta · crânio · adaga · tinteiro com pena
+-------------------------------------------------------------------------------------------------
+2) HORROR — fundo-horror-computador.png e fundo-horror-celular.png
+-------------------------------------------------------------------------------------------------
 
+A mesma sala, num clima de horror cósmico, sem sangue.
+- O mapa: uma carta náutica velha e amarelada de uma ilha meio afundada, com linhas de
+  profundidade, um farol e anotações em tinta borradas (rabiscos, nada legível).
+- As miniaturas: três investigadores dos anos 1920 — um detetive de sobretudo com lanterna, uma
+  ocultista com um livro e um marinheiro com arpão — diante de uma criatura enorme de tentáculos
+  verde-escura, saindo do mar do mapa (o maior), com olhos amarelados.
+- Os dados: verde jade com marcas douradas.
+- A vela: num castiçal de crânio, com a chama de um verde pálido; a luz na mesa fica levemente
+  esverdeada.
+- A caneca: no mesmo lugar e do mesmo tamanho, uma xícara de porcelana antiga com chá escuro.
+- O livro grande da frente: couro escuro com fechos de ferro e um olho fechado entalhado na capa.
+- A janela: uma vila de pescadores na encosta, com casas tortas, um farol aceso e o mar escuro
+  (o céu, como no bloco: noite limpa).
+
+-------------------------------------------------------------------------------------------------
+3) CYBERPUNK — fundo-cyberpunk-computador.png e fundo-cyberpunk-celular.png
+-------------------------------------------------------------------------------------------------
+
+A mesma sala, virada num quarto de jogador no futuro, com neon. A sala continua de madeira, mas
+com cabos, adesivos e luz de neon.
+- O mapa: um mapa holográfico projetado em cima da mesa — uma grade de cidade em azul-ciano
+  brilhante, com prédios em linhas de luz e pontos piscando —, saindo de um pequeno projetor
+  redondo no canto.
+- As miniaturas: uma netrunner com cabos na nuca e óculos de realidade aumentada, um samurai de rua
+  com katana de lâmina luminosa e um ciborgue com braço mecânico — diante de um robô de combate
+  grande, de pernas de metal e olhos vermelhos (o maior), com dois drones pequenos voando em volta.
+- Os dados: acrílico translúcido, uns ciano e outros magenta, com as marcas acesas.
+- A luz: no lugar da vela, um abajur de neon rosa-magenta no mesmo lugar e do mesmo tamanho da
+  vela; a luz na mesa fica rosa e ciano (o ciano vem do mapa holográfico).
+- A caneca: no mesmo lugar e do mesmo tamanho, uma caneca de metal com café quente.
+- O livro grande da frente: um tablet grosso, de capa de metal arranhada, com uma tela apagada.
+- A janela: uma cidade gigante de prédios altos, letreiros de neon (sem letras legíveis), luzes
+  nas janelas e um trem elevado ao longe (o céu, como no bloco: noite limpa).
+
+
+-------------------------------------------------------------------------------------------------
+NO CELULAR
+-------------------------------------------------------------------------------------------------
+
+Os mesmos três temas, na base do celular (base-celular.png): a vela (ou o abajur) fica em cima, à
+esquerda; a janela em cima, à direita; a caneca à direita; o mapa com as miniaturas e os dados
+embaixo, abaixo do painel. Mesmas regras do bloco de edição.

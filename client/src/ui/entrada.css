@@ -474,10 +474,6 @@
   opacity: 0;
   animation: ent-sobe 5s infinite ease-out;
 }
-/* bebida gelada na caneca (uma peça trocável): sem vapor */
-.entrada.caneca-fria .fx-vapor {
-  display: none;
-}
 /* o fio de fumaça da vela apagada: fino e mais devagar */
 .fx-fumaca-pavio {
   width: calc(var(--u) * 14px);

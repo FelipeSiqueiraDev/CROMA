@@ -1,23 +1,21 @@
 # Tela de entrada: o fundo vivo
 
-A tela de entrada (`client/src/ui/entrada.ts`) é a arte do Felipe: a mesa de RPG à luz de vela, com o painel do CRONA. Desde 06/10 o fundo é **uma cena sorteada a cada visita**, sempre no estilo da arte de hoje e sempre **genérica**: nada dos agentes da campanha aparece aqui (decisão do Felipe em 06/10). O que varia são os elementos da mesa e do ambiente, em vários universos de RPG.
+A tela de entrada (`client/src/ui/entrada.ts`) é a arte do Felipe: a mesa de RPG à luz de vela, com o painel do CRONA. Desde 06/10 o fundo é **uma cena sorteada a cada visita**, sempre no estilo da arte de hoje e sempre **genérica**: nada dos agentes da campanha aparece aqui (decisão do Felipe em 06/10).
 
-O código da cena fica em `client/src/ui/entradaCena.ts`. O pedido de arte do kit em camadas é o [`PROMPT-ENTRADA.txt`](PROMPT-ENTRADA.txt).
+Desde 07/10 são **três temas, cada um uma imagem inteira**: **fantasia**, **horror** e **cyberpunk**. É a mesma sala, o mesmo enquadramento e o mesmo painel; muda o que está na mesa (o mapa, as miniaturas, os dados, a vela, a caneca), a luz e a vista da janela. Por cima de qualquer uma, o código faz a hora, o clima, os brilhos e a música.
+
+O código da cena fica em `client/src/ui/entradaCena.ts`; a trilha, em `client/src/ui/entradaTrilha.ts`. O pedido de arte é o [`PROMPT-ENTRADA.txt`](PROMPT-ENTRADA.txt).
 
 ## O que varia
 
 | O quê | Como | Quem faz |
 |---|---|---|
-| **A hora** | A do relógio. De dia o céu da janela fica azul, com sol e nuvens, a sala clareia e entram raios de sol; no amanhecer e no entardecer, dourado; de noite, a arte como foi desenhada (lua e estrelas). As janelas do castelo apagam de dia. | código |
-| **O clima** | Limpo, nuvens, chuva, neblina, neve ou tempestade (com relâmpago, que clareia a sala). Estrela cadente na noite limpa; pássaros de dia, morcegos de noite. | código |
-| **O universo** | Fantasia, Horror cósmico, Paranormal ou Tormenta (não repete o da última visita). Muda a cor da chama (verde no horror, vermelha no paranormal), o clima mais provável (neblina no horror, tempestade rubra na Tormenta), a aurora verde, a névoa na sala, as faíscas de magia, e quais peças trocáveis podem entrar. | código |
-| **A vela** | Acesa ou apagada (de noite quase sempre acesa; de dia, quase sempre apagada). Apagada de noite, a sala fica no luar azul e sobe um fio de fumaça do pavio. | código |
-| **O monstro** | Hoje, olhos que brilham e piscam lá fora e num canto escuro da sala. Com o kit, o monstro vai para o tabuleiro: uma miniatura do universo encarando os heróis em cima do mapa. | código; o kit, do Códex |
-| **A paisagem, a sala, o mapa, as miniaturas, os dados, a vela e a caneca** | O kit em camadas (abaixo), pedido ao Códex em 07/10. | Códex |
-
-| **A trilha e o som** | Um tema de aventura por universo, composto no código e tocado na hora (`client/src/ui/entradaTrilha.ts`, Web Audio, sem arquivo de áudio): fantasia com alaúde e flauta, horror cósmico com coro grave e zumbido, paranormal com caixinha de música, Tormenta épica com tambores. Oito compassos que se repetem com variação (a segunda volta sobe uma oitava, a terceira só acompanha). De noite o som fica mais abafado; de dia, mais aberto. Por baixo, o ambiente da cena: a chuva, o trovão em cada relâmpago (o estalo que rasga quando é perto, o ronco que rola descendo do médio para o grave, e a música abaixando enquanto ele ressoa; o médio é o que a caixinha do celular toca), o vento na neve e na neblina, o estalar da vela acesa e os passarinhos nos dias de sol. | código |
-
-Tudo o que o código faz já funciona sem arte nova.
+| **O tema** | Fantasia, horror ou cyberpunk (não repete o da última visita). Cada um tem a sua imagem (`client/public/arte/login/fundo-<tela>-<tema>.webp`); enquanto ela não chega, fica a de hoje. Muda também a cor da chama (verde no horror; no cyberpunk a luz é um abajur de neon, sempre aceso), o clima mais provável (neblina no horror, chuva no cyberpunk), a aurora verde e a névoa na sala do horror, o horizonte rosado e a chuva com reflexo de neon do cyberpunk, e o que brilha no ar (faíscas de magia, faíscas digitais). | código; as imagens, do Códex |
+| **A hora** | A do relógio. De dia o céu da janela fica azul, com sol e nuvens, a sala clareia e entram raios de sol; no amanhecer e no entardecer, dourado; de noite, a arte como foi desenhada (lua e estrelas). As janelas acesas lá fora apagam de dia. | código |
+| **O clima** | Limpo, nuvens, chuva, neblina, neve ou tempestade (com relâmpago, que clareia a sala). Estrela cadente na noite limpa; pássaros de dia (em bando no sol), morcegos de noite. | código |
+| **A vela** | Acesa ou apagada (de noite quase sempre acesa; de dia, quase sempre apagada). Apagada de noite, a sala fica no luar azul e sobe um fio de fumaça do pavio. No cyberpunk, o abajur de neon fica sempre aceso. | código |
+| **O monstro** | Nas imagens dos temas, o monstro fica no tabuleiro, encarando os heróis (o dragão, a criatura de tentáculos, o robô). Às vezes, também olhos que brilham no escuro, lá fora e num canto da sala. | Códex; os olhos, código |
+| **A trilha e o som** | Um tema por universo, composto no código e tocado na hora (Web Audio, sem arquivo de áudio): fantasia com alaúde e flauta, horror com coro grave e zumbido, cyberpunk em synthwave (baixo pulsando, bateria eletrônica, lead de serrote com eco). Oito compassos que se repetem com variação (a segunda volta sobe uma oitava, a terceira só acompanha). De noite o som fica mais abafado; de dia, mais aberto. Por baixo, o ambiente: a chuva, o trovão em cada relâmpago (o estalo quando é perto, o ronco que rola descendo do médio para o grave, a música abaixando enquanto ele ressoa; o médio é o que a caixinha do celular toca), o vento na neve e na neblina, o estalar da vela (no cyberpunk, o zumbido do neon) e os passarinhos nos dias de sol. | código |
 
 **O som:** a música começa sozinha ao abrir a tela (decisão do Felipe em 07/10), subindo devagar. Os navegadores podem segurar o som até a pessoa tocar na página (o Chrome libera nos sites que a pessoa já usa muito, como o CRONA no computador do mestre); quando seguram, o botão de som pulsa com "toque para ouvir" (no computador, "clique para ouvir") e a música começa no primeiro toque, clique ou tecla, em qualquer lugar da tela. O botão no canto de cima, à direita, liga e desliga (as barrinhas dançam enquanto toca). O volume abre ao passar o mouse no botão; no celular, o primeiro toque abre o volume e o segundo liga e desliga (um toque fora fecha). A escolha e o volume ficam no aparelho (`crona.entrada.musica`, `crona.entrada.volume`). Ao entrar, a música some junto com a tela.
 
@@ -26,57 +24,40 @@ Tudo o que o código faz já funciona sem arte nova.
 No endereço da tela de entrada:
 
 - `?hora=14.5` (qualquer hora) ou `?hora=ciclo` (o dia inteiro em um minuto);
-- `?universo=fantasia` | `horror` | `paranormal` | `tormenta`;
+- `?universo=fantasia` | `horror` | `cyberpunk`;
 - `?clima=limpo` | `nuvens` | `chuva` | `neblina` | `tempestade` | `neve`;
 - `?vela=apagada` (ou `acesa`);
 - `?monstro=sim` (ou `nao`).
 
-Ex.: `http://localhost:5173/?hora=23&universo=horror&clima=neblina&monstro=sim`. Quem pede menos movimento no sistema vê a cena parada, com a hora e o clima certos.
+Ex.: `http://localhost:5173/?hora=23&universo=cyberpunk&clima=chuva`. Quem pede menos movimento no sistema vê a cena parada, com a hora e o clima certos.
 
-## O kit em camadas (pedido em 07/10)
+## As imagens dos temas
 
-A arte de hoje é uma imagem só, com a luz da vela pintada; por isso o universo quase não muda nada e o monstro não tem onde aparecer. A cena passa a ser **montada pelo jogo, peça por peça**, e cada peça vem do Códex **separada e com luz neutra** (dia nublado, sem vela): o jogo faz o dia, a noite, a vela, a chuva, a neve e o relâmpago por cima de qualquer peça. O pedido pronto, com o bloco de estilo e o formato de cada imagem, é o [`PROMPT-ENTRADA.txt`](PROMPT-ENTRADA.txt).
+O Códex **edita a imagem de hoje** (não desenha do zero): assim o enquadramento, a câmera e o painel ficam no lugar. As miniaturas do lote 1 de 07/10 (`miniaturas-herois-fantasia.png`, `miniaturas-monstros-fantasia.png`, na pasta da arte) são a referência de estilo delas, mas pintadas dentro da cena, no ângulo da mesa, com a sombra e a luz da vela.
 
-As camadas, de trás para a frente:
+```bash
+npm i --no-save sharp
+node scripts/entrada-fundos.mjs bases <pasta>                                   # base-computador.png e base-celular.png, para anexar no pedido
+node scripts/entrada-fundos.mjs encaixar <imagem.png> <tema> <computador|celular>
+```
 
-| Camada | O que é | De onde vem |
-|---|---|---|
-| Céu | degradê, sol, lua, estrelas, nuvens, chuva, neve, raio | código (já existe) |
-| Paisagem | a vista pela janela: céu em magenta (#FF00FF, o jogo tira) e janelas das casas em verde (#00FF00, o jogo acende de noite e apaga de dia) | Códex, uma por universo |
-| Sala | a sala da tela de hoje com a mesa **vazia** e os vidros da janela em magenta | Códex (uma para o computador e uma para o celular) |
-| Mapa | o mapa deitado na mesa, sozinho, fundo transparente | Códex, vários por universo |
-| Miniaturas | heróis e monstros pintados, cada um na base redonda, em folhas de 4 × 2 | Códex, por universo |
-| Dados | seis dados (d4 a d20) em quatro posições cada, em folhas de 6 × 4, um material por folha | Códex |
-| Vela e caneca | castiçais **sem chama** (o jogo desenha a chama, que tremula e apaga) e canecas, em folhas de 4 × 2 | Códex |
-| Luz | a noite, a vela, o sol entrando, o relâmpago | código (refeito sobre a luz neutra) |
-| Painel | o painel do CRONA, recortado da arte de hoje (sem as estrelinhas) | código |
+O encaixe tira a faixa de sobra da base (o gerador devolve 1536×1024 ou 1024×1536; a tela é 1672×941 ou 941×1672), volta ao tamanho da tela e recoloca **o painel da arte de hoje** por cima (os campos de verdade ficam exatamente sobre os desenhados: o painel tem que bater no pixel). Grava `client/public/arte/login/fundo-<tela>-<tema>.webp`, que a tela usa sozinha, e uma prévia ao lado da imagem. A chama é achada na imagem (o miolo mais claro perto de onde ela fica hoje), então a vela pode ter mudado um pouco de lugar.
 
-O que isso dá:
-
-- **O universo muda a cena inteira:** a paisagem (castelo, vila costeira com farol, cidade moderna, montanhas), o mapa, as miniaturas, os dados, a vela, a caneca, a cor da chama e o clima.
-- **Sossego ou monstro no tabuleiro:** no sossego, só os heróis em cima do mapa; com monstro, um monstro do universo encara o grupo (o dragão, a criatura de tentáculos...). As miniaturas se mexem de leve, como se alguém as arrumasse.
-- **Os dados rolam ao abrir a página:** dois ou três dados entram rolando pela mesa, quicam e param; dá para clicar neles para rolar de novo.
-- **Neve:** o clima novo (já no código).
-
-Quando o lote 1 chegar, um script faz o encaixe: tira o magenta e o verde, corta as folhas em peças, acerta a grade de pixels com a da cena e põe tudo em `client/public/arte/login/kit/`. As posições de cada peça na mesa ficam num arquivo, como os retângulos de hoje.
-
-### Os remendos (antes do kit)
-
-A primeira ideia (06/10) eram remendos: o Códex redesenhava um pedaço da arte de hoje (a caneca, a vela, o mapa) e o jogo colava por cima (`scripts/entrada-remendos.mjs`, `client/src/ui/entradaRemendos.json`, a lista em `VARIANTES`). Continua funcionando, mas o kit substitui: com a sala nova, os remendos da arte antiga deixam de servir e saem quando o kit entrar.
+- [ ] fantasia (computador / celular)
+- [ ] horror (computador / celular)
+- [ ] cyberpunk (computador / celular)
 
 ## Decisões
 
-- **06/10:** a tela de entrada não usa nada dos agentes da campanha; é genérica, em vários universos de RPG (fantasia, horror cósmico, paranormal, Tormenta), no estilo da arte de hoje, variando os elementos (caneca, vela, mapa, monstro), a hora e o clima.
-- **07/10:** a cena vira um kit em camadas, com luz neutra em todas as peças (a paisagem, a sala, o mapa, as miniaturas, os dados, a vela e a caneca); o jogo faz a luz e o clima. O lote 1 traz a sala do computador e a do celular, para o Felipe aprovar o estilo nas duas telas.
-- **07/10:** o monstro (ou o sossego) fica no tabuleiro, nas miniaturas em cima do mapa. Os olhos no escuro ficam até as miniaturas chegarem.
-- **07/10:** o universo muda a cena inteira (paisagem, mapa, miniaturas, dados, vela, caneca), não só a cor da chama.
-- **07/10:** as estrelinhas em volta do emblema saíram da arte parada e voltaram animadas: são as mesmas da arte, recortadas (`client/public/arte/login/brilhos/`, posições em `client/src/ui/entradaBrilhos.json`), cada uma piscando no seu ritmo; as grandes respiram e de vez em quando faíscam. (Sem elas o emblema ficava vazio.) As faíscas desenhadas em CSS saíram. Um brilho passa pelas letras do CRONA de tempos em tempos. O campo selecionado acende inteiro (sem o contorno quadrado do campo de dentro).
-- **07/10:** o botão ENTRAR fica sem ícones (os losangos e os d20 saíram); só o brilho que corre pelo ouro.
-- **07/10:** a tela tem trilha de aventura, um tema por universo, e o som do ambiente (chuva, trovão, vento, vela, passarinhos), tudo sintetizado na hora.
-- **07/10:** o celular vale tanto quanto o computador: os olhos, o sol e os pássaros ficam no pedaço da arte que a tela mostra (o celular estreito corta as laterais), e a sala do celular entra no lote 1 do Códex.
+- **06/10:** a tela de entrada não usa nada dos agentes da campanha; é genérica, em vários universos de RPG, no estilo da arte de hoje, variando os elementos, a hora e o clima.
+- **07/10:** três temas: fantasia, horror e cyberpunk (paranormal e Tormenta saíram). Cada tema é **uma imagem inteira**, igual à de hoje, editada pelo Códex a partir dela; o kit em camadas (peças separadas montadas pelo jogo) foi testado e recusado: "parecia um monte de PNG jogado um em cima do outro". As miniaturas do teste ficaram como referência do estilo.
+- **07/10:** o monstro (ou o sossego) fica no tabuleiro, nas miniaturas pintadas em cima do mapa.
+- **07/10:** as estrelinhas em volta do emblema saíram da arte parada e voltaram animadas: são as mesmas da arte, recortadas (`client/public/arte/login/brilhos/`, posições em `client/src/ui/entradaBrilhos.json`), cada uma piscando no seu ritmo; as grandes respiram e de vez em quando faíscam. Um brilho passa pelas letras do CRONA de tempos em tempos. O campo selecionado acende inteiro (sem o contorno quadrado do campo de dentro).
+- **07/10:** o botão ENTRAR fica sem ícones; só o brilho que corre pelo ouro.
+- **07/10:** a tela tem trilha, um tema por universo (o cyberpunk em synthwave), e o som do ambiente, tudo sintetizado na hora. A música começa sozinha; se o navegador segurar, no primeiro toque.
+- **07/10:** o celular vale tanto quanto o computador: os olhos, o sol e os pássaros ficam no pedaço da arte que a tela mostra (o celular estreito corta as laterais), e cada tema vem nas duas telas.
 
 ## O que falta
 
-- O lote 1 do kit (o `PROMPT-ENTRADA.txt`) e, aprovado, o lote 2 e o celular.
-- O código do kit: o encaixe das peças, a luz sobre a luz neutra, as miniaturas no mapa e os dados rolando.
-- Ideias para depois: o que voa no céu por universo (dragão ao longe, corvos), uma ameaça grande aparecendo no clarão do relâmpago, o livro da mesa trocando de capa.
+- As seis imagens dos temas (o `PROMPT-ENTRADA.txt`).
+- Ideias para depois: os dados rolando ao abrir a página, as miniaturas se mexendo de leve (com as imagens prontas, dá para animar recortes delas no lugar), o livro da mesa trocando de capa.
