@@ -226,7 +226,9 @@ const CEU = {
   ] as Rgb[],
 };
 /** O céu fechado (chuva, tempestade) puxa para o cinza. */
-const CINZA = { noite: [18, 20, 28] as Rgb, dia: [120, 128, 140] as Rgb };
+const CINZA = { noite: [18, 20, 28] as Rgb, dia: [96, 104, 116] as Rgb };
+/** o céu de tempestade de dia: cinza-chumbo (puxa mais que a chuva comum) */
+const CHUMBO: Rgb = [58, 64, 78];
 
 /** Ordem do Bayer 4×4: o degradê do céu vira faixas pontilhadas, como em pixel art. */
 const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map((v) => (v + 0.5) / 16);
@@ -283,6 +285,8 @@ export class Cena {
   private estrelas: [number, number, number][] = [];
   private imagens: { noite: HTMLCanvasElement; luar: HTMLCanvasElement; dourado: HTMLCanvasElement; dia: HTMLCanvasElement } | null = null;
   private ultimoPeso = '';
+  /** a imagem de fundo num canvas (para refazer a luz quando a vela muda) */
+  private fonteCanvas: HTMLCanvasElement | null = null;
   private inicio = performance.now();
   private nuvens: Nuvem[] = [];
   private gotas: Gota[] = [];
@@ -341,10 +345,36 @@ export class Cena {
     this.sobre.height = this.baixo.height;
     this.arte.width = this.luz.width = L.w;
     this.arte.height = this.luz.height = L.h;
-    this.preparar(L, this.fonte(L, img));
+    this.fonteCanvas = this.fonte(L, img);
+    this.preparar(L, this.fonteCanvas);
     this.paisagens = this.ceuChroma && paisagem ? this.prepararPaisagem(L, paisagem) : null;
+    this.estrelas = [];
     this.criarClima(L);
     this.ultimoPeso = '';
+  }
+
+  /**
+   * Muda a cena sem montar de novo: o clima (nuvens, chuva, neve, raio), a vela (acesa ou apagada,
+   * o que refaz a luz da arte) e o monstro (os olhos no escuro). A hora é o relógio.
+   */
+  mudar(op: { clima?: Clima; vela?: boolean; monstro?: boolean }) {
+    const s = this.sorteio;
+    const fixa = !!UNIVERSOS[s.universo].luzFixa;
+    const velaMudou = op.vela !== undefined && op.vela !== s.vela && !fixa;
+    if (op.clima) {
+      s.clima = op.clima;
+      // a tempestade que começa ao vivo já abre com um raio, em poucos segundos
+      this.proximoRelampago = Math.min(this.proximoRelampago, 1800);
+    }
+    if (op.monstro !== undefined) s.monstro = op.monstro;
+    if (velaMudou) s.vela = op.vela!;
+    const L = this.L;
+    if (!L || !this.imagens) return;
+    if (velaMudou && this.fonteCanvas) {
+      this.preparar(L, this.fonteCanvas);
+      this.ultimoPeso = '';
+    }
+    this.criarClima(L);
   }
 
   /** A arte num canvas, para ler os pixels. */
@@ -511,8 +541,8 @@ export class Cena {
 
     // as curvas de clarear, em tabela (1,5 milhão de pixels)
     const curva = (g: number) => Float32Array.from({ length: 256 }, (_, v) => 255 * Math.pow(v / 255, g));
-    const g58 = curva(0.58);
-    const g60 = curva(0.6);
+    const g58 = curva(0.5);
+    const g60 = curva(0.5);
     const g78 = curva(0.78);
     const g80 = curva(0.8);
     // a luz da vela na arte: quanto mais perto da chama e mais quente o pixel, mais ela pesa
@@ -545,13 +575,14 @@ export class Cena {
         {
           // a arte inteira é quente (a vela pintada): de dia o laranja perde força em tudo,
           // mais perto da vela
-          const sat = 1 - 0.3 * vela - 0.22 * quente;
+          const sat = 1 - 0.38 * vela - 0.3 * quente;
           let rr = l + (r - l) * sat;
           let gg = l + (g - l) * sat;
           let bb = l + (b - l) * sat;
-          rr = g58[rr | 0] * 0.97;
-          gg = g58[gg | 0] * 0.99;
-          bb = g60[bb | 0] * 1.06;
+          // luz do dia: mais clara e levemente fria (o laranja da vela pintado sai de vez)
+          rr = g58[rr | 0] * 0.93;
+          gg = g58[gg | 0] * 0.98;
+          bb = g60[bb | 0] * 1.1;
           dd[o] = rr;
           dd[o + 1] = gg;
           dd[o + 2] = bb;
@@ -715,10 +746,11 @@ export class Cena {
     this.nuvens = Array.from({ length: quantas }, () => this.novaNuvem(bw, bh, Math.random() * bw * 1.4 - bw * 0.2));
     this.gotas =
       clima === 'chuva' || clima === 'tempestade' || clima === 'neve'
-        ? Array.from({ length: Math.round(bw * bh * (clima === 'neve' ? 0.009 : 0.012)) }, () => ({ x: Math.random() * bw, y: Math.random() * bh, v: 0.9 + Math.random() * 0.6 }))
+        ? Array.from({ length: Math.round(bw * bh * (clima === 'neve' ? 0.009 : clima === 'tempestade' ? 0.045 : 0.03)) }, () => ({ x: Math.random() * bw, y: Math.random() * bh, v: 0.9 + Math.random() * 0.6 }))
         : [];
     this.voadores = [];
-    this.estrelas = Array.from({ length: Math.round(bw * bh * 0.006) }, () => [Math.floor(Math.random() * bw), Math.floor(Math.random() * bh * 0.7), Math.random() * 6]);
+    // as estrelas ficam no lugar quando só o clima muda
+    if (!this.estrelas.length) this.estrelas = Array.from({ length: Math.round(bw * bh * 0.006) }, () => [Math.floor(Math.random() * bw), Math.floor(Math.random() * bh * 0.7), Math.random() * 6]);
     // os olhos: lá fora, na janela (de noite), e no canto escuro da sala
     this.olhos = [];
     if (this.sorteio.monstro) {
@@ -784,6 +816,23 @@ export class Cena {
       ctx.globalAlpha = dia;
       ctx.drawImage(im.dia, 0, 0);
     }
+    // o tempo fechado apaga a luz do dia: um véu frio e escuro sobre a sala (só de dia)
+    const { clima } = this.sorteio;
+    const fecho = { limpo: 0, nuvens: 0.06, chuva: 0.22, neblina: 0.14, tempestade: 0.36, neve: 0.12 }[clima] * (dia + dourado * 0.6);
+    if (fecho > 0.005) {
+      // (o painel desenhado na arte não muda com o tempo: o véu passa fora dele)
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      for (const [a, b, c2, e] of this.L!.painel) ctx.rect(a - 6, b - 6, c2 - a + 12, e - b + 12);
+      ctx.clip('evenodd');
+      ctx.globalCompositeOperation = 'multiply';
+      ctx.globalAlpha = 1;
+      const v = 255 * (1 - fecho);
+      ctx.fillStyle = `rgb(${v * 0.82}, ${v * 0.9}, ${v})`;
+      ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      ctx.restore();
+    }
     ctx.globalAlpha = 1;
   }
 
@@ -801,6 +850,7 @@ export class Cena {
     const corDe = (k: number) => {
       let c = mix(mix(CEU.noite[k], CEU.dourado[k], dourado / (noite + dourado || 1)), CEU.dia[k], dia);
       c = mix(c, cinza, fechado * 0.85);
+      if (clima === 'tempestade') c = mix(c, CHUMBO, 0.55 * (dia + dourado * 0.7));
       // a cidade de neon acende o horizonte de noite
       if (def.neon && k > 0) c = mix(c, def.neon, (k === 2 ? 0.38 : 0.14) * noite);
       return c;
@@ -912,7 +962,9 @@ export class Cena {
       if (c.vida <= 0 || c.x < 0) this.cadente = null;
     }
     // nuvens
-    const corNuvem = mix(mix([34, 38, 62], [236, 150, 140], dourado / (noite + dourado || 1)), [246, 248, 252], dia);
+    let corNuvem = mix(mix([34, 38, 62], [236, 150, 140], dourado / (noite + dourado || 1)), [246, 248, 252], dia);
+    if (clima === 'tempestade') corNuvem = mix(corNuvem, [52, 58, 74], 0.7);
+    else if (clima === 'chuva') corNuvem = mix(corNuvem, [128, 136, 150], 0.5);
     const sombraNuvem = mix(corNuvem, mix([14, 16, 30], [120, 130, 156], dia + dourado * 0.5), 0.6 + fechado * 0.2);
     for (const n of this.nuvens) {
       n.x += n.v * dt * (clima === 'tempestade' ? 2.2 : 1);
@@ -986,11 +1038,15 @@ export class Cena {
     else if (this.gotas.length) {
       // de noite, a chuva do cyberpunk reflete o neon
       s.fillStyle = def.neon && noite > 0.5 ? 'rgba(255, 150, 235, 0.45)' : dia > 0.5 ? 'rgba(220, 230, 245, 0.45)' : 'rgba(150, 170, 210, 0.4)';
+      const forte = clima === 'tempestade';
       for (const g of this.gotas) {
-        g.y += g.v * dt * 0.07;
-        g.x -= g.v * dt * 0.018;
-        if (g.y > bh) (g.y = -2), (g.x = Math.random() * bw * 1.2);
-        s.fillRect(Math.round(g.x), Math.round(g.y), 1, 2);
+        g.y += g.v * dt * (forte ? 0.11 : 0.085);
+        g.x -= g.v * dt * (forte ? 0.045 : 0.024);
+        if (g.y > bh) (g.y = -3), (g.x = Math.random() * bw * 1.3);
+        const x = Math.round(g.x);
+        const y = Math.round(g.y);
+        s.fillRect(x, y, 1, 3);
+        s.fillRect(x + 1, y + 3, 1, 1);
       }
     }
     // o relâmpago
@@ -1039,7 +1095,7 @@ export class Cena {
         }
         s.stroke();
       }
-      this.relampago = Math.max(0, a - dt / 380);
+      this.relampago = Math.max(0, a - dt / 520);
       if (!this.relampago) this.aoMudar(this);
     }
 
@@ -1180,13 +1236,16 @@ export class Cena {
     }
     // o clarão do relâmpago na sala
     if (this.relampago > 0) {
+      // o raio pisca duas vezes (um pico, um vão, um segundo pico menor) e some devagar
+      const r = this.relampago;
+      const tremor = r > 0.82 ? 1 : r > 0.7 ? 0.25 : r > 0.55 ? 0.8 : r;
       ctx.globalCompositeOperation = 'screen';
-      ctx.fillStyle = rgb([190, 205, 255], 0.22 * this.relampago);
+      ctx.fillStyle = rgb([205, 220, 255], 0.5 * tremor);
       ctx.fillRect(0, 0, L.w, L.h);
       ctx.globalCompositeOperation = 'source-over';
     }
     // nada disso pinta o painel (o painel de verdade fica por cima e não muda)
-    for (const [a, b, c, e] of L.painel) ctx.clearRect(a, b, c - a, e - b);
+    for (const [a, b, c, e] of L.painel) ctx.clearRect(a - 6, b - 6, c - a + 12, e - b + 12);
   }
 
   /** Dois olhos que brilham e piscam. `px` = tamanho de um pixel. */

@@ -1,7 +1,7 @@
 import type { ClientMsg } from '@crona/shared';
 import { h } from './dom';
 import { existeArte } from './icons';
-import { Cena, UNIVERSOS, pedidos, type CenaLayout } from './entradaCena';
+import { Cena, UNIVERSOS, pedidos, type CenaLayout, type Clima } from './entradaCena';
 import BRILHOS from './entradaBrilhos.json';
 import { Trilha } from './entradaTrilha';
 
@@ -82,7 +82,8 @@ const COMPUTADOR: Layout = {
     // o painel e o emblema que sobe acima dele
     painel: [
       [848, 128, 1392, 826],
-      [1012, 70, 1228, 300],
+      // o escudo do emblema, que sobe acima do painel (estreito, como o desenho)
+      [1066, 78, 1172, 130],
     ],
     sol: { x0: 1415, x1: 1650, horizonte: 128, alto: 22 },
     lua: [1448, 27, 15],
@@ -119,7 +120,10 @@ const CELULAR: Layout = {
   ceu: [505, 0, 941, 250],
   cena: {
     janela: [500, 0, 941, 262],
-    painel: [[155, 340, 790, 1290]],
+    painel: [
+      [155, 405, 790, 1290],
+      [388, 350, 552, 410],
+    ],
     sol: { x0: 540, x1: 860, horizonte: 215, alto: 40 },
     lua: [720, 85, 18],
     chama: [300, 210, 15, 33],
@@ -193,6 +197,8 @@ export class Entrada {
   private modo: Modo = 'entrar';
   private esperando = false;
   private quadro = 0;
+  /** as mariposas que rodeiam a vela acesa, de noite */
+  private mariposas = Array.from({ length: 3 }, (_, i) => ({ f: i * 2.1, v: 0.018 + i * 0.006, r: 20 + i * 9, o: i * 1.7 }));
   private particulas: { x: number; y: number; vx: number; vy: number; r: number; f: number; quente: boolean; magia: boolean }[] = [];
   private erroTempo = 0;
   private aoRedimensionar = () => this.ajustar();
@@ -488,6 +494,19 @@ export class Entrada {
     this.mostrarSom();
   }
 
+  /**
+   * Muda a cena sem recarregar: o clima (e o som dele), a vela e o monstro. A música não para.
+   * (O passeio da prévia usa isto; no jogo, o clima fica o da visita.)
+   */
+  mudarCena(op: { clima?: Clima; vela?: boolean; monstro?: boolean }) {
+    this.cena.mudar(op);
+    const s = this.cena.sorteio;
+    if (op.clima) this.trilha.mudarClima(s.clima);
+    Object.assign(this.el.dataset, { clima: s.clima, vela: s.vela ? 'acesa' : 'apagada', monstro: s.monstro ? 'sim' : 'nao' });
+    this.el.style.setProperty('--vela', s.vela ? '1' : '0');
+    this.cena.aoMudar(this.cena);
+  }
+
   /** O botão do som: ligado (as barrinhas dançam quando toca), desligado, ou esperando o toque. */
   private mostrarSom() {
     const ligada = this.trilha.ligada;
@@ -691,6 +710,26 @@ export class Entrada {
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
         ctx.fill();
+      }
+      // as mariposas: voltas irregulares em volta da chama (só de noite, com a vela acesa)
+      const escuro = noite + dourado * 0.5;
+      if (velaAcesa && escuro > 0.45 && !['chuva', 'tempestade'].includes(this.cena.sorteio.clima)) {
+        const [cx, cy] = L.cena.chama;
+        for (const m of this.mariposas) {
+          m.f += m.v * dt;
+          const raio = m.r * (0.75 + 0.35 * Math.sin(m.f * 0.7 + m.o));
+          const x = cx + Math.cos(m.f * 1.9 + m.o) * raio * 1.15;
+          const y = cy + 16 + Math.sin(m.f * 1.3 + m.o) * raio * 0.7;
+          // as asas batem: o ponto alterna entre aberto (mais largo) e fechado
+          const aberta = Math.sin(m.f * 40) > 0;
+          ctx.fillStyle = `rgba(255, 238, 190, ${0.85 * escuro})`;
+          ctx.fillRect(Math.round(x), Math.round(y), 2, 2);
+          if (aberta) ctx.fillRect(Math.round(x) - 2, Math.round(y), 6, 1);
+          ctx.fillStyle = `rgba(255, 190, 110, ${0.14 * escuro})`;
+          ctx.beginPath();
+          ctx.arc(x + 1, y + 1, 7, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
     };
     this.quadro = requestAnimationFrame(passo);

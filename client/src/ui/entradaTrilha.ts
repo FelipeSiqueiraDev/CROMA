@@ -183,6 +183,9 @@ export class Trilha {
   /** qual música da lista do universo (1, 2...) */
   readonly indice: number;
   private tonal: GainNode | null = null;
+  /** o controle do volume da chuva e do vento (muda com o clima) */
+  private gChuva: GainNode | null = null;
+  private gVento: GainNode | null = null;
   private luzDia = 0;
   private velaAcesa = true;
   private fechada = false;
@@ -403,8 +406,9 @@ export class Trilha {
     this.atraso.connect(volta).connect(this.atraso);
     volta.connect(this.filtro);
     // o ambiente
-    const chuva = this.clima === 'chuva' || this.clima === 'tempestade';
-    this.laco('bandpass', 2200, 0.6, chuva ? (this.clima === 'tempestade' ? 0.16 : 0.11) : 0);
+    // (a chuva e o vento sempre existem, com volume zero quando o clima não os tem: assim o clima
+    // pode mudar ao vivo)
+    this.gChuva = this.laco('bandpass', 2200, 0.6, this.nivelChuva(), this.mestre);
     if (this.universo === 'cyberpunk') {
       // o zumbido baixinho do letreiro de neon
       const o = ac.createOscillator();
@@ -419,22 +423,39 @@ export class Trilha {
       o.connect(f).connect(g).connect(this.mestre);
       o.start();
     }
-    const vento = this.laco('bandpass', 420, 1.2, this.clima === 'neve' || this.clima === 'neblina' || this.clima === 'tempestade' ? 0.07 : 0);
-    if (vento) {
-      // o vento sobe e desce
-      const lfo = ac.createOscillator();
-      const prof = ac.createGain();
-      lfo.frequency.value = 0.07;
-      prof.gain.value = 0.05;
-      lfo.connect(prof).connect(vento.gain);
-      lfo.start();
-    }
+    // o vento sobe e desce (um tremor lento no volume, depois do controle do clima)
+    const sobeDesce = ac.createGain();
+    sobeDesce.gain.value = 0.65;
+    sobeDesce.connect(this.mestre);
+    const lfo = ac.createOscillator();
+    const prof = ac.createGain();
+    lfo.frequency.value = 0.07;
+    prof.gain.value = 0.35;
+    lfo.connect(prof).connect(sobeDesce.gain);
+    lfo.start();
+    this.gVento = this.laco('bandpass', 420, 1.2, this.nivelVento(), sobeDesce);
+  }
+
+  /** O clima mudou ao vivo: a chuva e o vento sobem ou descem sem corte. */
+  mudarClima(clima: Clima) {
+    this.clima = clima;
+    const ac = this.ac;
+    if (!ac) return;
+    this.gChuva?.gain.setTargetAtTime(this.nivelChuva(), ac.currentTime, 1.2);
+    this.gVento?.gain.setTargetAtTime(this.nivelVento(), ac.currentTime, 1.2);
+  }
+
+  private nivelChuva() {
+    return this.clima === 'tempestade' ? 0.16 : this.clima === 'chuva' ? 0.11 : 0;
+  }
+  private nivelVento() {
+    return this.clima === 'neve' || this.clima === 'neblina' || this.clima === 'tempestade' ? 0.07 : 0;
   }
 
   /** Ruído em laço, filtrado (a chuva, o vento). */
-  private laco(tipo: BiquadFilterType, freq: number, q: number, volume: number): GainNode | null {
+  private laco(tipo: BiquadFilterType, freq: number, q: number, volume: number, destino: AudioNode): GainNode | null {
     const ac = this.ac;
-    if (!ac || !this.ruido || !this.mestre || volume <= 0) return null;
+    if (!ac || !this.ruido) return null;
     const src = ac.createBufferSource();
     src.buffer = this.ruido;
     src.loop = true;
@@ -444,7 +465,7 @@ export class Trilha {
     f.Q.value = q;
     const g = ac.createGain();
     g.gain.value = volume;
-    src.connect(f).connect(g).connect(this.mestre);
+    src.connect(f).connect(g).connect(destino);
     src.start();
     return g;
   }

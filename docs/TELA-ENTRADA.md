@@ -62,11 +62,16 @@ Neve parada nos telhados o código não faz: cada cidade tem também a versão c
 - [ ] horror · [ ] horror com neve
 - [ ] cyberpunk · [ ] cyberpunk com neve
 
+## A prévia
+
+A prévia publicada (artefato "Entrada Viva do CRONA") tem o **Passeio pelos momentos**: roda sozinho ao abrir e atravessa a madrugada, o amanhecer, a manhã, o meio-dia com nuvens, a chuva, a tempestade (com relâmpago e trovão), o entardecer, a noite com a lua e algo no escuro, a neblina e a neve, com uma legenda de cada momento. Clima, vela e monstro mudam **ao vivo** (`Entrada.mudarCena`, `Cena.mudar`, `Trilha.mudarClima`), sem reiniciar a música: a chuva e o vento sobem e descem sozinhos no som. Qualquer botão manual para o passeio.
+
 ## Decisões
 
 - **06/10:** a tela de entrada não usa nada dos agentes da campanha; é genérica, em vários universos de RPG, no estilo da arte de hoje, variando os elementos, a hora e o clima.
 - **07/10:** três temas: fantasia, horror e cyberpunk (paranormal e Tormenta saíram). Cada tema é **uma imagem inteira**, igual à de hoje, editada pelo Códex a partir dela; o kit em camadas (peças separadas montadas pelo jogo) foi testado e recusado: "parecia um monte de PNG jogado um em cima do outro". As miniaturas do teste ficaram como referência do estilo.
 - **07/10:** o monstro (ou o sossego) fica no tabuleiro, nas miniaturas pintadas em cima do mapa.
+- **07/10:** o tempo fechado apaga a luz do dia (um véu frio e escuro sobre a sala, fora do painel), a tempestade tem céu cinza-chumbo, nuvens pesadas, chuva densa e inclinada e o relâmpago pisca duas vezes; as mariposas rodeiam a vela acesa de noite; o dia clareia a sala (o laranja da vela pintada sai).
 - **07/10:** nas imagens dos temas, os vidros da janela vêm em magenta e lá fora entra a cidade do tema, com luz neutra, numa versão normal e numa com neve (sol, chuva e neblina são efeito do código). A primeira é a paisagem do lote 1.
 - **07/10:** as estrelinhas em volta do emblema saíram da arte parada e voltaram animadas: são as mesmas da arte, recortadas (`client/public/arte/login/brilhos/`, posições em `client/src/ui/entradaBrilhos.json`), cada uma piscando no seu ritmo; as grandes respiram e de vez em quando faíscam. Um brilho passa pelas letras do CRONA de tempos em tempos. O campo selecionado acende inteiro (sem o contorno quadrado do campo de dentro).
 - **07/10:** o botão ENTRAR fica sem ícones; só o brilho que corre pelo ouro.
