@@ -33,8 +33,12 @@ const TELAS = {
   celular: { w: 941, h: 1672, gw: 1024, gh: 1536, x: 80, y: 0, iw: 864, ih: 1536, cx: 160, cy: 0 },
 };
 /**
- * o contorno do painel em cada tela (a moldura dourada com os cantos cortados, o emblema por cima e o
- * enfeite de baixo): o mesmo que o jogo usa (client/src/ui/entradaPainel.json) para não iluminar o painel
+ * o painel em cada tela (client/src/ui/entradaPainel.json, que o jogo também usa):
+ *   contorno: a moldura dourada com os cantos cortados e o enfeite de baixo (o jogo não ilumina o que está
+ *             dentro dele); o emblema não entra, ele sobe por cima do painel na imagem da logo
+ *   apagar:   o que tirar do painel desenhado de hoje (o emblema e as letras do CRONA, que agora são a logo
+ *             nova, uma imagem por cima): cada retângulo é refeito repetindo, na horizontal, uma faixa limpa
+ *             do painel (`larg` colunas a partir de `origem`) na mesma altura
  */
 const PAINEL = JSON.parse(fs.readFileSync(path.join(RAIZ, 'client/src/ui/entradaPainel.json'), 'utf8'));
 const UNIVERSOS = ['fantasia', 'horror', 'cyberpunk'];
@@ -56,7 +60,7 @@ async function bases(pasta) {
 function mascara(tela, sombra = false) {
   const T = TELAS[tela];
   const dy = sombra ? 7 : 0;
-  const poligonos = PAINEL[tela].map((p) => `<polygon points="${p.map(([x, y]) => `${x},${y + dy}`).join(' ')}" fill="#fff"/>`).join('');
+  const poligonos = PAINEL[tela].contorno.map((p) => `<polygon points="${p.map(([x, y]) => `${x},${y + dy}`).join(' ')}" fill="#fff"/>`).join('');
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${T.w}" height="${T.h}"><rect width="100%" height="100%" fill="#000"/>${poligonos}</svg>`;
   return sharp(Buffer.from(svg)).blur(sombra ? 9 : 1).toColourspace('b-w').raw().toBuffer();
 }
@@ -70,6 +74,11 @@ async function encaixar(entrega, universo, tela) {
   const meio = await sharp(cheia).extract({ left: T.cx, top: T.cy, width: T.iw, height: T.ih }).png().toBuffer();
   const corpo = await sharp(meio).resize(T.w, T.h, { kernel: 'lanczos3', fit: 'fill' }).removeAlpha().raw().toBuffer();
   const hoje = await sharp(path.join(LOGIN, `fundo-${tela}.webp`)).removeAlpha().raw().toBuffer();
+  for (const { x0, y0, x1, y1, origem, larg } of PAINEL[tela].apagar) {
+    for (let y = y0; y < y1; y++)
+      for (let x = x0; x < x1; x++)
+        for (let c = 0; c < 3; c++) hoje[(y * T.w + x) * 3 + c] = hoje[(y * T.w + origem + ((x - x0) % larg)) * 3 + c];
+  }
   const m = await mascara(tela);
   const sombra = await mascara(tela, true);
   const saida = Buffer.alloc(T.w * T.h * 3);

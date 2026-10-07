@@ -53,50 +53,51 @@
   pointer-events: none;
   image-rendering: pixelated;
 }
-/* o brilho que passa pelo emblema e pelas letras do CRONA: as máscaras são as partes douradas da arte.
-   Uma faixa varre da esquerda para a direita (primeiro o emblema, depois as letras) e, por onde passa,
-   troca o dourado pela variação azul-prateada da logo (o relevo fica, só a cor muda), com um clarão
-   azul em volta e um fio de luz branca no meio. */
-.ent-ouro {
+/* A logo do CRONA (o d20 com as letras, a imagem que o Felipe mandou) fica por cima do painel. Por cima
+   dela, de tempos em tempos, uma faixa varre da esquerda para a direita e revela a variação azul-prateada
+   da mesma logo (outra imagem), com um clarão azul em volta e um fio de luz branca no meio. As estrelinhas
+   em volta do emblema são as da própria logo, recortadas, cada uma piscando no seu ritmo (.fx-brilho). */
+.ent-marca {
   position: absolute;
   pointer-events: none;
-  -webkit-mask-size: 100% 100%;
-  mask-size: 100% 100%;
-  background-repeat: no-repeat;
-  background-size: 400% 100%;
-  background-position: 100% 0;
-  animation: ent-ouro-varre 8s var(--atraso, 2.4s) infinite;
+  user-select: none;
 }
-.ent-logo {
+.ent-marca-azul,
+.ent-marca-fio {
+  --faixa: linear-gradient(105deg, transparent 33%, #000 45%, #000 55%, transparent 67%);
+  -webkit-mask-image: var(--faixa);
+  mask-image: var(--faixa);
+  -webkit-mask-size: 400% 100%;
+  mask-size: 400% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: 100% 0;
+  mask-position: 100% 0;
+  animation: ent-marca-varre 8s 2.4s infinite;
+}
+.ent-marca-azul {
+  filter: drop-shadow(0 0 4px rgba(120, 170, 255, 0.95)) drop-shadow(0 0 12px rgba(80, 130, 255, 0.55));
+}
+.ent-marca-fio {
+  --faixa: linear-gradient(105deg, transparent 42%, #000 49%, #000 51%, transparent 58%);
   mix-blend-mode: screen;
-  background-image: linear-gradient(105deg, transparent 44%, rgba(255, 250, 235, 0.95) 49.5%, rgba(255, 236, 190, 0.5) 52%, transparent 57%);
-  --atraso: 2.72s;
+  filter: brightness(2.6) saturate(0.2);
+  animation-delay: 2.52s;
 }
-.ent-ouro-azul {
-  mix-blend-mode: color;
-  background-image: linear-gradient(
-    105deg,
-    transparent 33%,
-    rgba(96, 146, 250, 0.55) 40%,
-    rgba(150, 188, 255, 0.95) 45%,
-    rgba(224, 236, 255, 1) 50%,
-    rgba(150, 188, 255, 0.95) 55%,
-    rgba(96, 146, 250, 0.55) 60%,
-    transparent 67%
-  );
-}
-.ent-ouro-halo {
-  mix-blend-mode: screen;
-  background-image: linear-gradient(105deg, transparent 33%, rgba(80, 132, 255, 0.5) 42%, rgba(160, 200, 255, 0.85) 50%, rgba(80, 132, 255, 0.5) 58%, transparent 67%);
-}
-@keyframes ent-ouro-varre {
+@keyframes ent-marca-varre {
   0% {
-    background-position: 100% 0;
+    -webkit-mask-position: 100% 0;
+    mask-position: 100% 0;
   }
   26%,
   100% {
-    background-position: 0% 0;
+    -webkit-mask-position: 0% 0;
+    mask-position: 0% 0;
   }
+}
+/* sem a imagem do tema (a arte antiga de hoje), a logo já vem desenhada nela */
+.entrada[data-fundo='hoje'] :is(.ent-marca, .fx-brilho) {
+  display: none;
 }
 
 /* ---------------------------------------------------------------- o som
@@ -900,7 +901,8 @@
   .ent-som-barras i,
   .ent-som-caixa,
   .ent-som-dica,
-  .ent-ouro,
+  .ent-marca-azul,
+  .ent-marca-fio,
   .ent-principal,
   .entrada.pronta .ent-painel > *,
   .ent-painel.troca > * {

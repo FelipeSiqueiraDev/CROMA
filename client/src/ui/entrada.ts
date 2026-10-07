@@ -2,7 +2,7 @@ import type { ClientMsg } from '@crona/shared';
 import { h } from './dom';
 import { existeArte } from './icons';
 import { Cena, UNIVERSOS, pedidos, type CenaLayout, type Clima, type Pol } from './entradaCena';
-import BRILHOS from './entradaBrilhos.json';
+import MARCA from './entradaMarca.json';
 import PAINEL from './entradaPainel.json';
 import { Trilha } from './entradaTrilha';
 
@@ -31,6 +31,13 @@ interface Ret {
   h: number;
 }
 
+interface Marca extends Ret {
+  /** o meio do emblema */
+  emblema: number[];
+  /** as estrelinhas da logo: onde ficam (x, y, w, h), onde estão na folha (sx) e o tamanho (tam) */
+  brilhos: { x: number; y: number; w: number; h: number; sx: number; tam: number }[];
+}
+
 interface Layout {
   nome: 'computador' | 'celular';
   w: number;
@@ -46,10 +53,11 @@ interface Layout {
   campo: { x: number; w: number };
   entrar: { email: Caixa; senha: Caixa; botao: Caixa; ou: number; outro: Caixa };
   criar: { nome: Caixa; email: Caixa; senha: Caixa; botao: Caixa; ou: number; outro: Caixa };
-  /** as letras do CRONA na arte (o brilho passa por elas) */
-  logo: Ret;
-  /** o emblema (o d20 dourado) na arte: o brilho também passa por ele */
-  selo: Ret;
+  /**
+   * A logo do CRONA (o d20 com as letras), uma imagem por cima do painel, e as estrelinhas em volta dela
+   * (client/src/ui/entradaMarca.json, gerado por scripts/entrada-logo.py)
+   */
+  marca: Marca;
   /** x, y e raio do brilho */
   chama: [number, number, number];
   lua: [number, number, number];
@@ -69,23 +77,22 @@ const COMPUTADOR: Layout = {
   fundo: '/arte/login/fundo-computador.webp',
   u: 1,
   painel: { x: 862, y: 384, w: 510, h: 368 },
-  moldura: { x: 845, y: 92, w: 550, h: 735 },
+  moldura: { x: 845, y: 28, w: 550, h: 799 },
   campo: { x: 905, w: 421 },
   entrar: { email: [398, 59], senha: [475, 59], botao: [553, 61], ou: 653, outro: [678, 50] },
   criar: { nome: [396, 52], email: [458, 52], senha: [520, 52], botao: [584, 56], ou: 656, outro: [678, 50] },
-  logo: { x: 955, y: 262, w: 335, h: 84 },
-  selo: { x: 1016, y: 74, w: 204, h: 190 },
+  marca: MARCA.computador,
   chama: [429, 160, 205],
   lua: [1448, 27, 64],
   fumaca: [1560, 345],
-  emblema: [1118, 178, 115],
+  emblema: [...MARCA.computador.emblema, 130] as [number, number, number],
   ceu: [1250, 0, 1672, 110],
   cena: {
     // a janela: nas imagens dos temas os vidros em magenta vão de 834 a 1672, até a altura 240 (o painel
     // cobre parte dele)
     janela: [820, 0, 1672, 245],
     // o painel, o escudo do emblema que sobe acima dele e o enfeite de baixo
-    painel: PAINEL.computador as Pol[],
+    painel: PAINEL.computador.contorno as Pol[],
     // o sol atravessa a janela de um lado ao outro, até o horizonte da cidade
     sol: { x0: 880, x1: 1650, horizonte: 122, alto: 24 },
     lua: [1330, 40, 15],
@@ -113,20 +120,19 @@ const CELULAR: Layout = {
   fundo: '/arte/login/fundo-celular.webp',
   u: 1.36,
   painel: { x: 176, y: 716, w: 598, h: 480 },
-  moldura: { x: 155, y: 355, w: 635, h: 935 },
+  moldura: { x: 155, y: 288, w: 635, h: 1002 },
   campo: { x: 217, w: 506 },
   entrar: { email: [740, 79], senha: [839, 79], botao: [941, 80], ou: 1063, outro: [1097, 69] },
   criar: { nome: [736, 68], email: [818, 68], senha: [900, 68], botao: [984, 72], ou: 1076, outro: [1097, 69] },
-  logo: { x: 280, y: 580, w: 400, h: 88 },
-  selo: { x: 362, y: 352, w: 216, h: 222 },
+  marca: MARCA.celular,
   chama: [192, 205, 230],
   lua: [720, 85, 72],
   fumaca: [848, 495],
-  emblema: [470, 478, 140],
+  emblema: [...MARCA.celular.emblema, 160] as [number, number, number],
   ceu: [505, 0, 941, 250],
   cena: {
     janela: [415, 0, 941, 320],
-    painel: PAINEL.celular as Pol[],
+    painel: PAINEL.celular.contorno as Pol[],
     sol: { x0: 440, x1: 850, horizonte: 106, alto: 24 },
     lua: [700, 45, 18],
     chama: [192, 204, 20, 36],
@@ -171,12 +177,13 @@ export class Entrada {
   private fundo: HTMLImageElement;
   private fx: HTMLElement;
   private poeira: HTMLCanvasElement;
-  private logo: HTMLElement;
-  /** a variação azul-prateada da logo: uma faixa que passa pelas letras e pelo emblema (e o brilho em volta) */
-  private logoAzul: HTMLElement;
-  private logoHalo: HTMLElement;
-  private seloAzul: HTMLElement;
-  private seloHalo: HTMLElement;
+  /**
+   * A logo (dourada), a variação azul-prateada dela (uma faixa que a revela de tempos em tempos, com um
+   * clarão azul em volta) e um fio de luz branca no meio da faixa
+   */
+  private marcaOuro: HTMLImageElement;
+  private marcaAzul: HTMLImageElement;
+  private marcaFio: HTMLImageElement;
   /** a cidade lá fora do tema (atrás dos vidros em magenta) e a versão dela com neve, se existirem */
   private paisagem: { normal: string; neve: string | null } | null = null;
   /** o fundo vivo: a hora, o clima e o universo sorteado */
@@ -215,12 +222,14 @@ export class Entrada {
   constructor(private op: EntradaOpcoes) {
     this.fundo = h('img', { class: 'ent-fundo', alt: '', draggable: 'false' });
     this.poeira = h('canvas', { class: 'ent-poeira', 'aria-hidden': 'true' });
-    this.logo = h('div', { class: 'ent-ouro ent-logo', 'aria-hidden': 'true' });
-    const ouro = (cls: string, atraso: string) => h('div', { class: `ent-ouro ${cls}`, 'aria-hidden': 'true', style: `--atraso:${atraso}` });
-    this.logoAzul = ouro('ent-ouro-azul', '2.6s');
-    this.logoHalo = ouro('ent-ouro-halo', '2.6s');
-    this.seloAzul = ouro('ent-ouro-azul', '2.2s');
-    this.seloHalo = ouro('ent-ouro-halo', '2.2s');
+    const marca = (cls: string, src: string) => {
+      const img = h('img', { class: `ent-marca ${cls}`, alt: '', draggable: 'false', 'aria-hidden': 'true' });
+      img.src = src;
+      return img;
+    };
+    this.marcaOuro = marca('ent-marca-ouro', '/arte/login/logo-ouro.webp');
+    this.marcaAzul = marca('ent-marca-azul', '/arte/login/logo-azul.webp');
+    this.marcaFio = marca('ent-marca-fio', '/arte/login/logo-ouro.webp');
     this.fx = h('div', { class: 'ent-fx', 'aria-hidden': 'true' });
     const campo = (qual: 'nome' | 'email' | 'senha', rotulo: string, tipo: string, auto: string) => {
       const input = h('input', { class: 'ent-input', type: tipo, placeholder: rotulo, 'aria-label': rotulo, autocomplete: auto, spellcheck: 'false', autocapitalize: 'off' });
@@ -252,7 +261,7 @@ export class Entrada {
       this.erroEl,
       this.outro,
     );
-    this.palco = h('div', { class: 'ent-palco' }, this.fundo, this.cena.ceu, this.cena.arte, this.fx, this.cena.luz, this.poeira, this.logoHalo, this.seloHalo, this.logo, this.logoAzul, this.seloAzul, this.painel);
+    this.palco = h('div', { class: 'ent-palco' }, this.fundo, this.cena.ceu, this.cena.arte, this.fx, this.cena.luz, this.poeira, this.marcaOuro, this.marcaAzul, this.marcaFio, this.painel);
     const s = this.cena.sorteio;
     const pedida = Number(pedidos.ler('musica'));
     this.trilha = new Trilha(s.universo, s.clima, Number.isFinite(pedida) && pedida > 0 ? pedida : undefined);
@@ -299,7 +308,7 @@ export class Entrada {
       // a cena reiluminada fica por cima da arte; a tela aparece quando ela fica pronta
       const L = this.layout;
       if (!L) return;
-      this.mascarasDoOuro(L);
+      this.posicionarMarca(L);
       // se a cena demorar ou falhar (a imagem de outro endereço não deixa ler os pixels), a tela
       // aparece com a arte de sempre e os brilhos em CSS
       const semCena = () => {
@@ -538,59 +547,10 @@ export class Entrada {
   }
 
   // ---------------------------------------------------------------- palco
-  /**
-   * As partes douradas da arte (as letras do CRONA e o emblema) viram máscaras: por elas passam o
-   * brilho dourado e a variação azul-prateada da logo (uma faixa que troca o ouro por prata e azul, sem
-   * perder o relevo), com um brilho azul em volta (a máscara borrada).
-   */
-  private mascarasDoOuro(L: Layout) {
-    const FOLGA = 14;
-    const grupos: [Ret, HTMLElement[], HTMLElement][] = [
-      [L.logo, [this.logo, this.logoAzul], this.logoHalo],
-      [L.selo, [this.seloAzul], this.seloHalo],
-    ];
-    for (const [{ x, y, w, h: alt }, nucleos, halo] of grupos) {
-      const todos = [...nucleos, halo];
-      try {
-        const c = document.createElement('canvas');
-        c.width = w;
-        c.height = alt;
-        const ctx = c.getContext('2d', { willReadFrequently: true })!;
-        ctx.drawImage(this.fundo, x, y, w, alt, 0, 0, w, alt);
-        const img = ctx.getImageData(0, 0, w, alt);
-        const d = img.data;
-        for (let i = 0; i < d.length; i += 4) {
-          const ouro = d[i] > 120 && d[i + 1] > 70 && d[i] - d[i + 2] > 60;
-          const a = ouro ? Math.min(255, (d[i] + d[i + 1]) * 0.55) : 0;
-          d[i] = d[i + 1] = d[i + 2] = 255;
-          d[i + 3] = a;
-        }
-        ctx.putImageData(img, 0, 0);
-        const url = `url(${c.toDataURL()})`;
-        for (const el of nucleos) {
-          Object.assign(el.style, { left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${alt}px` });
-          el.style.setProperty('mask-image', url);
-          el.style.setProperty('-webkit-mask-image', url);
-        }
-        // o brilho em volta: o mesmo desenho, borrado (só a sombra aparece)
-        const g = document.createElement('canvas');
-        g.width = w + FOLGA * 2;
-        g.height = alt + FOLGA * 2;
-        const gx = g.getContext('2d')!;
-        gx.shadowColor = '#fff';
-        gx.shadowBlur = 9;
-        gx.shadowOffsetX = 10000;
-        for (let k = 0; k < 2; k++) gx.drawImage(c, FOLGA - 10000, FOLGA);
-        const gurl = `url(${g.toDataURL()})`;
-        Object.assign(halo.style, { left: `${x - FOLGA}px`, top: `${y - FOLGA}px`, width: `${w + FOLGA * 2}px`, height: `${alt + FOLGA * 2}px` });
-        halo.style.setProperty('mask-image', gurl);
-        halo.style.setProperty('-webkit-mask-image', gurl);
-        for (const el of todos) el.hidden = false;
-      } catch {
-        // a imagem de outro endereço não deixa ler os pixels: fica sem o brilho
-        for (const el of todos) el.hidden = true;
-      }
-    }
+  /** A logo nova, no lugar dela em cada tela (o painel desenhado não tem mais o emblema nem as letras). */
+  private posicionarMarca(L: Layout) {
+    const { x, y, w, h: alt } = L.marca;
+    for (const el of [this.marcaOuro, this.marcaAzul, this.marcaFio]) Object.assign(el.style, { left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${alt}px` });
   }
 
   /** Escala a arte para cobrir a tela, com o painel inteiro à vista. */
@@ -679,7 +639,7 @@ export class Entrada {
     for (let i = 0; i < 4; i++) nodes.push(em(fx + (i % 2 ? 10 : -6) * L.u, fy, 'fx-fumaca fx-vapor', `animation-delay:${(i * 1.25).toFixed(2)}s`));
     // as estrelinhas em volta do emblema: as da arte, recortadas (scripts na pasta da entrada),
     // cada uma piscando no seu ritmo; as grandes respiram devagar e de vez em quando faíscam
-    for (const b of BRILHOS[L.nome]) {
+    for (const b of L.marca.brilhos) {
       const tipo = b.tam > 300 ? 'grande' : b.tam > 60 ? 'media' : 'pequena';
       const dur = { grande: 3.6, media: 2.8, pequena: 2.1 }[tipo] + Math.random() * 1.4;
       nodes.push(
