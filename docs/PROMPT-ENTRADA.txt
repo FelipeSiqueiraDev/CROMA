@@ -7,8 +7,13 @@ monstros), os dados (que rolam ao abrir a página), a vela e a caneca. Por isso 
 SEPARADA e com LUZ NEUTRA: o jogo é que faz o dia, a noite, a vela, a chuva, a neve e o relâmpago.
 
 Como usar: cole o BLOCO DE ESTILO e depois o pedido de UMA peça por vez. Anexe sempre a imagem de
-referência client/public/arte/login/fundo-computador.webp (a tela de hoje). Salve cada imagem com
-o nome pedido. Comece pelo LOTE 1 (sete imagens): o Felipe aprova o estilo antes do resto.
+referência client/public/arte/login/fundo-computador.webp (a tela de hoje; na sala do celular,
+a fundo-celular.webp). Salve cada imagem com o nome pedido. Comece pelo LOTE 1 (oito imagens):
+o Felipe aprova o estilo antes do resto.
+
+O celular vale tanto quanto o computador: as peças (mapa, miniaturas, dados, objetos, paisagem)
+servem para os dois, e só a sala tem uma versão para cada tela. No celular, a tela corta um pouco
+dos dois lados da imagem: o que importa fica longe das bordas.
 
 
 -------------------------------------------------------------------------------------------------
@@ -40,6 +45,16 @@ fica o painel de login, pode ser só mesa e parede (o painel vai por cima).
 OS VIDROS DA JANELA ficam pintados de MAGENTA PURO chapado (#FF00FF), sem nada atrás: sem céu,
 sem castelo, sem reflexo. A moldura e os caixilhos da janela continuam desenhados, em madeira.
 Luz neutra (bloco de estilo).
+
+1b) sala-celular.png — 1024×1536, imagem cheia (sem transparência)
+A sala da tela do celular de hoje (anexe client/public/arte/login/fundo-celular.webp), com o
+mesmo enquadramento em pé: a estante com os livros à esquerda, a hera, a janela em cima à direita,
+o livro grande e o pano embaixo à esquerda. Como na 1: A MESA VAZIA (sem mapa, dados, miniaturas,
+vela, caneca, bússola, moedas e pena), os VIDROS DA JANELA em MAGENTA PURO chapado (#FF00FF), luz
+neutra. O meio da imagem, onde fica o painel de login, pode ser só parede e mesa. Deixe a faixa de
+baixo da mesa (o último quarto da imagem) bem livre e à vista: é ali que o mapa, as miniaturas e
+os dados aparecem no celular. Nada importante a menos de 10% das bordas da esquerda e da direita
+(o celular corta essas faixas).
 
 2) paisagem-fantasia.png — 1536×1024
 A vista pela janela, mais nada (sem moldura de janela, sem sala): um vilarejo medieval de fantasia
@@ -139,5 +154,3 @@ Objetos (como o 7, grade 4 × 2):
 - objetos-mesa-2.png: pergaminho enrolado · frasco de poção azul · bússola de latão · pilha de
   moedas de ouro · ampulheta · crânio · adaga · tinteiro com pena
 
-Celular (depois): sala-celular.png, 1024×1536, a sala da tela do celular de hoje
-(client/public/arte/login/fundo-celular.webp), vazia e com os vidros em magenta, como a 1.

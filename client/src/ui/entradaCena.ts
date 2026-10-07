@@ -332,11 +332,20 @@ export class Cena {
   private proximoRelampago = 3000;
   private olhos: { x: number; y: number; escala: number; piscar: number; abertos: number; dentro: boolean }[] = [];
   private proximaPiscada = 0;
+  /** o pedaço da arte que a tela mostra (x0, y0, x1, y1), posto pela entrada a cada ajuste */
+  visivel: Ret4 | null = null;
+  /** O ponto aparece nesta tela (com folga)? */
+  private naTela(x: number, y: number, folga = 0) {
+    const v = this.visivel;
+    return !v || (x >= v[0] + folga && x <= v[2] - folga && y >= v[1] + folga && y <= v[3] - folga);
+  }
   /** a hora usada no último quadro */
   hora = 12;
   pesos = { noite: 1, dourado: 0, dia: 0 };
   /** para o CSS: quando a hora ou o relâmpago mudam */
   aoMudar: (c: Cena) => void = () => {};
+  /** cai um raio (o som do trovão) */
+  aoRelampago: () => void = () => {};
 
   constructor() {
     this.ceu = document.createElement('canvas');
@@ -574,7 +583,9 @@ export class Cena {
         }
         // dia: as sombras abrem, a luz fica neutra (o laranja da vela perde força)
         {
-          const sat = 1 - 0.35 * vela;
+          // a arte inteira é quente (a vela pintada): de dia o laranja perde força em tudo,
+          // mais perto da vela
+          const sat = 1 - 0.3 * vela - 0.22 * quente;
           let rr = l + (r - l) * sat;
           let gg = l + (g - l) * sat;
           let bb = l + (b - l) * sat;
@@ -647,13 +658,19 @@ export class Cena {
     // os olhos: lá fora, na janela (de noite), e no canto escuro da sala
     this.olhos = [];
     if (this.sorteio.monstro) {
+      // só onde aparece: fora do painel e dentro do pedaço da arte que esta tela mostra
+      // (o celular estreito corta as laterais)
+      const livre = (x: number, y: number) => this.naTela(x, y, 24) && !L.painel.some(([a, b, c, e]) => x > a - 20 && x < c + 20 && y > b - 20 && y < e + 20);
       const [jx0, jy0, jx1, jy1] = L.janela;
-      // fora do painel: o pedaço de janela que aparece
-      const [px0, , px1] = L.painel[0];
-      const livre0 = px1 < jx1 ? Math.max(jx0, px1) + 20 : jx0 + 20;
-      const livre1 = px1 < jx1 ? jx1 - 30 : Math.min(jx1, px0) - 20;
-      this.olhos.push({ x: livre0 + Math.random() * Math.max(10, livre1 - livre0), y: jy0 + (jy1 - jy0) * (0.45 + Math.random() * 0.25), escala: 1.4, piscar: 0, abertos: 0, dentro: false });
-      const canto = L.cantos[Math.floor(Math.random() * L.cantos.length)];
+      for (let k = 0; k < 40; k++) {
+        const x = jx0 + 20 + Math.random() * (jx1 - jx0 - 50);
+        const y = jy0 + (jy1 - jy0) * (0.45 + Math.random() * 0.25);
+        if (!livre(x, y)) continue;
+        this.olhos.push({ x, y, escala: 1.4, piscar: 0, abertos: 0, dentro: false });
+        break;
+      }
+      const cantos = L.cantos.filter(([x, y]) => livre(x, y));
+      const canto = cantos[Math.floor(Math.random() * cantos.length)];
       if (canto) this.olhos.push({ x: canto[0], y: canto[1], escala: 1, piscar: 0, abertos: 0, dentro: true });
     }
   }
@@ -750,7 +767,11 @@ export class Cena {
     // o sol: das 6h às 18h30, do horizonte ao alto e de volta
     const ts = (this.hora - 6) / 12.5;
     if (ts > -0.05 && ts < 1.05 && noite < 0.98) {
-      const sx = bx(L.sol.x0 + (L.sol.x1 - L.sol.x0) * ts);
+      // o caminho do sol fica no pedaço da janela que esta tela mostra
+      const v = this.visivel;
+      const s0 = v ? Math.max(L.sol.x0, v[0] + 30) : L.sol.x0;
+      const s1 = v ? Math.max(s0, Math.min(L.sol.x1, v[2] - 30)) : L.sol.x1;
+      const sx = bx(s0 + (s1 - s0) * ts);
       const sy = by(L.sol.horizonte - Math.sin(Math.PI * clamp(ts)) * (L.sol.horizonte - L.sol.alto));
       const cor = mix([255, 170, 90], [255, 246, 214], dia);
       const forca = (1 - noite) * (1 - fechado * 0.8);
@@ -832,7 +853,9 @@ export class Cena {
     const fora = this.olhos.find((o) => !o.dentro);
     if (fora && noite + dourado * 0.5 > 0.5) this.desenharOlhos(s, bx(fora.x), by(fora.y), fora, def.olhos, 1, true);
     // pássaros de dia, morcegos de noite
-    if (this.voadores.length < 3 && Math.random() < dt / 9000 && clima !== 'tempestade') {
+    // pássaros de dia (bem mais no sol), morcegos de noite
+    const sol = dia > 0.5 && (clima === 'limpo' || clima === 'nuvens');
+    if (this.voadores.length < (sol ? 9 : 3) && Math.random() < dt / (sol ? 3500 : 9000) && clima !== 'tempestade') {
       const n = 2 + Math.floor(Math.random() * 3);
       const tipo = noite > 0.5 ? 'morcego' : 'passaro';
       const y = bh * (0.15 + Math.random() * 0.4);
@@ -842,13 +865,23 @@ export class Cena {
     this.voadores = this.voadores.filter((v) => {
       v.x += v.v * dt;
       v.fase += dt / (v.tipo === 'morcego' ? 90 : 160);
-      const asa = Math.sin(v.fase) > 0 ? -1 : 0;
+      const cima = Math.sin(v.fase) > 0;
       const x = Math.round(v.x);
       const y = Math.round(v.y + Math.sin(v.fase * 0.3) * 1.5);
       s.fillRect(x, y, 1, 1);
-      s.fillRect(x - 1, y + asa, 1, 1);
-      s.fillRect(x + 1, y + asa, 1, 1);
-      if (v.tipo === 'morcego') s.fillRect(x - 2, y + asa + 1, 1, 1), s.fillRect(x + 2, y + asa + 1, 1, 1);
+      if (v.tipo === 'passaro') {
+        // um "v" que bate as asas: para cima e para baixo
+        s.fillRect(x - 1, y + (cima ? -1 : 0), 1, 1);
+        s.fillRect(x + 1, y + (cima ? -1 : 0), 1, 1);
+        s.fillRect(x - 2, y + (cima ? -2 : 1), 1, 1);
+        s.fillRect(x + 2, y + (cima ? -2 : 1), 1, 1);
+      } else {
+        const asa = cima ? -1 : 0;
+        s.fillRect(x - 1, y + asa, 1, 1);
+        s.fillRect(x + 1, y + asa, 1, 1);
+        s.fillRect(x - 2, y + asa + 1, 1, 1);
+        s.fillRect(x + 2, y + asa + 1, 1, 1);
+      }
       return v.x < bw + 6;
     });
     // neve: flocos de um pixel, devagar e balançando
@@ -894,6 +927,7 @@ export class Cena {
           for (let k = 0; k < 5; k++) galho.push([(gx += lado * (1 + Math.random() * 3)), (gy += 2 + Math.random() * 2)]);
           this.raio = [...pts, ...galho.length ? [[NaN, NaN] as [number, number], meio, ...galho] : []];
         } else this.raio = pts;
+        this.aoRelampago();
         this.aoMudar(this);
       }
     }

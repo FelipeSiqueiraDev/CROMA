@@ -121,9 +121,8 @@ Nada novo: usa os retratos, os ícones e as folhas da FICHAS. Os cartões de res
 
 O fundo da entrada em camadas, com luz neutra, em vários universos de RPG: a paisagem lá fora, a sala com a mesa vazia, os mapas, as miniaturas de heróis e monstros, os dados, os castiçais e as canecas. O pedido pronto (bloco de estilo, formato e nome de cada imagem) é o [`PROMPT-ENTRADA.txt`](PROMPT-ENTRADA.txt); como cada camada entra no jogo, em [`TELA-ENTRADA.md`](TELA-ENTRADA.md#o-kit-em-camadas-pedido-em-0710).
 
-- [ ] ✱ Lote 1, só no computador, para o Felipe aprovar: `sala-computador`, `paisagem-fantasia`, `mapa-reino`, `miniaturas-herois-fantasia`, `miniaturas-monstros-fantasia`, `dados-obsidiana`, `objetos-mesa-1`
+- [ ] ✱ Lote 1, para o Felipe aprovar: `sala-computador`, `sala-celular`, `paisagem-fantasia`, `mapa-reino`, `miniaturas-herois-fantasia`, `miniaturas-monstros-fantasia`, `dados-obsidiana`, `objetos-mesa-1`
 - [ ] Lote 2: as outras paisagens, mapas, miniaturas, dados e objetos (lista no pedido)
-- [ ] `sala-celular`
 
 ## O tabuleiro (revisto em 02/10)
 

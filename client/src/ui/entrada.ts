@@ -3,6 +3,7 @@ import { h } from './dom';
 import { Cena, UNIVERSOS, type CenaLayout } from './entradaCena';
 import REMENDOS from './entradaRemendos.json';
 import BRILHOS from './entradaBrilhos.json';
+import { Trilha } from './entradaTrilha';
 
 /**
  * A tela de entrada da plataforma: a arte do Felipe (a mesa de RPG à luz de vela, com o painel
@@ -90,6 +91,7 @@ const COMPUTADOR: Layout = {
       [165, 95],
       [1645, 262],
       [25, 135],
+      [815, 915],
     ],
     raios: { y0: 140, y1: 941, xs: [1430, 1515, 1600], desvio: 300, largura: 30 },
     nevoa: [0, 640, 1672, 941],
@@ -116,14 +118,15 @@ const CELULAR: Layout = {
   cena: {
     janela: [500, 0, 941, 262],
     painel: [[155, 340, 790, 1290]],
-    sol: { x0: 555, x1: 880, horizonte: 215, alto: 40 },
+    sol: { x0: 540, x1: 860, horizonte: 215, alto: 40 },
     lua: [720, 85, 18],
     chama: [300, 210, 15, 33],
     remendos: REMENDOS.celular as CenaLayout['remendos'],
     cantos: [
+      [150, 70],
+      [614, 316],
+      [246, 1364],
       [75, 475],
-      [165, 65],
-      [915, 385],
     ],
     raios: { y0: 262, y1: 1672, xs: [570, 690, 810], desvio: 360, largura: 40 },
     nevoa: [0, 1250, 941, 1672],
@@ -138,6 +141,7 @@ const ICONE = {
   senha: SVG('<rect x="5" y="10.5" width="14" height="10"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/><path d="M12 14.5v2.5"/>'),
   nome: SVG('<circle cx="12" cy="8.5" r="3.6"/><path d="M4.5 20.5c1.2-4 4-5.6 7.5-5.6s6.3 1.6 7.5 5.6"/>'),
   ver: SVG('<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="2.8"/>'),
+  som: SVG('<path d="M4 9.5h4l5-4.5v14l-5-4.5H4z"/>'),
   esconder: SVG('<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="2.8"/><path d="M4 20 20 4"/>'),
 };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -160,6 +164,14 @@ export class Entrada {
   private logo: HTMLElement;
   /** o fundo vivo: a hora, o clima e o universo sorteado */
   private cena = new Cena();
+  /** a trilha e o som do ambiente */
+  private trilha: Trilha;
+  private botaoSom: HTMLButtonElement;
+  private aoTocar = (ev: Event) => {
+    if (ev.target instanceof Node && this.botaoSom.contains(ev.target)) return;
+    this.trilha.comecar();
+    this.mostrarSom();
+  };
   private painel: HTMLFormElement;
   private campos: Record<'nome' | 'email' | 'senha', { caixa: HTMLElement; input: HTMLInputElement }>;
   private olho: HTMLButtonElement;
@@ -212,13 +224,24 @@ export class Entrada {
       this.outro,
     );
     this.palco = h('div', { class: 'ent-palco' }, this.fundo, this.cena.ceu, this.cena.arte, this.fx, this.cena.luz, this.poeira, this.logo, this.painel);
-    this.el = h('div', { class: 'entrada', role: 'dialog', 'aria-label': 'Entrar no CRONA' }, this.palco);
     const s = this.cena.sorteio;
+    this.trilha = new Trilha(s.universo, s.clima);
+    this.botaoSom = h(
+      'button',
+      { class: 'ent-som', type: 'button', onclick: () => (this.trilha.alternar(), this.mostrarSom()) },
+      h('span', { class: 'ent-som-ic', html: ICONE.som }),
+      h('span', { class: 'ent-som-barras', 'aria-hidden': 'true' }, h('i'), h('i'), h('i')),
+    );
+    this.el = h('div', { class: 'entrada', role: 'dialog', 'aria-label': 'Entrar no CRONA' }, this.palco, this.botaoSom);
+    this.mostrarSom();
+    this.el.addEventListener('pointerdown', this.aoTocar);
     Object.assign(this.el.dataset, { universo: s.universo, clima: s.clima, vela: s.vela ? 'acesa' : 'apagada', monstro: s.monstro ? 'sim' : 'nao' });
     this.el.style.setProperty('--chama', UNIVERSOS[s.universo].luz.join(', '));
     this.el.style.setProperty('--vela', s.vela ? '1' : '0');
+    this.cena.aoRelampago = () => this.trilha.trovao(0.3 + Math.random() * 0.7);
     this.cena.aoMudar = (c) => {
       const p = c.pesos;
+      this.trilha.luz(p.dia + p.dourado * 0.5, s.vela);
       this.el.style.setProperty('--noite', p.noite.toFixed(3));
       this.el.style.setProperty('--dourado', p.dourado.toFixed(3));
       this.el.style.setProperty('--dia', p.dia.toFixed(3));
@@ -261,6 +284,7 @@ export class Entrada {
   mostrar(aviso?: string) {
     if (!this.el.isConnected) document.body.append(this.el);
     addEventListener('resize', this.aoRedimensionar);
+    addEventListener('keydown', this.aoTocar);
     this.ajustar();
     this.definirModo('entrar', false);
     if (aviso) this.erro(aviso);
@@ -304,12 +328,15 @@ export class Entrada {
   sair() {
     if (!this.el.isConnected || this.el.classList.contains('saindo')) return;
     this.el.classList.add('saindo');
+    this.trilha.calar(1.4, true);
     setTimeout(() => this.destruir(), 900);
   }
 
   destruir() {
     cancelAnimationFrame(this.quadro);
     removeEventListener('resize', this.aoRedimensionar);
+    removeEventListener('keydown', this.aoTocar);
+    this.trilha.calar(0.2, true);
     this.el.remove();
   }
 
@@ -405,6 +432,18 @@ export class Entrada {
     }
   }
 
+  /** O botão do som: ligado (as barrinhas dançam quando toca), desligado, ou esperando o toque. */
+  private mostrarSom() {
+    const ligada = this.trilha.ligada;
+    this.botaoSom.classList.toggle('desligado', !ligada);
+    this.botaoSom.classList.toggle('tocando', this.trilha.tocando);
+    this.botaoSom.setAttribute('aria-pressed', String(ligada));
+    this.botaoSom.setAttribute('aria-label', ligada ? 'Desligar a música' : 'Ligar a música');
+    this.botaoSom.title = ligada ? 'Música ligada' : 'Música desligada';
+    // o navegador demora um instante para liberar o som
+    if (ligada && !this.trilha.tocando) setTimeout(() => this.botaoSom.classList.toggle('tocando', this.trilha.tocando), 400);
+  }
+
   // ---------------------------------------------------------------- palco
   /** As letras do CRONA viram a máscara do brilho que passa (os pixels dourados da arte). */
   private mascaraDoLogo(L: Layout) {
@@ -462,6 +501,8 @@ export class Entrada {
     if (y1 > vh - 8) ty -= y1 - (vh - 8);
     else if (y0 < 8) ty += 8 - y0;
     this.palco.style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
+    // o pedaço da arte que aparece (no celular estreito, as laterais ficam de fora)
+    this.cena.visivel = [-tx / s, -ty / s, (vw - tx) / s, (vh - ty) / s];
   }
 
   /** Monta o palco de um tamanho (computador ou celular). */

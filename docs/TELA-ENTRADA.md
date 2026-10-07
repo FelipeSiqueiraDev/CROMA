@@ -15,7 +15,11 @@ O código da cena fica em `client/src/ui/entradaCena.ts`. O pedido de arte do ki
 | **O monstro** | Hoje, olhos que brilham e piscam lá fora e num canto escuro da sala. Com o kit, o monstro vai para o tabuleiro: uma miniatura do universo encarando os heróis em cima do mapa. | código; o kit, do Códex |
 | **A paisagem, a sala, o mapa, as miniaturas, os dados, a vela e a caneca** | O kit em camadas (abaixo), pedido ao Códex em 07/10. | Códex |
 
+| **A trilha e o som** | Um tema de aventura por universo, composto no código e tocado na hora (`client/src/ui/entradaTrilha.ts`, Web Audio, sem arquivo de áudio): fantasia com alaúde e flauta, horror cósmico com coro grave e zumbido, paranormal com caixinha de música, Tormenta épica com tambores. Oito compassos que se repetem com variação (a segunda volta sobe uma oitava, a terceira só acompanha). De noite o som fica mais abafado; de dia, mais aberto. Por baixo, o ambiente da cena: a chuva, o trovão em cada relâmpago (estalo quando é perto, ronco que rola), o vento na neve e na neblina, o estalar da vela acesa e os passarinhos nos dias de sol. | código |
+
 Tudo o que o código faz já funciona sem arte nova.
+
+**O som:** o navegador só deixa tocar depois do primeiro toque ou tecla na página; a música começa ali, subindo devagar. O botão no canto de cima, à direita, liga e desliga (as barrinhas dançam enquanto toca), e a escolha fica no aparelho (`crona.entrada.musica`). Ao entrar, a música some junto com a tela.
 
 ## Ver uma cena de propósito
 
@@ -39,7 +43,7 @@ As camadas, de trás para a frente:
 |---|---|---|
 | Céu | degradê, sol, lua, estrelas, nuvens, chuva, neve, raio | código (já existe) |
 | Paisagem | a vista pela janela: céu em magenta (#FF00FF, o jogo tira) e janelas das casas em verde (#00FF00, o jogo acende de noite e apaga de dia) | Códex, uma por universo |
-| Sala | a sala da tela de hoje com a mesa **vazia** e os vidros da janela em magenta | Códex (computador; o celular depois) |
+| Sala | a sala da tela de hoje com a mesa **vazia** e os vidros da janela em magenta | Códex (uma para o computador e uma para o celular) |
 | Mapa | o mapa deitado na mesa, sozinho, fundo transparente | Códex, vários por universo |
 | Miniaturas | heróis e monstros pintados, cada um na base redonda, em folhas de 4 × 2 | Códex, por universo |
 | Dados | seis dados (d4 a d20) em quatro posições cada, em folhas de 6 × 4, um material por folha | Códex |
@@ -63,11 +67,13 @@ A primeira ideia (06/10) eram remendos: o Códex redesenhava um pedaço da arte 
 ## Decisões
 
 - **06/10:** a tela de entrada não usa nada dos agentes da campanha; é genérica, em vários universos de RPG (fantasia, horror cósmico, paranormal, Tormenta), no estilo da arte de hoje, variando os elementos (caneca, vela, mapa, monstro), a hora e o clima.
-- **07/10:** a cena vira um kit em camadas, com luz neutra em todas as peças (a paisagem, a sala, o mapa, as miniaturas, os dados, a vela e a caneca); o jogo faz a luz e o clima. O lote 1 vem só no computador, para o Felipe aprovar o estilo.
+- **07/10:** a cena vira um kit em camadas, com luz neutra em todas as peças (a paisagem, a sala, o mapa, as miniaturas, os dados, a vela e a caneca); o jogo faz a luz e o clima. O lote 1 traz a sala do computador e a do celular, para o Felipe aprovar o estilo nas duas telas.
 - **07/10:** o monstro (ou o sossego) fica no tabuleiro, nas miniaturas em cima do mapa. Os olhos no escuro ficam até as miniaturas chegarem.
 - **07/10:** o universo muda a cena inteira (paisagem, mapa, miniaturas, dados, vela, caneca), não só a cor da chama.
 - **07/10:** as estrelinhas em volta do emblema saíram da arte parada e voltaram animadas: são as mesmas da arte, recortadas (`client/public/arte/login/brilhos/`, posições em `client/src/ui/entradaBrilhos.json`), cada uma piscando no seu ritmo; as grandes respiram e de vez em quando faíscam. (Sem elas o emblema ficava vazio.) As faíscas desenhadas em CSS saíram. Um brilho passa pelas letras do CRONA de tempos em tempos. O campo selecionado acende inteiro (sem o contorno quadrado do campo de dentro).
 - **07/10:** o botão ENTRAR fica sem ícones (os losangos e os d20 saíram); só o brilho que corre pelo ouro.
+- **07/10:** a tela tem trilha de aventura, um tema por universo, e o som do ambiente (chuva, trovão, vento, vela, passarinhos), tudo sintetizado na hora.
+- **07/10:** o celular vale tanto quanto o computador: os olhos, o sol e os pássaros ficam no pedaço da arte que a tela mostra (o celular estreito corta as laterais), e a sala do celular entra no lote 1 do Códex.
 
 ## O que falta
 
