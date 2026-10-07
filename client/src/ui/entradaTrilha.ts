@@ -104,6 +104,8 @@ export class Trilha {
   ligada = true;
   /** o volume, de 0 a 1 (também guardado no aparelho) */
   volume = 0.7;
+  /** o som começou ou parou (o navegador liberou, ou segurou) */
+  aoMudarEstado: () => void = () => {};
   private ac: AudioContext | null = null;
   private mestre: GainNode | null = null;
   private musica: GainNode | null = null;
@@ -236,6 +238,8 @@ export class Trilha {
     if (!AC) return;
     const ac = new AC();
     this.ac = ac;
+    // o navegador pode segurar o som até o primeiro toque: quem mostra o botão fica sabendo
+    ac.onstatechange = () => this.aoMudarEstado();
     this.mestre = ac.createGain();
     this.mestre.gain.value = 0;
     this.mestre.connect(ac.destination);
@@ -330,6 +334,8 @@ export class Trilha {
     if (!ac || ac.state !== 'running') return;
     const tema = this.tema;
     const tempo = 60 / tema.bpm;
+    // o navegador segurou o som e soltou agora: começa do compasso de agora, sem atropelar
+    if (this.proximoCompasso < ac.currentTime - 0.05) this.proximoCompasso = ac.currentTime + 0.1;
     while (this.proximoCompasso < ac.currentTime + 0.4) {
       this.tocarCompasso(this.proximoCompasso, tempo);
       this.proximoCompasso += tempo * 4;

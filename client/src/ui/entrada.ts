@@ -247,7 +247,14 @@ export class Entrada {
       oninput: () => this.mudarVolume(),
     });
     this.volume.value = String(Math.round(this.trilha.volume * 100));
-    this.caixaSom = h('div', { class: 'ent-som-caixa' }, h('div', { class: 'ent-volume' }, this.volume), this.botaoSom);
+    this.caixaSom = h(
+      'div',
+      { class: 'ent-som-caixa' },
+      // o aviso quando o navegador segura o som até o primeiro toque
+      h('span', { class: 'ent-som-dica', 'aria-hidden': 'true' }, matchMedia('(hover: none)').matches ? 'toque para ouvir' : 'clique para ouvir'),
+      h('div', { class: 'ent-volume' }, this.volume),
+      this.botaoSom,
+    );
     this.el = h('div', { class: 'entrada', role: 'dialog', 'aria-label': 'Entrar no CRONA' }, this.palco, this.caixaSom);
     this.mostrarSom();
     this.el.addEventListener('pointerdown', this.aoTocar);
@@ -305,6 +312,10 @@ export class Entrada {
     this.definirModo('entrar', false);
     if (aviso) this.erro(aviso);
     this.animar();
+    // a música tenta começar já; se o navegador segurar, começa no primeiro toque ou tecla
+    this.trilha.aoMudarEstado = () => this.mostrarSom();
+    this.trilha.comecar();
+    this.mostrarSom();
     // no computador, o cursor já no e-mail
     if (matchMedia('(pointer: fine)').matches) setTimeout(() => this.campos.email.input.focus(), 700);
   }
@@ -473,6 +484,7 @@ export class Entrada {
     const ligada = this.trilha.ligada;
     this.volume.style.setProperty('--v', `${this.volume.value}%`);
     this.caixaSom.classList.toggle('mudo', !ligada || this.trilha.volume === 0);
+    this.caixaSom.classList.toggle('esperando', ligada && this.trilha.volume > 0 && !this.trilha.tocando);
     this.botaoSom.classList.toggle('desligado', !ligada || this.trilha.volume === 0);
     this.botaoSom.classList.toggle('tocando', this.trilha.tocando);
     this.botaoSom.setAttribute('aria-pressed', String(ligada));

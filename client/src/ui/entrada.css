@@ -117,6 +117,57 @@
   outline: none;
   color: #ffd27a;
 }
+/* o navegador segurou o som: o aviso ao lado e o botão pulsando, até o primeiro toque */
+.ent-som-dica {
+  position: absolute;
+  right: calc(100% + 10px);
+  top: 50%;
+  padding: 4px 8px;
+  white-space: nowrap;
+  font: 14px/1 'Pixelify Sans', 'Ubuntu Mono', monospace;
+  letter-spacing: 0.04em;
+  color: #ffd27a;
+  background: rgba(5, 11, 20, 0.78);
+  border-radius: 6px;
+  transform: translateY(-50%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+.ent-som-caixa.esperando .ent-som-dica {
+  opacity: 1;
+  animation: ent-dica 2.4s 1s infinite ease-in-out both;
+}
+.ent-som-caixa.esperando {
+  animation: ent-chama-som 2.4s infinite ease-in-out;
+}
+/* com o volume aberto, o aviso sai da frente */
+.ent-som-caixa.aberta .ent-som-dica,
+.ent-som-caixa:hover .ent-som-dica {
+  opacity: 0;
+  animation: none;
+}
+@keyframes ent-dica {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes ent-chama-som {
+  0%,
+  100% {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+  }
+  50% {
+    box-shadow:
+      0 2px 10px rgba(0, 0, 0, 0.45),
+      0 0 0 3px rgba(240, 176, 88, 0.35),
+      0 0 16px rgba(240, 176, 88, 0.45);
+  }
+}
 /* o volume: fechado, não ocupa nada; abre para a esquerda do botão */
 .ent-volume {
   display: flex;
@@ -823,6 +874,8 @@
 @media (prefers-reduced-motion: reduce) {
   .ent-fx i,
   .ent-som-barras i,
+  .ent-som-caixa,
+  .ent-som-dica,
   .ent-principal,
   .entrada.pronta .ent-painel > *,
   .ent-painel.troca > * {

@@ -19,7 +19,7 @@ O código da cena fica em `client/src/ui/entradaCena.ts`. O pedido de arte do ki
 
 Tudo o que o código faz já funciona sem arte nova.
 
-**O som:** o navegador só deixa tocar depois do primeiro toque ou tecla na página; a música começa ali, subindo devagar. O botão no canto de cima, à direita, liga e desliga (as barrinhas dançam enquanto toca). O volume abre ao passar o mouse no botão; no celular, o primeiro toque abre o volume e o segundo liga e desliga (um toque fora fecha). A escolha e o volume ficam no aparelho (`crona.entrada.musica`, `crona.entrada.volume`). Ao entrar, a música some junto com a tela.
+**O som:** a música começa sozinha ao abrir a tela (decisão do Felipe em 07/10), subindo devagar. Os navegadores podem segurar o som até a pessoa tocar na página (o Chrome libera nos sites que a pessoa já usa muito, como o CRONA no computador do mestre); quando seguram, o botão de som pulsa com "toque para ouvir" (no computador, "clique para ouvir") e a música começa no primeiro toque, clique ou tecla, em qualquer lugar da tela. O botão no canto de cima, à direita, liga e desliga (as barrinhas dançam enquanto toca). O volume abre ao passar o mouse no botão; no celular, o primeiro toque abre o volume e o segundo liga e desliga (um toque fora fecha). A escolha e o volume ficam no aparelho (`crona.entrada.musica`, `crona.entrada.volume`). Ao entrar, a música some junto com a tela.
 
 ## Ver uma cena de propósito
 
