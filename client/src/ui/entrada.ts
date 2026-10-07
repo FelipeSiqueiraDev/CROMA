@@ -1,7 +1,7 @@
 import type { ClientMsg } from '@crona/shared';
 import { h } from './dom';
 import { existeArte } from './icons';
-import { Cena, UNIVERSOS, type CenaLayout } from './entradaCena';
+import { Cena, UNIVERSOS, pedidos, type CenaLayout } from './entradaCena';
 import BRILHOS from './entradaBrilhos.json';
 import { Trilha } from './entradaTrilha';
 
@@ -234,7 +234,8 @@ export class Entrada {
     );
     this.palco = h('div', { class: 'ent-palco' }, this.fundo, this.cena.ceu, this.cena.arte, this.fx, this.cena.luz, this.poeira, this.logo, this.painel);
     const s = this.cena.sorteio;
-    this.trilha = new Trilha(s.universo, s.clima);
+    const pedida = Number(pedidos.ler('musica'));
+    this.trilha = new Trilha(s.universo, s.clima, Number.isFinite(pedida) && pedida > 0 ? pedida : undefined);
     this.botaoSom = h(
       'button',
       { class: 'ent-som', type: 'button', onclick: () => this.tocarBotaoSom() },
@@ -262,7 +263,7 @@ export class Entrada {
     this.el = h('div', { class: 'entrada', role: 'dialog', 'aria-label': 'Entrar no CRONA' }, this.palco, this.caixaSom);
     this.mostrarSom();
     this.el.addEventListener('pointerdown', this.aoTocar);
-    Object.assign(this.el.dataset, { universo: s.universo, clima: s.clima, vela: s.vela ? 'acesa' : 'apagada', monstro: s.monstro ? 'sim' : 'nao' });
+    Object.assign(this.el.dataset, { musica: String(this.trilha.indice), universo: s.universo, clima: s.clima, vela: s.vela ? 'acesa' : 'apagada', monstro: s.monstro ? 'sim' : 'nao' });
     this.el.style.setProperty('--chama', UNIVERSOS[s.universo].luz.join(', '));
     this.el.style.setProperty('--vela', s.vela ? '1' : '0');
     this.cena.aoRelampago = () => this.trilha.trovao(0.3 + Math.random() * 0.7);

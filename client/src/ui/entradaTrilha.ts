@@ -4,9 +4,12 @@ import type { Clima, Universo } from './entradaCena';
  * A trilha da tela de entrada, sintetizada na hora (Web Audio, sem arquivos), como os sons de
  * sfx.ts: um tema de aventura por universo e o som do ambiente da cena sorteada.
  *
- * - **Os temas:** fantasia (alaúde e flauta), horror (coro grave e zumbido) e cyberpunk (synthwave:
- *   baixo pulsando, bateria eletrônica e um lead de serrote com eco). Oito compassos que se repetem,
- *   com variação a cada volta. De noite o som fica mais escuro; de dia, mais aberto.
+ * - **As músicas:** cada universo tem uma lista e uma é sorteada a cada visita (`?musica=2` escolhe).
+ *   Fantasia: a Taverna (alaúde e flauta) e a Marcha dos Heróis (synthwave de aventura). Horror: a
+ *   Maré Negra (coro grave e zumbido). Cyberpunk: o Neon Noir (techno sombrio em mi frígio, 112 BPM,
+ *   bumbo em todo tempo, baixo rolando em semicolcheias "bombeado" pelo bumbo, riff cortado, subida
+ *   de ruído e glitch no fim da frase). Oito compassos que se repetem, com variação a cada volta. De
+ *   noite o som fica mais escuro; de dia, mais aberto.
  * - **O ambiente:** a chuva, o trovão em cada relâmpago, o vento na neve e na neblina, o estalar
  *   da vela acesa (no cyberpunk, o zumbido do neon) e os passarinhos de dia.
  *
@@ -20,16 +23,22 @@ const CHAVE_VOLUME = 'crona.entrada.volume';
 const GANHO = 1;
 
 type Nota = [midi: number | null, tempos: number];
-type Timbre = 'flauta' | 'caixinha' | 'neon' | 'coro';
+type Timbre = 'flauta' | 'caixinha' | 'neon' | 'coro' | 'riff';
 interface Tema {
+  nome: string;
   bpm: number;
   acordes: string[];
   melodia: Nota[];
   timbre: Timbre;
   /** o acompanhamento: arpejo subindo (alaúde), caixinha (agudo e lento), o baixo pulsando em
-   * colcheias com um arpejo de bipes (synthwave) ou só o acorde */
-  arpejo: 'subindo' | 'caixinha' | 'pulso' | 'nenhum';
+   * colcheias com um arpejo de bipes (synthwave), o baixo rolando em semicolcheias com estacas de
+   * acorde (techno) ou só o acorde */
+  arpejo: 'subindo' | 'caixinha' | 'pulso' | 'rolando' | 'nenhum';
   tambor?: boolean;
+  /** bateria de pista: bumbo em todo tempo, palma no 2 e no 4, chimbal em semicolcheias */
+  estilo?: 'techno';
+  /** o acorde e o baixo abaixam a cada bumbo (compressão "bombeada" das músicas eletrônicas) */
+  bombeado?: boolean;
   /** nota grave que fica soando por baixo (o zumbido do horror) */
   zumbido?: number;
 }
@@ -61,33 +70,67 @@ function acorde(nome: string): number[] {
   return [raiz, raiz + terca, raiz + quinta];
 }
 
-const TEMAS: Record<Universo, Tema> = {
-  fantasia: {
-    bpm: 88,
-    acordes: ['Dm', 'C', 'Bb', 'C', 'Dm', 'F', 'C', 'A'],
-    melodia: frase(`A4:1 D5:1 E5:1 F5:1 | E5:1.5 D5:.5 C5:1 E5:1 | D5:2 F5:1 D5:1 | C5:1 D5:1 E5:2 |
-      F5:1 E5:.5 D5:.5 A5:2 | G5:1 F5:1 E5:1 C5:1 | D5:1.5 E5:.5 C5:1 G4:1 | A4:2 C#5:1 E5:1`),
-    timbre: 'flauta',
-    arpejo: 'subindo',
-  },
-  horror: {
-    bpm: 54,
-    acordes: ['Am', 'F', 'Dm', 'E', 'Am', 'F', 'Dm', 'E'],
-    melodia: frase(`E5:3 F5:1 | E5:2 C5:2 | D5:3 F5:1 | E5:2 G#4:2 |
-      A4:2 B4:1 C5:1 | D#5:2 E5:2 | F5:2 D5:1 B4:1 | G#4:4`),
-    timbre: 'coro',
-    arpejo: 'nenhum',
-    zumbido: midi('A1'),
-  },
-  cyberpunk: {
-    bpm: 96,
-    acordes: ['Am', 'F', 'C', 'G', 'Am', 'F', 'C', 'G'],
-    melodia: frase(`E5:1.5 A5:.5 G5:1 E5:1 | F5:1.5 E5:.5 C5:2 | E5:1 G5:1 C6:1.5 B5:.5 | B5:2 D5:1 G5:1 |
-      A5:1 G5:.5 E5:.5 A5:2 | C6:1 A5:1 F5:1 A5:1 | G5:1.5 E5:.5 G5:1 C6:1 | B5:3 -:1`),
-    timbre: 'neon',
-    arpejo: 'pulso',
-    tambor: true,
-  },
+/**
+ * As músicas de cada universo: uma é sorteada a cada visita (`?musica=1`, `?musica=2` escolhe).
+ * Novas entram no fim da lista do universo.
+ */
+const TEMAS: Record<Universo, Tema[]> = {
+  fantasia: [
+    {
+      nome: 'Taverna',
+      bpm: 88,
+      acordes: ['Dm', 'C', 'Bb', 'C', 'Dm', 'F', 'C', 'A'],
+      melodia: frase(`A4:1 D5:1 E5:1 F5:1 | E5:1.5 D5:.5 C5:1 E5:1 | D5:2 F5:1 D5:1 | C5:1 D5:1 E5:2 |
+        F5:1 E5:.5 D5:.5 A5:2 | G5:1 F5:1 E5:1 C5:1 | D5:1.5 E5:.5 C5:1 G4:1 | A4:2 C#5:1 E5:1`),
+      timbre: 'flauta',
+      arpejo: 'subindo',
+    },
+    {
+      // era a "synthwave" do cyberpunk: com a cara de aventura, ficou na fantasia
+      nome: 'Marcha dos Heróis',
+      bpm: 96,
+      acordes: ['Am', 'F', 'C', 'G', 'Am', 'F', 'C', 'G'],
+      melodia: frase(`E5:1.5 A5:.5 G5:1 E5:1 | F5:1.5 E5:.5 C5:2 | E5:1 G5:1 C6:1.5 B5:.5 | B5:2 D5:1 G5:1 |
+        A5:1 G5:.5 E5:.5 A5:2 | C6:1 A5:1 F5:1 A5:1 | G5:1.5 E5:.5 G5:1 C6:1 | B5:3 -:1`),
+      timbre: 'neon',
+      arpejo: 'pulso',
+      tambor: true,
+    },
+  ],
+  horror: [
+    {
+      nome: 'Maré Negra',
+      bpm: 54,
+      acordes: ['Am', 'F', 'Dm', 'E', 'Am', 'F', 'Dm', 'E'],
+      melodia: frase(`E5:3 F5:1 | E5:2 C5:2 | D5:3 F5:1 | E5:2 G#4:2 |
+        A4:2 B4:1 C5:1 | D#5:2 E5:2 | F5:2 D5:1 B4:1 | G#4:4`),
+      timbre: 'coro',
+      arpejo: 'nenhum',
+      zumbido: midi('A1'),
+    },
+  ],
+  cyberpunk: [
+    {
+      // techno sombrio: mi frígio (o semitom que aperta), 112 BPM, bumbo em todo tempo, baixo
+      // rolando em semicolcheias, "bombeado" pelo bumbo, riff curto e cortado, glitch no fim da frase
+      nome: 'Neon Noir',
+      bpm: 112,
+      acordes: ['Em', 'F', 'Em', 'C', 'Em', 'F', 'Dm', 'Em'],
+      melodia: frase(`E4:.5 E4:.25 G4:.25 E4:.5 B4:.5 A4:.5 G4:.5 E4:1 |
+        F4:.5 F4:.25 A4:.25 F4:.5 C5:.5 Bb4:.5 A4:.5 F4:1 |
+        E4:.5 E4:.25 G4:.25 E4:.5 B4:.5 D5:.5 B4:.5 G4:1 |
+        C5:.5 C5:.25 B4:.25 G4:.5 E4:.5 G4:1 -:1 |
+        E4:.5 E4:.25 G4:.25 E4:.5 B4:.5 A4:.5 G4:.5 E4:1 |
+        F4:.5 F4:.25 A4:.25 F4:.5 C5:.5 D5:.5 C5:.5 A4:1 |
+        D5:.5 D5:.25 C5:.25 A4:.5 F4:.5 A4:.5 G4:.5 F4:1 |
+        E5:.5 B4:.5 G4:.5 B4:.5 E5:1 -:1`),
+      timbre: 'riff',
+      arpejo: 'rolando',
+      tambor: true,
+      estilo: 'techno',
+      bombeado: true,
+    },
+  ],
 };
 
 const hz = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
@@ -113,6 +156,9 @@ export class Trilha {
   private proximoEstalo = 0;
   private proximoPassaro = 0;
   private tema: Tema;
+  /** qual música da lista do universo (1, 2...) */
+  readonly indice: number;
+  private tonal: GainNode | null = null;
   private luzDia = 0;
   private velaAcesa = true;
   private fechada = false;
@@ -120,8 +166,13 @@ export class Trilha {
   constructor(
     private universo: Universo,
     private clima: Clima,
+    /** a música pedida (1, 2...); sem ela, sorteia */
+    pedida?: number,
   ) {
-    this.tema = TEMAS[universo];
+    const lista = TEMAS[universo];
+    const i = pedida && pedida >= 1 && pedida <= lista.length ? pedida - 1 : Math.floor(Math.random() * lista.length);
+    this.indice = i + 1;
+    this.tema = lista[i];
     try {
       this.ligada = localStorage.getItem(CHAVE) !== '0';
       const v = Number(localStorage.getItem(CHAVE_VOLUME));
@@ -141,6 +192,11 @@ export class Trilha {
     }
     if (this.volume > 0 && !this.ligada) this.alternar();
     else if (this.ligada) this.comecar(0.15);
+  }
+
+  /** o nome da música desta visita */
+  get nome() {
+    return this.tema.nome;
   }
 
   get tocando() {
@@ -309,6 +365,9 @@ export class Trilha {
     this.filtro = ac.createBiquadFilter();
     this.filtro.type = 'lowpass';
     this.filtro.frequency.value = 1500 + 5000 * this.luzDia;
+    // o que é tom (acordes, baixo, melodia) passa por um ganho que o bumbo abaixa (o "bombeado")
+    this.tonal = ac.createGain();
+    this.tonal.connect(this.musica);
     this.musica.connect(this.filtro);
     this.filtro.connect(this.mestre);
     this.filtro.connect(this.eco);
@@ -425,8 +484,35 @@ export class Trilha {
       for (let i = 0; i < 8; i++) this.pulso(notas[0] - 12 + (i % 2 ? 12 : 0), t + i * tempo * 0.5, tempo * 0.45);
       for (let i = 0; i < 16; i++) this.dedilhado(notas[i % 3] + 24 + (i % 4 === 3 ? 12 : 0), t + i * tempo * 0.25, 0.014, 0.22);
     }
-    else if (Math.random() < 0.5) this.dedilhado(notas[2] + 12, t + tempo * 2, 0.04, 2.2);
-    if (tema.tambor) {
+    else if (tema.arpejo === 'rolando') {
+      // o baixo rolando em semicolcheias (uma oitava acima em alguns passos) e as estacas
+      // sincopadas do acorde; o "bombeado" abre espaço para o bumbo
+      const grave = notas[0] - 12;
+      for (let i = 0; i < 16; i++) {
+        const nota = grave + (i % 8 === 6 ? 12 : i % 8 === 3 ? 7 : 0);
+        this.pulso(nota, t + i * tempo * 0.25, tempo * 0.22, i % 4 === 0 ? 0.11 : 0.08);
+      }
+      for (const passo of [3, 6, 10, 14]) this.estaca(notas, t + passo * tempo * 0.25, tempo * 0.2);
+      // o último compasso da frase: a subida de ruído e, no fim, o glitch
+      if (k === 7) {
+        this.subida(t, dur);
+        this.glitch(t + tempo * 3, tempo);
+      }
+    } else if (Math.random() < 0.5) this.dedilhado(notas[2] + 12, t + tempo * 2, 0.04, 2.2);
+    if (tema.bombeado)
+      for (let i = 0; i < 4; i++) {
+        const g = this.tonal!.gain;
+        g.setValueAtTime(0.25, t + i * tempo);
+        g.linearRampToValueAtTime(1, t + i * tempo + tempo * 0.7);
+      }
+    if (tema.estilo === 'techno') {
+      // bateria de pista: bumbo em todo tempo, palma no 2 e no 4, chimbal aberto no contratempo
+      // e fechado nas semicolcheias
+      for (let i = 0; i < 4; i++) this.tambor(t + i * tempo, 'bumbo');
+      this.tambor(t + tempo, 'caixa');
+      this.tambor(t + tempo * 3, 'caixa');
+      for (let i = 0; i < 16; i++) this.tambor(t + i * tempo * 0.25, i % 4 === 2 ? 'aberto' : 'chocalho');
+    } else if (tema.tambor) {
       // bateria eletrônica: bumbo no 1 e no 3, palma no 2 e no 4, chimbal em colcheias
       this.tambor(t, 'bumbo');
       this.tambor(t + tempo * 2, 'bumbo');
@@ -466,7 +552,7 @@ export class Trilha {
       o.start(t);
       o.stop(t + dur + 0.7);
     }
-    f.connect(g).connect(this.musica!);
+    f.connect(g).connect(this.tonal!);
   }
 
   private baixo(n: number, t: number, dur: number) {
@@ -479,13 +565,73 @@ export class Trilha {
     g.gain.linearRampToValueAtTime(0.075, t + 0.04);
     g.gain.exponentialRampToValueAtTime(0.02, t + dur * 0.9);
     g.gain.linearRampToValueAtTime(0.0001, t + dur);
-    o.connect(g).connect(this.musica!);
+    o.connect(g).connect(this.tonal!);
     o.start(t);
     o.stop(t + dur + 0.05);
   }
 
+  /** A estaca do techno: o acorde inteiro, serrote curto e brilhante, com eco. */
+  private estaca(notas: number[], t: number, dur: number) {
+    const ac = this.ac!;
+    const f = ac.createBiquadFilter();
+    f.type = 'lowpass';
+    f.Q.value = 3;
+    f.frequency.setValueAtTime(3600, t);
+    f.frequency.exponentialRampToValueAtTime(700, t + dur);
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.05, t + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    for (const n of notas)
+      for (const det of [-8, 8]) {
+        const o = ac.createOscillator();
+        o.type = 'sawtooth';
+        o.frequency.value = hz(n + 12);
+        o.detune.value = det;
+        o.connect(f);
+        o.start(t);
+        o.stop(t + dur + 0.02);
+      }
+    f.connect(g);
+    g.connect(this.tonal!);
+    g.connect(this.eco!);
+  }
+
+  /** A falha digital no fim da frase: a mesma nota repetida cada vez mais rápida, caindo. */
+  private glitch(t: number, tempo: number) {
+    let quando = t;
+    let passo = tempo * 0.25;
+    for (let i = 0; i < 9; i++) {
+      this.dedilhado(midi('E6') - i, quando, 0.02, 0.07);
+      this.rajada(quando, 0.04, 'highpass', 6000, 0.03, 0.001, 0.025, this.musica!);
+      quando += passo;
+      passo *= 0.8;
+    }
+  }
+
+  /** A subida de ruído que enche o último compasso antes de a frase recomeçar. */
+  private subida(t: number, dur: number) {
+    const ac = this.ac!;
+    if (!this.ruido) return;
+    const src = ac.createBufferSource();
+    src.buffer = this.ruido;
+    src.loop = true;
+    const f = ac.createBiquadFilter();
+    f.type = 'bandpass';
+    f.Q.value = 2;
+    f.frequency.setValueAtTime(300, t);
+    f.frequency.exponentialRampToValueAtTime(7000, t + dur);
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.06, t + dur * 0.95);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(f).connect(g).connect(this.musica!);
+    src.start(t, Math.random() * 2);
+    src.stop(t + dur + 0.05);
+  }
+
   /** O baixo de synthwave: serrote curto, filtrado, que pulsa. */
-  private pulso(n: number, t: number, dur: number) {
+  private pulso(n: number, t: number, dur: number, vol = 0.09) {
     const ac = this.ac!;
     const o = ac.createOscillator();
     o.type = 'sawtooth';
@@ -496,9 +642,9 @@ export class Trilha {
     f.frequency.exponentialRampToValueAtTime(260, t + dur);
     const g = ac.createGain();
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(0.09, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.008);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(f).connect(g).connect(this.musica!);
+    o.connect(f).connect(g).connect(this.tonal!);
     o.start(t);
     o.stop(t + dur + 0.02);
   }
@@ -526,7 +672,7 @@ export class Trilha {
       o.start(t);
       o.stop(t + queda + 0.05);
     });
-    f.connect(g).connect(this.musica!);
+    f.connect(g).connect(this.tonal!);
   }
 
   /** A melodia, no timbre do tema. */
@@ -535,45 +681,53 @@ export class Trilha {
     const timbre = this.tema.timbre;
     if (timbre === 'caixinha') return this.dedilhado(n, t, 0.09, Math.max(1.2, dur * 1.5));
     const g = ac.createGain();
-    const vol = timbre === 'neon' ? 0.075 : timbre === 'coro' ? 0.075 : 0.12;
-    const ataque = timbre === 'coro' ? 0.35 : timbre === 'neon' ? 0.02 : 0.06;
+    // o riff do techno é curto e cortado: some antes do fim da nota
+    if (timbre === 'riff') dur *= 0.62;
+    const vol = timbre === 'riff' ? 0.07 : timbre === 'neon' ? 0.075 : timbre === 'coro' ? 0.075 : 0.12;
+    const ataque = timbre === 'coro' ? 0.35 : timbre === 'neon' ? 0.02 : timbre === 'riff' ? 0.004 : 0.06;
     g.gain.setValueAtTime(0.0001, t);
     g.gain.linearRampToValueAtTime(vol, t + ataque);
     g.gain.setValueAtTime(vol * 0.85, t + Math.max(ataque, dur - 0.08));
     g.gain.linearRampToValueAtTime(0.0001, t + dur + (timbre === 'coro' ? 0.6 : 0.12));
     const f = ac.createBiquadFilter();
     f.type = timbre === 'coro' ? 'bandpass' : 'lowpass';
-    f.frequency.value = timbre === 'coro' ? 900 : timbre === 'neon' ? 2600 : 3000;
-    f.Q.value = timbre === 'coro' ? 1.4 : 0.7;
+    f.frequency.value = timbre === 'coro' ? 900 : timbre === 'neon' ? 2600 : timbre === 'riff' ? 2200 : 3000;
+    f.Q.value = timbre === 'coro' ? 1.4 : timbre === 'riff' ? 5 : 0.7;
+    // no riff o filtro "late": abre no ataque e fecha
+    if (timbre === 'riff') {
+      f.frequency.setValueAtTime(4200, t);
+      f.frequency.exponentialRampToValueAtTime(900, t + Math.max(0.05, dur));
+    }
     // o vibrato entra depois do ataque
     const lfo = ac.createOscillator();
     lfo.frequency.value = timbre === 'coro' ? 4.2 : 5.4;
     const prof = ac.createGain();
     prof.gain.setValueAtTime(0, t);
-    prof.gain.linearRampToValueAtTime(timbre === 'neon' ? 5 : 9, t + Math.min(0.4, dur));
+    prof.gain.linearRampToValueAtTime(timbre === 'riff' ? 0 : timbre === 'neon' ? 5 : 9, t + Math.min(0.4, dur));
     lfo.connect(prof);
     lfo.start(t);
     lfo.stop(t + dur + 0.7);
-    const tipos: OscillatorType[] = timbre === 'flauta' ? ['triangle', 'sine'] : ['sawtooth', 'sawtooth'];
+    const tipos: OscillatorType[] = timbre === 'flauta' ? ['triangle', 'sine'] : timbre === 'riff' ? ['sawtooth', 'square'] : ['sawtooth', 'sawtooth'];
     tipos.forEach((tipo, i) => {
       const o = ac.createOscillator();
       o.type = tipo;
       o.frequency.value = hz(n) * (timbre === 'flauta' && i ? 2 : 1);
-      o.detune.value = timbre === 'coro' ? (i ? 9 : -9) : timbre === 'neon' ? (i ? 11 : -11) : 0;
+      o.detune.value = timbre === 'coro' ? (i ? 9 : -9) : timbre === 'neon' ? (i ? 11 : -11) : timbre === 'riff' ? (i ? 7 : -7) : 0;
       prof.connect(o.detune);
       const gi = ac.createGain();
-      gi.gain.value = i ? (timbre === 'neon' ? 0.8 : 0.35) : 1;
+      gi.gain.value = i ? (timbre === 'neon' ? 0.8 : timbre === 'riff' ? 0.5 : 0.35) : 1;
       o.connect(gi).connect(f);
       o.start(t);
       o.stop(t + dur + 0.7);
     });
     f.connect(g);
-    g.connect(this.musica!);
+    g.connect(this.tonal!);
     g.connect(this.atraso!);
   }
 
-  private tambor(t: number, tipo: 'bumbo' | 'caixa' | 'chocalho') {
+  private tambor(t: number, tipo: 'bumbo' | 'caixa' | 'chocalho' | 'aberto') {
     const ac = this.ac!;
+    if (tipo === 'aberto') return void this.rajada(t, 0.2, 'highpass', 6500, 0.045, 0.002, 0.13, this.musica!);
     if (tipo === 'chocalho') return void this.rajada(t, 0.08, 'highpass', 7000, 0.025, 0.002, 0.05, this.musica!);
     if (tipo === 'caixa') {
       const g = this.rajada(t, 0.32, 'bandpass', 1500, 0.16, 0.002, 0.26, this.musica!);

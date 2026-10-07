@@ -15,7 +15,7 @@ O código da cena fica em `client/src/ui/entradaCena.ts`; a trilha, em `client/s
 | **O clima** | Limpo, nuvens, chuva, neblina, neve ou tempestade (com relâmpago, que clareia a sala). Estrela cadente na noite limpa; pássaros de dia (em bando no sol), morcegos de noite. | código |
 | **A vela** | Acesa ou apagada (de noite quase sempre acesa; de dia, quase sempre apagada). Apagada de noite, a sala fica no luar azul e sobe um fio de fumaça do pavio. No cyberpunk, o abajur de neon fica sempre aceso. | código |
 | **O monstro** | Nas imagens dos temas, o monstro fica no tabuleiro, encarando os heróis (o dragão, a criatura de tentáculos, o robô). Às vezes, também olhos que brilham no escuro, lá fora e num canto da sala. | Códex; os olhos, código |
-| **A trilha e o som** | Um tema por universo, composto no código e tocado na hora (Web Audio, sem arquivo de áudio): fantasia com alaúde e flauta, horror com coro grave e zumbido, cyberpunk em synthwave (baixo pulsando, bateria eletrônica, lead de serrote com eco). Oito compassos que se repetem com variação (a segunda volta sobe uma oitava, a terceira só acompanha). De noite o som fica mais abafado; de dia, mais aberto. Por baixo, o ambiente: a chuva, o trovão em cada relâmpago (o estalo quando é perto, o ronco que rola descendo do médio para o grave, a música abaixando enquanto ele ressoa; o médio é o que a caixinha do celular toca), o vento na neve e na neblina, o estalar da vela (no cyberpunk, o zumbido do neon) e os passarinhos nos dias de sol. | código |
+| **A trilha e o som** | Cada universo tem uma lista de músicas, compostas no código e tocadas na hora (Web Audio, sem arquivo de áudio), e uma é sorteada a cada visita: fantasia com a **Taverna** (alaúde e flauta) e a **Marcha dos Heróis** (synthwave de aventura, que nasceu como a música do cyberpunk e foi para a fantasia), horror com a **Maré Negra** (coro grave e zumbido) e cyberpunk com o **Neon Noir** (techno sombrio: mi frígio, 112 BPM, bumbo em todo tempo, baixo rolando em semicolcheias "bombeado" pelo bumbo, riff cortado de serrote com eco, subida de ruído e glitch no fim da frase). Música nova entra no fim da lista do universo (, em ). Oito compassos que se repetem com variação (a segunda volta sobe uma oitava, a terceira só acompanha). De noite o som fica mais abafado; de dia, mais aberto. Por baixo, o ambiente: a chuva, o trovão em cada relâmpago (o estalo quando é perto, o ronco que rola descendo do médio para o grave, a música abaixando enquanto ele ressoa; o médio é o que a caixinha do celular toca), o vento na neve e na neblina, o estalar da vela (no cyberpunk, o zumbido do neon) e os passarinhos nos dias de sol. | código |
 
 **O som:** a música começa sozinha ao abrir a tela (decisão do Felipe em 07/10), subindo devagar. Os navegadores podem segurar o som até a pessoa tocar na página (o Chrome libera nos sites que a pessoa já usa muito, como o CRONA no computador do mestre); quando seguram, o botão de som pulsa com "toque para ouvir" (no computador, "clique para ouvir") e a música começa no primeiro toque, clique ou tecla, em qualquer lugar da tela. O botão no canto de cima, à direita, liga e desliga (as barrinhas dançam enquanto toca). O volume abre ao passar o mouse no botão; no celular, o primeiro toque abre o volume e o segundo liga e desliga (um toque fora fecha). A escolha e o volume ficam no aparelho (`crona.entrada.musica`, `crona.entrada.volume`). Ao entrar, a música some junto com a tela.
 
@@ -27,7 +27,8 @@ No endereço da tela de entrada:
 - `?universo=fantasia` | `horror` | `cyberpunk`;
 - `?clima=limpo` | `nuvens` | `chuva` | `neblina` | `tempestade` | `neve`;
 - `?vela=apagada` (ou `acesa`);
-- `?monstro=sim` (ou `nao`).
+- `?monstro=sim` (ou `nao`);
+- `?musica=1` | `2` (qual música do universo toca; sem isso, sorteia).
 
 Ex.: `http://localhost:5173/?hora=23&universo=cyberpunk&clima=chuva`. Quem pede menos movimento no sistema vê a cena parada, com a hora e o clima certos.
 
@@ -69,7 +70,8 @@ Neve parada nos telhados o código não faz: cada cidade tem também a versão c
 - **07/10:** nas imagens dos temas, os vidros da janela vêm em magenta e lá fora entra a cidade do tema, com luz neutra, numa versão normal e numa com neve (sol, chuva e neblina são efeito do código). A primeira é a paisagem do lote 1.
 - **07/10:** as estrelinhas em volta do emblema saíram da arte parada e voltaram animadas: são as mesmas da arte, recortadas (`client/public/arte/login/brilhos/`, posições em `client/src/ui/entradaBrilhos.json`), cada uma piscando no seu ritmo; as grandes respiram e de vez em quando faíscam. Um brilho passa pelas letras do CRONA de tempos em tempos. O campo selecionado acende inteiro (sem o contorno quadrado do campo de dentro).
 - **07/10:** o botão ENTRAR fica sem ícones; só o brilho que corre pelo ouro.
-- **07/10:** a tela tem trilha, um tema por universo (o cyberpunk em synthwave), e o som do ambiente, tudo sintetizado na hora. A música começa sozinha; se o navegador segurar, no primeiro toque.
+- **07/10:** a tela tem trilha, sintetizada na hora, e o som do ambiente. A música começa sozinha; se o navegador segurar, no primeiro toque.
+- **07/10:** cada universo tem uma LISTA de músicas, sorteada a cada visita (o Felipe vai criar outras com o tempo). A synthwave de aventura, que não soava a cyberpunk, foi para a fantasia (Marcha dos Heróis); o cyberpunk ganhou uma techno sombria (Neon Noir).
 - **07/10:** o celular vale tanto quanto o computador: os olhos, o sol e os pássaros ficam no pedaço da arte que a tela mostra (o celular estreito corta as laterais), e cada tema vem nas duas telas.
 
 ## O que falta
