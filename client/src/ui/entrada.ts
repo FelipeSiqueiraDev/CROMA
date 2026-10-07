@@ -2,6 +2,7 @@ import type { ClientMsg } from '@crona/shared';
 import { h } from './dom';
 import { Cena, UNIVERSOS, type CenaLayout } from './entradaCena';
 import REMENDOS from './entradaRemendos.json';
+import BRILHOS from './entradaBrilhos.json';
 
 /**
  * A tela de entrada da plataforma: a arte do Felipe (a mesa de RPG à luz de vela, com o painel
@@ -503,12 +504,19 @@ export class Entrada {
     const nodes: HTMLElement[] = [vela, pavio, noite, em(ex, ey, 'fx-emblema', `--r:${er}px`)];
     // a fumaça da caneca
     for (let i = 0; i < 4; i++) nodes.push(em(fx + (i % 2 ? 10 : -6) * L.u, fy, 'fx-fumaca fx-vapor', `animation-delay:${(i * 1.25).toFixed(2)}s`));
-    // as faíscas em volta do emblema
-    const faiscas = 7;
-    for (let i = 0; i < faiscas; i++) {
-      const a = (i / faiscas) * Math.PI * 2 + 0.4;
-      const d = er * (0.72 + (i % 3) * 0.14);
-      nodes.push(em(ex + Math.cos(a) * d * 1.08, ey + Math.sin(a) * d * 0.72, 'fx-faisca', `animation-delay:${(i * 0.53).toFixed(2)}s`));
+    // as estrelinhas em volta do emblema: as da arte, recortadas (scripts na pasta da entrada),
+    // cada uma piscando no seu ritmo; as grandes respiram devagar e de vez em quando faíscam
+    for (const b of BRILHOS[L.nome]) {
+      const tipo = b.tam > 300 ? 'grande' : b.tam > 60 ? 'media' : 'pequena';
+      const dur = { grande: 3.6, media: 2.8, pequena: 2.1 }[tipo] + Math.random() * 1.4;
+      nodes.push(
+        em(
+          b.x + b.w / 2,
+          b.y + b.h / 2,
+          `fx-brilho fx-brilho-${tipo}`,
+          `width:${b.w}px;height:${b.h}px;background:url(/arte/login/brilhos/${L.nome}.png) -${b.sx}px 0 no-repeat;--dur:${dur.toFixed(2)}s;animation-delay:${(-Math.random() * dur).toFixed(2)}s`,
+        ),
+      );
     }
     this.fx.replaceChildren(...nodes);
     // a poeira na luz: mais perto da vela, mais quente; na fantasia, umas faíscas de magia

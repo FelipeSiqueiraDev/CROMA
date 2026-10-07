@@ -255,28 +255,62 @@
     transform: translate(-25%, calc(var(--u) * -160px)) scale(1.8);
   }
 }
-.fx-faisca {
-  width: calc(var(--u) * 18px);
-  height: calc(var(--u) * 18px);
-  background: #ffd77a;
-  clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%);
-  filter: drop-shadow(0 0 calc(var(--u) * 4px) #ffb23e);
-  opacity: 0;
-  animation: ent-faisca 3.6s infinite ease-in-out;
+.fx-brilho {
+  image-rendering: pixelated;
+  will-change: opacity, transform;
+  animation: ent-cintila var(--dur, 3s) infinite ease-in-out;
 }
-@keyframes ent-faisca {
+/* as grandes nunca somem: respiram e, de vez em quando, faíscam */
+.fx-brilho-grande {
+  animation:
+    ent-respira-brilho var(--dur, 3.6s) infinite ease-in-out,
+    ent-faisca-brilho 9s infinite ease-out;
+}
+.fx-brilho-pequena {
+  animation-name: ent-pisca-brilho;
+}
+@keyframes ent-cintila {
   0%,
   100% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.2) rotate(0deg);
+    opacity: 0.45;
+    transform: translate(-50%, -50%) scale(0.85);
   }
-  14% {
+  50% {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1) rotate(45deg);
+    transform: translate(-50%, -50%) scale(1.06);
   }
-  32% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.3) rotate(90deg);
+}
+@keyframes ent-pisca-brilho {
+  0%,
+  100% {
+    opacity: 0.1;
+  }
+  45% {
+    opacity: 1;
+  }
+  60% {
+    opacity: 0.6;
+  }
+}
+@keyframes ent-respira-brilho {
+  0%,
+  100% {
+    opacity: 0.78;
+    transform: translate(-50%, -50%) scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.04);
+  }
+}
+@keyframes ent-faisca-brilho {
+  0%,
+  88%,
+  100% {
+    filter: none;
+  }
+  92% {
+    filter: brightness(1.6) drop-shadow(0 0 calc(var(--u) * 6px) rgba(255, 214, 120, 0.9));
   }
 }
 
@@ -460,61 +494,6 @@
     0 0 calc(var(--u) * 18px) rgba(255, 170, 60, 0.18);
   animation: ent-varre 5s 1.6s infinite;
 }
-/* um d20 em cada ponta: gira ao passar o mouse e rola enquanto entra */
-.ent-principal::before,
-.ent-principal::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  width: calc(var(--u) * 22px);
-  height: calc(var(--u) * 24px);
-  margin-top: calc(var(--u) * -12px);
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 24'%3E%3Cpath d='M11 1.5 20 6.75v10.5L11 22.5 2 17.25V6.75z' fill='%23c98a2e' stroke='%234a2306' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M11 7.5 16.4 16.5H5.6z' fill='%23e7b456' stroke='%234a2306' stroke-width='1.6' stroke-linejoin='round'/%3E%3Cpath d='M11 1.5v6M20 6.75l-3.6 9.75M2 6.75l3.6 9.75M11 22.5l-5.4-6M11 22.5l5.4-6' fill='none' stroke='%234a2306' stroke-width='1.3'/%3E%3C/svg%3E")
-    center / contain no-repeat;
-  filter: drop-shadow(0 1px 0 rgba(255, 236, 190, 0.55));
-  transition: transform 0.45s cubic-bezier(0.3, 1.4, 0.5, 1);
-}
-.ent-principal::before {
-  left: calc(var(--u) * 20px);
-}
-.ent-principal::after {
-  right: calc(var(--u) * 20px);
-}
-.ent-principal:hover::before,
-.ent-principal:focus-visible::before {
-  transform: rotate(-60deg);
-}
-.ent-principal:hover::after,
-.ent-principal:focus-visible::after {
-  transform: rotate(60deg);
-}
-.ent-painel.esperando .ent-principal::before {
-  animation: ent-rola 0.5s linear infinite reverse;
-}
-.ent-painel.esperando .ent-principal::after {
-  animation: ent-rola 0.5s linear infinite;
-}
-.ent-painel.certo .ent-principal::before,
-.ent-painel.certo .ent-principal::after {
-  animation: ent-crit 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
-@keyframes ent-rola {
-  to {
-    transform: rotate(360deg);
-  }
-}
-@keyframes ent-crit {
-  0% {
-    transform: rotate(0) scale(1);
-  }
-  60% {
-    transform: rotate(420deg) scale(1.35);
-    filter: drop-shadow(0 0 calc(var(--u) * 6px) #fff3c0);
-  }
-  100% {
-    transform: rotate(360deg) scale(1);
-  }
-}
 @keyframes ent-varre {
   0% {
     background-position:
@@ -650,7 +629,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ent-fx > i,
+  .ent-fx i,
   .ent-principal,
   .entrada.pronta .ent-painel > *,
   .ent-painel.troca > * {

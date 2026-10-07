@@ -66,7 +66,8 @@ A primeira ideia (06/10) eram remendos: o Códex redesenhava um pedaço da arte 
 - **07/10:** a cena vira um kit em camadas, com luz neutra em todas as peças (a paisagem, a sala, o mapa, as miniaturas, os dados, a vela e a caneca); o jogo faz a luz e o clima. O lote 1 vem só no computador, para o Felipe aprovar o estilo.
 - **07/10:** o monstro (ou o sossego) fica no tabuleiro, nas miniaturas em cima do mapa. Os olhos no escuro ficam até as miniaturas chegarem.
 - **07/10:** o universo muda a cena inteira (paisagem, mapa, miniaturas, dados, vela, caneca), não só a cor da chama.
-- **07/10:** as estrelinhas desenhadas em volta do emblema saíram da arte (computador e celular); o brilho é só o animado. Um brilho passa pelas letras do CRONA de tempos em tempos. Os losangos do ENTRAR viraram dois d20, que giram ao passar o mouse e rolam enquanto entra. O campo selecionado acende inteiro (sem o contorno quadrado do campo de dentro).
+- **07/10:** as estrelinhas em volta do emblema saíram da arte parada e voltaram animadas: são as mesmas da arte, recortadas (`client/public/arte/login/brilhos/`, posições em `client/src/ui/entradaBrilhos.json`), cada uma piscando no seu ritmo; as grandes respiram e de vez em quando faíscam. (Sem elas o emblema ficava vazio.) As faíscas desenhadas em CSS saíram. Um brilho passa pelas letras do CRONA de tempos em tempos. O campo selecionado acende inteiro (sem o contorno quadrado do campo de dentro).
+- **07/10:** o botão ENTRAR fica sem ícones (os losangos e os d20 saíram); só o brilho que corre pelo ouro.
 
 ## O que falta
 
