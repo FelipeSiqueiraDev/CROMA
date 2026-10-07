@@ -7,6 +7,9 @@
 //     celular), com uma faixa de sobra em volta: base-computador.png e base-celular.png. É ela que
 //     vai anexada no pedido, para o Códex editar.
 //
+//   node scripts/entrada-fundos.mjs paisagem <entrega.png> <universo> [neve]
+//     A cidade lá fora do tema (vista pela janela em magenta da imagem do tema).
+//
 //   node scripts/entrada-fundos.mjs encaixar <entrega.png> <universo> <computador|celular>
 //     A imagem que voltou vira a do universo: tira a faixa de sobra, volta ao tamanho da tela
 //     (1672×941 ou 941×1672) e recebe o painel da arte de hoje por cima (o painel é a parte que os
@@ -85,10 +88,24 @@ async function encaixar(entrega, universo, tela) {
   console.log(`${path.relative(process.cwd(), destino)}\n  conferir: ${path.relative(process.cwd(), previa)}`);
 }
 
+/**
+ * A paisagem lá fora de um tema (o céu em magenta, as janelas das casas em verde): vai sem perda
+ * (o jogo tira o magenta e acende o verde pela cor exata) para client/public/arte/login/
+ * paisagem-<tema>.webp, ou paisagem-<tema>-neve.webp na versão com neve.
+ */
+async function paisagem(entrega, tema, neve) {
+  if (!UNIVERSOS.includes(tema)) throw new Error(`tema "${tema}": use ${UNIVERSOS.join(', ')}`);
+  const destino = path.join(LOGIN, `paisagem-${tema}${neve ? '-neve' : ''}.webp`);
+  // no tamanho em que aparece na janela (mais leve para o celular)
+  await sharp(entrega).resize(1024, 683, { fit: 'fill', kernel: 'lanczos3' }).webp({ lossless: true }).toFile(destino);
+  console.log(path.relative(process.cwd(), destino));
+}
+
 const [cmd, ...args] = process.argv.slice(2);
 if (cmd === 'bases' && args[0]) await bases(args[0]);
 else if (cmd === 'encaixar' && args.length === 3) await encaixar(...args);
+else if (cmd === 'paisagem' && (args.length === 2 || (args.length === 3 && args[2] === 'neve'))) await paisagem(args[0], args[1], args[2] === 'neve');
 else {
-  console.log('uso:\n  node scripts/entrada-fundos.mjs bases <pasta>\n  node scripts/entrada-fundos.mjs encaixar <entrega.png> <fantasia|horror|cyberpunk> <computador|celular>');
+  console.log('uso:\n  node scripts/entrada-fundos.mjs bases <pasta>\n  node scripts/entrada-fundos.mjs encaixar <entrega.png> <fantasia|horror|cyberpunk> <computador|celular>\n  node scripts/entrada-fundos.mjs paisagem <entrega.png> <fantasia|horror|cyberpunk> [neve]');
   process.exit(1);
 }

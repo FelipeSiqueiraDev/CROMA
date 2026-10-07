@@ -42,6 +42,8 @@ export interface CenaLayout {
   cantos: [number, number][];
   /** onde os raios de sol caem (x do topo e x do pé, para a esquerda) */
   raios: { y0: number; y1: number; xs: number[]; desvio: number; largura: number };
+  /** onde a paisagem fica atrás de uma janela em magenta: x, y e largura (a altura segue a imagem) */
+  paisagem: { x: number; y: number; w: number };
   /** a névoa no chão da sala: faixa y e de x0 a x1 */
   nevoa: [number, number, number, number];
   /** tamanho do pixel da arte */
@@ -264,6 +266,21 @@ export class Cena {
   private baixo: HTMLCanvasElement; // o céu em baixa resolução (um pixel da arte)
   private sobre: HTMLCanvasElement; // nuvens, chuva, raio: por cima da lua da arte
   private noiteCeu: HTMLCanvasElement | null = null; // o céu da arte (lua e estrelas)
+  /** os vidros da janela vieram em magenta (a imagem do tema): o céu é todo do código */
+  private ceuChroma = false;
+  /** a paisagem lá fora, na noite, no dourado e no dia (só com a janela em magenta) */
+  private paisagens: {
+    noite: HTMLCanvasElement;
+    dourado: HTMLCanvasElement;
+    dia: HTMLCanvasElement;
+    /** os letreiros de neon (pintados em ciano puro), acesos, e o brilho deles */
+    neon: HTMLCanvasElement | null;
+    neonBrilho: HTMLCanvasElement | null;
+    /** a lâmpada do farol (pintada em amarelo puro), em pixels da janela */
+    farol: [number, number] | null;
+  } | null = null;
+  /** as estrelas do céu do código (pixel, x e y no céu baixo, fase do piscar) */
+  private estrelas: [number, number, number][] = [];
   private imagens: { noite: HTMLCanvasElement; luar: HTMLCanvasElement; dourado: HTMLCanvasElement; dia: HTMLCanvasElement } | null = null;
   private ultimoPeso = '';
   private inicio = performance.now();
@@ -311,7 +328,7 @@ export class Cena {
   }
 
   /** Prepara a cena para a arte deste tamanho (a imagem já carregada). */
-  async montar(L: CenaLayout, img: HTMLImageElement) {
+  async montar(L: CenaLayout, img: HTMLImageElement, paisagem: HTMLImageElement | null = null) {
     this.L = L;
     this.imagens = null;
     const [x0, y0, x1, y1] = L.janela;
@@ -325,6 +342,7 @@ export class Cena {
     this.arte.width = this.luz.width = L.w;
     this.arte.height = this.luz.height = L.h;
     this.preparar(L, this.fonte(L, img));
+    this.paisagens = this.ceuChroma && paisagem ? this.prepararPaisagem(L, paisagem) : null;
     this.criarClima(L);
     this.ultimoPeso = '';
   }
@@ -355,16 +373,38 @@ export class Cena {
     // ---- o céu: azul-escuro dentro da janela (e a lua), fora do painel
     const ceu = new Uint8Array(W * H);
     const luzes = new Uint8Array(W * H);
+    let magenta = 0;
     for (let y = jy0; y < jy1; y++)
       for (let x = jx0; x < jx1; x++) {
-        if (noPainel(x, y)) continue;
         const i = y * W + x;
         const r = d[i * 4];
         const g = d[i * 4 + 1];
         const b = d[i * 4 + 2];
+        // os vidros em magenta (a imagem do tema): céu do código, até perto do painel (magenta nunca
+        // é o painel)
+        if (r > 150 && g < 120 && b > 150 && r - g > 80 && b - g > 80) {
+          ceu[i] = 1;
+          magenta++;
+          continue;
+        }
+        if (noPainel(x, y)) continue;
         const naLua = (x - lx) ** 2 + (y - ly) ** 2 < (lr * 1.25) ** 2;
         if (naLua || (b > 34 && b - r > 16 && b - g > 6)) ceu[i] = 1;
         else if (r > 105 && r - b > 40 && g > 45) luzes[i] = 1;
+      }
+    this.ceuChroma = magenta > 1500;
+    // a borda do magenta (misturada com a moldura) também sai, para não ficar um contorno rosa
+    if (this.ceuChroma)
+      for (let passo = 0; passo < 2; passo++) {
+        const add: number[] = [];
+        for (let y = jy0 + 1; y < jy1 - 1; y++)
+          for (let x = jx0 + 1; x < jx1 - 1; x++) {
+            const i = y * W + x;
+            if (ceu[i] || !(ceu[i - 1] || ceu[i + 1] || ceu[i - W] || ceu[i + W])) continue;
+            const o = i * 4;
+            if (d[o] - d[o + 1] > 35 && d[o + 2] - d[o + 1] > 35) add.push(i);
+          }
+        for (const i of add) ceu[i] = 1;
       }
     // as estrelas e os pontinhos no meio do céu também são céu (vizinhança quase toda de céu)
     for (let passo = 0; passo < 2; passo++) {
@@ -550,7 +590,7 @@ export class Cena {
     for (let y = 0; y < cd.height; y++)
       for (let x = 0; x < cd.width; x++) if (!ceu[(y + jy0) * W + x + jx0]) cd.data[(y * cd.width + x) * 4 + 3] = 0;
     ceuArte.getContext('2d')!.putImageData(cd, 0, 0);
-    this.noiteCeu = ceuArte;
+    this.noiteCeu = this.ceuChroma ? null : ceuArte;
 
     const tela = (dados: ImageData) => {
       const c = document.createElement('canvas');
@@ -560,6 +600,109 @@ export class Cena {
       return c;
     };
     this.imagens = { noite: tela(noite), luar: tela(luar), dourado: tela(dourado), dia: tela(dia) };
+  }
+
+  /**
+   * A paisagem atrás da janela em magenta (pintada com luz neutra, céu em magenta e as janelas das
+   * casas em verde): recortada no tamanho da janela, em três luzes. De noite as janelas acendem;
+   * de dia viram vidro escuro.
+   */
+  private prepararPaisagem(L: CenaLayout, img: HTMLImageElement) {
+    const [jx0, jy0, jx1, jy1] = L.janela;
+    const jw = jx1 - jx0;
+    const jh = jy1 - jy0;
+    const { x, y, w } = L.paisagem;
+    const hgt = Math.round((w * img.height) / img.width);
+    const c = document.createElement('canvas');
+    c.width = jw;
+    c.height = jh;
+    const cx = c.getContext('2d', { willReadFrequently: true })!;
+    cx.imageSmoothingQuality = 'high';
+    cx.drawImage(img, x - jx0, y - jy0, w, hgt);
+    const base = cx.getImageData(0, 0, jw, jh);
+    const d = base.data;
+    const versoes = { noite: new ImageData(jw, jh), dourado: new ImageData(jw, jh), dia: new ImageData(jw, jh) };
+    const neon = new ImageData(jw, jh);
+    let neonPx = 0;
+    let fx = 0;
+    let fy = 0;
+    let fn = 0;
+    for (let i = 0; i < d.length; i += 4) {
+      const r = d[i];
+      const g = d[i + 1];
+      const b = d[i + 2];
+      let a = d[i + 3];
+      // o céu em magenta sai (a borda misturada sai pela metade)
+      const mg = Math.min(r - g, b - g);
+      if (mg > 80 && r > 140 && b > 140) a = 0;
+      else if (mg > 40) a = Math.round(a * (1 - (mg - 40) / 40));
+      const janela = g > 150 && g - r > 60 && g - b > 60;
+      const por = (v: ImageData, cor: Rgb) => ((v.data[i] = cor[0]), (v.data[i + 1] = cor[1]), (v.data[i + 2] = cor[2]), (v.data[i + 3] = a));
+      // o letreiro de neon (ciano puro): de dia, placa apagada; de noite, aceso em rosa ou ciano
+      // (a cor muda em faixas, para a cidade não ficar de uma cor só)
+      if (g > 150 && b > 150 && r < 110 && g - r > 70 && b - r > 70) {
+        const px = (i / 4) % jw;
+        const rosa = Math.floor(px / 37) % 3 !== 0;
+        por(versoes.noite, [40, 34, 52]);
+        por(versoes.dourado, [70, 66, 80]);
+        por(versoes.dia, [96, 100, 112]);
+        const cor: Rgb = rosa ? [255, 70, 200] : [80, 240, 255];
+        neon.data[i] = cor[0];
+        neon.data[i + 1] = cor[1];
+        neon.data[i + 2] = cor[2];
+        neon.data[i + 3] = a;
+        neonPx++;
+        continue;
+      }
+      // a lâmpada do farol (amarelo puro): acesa de noite, apagada de dia; o facho gira em volta
+      if (r > 235 && g > 230 && b < 60) {
+        fx += (i / 4) % jw;
+        fy += Math.floor(i / 4 / jw);
+        fn++;
+        por(versoes.noite, [255, 240, 170]);
+        por(versoes.dourado, [255, 220, 140]);
+        por(versoes.dia, [210, 200, 160]);
+        continue;
+      }
+      if (janela) {
+        por(versoes.noite, [255, 196, 110]);
+        por(versoes.dourado, [235, 160, 90]);
+        por(versoes.dia, [42, 48, 60]);
+        continue;
+      }
+      por(versoes.noite, [r * 0.34, g * 0.4, b * 0.66]);
+      por(versoes.dourado, [r * 1.02, g * 0.8, b * 0.68]);
+      por(versoes.dia, [r, g, b]);
+    }
+    const tela = (v: ImageData) => {
+      const t = document.createElement('canvas');
+      t.width = jw;
+      t.height = jh;
+      t.getContext('2d')!.putImageData(v, 0, 0);
+      return t;
+    };
+    let neonTela: HTMLCanvasElement | null = null;
+    let neonBrilho: HTMLCanvasElement | null = null;
+    // só vale como letreiro e como farol uma mancha de verdade (não uns pixels soltos)
+    if (neonPx > 30) {
+      neonTela = tela(neon);
+      // o brilho do neon: o mesmo desenho, borrado (feito uma vez só)
+      neonBrilho = document.createElement('canvas');
+      neonBrilho.width = jw;
+      neonBrilho.height = jh;
+      const nb = neonBrilho.getContext('2d')!;
+      nb.filter = 'blur(6px)';
+      nb.drawImage(neonTela, 0, 0);
+      nb.drawImage(neonTela, 0, 0);
+    }
+    return {
+      noite: tela(versoes.noite),
+      dourado: tela(versoes.dourado),
+      dia: tela(versoes.dia),
+      neon: neonTela,
+      neonBrilho,
+      farol: fn > 40 ? ([fx / fn, fy / fn] as [number, number]) : null,
+    };
   }
 
   // ---------------------------------------------------------------- clima
@@ -575,6 +718,7 @@ export class Cena {
         ? Array.from({ length: Math.round(bw * bh * (clima === 'neve' ? 0.009 : 0.012)) }, () => ({ x: Math.random() * bw, y: Math.random() * bh, v: 0.9 + Math.random() * 0.6 }))
         : [];
     this.voadores = [];
+    this.estrelas = Array.from({ length: Math.round(bw * bh * 0.006) }, () => [Math.floor(Math.random() * bw), Math.floor(Math.random() * bh * 0.7), Math.random() * 6]);
     // os olhos: lá fora, na janela (de noite), e no canto escuro da sala
     this.olhos = [];
     if (this.sorteio.monstro) {
@@ -707,23 +851,47 @@ export class Cena {
     const ceuArte = this.noiteCeu;
     const c2 = this.ceu.getContext('2d')!;
     c2.imageSmoothingEnabled = false;
+    // com a janela em magenta, a lua e as estrelas são do código
+    if (this.ceuChroma && noite > 0.02) {
+      const aberto = noite * (1 - fechado * 0.85);
+      for (const [x, y, f] of this.estrelas) {
+        const a = aberto * (0.35 + 0.65 * (0.5 + 0.5 * Math.sin(agora / 700 + f * 3)));
+        ctx.fillStyle = `rgba(255, 244, 205, ${a})`;
+        ctx.fillRect(x, y, 1, 1);
+      }
+      const [lx, ly] = L.lua;
+      const mx = bx(lx);
+      const my = by(ly);
+      const halo = ctx.createRadialGradient(mx, my, 0, mx, my, 16);
+      halo.addColorStop(0, `rgba(255, 226, 150, ${0.35 * aberto})`);
+      halo.addColorStop(1, 'rgba(255, 226, 150, 0)');
+      ctx.fillStyle = halo;
+      ctx.fillRect(mx - 16, my - 16, 32, 32);
+      ctx.fillStyle = `rgba(255, 232, 160, ${aberto})`;
+      disco(ctx, mx, my, 4.5);
+      ctx.fillStyle = `rgba(226, 196, 120, ${aberto})`;
+      ctx.fillRect(Math.round(mx - 1), Math.round(my - 2), 2, 1);
+      ctx.fillRect(Math.round(mx + 1), Math.round(my + 1), 1, 1);
+    }
 
     // nuvens, névoa, aurora, chuva, raio: na camada de cima (desenhadas por cima da lua)
     const sobre = this.sobre;
     const s = sobre.getContext('2d')!;
     s.clearRect(0, 0, bw, bh);
+    // com a paisagem lá fora, aurora, estrela cadente e nuvens ficam atrás dela (no céu)
+    const atras = this.paisagens ? ctx : s;
     // aurora (horror, de noite)
     if (def.aurora && noite > 0.2) {
       for (let x = 0; x < bw; x++) {
         const onda = Math.sin(x * 0.09 + agora / 2400) * 0.5 + Math.sin(x * 0.031 - agora / 3700) * 0.5;
         const alto = bh * (0.25 + 0.18 * onda);
         const a = (0.1 + 0.12 * (0.5 + 0.5 * Math.sin(x * 0.2 + agora / 900))) * noite;
-        const g = s.createLinearGradient(0, alto, 0, alto + bh * 0.45);
+        const g = atras.createLinearGradient(0, alto, 0, alto + bh * 0.45);
         g.addColorStop(0, rgb(def.aurora, 0));
         g.addColorStop(0.3, rgb(def.aurora, a));
         g.addColorStop(1, rgb(def.aurora, 0));
-        s.fillStyle = g;
-        s.fillRect(x, alto, 1, bh * 0.45);
+        atras.fillStyle = g;
+        atras.fillRect(x, alto, 1, bh * 0.45);
       }
     }
     // a estrela cadente (noite, céu aberto)
@@ -738,8 +906,8 @@ export class Cena {
       c.y += c.vy * dt * 0.6;
       c.vida -= dt / 900;
       for (let k = 0; k < 8; k++) {
-        s.fillStyle = `rgba(255, 246, 210, ${clamp(c.vida) * (1 - k / 8)})`;
-        s.fillRect(Math.round(c.x - c.vx * k * 18), Math.round(c.y - c.vy * k * 18), 1, 1);
+        atras.fillStyle = `rgba(255, 246, 210, ${clamp(c.vida) * (1 - k / 8)})`;
+        atras.fillRect(Math.round(c.x - c.vx * k * 18), Math.round(c.y - c.vy * k * 18), 1, 1);
       }
       if (c.vida <= 0 || c.x < 0) this.cadente = null;
     }
@@ -750,10 +918,10 @@ export class Cena {
       n.x += n.v * dt * (clima === 'tempestade' ? 2.2 : 1);
       if (n.x - 20 > bw) Object.assign(n, this.novaNuvem(bw, bh, -30));
       const alfa = clima === 'neblina' ? 0.55 : 0.92;
-      s.fillStyle = rgb(sombraNuvem, alfa);
-      for (const [dx, dy, r] of n.bolhas) disco(s, n.x + dx, n.y + dy + 1.5, r);
-      s.fillStyle = rgb(corNuvem, alfa);
-      for (const [dx, dy, r] of n.bolhas) disco(s, n.x + dx, n.y + dy, r - 0.8);
+      atras.fillStyle = rgb(sombraNuvem, alfa);
+      for (const [dx, dy, r] of n.bolhas) disco(atras, n.x + dx, n.y + dy + 1.5, r);
+      atras.fillStyle = rgb(corNuvem, alfa);
+      for (const [dx, dy, r] of n.bolhas) disco(atras, n.x + dx, n.y + dy, r - 0.8);
     }
     // a neblina no horizonte
     if (clima === 'neblina' || def.nevoaSala) {
@@ -882,6 +1050,63 @@ export class Cena {
       c2.globalAlpha = clamp(noite * (1 - fechado) + noite * 0.12);
       c2.drawImage(ceuArte, 0, 0);
       c2.globalAlpha = 1;
+    }
+    // a paisagem lá fora, na luz da hora (a noite, o dourado e o dia misturados)
+    const p = this.paisagens;
+    if (p) {
+      c2.imageSmoothingEnabled = true;
+      c2.drawImage(p.noite, 0, 0);
+      if (dourado > 0.001) {
+        c2.globalAlpha = dourado / (noite + dourado || 1);
+        c2.drawImage(p.dourado, 0, 0);
+      }
+      if (dia > 0.001) {
+        c2.globalAlpha = dia;
+        c2.drawImage(p.dia, 0, 0);
+      }
+      c2.globalAlpha = 1;
+      // os letreiros de neon acesos, piscando de vez em quando (mais fortes com a noite)
+      const acesos = noite + dourado * 0.4;
+      if (p.neon && acesos > 0.05) {
+        const pisca = Math.sin(agora / 97) > 0.92 || Math.sin(agora / 1310 + 1) > 0.985 ? 0.35 : 1;
+        c2.globalCompositeOperation = 'lighter';
+        c2.globalAlpha = 0.55 * acesos * pisca;
+        c2.drawImage(p.neonBrilho!, 0, 0);
+        c2.globalCompositeOperation = 'source-over';
+        c2.globalAlpha = acesos * pisca;
+        c2.drawImage(p.neon, 0, 0);
+        c2.globalAlpha = 1;
+      }
+      // o facho do farol girando (de noite)
+      if (p.farol && acesos > 0.1) {
+        const [fx, fy] = p.farol;
+        const ang = (agora / 2600) % (Math.PI * 2);
+        // o facho é mais visível quando aponta de lado (para a câmera ele "passa")
+        const lado = Math.abs(Math.cos(ang));
+        const alcance = 260;
+        const abre = 0.09;
+        c2.globalCompositeOperation = 'lighter';
+        for (const sentido of [0, Math.PI]) {
+          const a0 = ang + sentido;
+          const g = c2.createRadialGradient(fx, fy, 0, fx, fy, alcance);
+          g.addColorStop(0, `rgba(255, 236, 170, ${0.4 * acesos * lado})`);
+          g.addColorStop(1, 'rgba(255, 236, 170, 0)');
+          c2.fillStyle = g;
+          c2.beginPath();
+          c2.moveTo(fx, fy);
+          c2.lineTo(fx + Math.cos(a0 - abre) * alcance, fy + Math.sin(a0 - abre) * alcance * 0.35);
+          c2.lineTo(fx + Math.cos(a0 + abre) * alcance, fy + Math.sin(a0 + abre) * alcance * 0.35);
+          c2.closePath();
+          c2.fill();
+        }
+        const brilho = c2.createRadialGradient(fx, fy, 0, fx, fy, 18);
+        brilho.addColorStop(0, `rgba(255, 240, 190, ${0.7 * acesos})`);
+        brilho.addColorStop(1, 'rgba(255, 240, 190, 0)');
+        c2.fillStyle = brilho;
+        c2.fillRect(fx - 18, fy - 18, 36, 36);
+        c2.globalCompositeOperation = 'source-over';
+      }
+      c2.imageSmoothingEnabled = false;
     }
     c2.drawImage(sobre, 0, 0, bw * L.px, bh * L.px);
   }

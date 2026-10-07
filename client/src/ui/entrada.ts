@@ -77,7 +77,8 @@ const COMPUTADOR: Layout = {
   emblema: [1118, 178, 150],
   ceu: [1250, 0, 1672, 110],
   cena: {
-    janela: [940, 0, 1672, 150],
+    // a janela (nas imagens dos temas, os vidros em magenta vão de 834 a 1672, até a altura 152)
+    janela: [820, 0, 1672, 160],
     // o painel e o emblema que sobe acima dele
     painel: [
       [848, 128, 1392, 826],
@@ -94,6 +95,8 @@ const COMPUTADOR: Layout = {
     ],
     raios: { y0: 140, y1: 941, xs: [1430, 1515, 1600], desvio: 300, largura: 30 },
     nevoa: [0, 640, 1672, 941],
+    // a paisagem atrás dos vidros em magenta: o castelo cai na parte da janela que aparece
+    paisagem: { x: 740, y: -150, w: 1000 },
     px: 3,
   },
 };
@@ -128,6 +131,7 @@ const CELULAR: Layout = {
     ],
     raios: { y0: 262, y1: 1672, xs: [570, 690, 810], desvio: 360, largura: 40 },
     nevoa: [0, 1250, 941, 1672],
+    paisagem: { x: 470, y: -60, w: 640 },
     px: 3,
   },
 };
@@ -160,6 +164,8 @@ export class Entrada {
   private fx: HTMLElement;
   private poeira: HTMLCanvasElement;
   private logo: HTMLElement;
+  /** a paisagem lá fora do tema (atrás dos vidros em magenta), se existir */
+  private paisagem: string | null = null;
   /** o fundo vivo: a hora, o clima e o universo sorteado */
   private cena = new Cena();
   /** a trilha e o som do ambiente */
@@ -279,8 +285,17 @@ export class Entrada {
         this.el.classList.add('sem-cena', 'pronta');
       };
       const espera = setTimeout(semCena, 4000);
-      this.cena
-        .montar({ ...L.cena, nome: L.nome, w: L.w, h: L.h }, this.fundo)
+      // a paisagem lá fora (se o tema tiver) carrega antes de montar
+      const paisagem = this.paisagem
+        ? new Promise<HTMLImageElement | null>((ok) => {
+            const img = new Image();
+            img.onload = () => ok(img);
+            img.onerror = () => ok(null);
+            img.src = this.paisagem!;
+          })
+        : Promise.resolve(null);
+      paisagem
+        .then((p) => this.cena.montar({ ...L.cena, nome: L.nome, w: L.w, h: L.h }, this.fundo, p))
         .then(() => {
           clearTimeout(espera);
           if (this.layout !== L) return;
@@ -559,10 +574,15 @@ export class Entrada {
     // sem ela, a de hoje (que é a da fantasia)
     const universo = this.cena.sorteio.universo;
     const propria = `/arte/login/fundo-${L.nome}-${universo}.webp`;
-    void (universo === 'fantasia' ? Promise.resolve(false) : existeArte(propria)).then((tem) => {
+    // a cidade lá fora: com neve, a versão de telhados brancos (se o Códex já pintou)
+    const paisagem = `/arte/login/paisagem-${universo}.webp`;
+    const comNeve = `/arte/login/paisagem-${universo}-neve.webp`;
+    const neve = this.cena.sorteio.clima === 'neve';
+    void Promise.all([existeArte(propria), existeArte(paisagem), neve ? existeArte(comNeve) : Promise.resolve(false)]).then(([tem, temPaisagem, temNeve]) => {
       if (this.layout !== L) return;
       this.cena.fundoProprio = tem;
-      this.el.dataset.fundo = tem ? universo : 'fantasia';
+      this.paisagem = temNeve ? comNeve : temPaisagem ? paisagem : null;
+      this.el.dataset.fundo = tem ? universo : 'hoje';
       this.fundo.src = tem ? propria : L.fundo;
     });
     this.poeira.width = L.w;

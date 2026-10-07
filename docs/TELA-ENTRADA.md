@@ -43,15 +43,30 @@ node scripts/entrada-fundos.mjs encaixar <imagem.png> <tema> <computador|celular
 
 O encaixe tira a faixa de sobra da base (o gerador devolve 1536×1024 ou 1024×1536; a tela é 1672×941 ou 941×1672), volta ao tamanho da tela e recoloca **o painel da arte de hoje** por cima (os campos de verdade ficam exatamente sobre os desenhados: o painel tem que bater no pixel). Grava `client/public/arte/login/fundo-<tela>-<tema>.webp`, que a tela usa sozinha, e uma prévia ao lado da imagem. A chama é achada na imagem (o miolo mais claro perto de onde ela fica hoje), então a vela pode ter mudado um pouco de lugar.
 
-- [ ] fantasia (computador / celular)
+- [x] fantasia, computador (07/10) · [ ] fantasia, celular
 - [ ] horror (computador / celular)
 - [ ] cyberpunk (computador / celular)
+
+### A cidade lá fora
+
+Nas imagens dos temas, os **vidros da janela vêm em magenta** (pedido do Felipe): o código põe ali o céu da hora e do clima (o sol, a lua e as estrelas, as nuvens, a chuva, a neve caindo, os relâmpagos, os pássaros) e, atrás dele, a **cidade do tema** (`client/public/arte/login/paisagem-<tema>.webp`). A cidade vem com luz neutra e céu em magenta; o código a escurece de noite, doura no fim da tarde e usa as cores marcadas na pintura:
+
+- **verde puro** (#00FF00): as janelas das casas, acesas de noite e vidro escuro de dia;
+- **ciano puro** (#00FFFF): os letreiros de neon do cyberpunk, acesos em rosa e ciano, com brilho, piscando de vez em quando;
+- **amarelo puro** (#FFFF00): a lâmpada do farol do horror, acesa de noite, com o facho girando.
+
+Neve parada nos telhados o código não faz: cada cidade tem também a versão com neve (`paisagem-<tema>-neve.webp`), usada quando o clima sorteado é neve. Encaixe: `node scripts/entrada-fundos.mjs paisagem <imagem> <tema> [neve]` (vai sem perda, em 1024×683, o tamanho em que aparece).
+
+- [x] fantasia (lote 1) · [ ] fantasia com neve
+- [ ] horror · [ ] horror com neve
+- [ ] cyberpunk · [ ] cyberpunk com neve
 
 ## Decisões
 
 - **06/10:** a tela de entrada não usa nada dos agentes da campanha; é genérica, em vários universos de RPG, no estilo da arte de hoje, variando os elementos, a hora e o clima.
 - **07/10:** três temas: fantasia, horror e cyberpunk (paranormal e Tormenta saíram). Cada tema é **uma imagem inteira**, igual à de hoje, editada pelo Códex a partir dela; o kit em camadas (peças separadas montadas pelo jogo) foi testado e recusado: "parecia um monte de PNG jogado um em cima do outro". As miniaturas do teste ficaram como referência do estilo.
 - **07/10:** o monstro (ou o sossego) fica no tabuleiro, nas miniaturas pintadas em cima do mapa.
+- **07/10:** nas imagens dos temas, os vidros da janela vêm em magenta e lá fora entra a cidade do tema, com luz neutra, numa versão normal e numa com neve (sol, chuva e neblina são efeito do código). A primeira é a paisagem do lote 1.
 - **07/10:** as estrelinhas em volta do emblema saíram da arte parada e voltaram animadas: são as mesmas da arte, recortadas (`client/public/arte/login/brilhos/`, posições em `client/src/ui/entradaBrilhos.json`), cada uma piscando no seu ritmo; as grandes respiram e de vez em quando faíscam. Um brilho passa pelas letras do CRONA de tempos em tempos. O campo selecionado acende inteiro (sem o contorno quadrado do campo de dentro).
 - **07/10:** o botão ENTRAR fica sem ícones; só o brilho que corre pelo ouro.
 - **07/10:** a tela tem trilha, um tema por universo (o cyberpunk em synthwave), e o som do ambiente, tudo sintetizado na hora. A música começa sozinha; se o navegador segurar, no primeiro toque.
@@ -59,5 +74,6 @@ O encaixe tira a faixa de sobra da base (o gerador devolve 1536×1024 ou 1024×1
 
 ## O que falta
 
-- As seis imagens dos temas (o `PROMPT-ENTRADA.txt`).
+- As imagens dos temas que faltam (fantasia no celular, horror e cyberpunk) e as cidades (o `PROMPT-ENTRADA.txt`, partes 1 e 2).
+- No celular, a cidade lá fora entra quando chegar a imagem do tema do celular com os vidros em magenta.
 - Ideias para depois: os dados rolando ao abrir a página, as miniaturas se mexendo de leve (com as imagens prontas, dá para animar recortes delas no lugar), o livro da mesa trocando de capa.
