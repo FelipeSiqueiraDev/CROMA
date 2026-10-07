@@ -19,7 +19,7 @@ import { existeArte } from './icons';
  */
 
 export type Universo = 'fantasia' | 'horror' | 'paranormal' | 'tormenta';
-export type Clima = 'limpo' | 'nuvens' | 'chuva' | 'neblina' | 'tempestade';
+export type Clima = 'limpo' | 'nuvens' | 'chuva' | 'neblina' | 'tempestade' | 'neve';
 export type LugarRemendo = 'caneca' | 'vela' | 'mapa';
 export type LayoutNome = 'computador' | 'celular';
 
@@ -79,7 +79,7 @@ export const UNIVERSOS: Record<Universo, DefUniverso> = {
     nome: 'Fantasia',
     chama: null,
     luz: [255, 170, 80],
-    climas: { limpo: 4, nuvens: 3, chuva: 1, neblina: 1 },
+    climas: { limpo: 4, nuvens: 3, chuva: 1, neblina: 1, neve: 1 },
     monstro: 0.2,
     magia: [140, 210, 255],
     olhos: [255, 200, 60],
@@ -92,7 +92,7 @@ export const UNIVERSOS: Record<Universo, DefUniverso> = {
       [215, 255, 180],
     ],
     luz: [110, 255, 160],
-    climas: { neblina: 4, chuva: 2, nuvens: 1, tempestade: 1 },
+    climas: { neblina: 4, chuva: 2, nuvens: 1, tempestade: 1, neve: 1 },
     monstro: 0.5,
     aurora: [80, 255, 150],
     nevoaSala: [120, 190, 150],
@@ -204,7 +204,7 @@ export function sortearCena(hora: number): Sorteio {
   }
   const def = UNIVERSOS[universo];
   const climaPedido = q.get('clima') as Clima | null;
-  const clima = climaPedido && ['limpo', 'nuvens', 'chuva', 'neblina', 'tempestade'].includes(climaPedido) ? climaPedido : sortearPeso(def.climas);
+  const clima = climaPedido && ['limpo', 'nuvens', 'chuva', 'neblina', 'tempestade', 'neve'].includes(climaPedido) ? climaPedido : sortearPeso(def.climas);
   const { noite } = pesosDaHora(hora);
   const velaPedida = q.get('vela');
   // de noite a vela quase sempre está acesa; de dia, quase sempre apagada
@@ -637,11 +637,11 @@ export class Cena {
     const bw = this.baixo.width;
     const bh = this.baixo.height;
     const { clima } = this.sorteio;
-    const quantas = { limpo: 2, nuvens: 6, chuva: 9, neblina: 4, tempestade: 11 }[clima];
+    const quantas = { limpo: 2, nuvens: 6, chuva: 9, neblina: 4, tempestade: 11, neve: 7 }[clima];
     this.nuvens = Array.from({ length: quantas }, () => this.novaNuvem(bw, bh, Math.random() * bw * 1.4 - bw * 0.2));
     this.gotas =
-      clima === 'chuva' || clima === 'tempestade'
-        ? Array.from({ length: Math.round(bw * bh * 0.012) }, () => ({ x: Math.random() * bw, y: Math.random() * bh, v: 0.9 + Math.random() * 0.6 }))
+      clima === 'chuva' || clima === 'tempestade' || clima === 'neve'
+        ? Array.from({ length: Math.round(bw * bh * (clima === 'neve' ? 0.009 : 0.012)) }, () => ({ x: Math.random() * bw, y: Math.random() * bh, v: 0.9 + Math.random() * 0.6 }))
         : [];
     this.voadores = [];
     // os olhos: lá fora, na janela (de noite), e no canto escuro da sala
@@ -715,7 +715,7 @@ export class Cena {
     const { noite, dourado, dia } = this.pesos;
     const { clima, universo } = this.sorteio;
     const def = UNIVERSOS[universo];
-    const fechado = { limpo: 0, nuvens: 0.25, chuva: 0.7, neblina: 0.45, tempestade: 0.9 }[clima];
+    const fechado = { limpo: 0, nuvens: 0.25, chuva: 0.7, neblina: 0.45, tempestade: 0.9, neve: 0.55 }[clima];
     const cinza = mix(CINZA.noite, CINZA.dia, dia + dourado * 0.5);
     const rubro = def.rubra && clima === 'tempestade';
     const corDe = (k: number) => {
@@ -851,8 +851,18 @@ export class Cena {
       if (v.tipo === 'morcego') s.fillRect(x - 2, y + asa + 1, 1, 1), s.fillRect(x + 2, y + asa + 1, 1, 1);
       return v.x < bw + 6;
     });
+    // neve: flocos de um pixel, devagar e balançando
+    if (clima === 'neve') {
+      s.fillStyle = dia > 0.4 ? 'rgba(255, 255, 255, 0.9)' : 'rgba(215, 225, 245, 0.8)';
+      for (const g of this.gotas) {
+        g.y += g.v * dt * 0.006;
+        g.x += Math.sin((agora / 900) * g.v + g.y * 0.3) * dt * 0.004;
+        if (g.y > bh) (g.y = -1), (g.x = Math.random() * bw);
+        s.fillRect(Math.round(g.x), Math.round(g.y), 1, 1);
+      }
+    }
     // chuva
-    if (this.gotas.length) {
+    else if (this.gotas.length) {
       s.fillStyle = rubro ? 'rgba(255, 120, 110, 0.4)' : dia > 0.5 ? 'rgba(220, 230, 245, 0.45)' : 'rgba(150, 170, 210, 0.4)';
       for (const g of this.gotas) {
         g.y += g.v * dt * 0.07;
@@ -928,7 +938,7 @@ export class Cena {
     const { noite, dourado, dia } = this.pesos;
     const { clima, universo } = this.sorteio;
     const def = UNIVERSOS[universo];
-    const fechado = { limpo: 0, nuvens: 0.3, chuva: 0.75, neblina: 0.55, tempestade: 0.9 }[clima];
+    const fechado = { limpo: 0, nuvens: 0.3, chuva: 0.75, neblina: 0.55, tempestade: 0.9, neve: 0.6 }[clima];
     // os raios de sol entrando pela janela
     const forca = (dia + dourado * 0.8) * (1 - fechado);
     if (forca > 0.02) {

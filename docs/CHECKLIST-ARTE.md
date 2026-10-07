@@ -119,9 +119,11 @@ Nada novo: usa os retratos, os ícones e as folhas da FICHAS. Os cartões de res
 
 ## 6. Tela de entrada (06/10)
 
-As peças trocáveis do fundo da entrada (caneca, vela, mapa da mesa, mapa com monstro), em vários universos de RPG. Não são PNG transparentes: são remendos da arte, feitos a partir de um gabarito. A lista com os nomes, o formato e o pedido pronto da primeira leva está em [`TELA-ENTRADA.md`](TELA-ENTRADA.md#a-lista-o-id-e-onde-pode-aparecer).
+O fundo da entrada em camadas, com luz neutra, em vários universos de RPG: a paisagem lá fora, a sala com a mesa vazia, os mapas, as miniaturas de heróis e monstros, os dados, os castiçais e as canecas. O pedido pronto (bloco de estilo, formato e nome de cada imagem) é o [`PROMPT-ENTRADA.txt`](PROMPT-ENTRADA.txt); como cada camada entra no jogo, em [`TELA-ENTRADA.md`](TELA-ENTRADA.md#o-kit-em-camadas-pedido-em-0710).
 
-- [ ] ✱ Primeira leva, só no computador, para o Felipe aprovar: `caneca-cerveja`, `vela-apagada`, `mapa-tentaculos`
+- [ ] ✱ Lote 1, só no computador, para o Felipe aprovar: `sala-computador`, `paisagem-fantasia`, `mapa-reino`, `miniaturas-herois-fantasia`, `miniaturas-monstros-fantasia`, `dados-obsidiana`, `objetos-mesa-1`
+- [ ] Lote 2: as outras paisagens, mapas, miniaturas, dados e objetos (lista no pedido)
+- [ ] `sala-celular`
 
 ## O tabuleiro (revisto em 02/10)
 

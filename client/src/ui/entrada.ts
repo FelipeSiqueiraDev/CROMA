@@ -43,6 +43,8 @@ interface Layout {
   campo: { x: number; w: number };
   entrar: { email: Caixa; senha: Caixa; botao: Caixa; ou: number; outro: Caixa };
   criar: { nome: Caixa; email: Caixa; senha: Caixa; botao: Caixa; ou: number; outro: Caixa };
+  /** as letras do CRONA na arte (o brilho passa por elas) */
+  logo: Ret;
   /** x, y e raio do brilho */
   chama: [number, number, number];
   lua: [number, number, number];
@@ -66,6 +68,7 @@ const COMPUTADOR: Layout = {
   campo: { x: 905, w: 421 },
   entrar: { email: [398, 59], senha: [475, 59], botao: [553, 61], ou: 653, outro: [678, 50] },
   criar: { nome: [396, 52], email: [458, 52], senha: [520, 52], botao: [584, 56], ou: 656, outro: [678, 50] },
+  logo: { x: 955, y: 262, w: 335, h: 84 },
   chama: [430, 88, 230],
   lua: [1448, 27, 64],
   fumaca: [1530, 232],
@@ -103,6 +106,7 @@ const CELULAR: Layout = {
   campo: { x: 217, w: 506 },
   entrar: { email: [740, 79], senha: [839, 79], botao: [941, 80], ou: 1063, outro: [1097, 69] },
   criar: { nome: [736, 68], email: [818, 68], senha: [900, 68], botao: [984, 72], ou: 1076, outro: [1097, 69] },
+  logo: { x: 280, y: 580, w: 400, h: 88 },
   chama: [300, 215, 260],
   lua: [720, 85, 72],
   fumaca: [855, 470],
@@ -152,6 +156,7 @@ export class Entrada {
   private fundo: HTMLImageElement;
   private fx: HTMLElement;
   private poeira: HTMLCanvasElement;
+  private logo: HTMLElement;
   /** o fundo vivo: a hora, o clima e o universo sorteado */
   private cena = new Cena();
   private painel: HTMLFormElement;
@@ -173,6 +178,7 @@ export class Entrada {
   constructor(private op: EntradaOpcoes) {
     this.fundo = h('img', { class: 'ent-fundo', alt: '', draggable: 'false' });
     this.poeira = h('canvas', { class: 'ent-poeira', 'aria-hidden': 'true' });
+    this.logo = h('div', { class: 'ent-logo', 'aria-hidden': 'true' });
     this.fx = h('div', { class: 'ent-fx', 'aria-hidden': 'true' });
     const campo = (qual: 'nome' | 'email' | 'senha', rotulo: string, tipo: string, auto: string) => {
       const input = h('input', { class: 'ent-input', type: tipo, placeholder: rotulo, 'aria-label': rotulo, autocomplete: auto, spellcheck: 'false', autocapitalize: 'off' });
@@ -204,7 +210,7 @@ export class Entrada {
       this.erroEl,
       this.outro,
     );
-    this.palco = h('div', { class: 'ent-palco' }, this.fundo, this.cena.ceu, this.cena.arte, this.fx, this.cena.luz, this.poeira, this.painel);
+    this.palco = h('div', { class: 'ent-palco' }, this.fundo, this.cena.ceu, this.cena.arte, this.fx, this.cena.luz, this.poeira, this.logo, this.painel);
     this.el = h('div', { class: 'entrada', role: 'dialog', 'aria-label': 'Entrar no CRONA' }, this.palco);
     const s = this.cena.sorteio;
     Object.assign(this.el.dataset, { universo: s.universo, clima: s.clima, vela: s.vela ? 'acesa' : 'apagada', monstro: s.monstro ? 'sim' : 'nao' });
@@ -221,6 +227,7 @@ export class Entrada {
       // a cena reiluminada fica por cima da arte; a tela aparece quando ela fica pronta
       const L = this.layout;
       if (!L) return;
+      this.mascaraDoLogo(L);
       // se a cena demorar ou falhar (a imagem de outro endereço não deixa ler os pixels), a tela
       // aparece com a arte de sempre e os brilhos em CSS
       const semCena = () => {
@@ -398,6 +405,35 @@ export class Entrada {
   }
 
   // ---------------------------------------------------------------- palco
+  /** As letras do CRONA viram a máscara do brilho que passa (os pixels dourados da arte). */
+  private mascaraDoLogo(L: Layout) {
+    const { x, y, w, h: alt } = L.logo;
+    Object.assign(this.logo.style, { left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${alt}px` });
+    try {
+      const c = document.createElement('canvas');
+      c.width = w;
+      c.height = alt;
+      const ctx = c.getContext('2d', { willReadFrequently: true })!;
+      ctx.drawImage(this.fundo, x, y, w, alt, 0, 0, w, alt);
+      const img = ctx.getImageData(0, 0, w, alt);
+      const d = img.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const ouro = d[i] > 120 && d[i + 1] > 70 && d[i] - d[i + 2] > 60;
+        const a = ouro ? Math.min(255, (d[i] + d[i + 1]) * 0.55) : 0;
+        d[i] = d[i + 1] = d[i + 2] = 255;
+        d[i + 3] = a;
+      }
+      ctx.putImageData(img, 0, 0);
+      const url = `url(${c.toDataURL()})`;
+      this.logo.style.setProperty('mask-image', url);
+      this.logo.style.setProperty('-webkit-mask-image', url);
+      this.logo.hidden = false;
+    } catch {
+      // a imagem de outro endereço não deixa ler os pixels: fica sem o brilho
+      this.logo.hidden = true;
+    }
+  }
+
   /** Escala a arte para cobrir a tela, com o painel inteiro à vista. */
   private ajustar() {
     const vw = innerWidth;

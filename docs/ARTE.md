@@ -389,7 +389,9 @@ A lista dos cômodos e dos móveis de cada um está em [`SEDE-DA-ORDEM.md`](SEDE
 
 ## 6. Tela de entrada: as peças trocáveis (decidido em 06/10)
 
-A caneca, a vela e o mapa da mesa da tela de entrada trocam a cada visita. Cada variante é um **remendo**: o Códex recebe o pedaço da arte ampliado (o gabarito, `node scripts/entrada-remendos.mjs gabaritos <pasta>`), redesenha só a peça e devolve a imagem no mesmo tamanho (1024×1024, 1536×1024 ou 1024×1536), **na mesma luz de noite à luz de vela** e no mesmo estilo de pixel art. Sem fundo transparente: o resto do gabarito fica igual. O script encaixa (`encaixar <entrega.png> <peça>-<id>-<tela>`) em `client/public/arte/login/variantes/`. A lista, os nomes e o pedido pronto ficam em [`TELA-ENTRADA.md`](TELA-ENTRADA.md). Genérico sempre: nada dos agentes da campanha.
+**Revisto em 07/10: o kit em camadas.** A cena da entrada é montada pelo jogo, peça por peça, e cada peça vem separada e com **luz neutra** (dia nublado, sem vela): a paisagem lá fora (céu em magenta #FF00FF e janelas das casas em verde #00FF00, que o jogo troca), a sala com a mesa vazia (vidros da janela em magenta), os mapas (fundo transparente), as miniaturas em folhas de 4 × 2 (células de 384×512, base redonda preta a 85% da altura), os dados em folhas de 6 × 4 (células de 256×256: d4, d6, d8, d10, d12, d20, cada um parado e em três giros) e os castiçais sem chama e as canecas em folhas de 4 × 2. Tudo em 1536×1024, no estilo de pixel art da arte de hoje e no mesmo ângulo. O pedido pronto é o [`PROMPT-ENTRADA.txt`](PROMPT-ENTRADA.txt); como cada camada entra, em [`TELA-ENTRADA.md`](TELA-ENTRADA.md). Genérico sempre: nada dos agentes da campanha, nada de marcas de jogos reais.
+
+(A primeira ideia, de 06/10, eram remendos da arte de hoje: `scripts/entrada-remendos.mjs`. O kit substitui.)
 
 ## Como entregar
 
