@@ -15,6 +15,9 @@ import type { Clima, Universo } from './entradaCena';
  */
 
 const CHAVE = 'crona.entrada.musica';
+const CHAVE_VOLUME = 'crona.entrada.volume';
+/** o volume de 0 a 1 vira o ganho do som (1 = o mais alto, ainda sem distorcer) */
+const GANHO = 1;
 
 type Nota = [midi: number | null, tempos: number];
 type Timbre = 'flauta' | 'caixinha' | 'metal' | 'coro';
@@ -99,6 +102,8 @@ const hz = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
 export class Trilha {
   /** ligada (a escolha deste aparelho) */
   ligada = true;
+  /** o volume, de 0 a 1 (também guardado no aparelho) */
+  volume = 0.7;
   private ac: AudioContext | null = null;
   private mestre: GainNode | null = null;
   private musica: GainNode | null = null;
@@ -124,9 +129,23 @@ export class Trilha {
     this.tema = TEMAS[universo];
     try {
       this.ligada = localStorage.getItem(CHAVE) !== '0';
+      const v = Number(localStorage.getItem(CHAVE_VOLUME));
+      if (localStorage.getItem(CHAVE_VOLUME) !== null && Number.isFinite(v)) this.volume = Math.min(1, Math.max(0, v));
     } catch {
       /* sem storage */
     }
+  }
+
+  /** Muda o volume (0 a 1). Subir do zero liga a música; ir a zero não desliga, só cala. */
+  ajustarVolume(v: number) {
+    this.volume = Math.min(1, Math.max(0, v));
+    try {
+      localStorage.setItem(CHAVE_VOLUME, String(Math.round(this.volume * 100) / 100));
+    } catch {
+      /* sem storage */
+    }
+    if (this.volume > 0 && !this.ligada) this.alternar();
+    else if (this.ligada) this.comecar(0.15);
   }
 
   get tocando() {
@@ -146,8 +165,8 @@ export class Trilha {
     return this.ligada;
   }
 
-  /** Começa (chamado num toque ou tecla, quando o navegador deixa). */
-  comecar() {
+  /** Começa (chamado num toque ou tecla, quando o navegador deixa); `subida` em segundos. */
+  comecar(subida = 3) {
     if (!this.ligada || this.fechada) return;
     if (!this.ac) this.montar();
     const ac = this.ac;
@@ -156,7 +175,7 @@ export class Trilha {
     const t = ac.currentTime;
     this.mestre.gain.cancelScheduledValues(t);
     this.mestre.gain.setValueAtTime(this.mestre.gain.value, t);
-    this.mestre.gain.linearRampToValueAtTime(0.7, t + 3);
+    this.mestre.gain.linearRampToValueAtTime(this.volume * GANHO, t + subida);
     if (!this.relogio) {
       this.proximoCompasso = t + 0.3;
       this.relogio = window.setInterval(() => this.agendar(), 90);

@@ -78,32 +78,129 @@
 /* ---------------------------------------------------------------- o som
    O botão da trilha (entradaTrilha.ts), no canto da tela (fora do palco, para ficar sempre ali):
    as barrinhas dançam quando a música toca; desligada, o alto-falante ganha um risco. */
-.ent-som {
+.ent-som-caixa {
   position: absolute;
   z-index: 3;
   top: calc(env(safe-area-inset-top, 0px) + 12px);
   right: calc(env(safe-area-inset-right, 0px) + 12px);
   display: flex;
   align-items: center;
-  gap: 3px;
   height: 40px;
-  padding: 0 10px 0 8px;
   color: #e9c27a;
   background: rgba(5, 11, 20, 0.78);
   border: 2px solid #8a6f55;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
-  cursor: pointer;
   transition:
     border-color 0.2s ease,
-    color 0.2s ease,
     opacity 0.3s ease;
+}
+.ent-som {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 100%;
+  padding: 0 10px 0 8px;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+.ent-som-caixa:hover,
+.ent-som-caixa:focus-within,
+.ent-som-caixa.aberta {
+  border-color: #f0b058;
 }
 .ent-som:hover,
 .ent-som:focus-visible {
   outline: none;
   color: #ffd27a;
-  border-color: #f0b058;
+}
+/* o volume: fechado, não ocupa nada; abre para a esquerda do botão */
+.ent-volume {
+  display: flex;
+  align-items: center;
+  width: 0;
+  height: 100%;
+  overflow: hidden;
+  opacity: 0;
+  transition:
+    width 0.25s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.2s ease,
+    padding 0.25s ease;
+}
+@media (hover: hover) {
+  .ent-som-caixa:hover .ent-volume,
+  .ent-som-caixa:focus-within .ent-volume {
+    width: 128px;
+    padding-left: 12px;
+    opacity: 1;
+  }
+}
+.ent-som-caixa.aberta .ent-volume {
+  width: 150px;
+  padding-left: 14px;
+  opacity: 1;
+}
+/* a faixa: trilho escuro, ouro até o volume, um quadradinho de ouro para arrastar */
+.ent-volume-faixa {
+  --v: 70%;
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  margin: 0;
+  background: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.ent-volume-faixa:focus-visible {
+  outline: none;
+}
+.ent-volume-faixa::-webkit-slider-runnable-track {
+  height: 6px;
+  background: linear-gradient(90deg, #e2a64a var(--v), #1b2230 var(--v));
+  border: 1px solid #5b4c3e;
+}
+.ent-volume-faixa::-moz-range-track {
+  height: 6px;
+  background: #1b2230;
+  border: 1px solid #5b4c3e;
+}
+.ent-volume-faixa::-moz-range-progress {
+  height: 6px;
+  background: #e2a64a;
+}
+.ent-volume-faixa::-webkit-slider-thumb {
+  width: 12px;
+  height: 16px;
+  margin-top: -6px;
+  background: #ffd27a;
+  border: 2px solid #4a2306;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.ent-volume-faixa::-moz-range-thumb {
+  width: 12px;
+  height: 16px;
+  background: #ffd27a;
+  border: 2px solid #4a2306;
+  border-radius: 0;
+}
+.ent-volume-faixa:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 2px #ffe3a3;
+}
+/* no celular a faixa é mais alta, para o dedo */
+@media (hover: none) {
+  .ent-volume-faixa {
+    height: 36px;
+  }
+  .ent-volume-faixa::-webkit-slider-thumb {
+    width: 16px;
+    height: 22px;
+    margin-top: -9px;
+  }
 }
 .ent-som-ic {
   width: 20px;
@@ -166,7 +263,7 @@
   background: currentColor;
   transform: rotate(45deg);
 }
-.entrada.saindo .ent-som {
+.entrada.saindo .ent-som-caixa {
   opacity: 0;
 }
 

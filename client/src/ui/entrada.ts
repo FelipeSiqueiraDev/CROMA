@@ -167,8 +167,13 @@ export class Entrada {
   /** a trilha e o som do ambiente */
   private trilha: Trilha;
   private botaoSom: HTMLButtonElement;
+  /** o botão do som com o volume, que abre ao passar o mouse (no celular, no primeiro toque) */
+  private caixaSom: HTMLElement;
+  private volume: HTMLInputElement;
   private aoTocar = (ev: Event) => {
-    if (ev.target instanceof Node && this.botaoSom.contains(ev.target)) return;
+    if (ev.target instanceof Node && this.caixaSom.contains(ev.target)) return;
+    // um toque fora fecha o volume aberto no celular
+    this.caixaSom.classList.remove('aberta');
     this.trilha.comecar();
     this.mostrarSom();
   };
@@ -228,11 +233,22 @@ export class Entrada {
     this.trilha = new Trilha(s.universo, s.clima);
     this.botaoSom = h(
       'button',
-      { class: 'ent-som', type: 'button', onclick: () => (this.trilha.alternar(), this.mostrarSom()) },
+      { class: 'ent-som', type: 'button', onclick: () => this.tocarBotaoSom() },
       h('span', { class: 'ent-som-ic', html: ICONE.som }),
       h('span', { class: 'ent-som-barras', 'aria-hidden': 'true' }, h('i'), h('i'), h('i')),
     );
-    this.el = h('div', { class: 'entrada', role: 'dialog', 'aria-label': 'Entrar no CRONA' }, this.palco, this.botaoSom);
+    this.volume = h('input', {
+      class: 'ent-volume-faixa',
+      type: 'range',
+      min: '0',
+      max: '100',
+      step: '1',
+      'aria-label': 'Volume da música',
+      oninput: () => this.mudarVolume(),
+    });
+    this.volume.value = String(Math.round(this.trilha.volume * 100));
+    this.caixaSom = h('div', { class: 'ent-som-caixa' }, h('div', { class: 'ent-volume' }, this.volume), this.botaoSom);
+    this.el = h('div', { class: 'entrada', role: 'dialog', 'aria-label': 'Entrar no CRONA' }, this.palco, this.caixaSom);
     this.mostrarSom();
     this.el.addEventListener('pointerdown', this.aoTocar);
     Object.assign(this.el.dataset, { universo: s.universo, clima: s.clima, vela: s.vela ? 'acesa' : 'apagada', monstro: s.monstro ? 'sim' : 'nao' });
@@ -432,10 +448,32 @@ export class Entrada {
     }
   }
 
+  /**
+   * O toque no botão do som. No computador o volume abre com o mouse em cima, e o clique liga e
+   * desliga. No celular (sem mouse), o primeiro toque abre o volume e o segundo liga e desliga.
+   * Se a música ainda não começou (o navegador espera o primeiro toque), o toque faz começar.
+   */
+  private tocarBotaoSom() {
+    const semMouse = matchMedia('(hover: none)').matches;
+    if (semMouse && !this.caixaSom.classList.contains('aberta')) {
+      this.caixaSom.classList.add('aberta');
+      this.trilha.comecar();
+    } else if (this.trilha.ligada && !this.trilha.tocando) this.trilha.comecar();
+    else this.trilha.alternar();
+    this.mostrarSom();
+  }
+
+  private mudarVolume() {
+    this.trilha.ajustarVolume(Number(this.volume.value) / 100);
+    this.mostrarSom();
+  }
+
   /** O botão do som: ligado (as barrinhas dançam quando toca), desligado, ou esperando o toque. */
   private mostrarSom() {
     const ligada = this.trilha.ligada;
-    this.botaoSom.classList.toggle('desligado', !ligada);
+    this.volume.style.setProperty('--v', `${this.volume.value}%`);
+    this.caixaSom.classList.toggle('mudo', !ligada || this.trilha.volume === 0);
+    this.botaoSom.classList.toggle('desligado', !ligada || this.trilha.volume === 0);
     this.botaoSom.classList.toggle('tocando', this.trilha.tocando);
     this.botaoSom.setAttribute('aria-pressed', String(ligada));
     this.botaoSom.setAttribute('aria-label', ligada ? 'Desligar a música' : 'Ligar a música');
