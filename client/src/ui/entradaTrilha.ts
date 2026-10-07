@@ -7,8 +7,9 @@ import type { Clima, Universo } from './entradaCena';
  * - **As músicas:** cada universo tem uma lista e uma é sorteada a cada visita (`?musica=2` escolhe).
  *   Fantasia: a Taverna (alaúde e flauta) e a Marcha dos Heróis (synthwave de aventura). Horror: a
  *   Maré Negra (coro grave e zumbido). Cyberpunk: o Neon Noir (techno sombrio em mi frígio, 112 BPM,
- *   bumbo em todo tempo, baixo rolando em semicolcheias "bombeado" pelo bumbo, riff cortado, subida
- *   de ruído e glitch no fim da frase). Oito compassos que se repetem, com variação a cada volta. De
+ *   baixo rolando "bombeado" pelo bumbo, riff cortado) e o Overclock (drum & bass hi-tech a 172 BPM:
+ *   baixo reese com wobble e distorção, arpejos de bipes, lasers, rufo de caixa e glitch). Oito
+ *   compassos que se repetem, com variação a cada volta. De
  *   noite o som fica mais escuro; de dia, mais aberto.
  * - **O ambiente:** a chuva, o trovão em cada relâmpago, o vento na neve e na neblina, o estalar
  *   da vela acesa (no cyberpunk, o zumbido do neon) e os passarinhos de dia.
@@ -32,11 +33,13 @@ interface Tema {
   timbre: Timbre;
   /** o acompanhamento: arpejo subindo (alaúde), caixinha (agudo e lento), o baixo pulsando em
    * colcheias com um arpejo de bipes (synthwave), o baixo rolando em semicolcheias com estacas de
-   * acorde (techno) ou só o acorde */
-  arpejo: 'subindo' | 'caixinha' | 'pulso' | 'rolando' | 'nenhum';
+   * acorde (techno), o baixo "reese" com wobble, arpejos rápidos e lasers (drum & bass) ou só o
+   * acorde */
+  arpejo: 'subindo' | 'caixinha' | 'pulso' | 'rolando' | 'agressivo' | 'nenhum';
   tambor?: boolean;
-  /** bateria de pista: bumbo em todo tempo, palma no 2 e no 4, chimbal em semicolcheias */
-  estilo?: 'techno';
+  /** bateria de pista (bumbo em todo tempo, palma no 2 e no 4, chimbal em semicolcheias) ou
+   * drum & bass (bumbo quebrado, caixa seca no 2 e no 4 com caixas fantasma, rufo no fim) */
+  estilo?: 'techno' | 'dnb';
   /** o acorde e o baixo abaixam a cada bumbo (compressão "bombeada" das músicas eletrônicas) */
   bombeado?: boolean;
   /** nota grave que fica soando por baixo (o zumbido do horror) */
@@ -128,6 +131,27 @@ const TEMAS: Record<Universo, Tema[]> = {
       arpejo: 'rolando',
       tambor: true,
       estilo: 'techno',
+      bombeado: true,
+    },
+    {
+      // hi-tech agressivo: drum & bass a 172 BPM, baixo "reese" com wobble e distorção, arpejos de
+      // bipes em semicolcheias com saltos aleatórios, estacas, lasers, riff distorcido em fá
+      // menor, rufo de caixa e glitch no fim da frase
+      nome: 'Overclock',
+      bpm: 172,
+      acordes: ['Fm', 'Gb', 'Fm', 'Db', 'Fm', 'Gb', 'Bbm', 'C'],
+      melodia: frase(`F4:.25 F4:.25 Ab4:.25 F4:.25 C5:.5 Bb4:.25 Ab4:.25 F4:.5 Gb4:.25 F4:.25 F4:1 |
+        Gb4:.25 Gb4:.25 Bb4:.25 Gb4:.25 Db5:.5 C5:.25 Bb4:.25 Gb4:.5 Ab4:.25 Gb4:.25 Gb4:1 |
+        F4:.25 F4:.25 Ab4:.25 F4:.25 C5:.5 Eb5:.25 C5:.25 Ab4:.5 F4:.5 -:1 |
+        Db5:.25 Db5:.25 C5:.25 Ab4:.25 F4:.5 Ab4:.5 C5:.5 Db5:.5 Eb5:1 |
+        F4:.25 F4:.25 Ab4:.25 F4:.25 C5:.5 Bb4:.25 Ab4:.25 F4:.5 Gb4:.25 F4:.25 F4:1 |
+        Gb4:.25 Gb4:.25 Bb4:.25 Gb4:.25 Db5:.5 Eb5:.25 Db5:.25 Bb4:.5 Gb4:.5 -:1 |
+        Bb4:.25 Bb4:.25 Db5:.25 Bb4:.25 F5:.5 Eb5:.25 Db5:.25 Bb4:.5 C5:.25 Db5:.25 Eb5:1 |
+        C5:.5 E5:.5 G5:.5 E5:.5 C5:.25 C5:.25 C5:.25 C5:.25 -:1`),
+      timbre: 'riff',
+      arpejo: 'agressivo',
+      tambor: true,
+      estilo: 'dnb',
       bombeado: true,
     },
   ],
@@ -469,8 +493,11 @@ export class Trilha {
     const notas = acorde(tema.acordes[k]);
     const dur = tempo * 4;
     // o acorde por baixo e o baixo
-    for (const n of notas) this.pad(n, t, dur, tema.timbre === 'coro' ? 0.04 : 0.024);
-    this.baixo(notas[0] - 12, t, dur);
+    if (tema.arpejo === 'agressivo') for (const n of notas) this.pad(n, t, dur, 0.012);
+    else {
+      for (const n of notas) this.pad(n, t, dur, tema.timbre === 'coro' ? 0.04 : 0.024);
+      this.baixo(notas[0] - 12, t, dur);
+    }
     if (tema.zumbido && k === 0) this.pad(tema.zumbido, t, dur * tema.acordes.length, 0.06);
     // o acompanhamento
     if (tema.arpejo === 'subindo')
@@ -498,14 +525,64 @@ export class Trilha {
         this.subida(t, dur);
         this.glitch(t + tempo * 3, tempo);
       }
+    } else if (tema.arpejo === 'agressivo') {
+      const passo = tempo * 0.25;
+      // o baixo reese: a raiz por quase toda a barra e, nas barras ímpares, a quinta no último tempo
+      const grave = notas[0] - 12;
+      this.reese(grave, t, tempo * (k % 2 ? 3 : 4) - 0.02);
+      if (k % 2) this.reese(grave + 7, t + tempo * 3, tempo - 0.02);
+      // o arpejo de bipes em semicolcheias, subindo e descendo duas oitavas; de vez em quando pula
+      // uma oitava ou cala (cada volta sai diferente)
+      const seq = [0, 1, 2, 0, 1, 2, 1, 0];
+      for (let i = 0; i < 16; i++) {
+        if (Math.random() < 0.16) continue;
+        const grau = seq[i % 8];
+        const nota = notas[grau % 3] + 24 + (i % 8 >= 3 && i % 8 < 6 ? 12 : 0) + (Math.random() < 0.14 ? 12 : 0);
+        this.bipe(nota, t + i * passo, passo * 0.8, i % 4 === 0 ? 0.022 : 0.015);
+      }
+      // os bipes de dados: agudos, soltos, ao acaso
+      for (let i = 0; i < 16; i++)
+        if (Math.random() < 0.28) this.bipe(notas[Math.floor(Math.random() * 3)] + 48 + (Math.random() < 0.5 ? 0 : 7), t + i * passo, passo * 0.35, 0.012);
+      // as estacas sincopadas do acorde e o laser caindo a cada duas barras
+      for (const p of [3, 6, 11, 14]) this.estaca(notas, t + p * passo, passo * 1.6);
+      if (k % 2 === 0) this.laser(t);
+      // o último compasso da frase: a subida de ruído e o glitch
+      if (k === 7) {
+        this.subida(t, dur);
+        this.glitch(t + tempo * 3, tempo);
+      }
     } else if (Math.random() < 0.5) this.dedilhado(notas[2] + 12, t + tempo * 2, 0.04, 2.2);
-    if (tema.bombeado)
+    if (tema.bombeado && tema.estilo !== 'dnb')
       for (let i = 0; i < 4; i++) {
         const g = this.tonal!.gain;
         g.setValueAtTime(0.25, t + i * tempo);
         g.linearRampToValueAtTime(1, t + i * tempo + tempo * 0.7);
       }
-    if (tema.estilo === 'techno') {
+    if (tema.estilo === 'dnb') {
+      const passo = tempo * 0.25;
+      // o bumbo quebrado: 1 e o "e" do 3 (e, nas barras ímpares, um extra); o último compasso da
+      // frase não tem bumbo na metade final (entra o rufo)
+      const chutes = k % 2 ? [0, 6, 10] : [0, 10];
+      for (const c of chutes) {
+        if (k === 7 && c >= 8) continue;
+        this.tambor(t + c * passo, 'bumbo', 1.25);
+        const g = this.tonal!.gain;
+        g.setValueAtTime(0.18, t + c * passo);
+        g.linearRampToValueAtTime(1, t + c * passo + tempo * 0.55);
+      }
+      // a caixa seca no 2 e no 4, com as caixas fantasma entre elas
+      if (k !== 7) {
+        this.tambor(t + 4 * passo, 'caixa', 1.3);
+        this.tambor(t + 12 * passo, 'caixa', 1.3);
+        for (const f of [7, 14, 15]) if (Math.random() < 0.75) this.tambor(t + f * passo, 'caixa', 0.4);
+      } else {
+        // o rufo: caixa em toda semicolcheia da segunda metade, cada vez mais forte
+        this.tambor(t + 4 * passo, 'caixa', 1.3);
+        for (let i = 8; i < 16; i++) this.tambor(t + i * passo, 'caixa', 0.35 + 0.1 * (i - 8));
+      }
+      // o chimbal: fechado em toda semicolcheia, aberto no contratempo
+      for (let i = 0; i < 16; i++) this.tambor(t + i * passo, i % 4 === 2 ? 'aberto' : 'chocalho', i % 2 ? 0.7 : 1);
+    } else if (tema.estilo === 'techno') {
       // bateria de pista: bumbo em todo tempo, palma no 2 e no 4, chimbal aberto no contratempo
       // e fechado nas semicolcheias
       for (let i = 0; i < 4; i++) this.tambor(t + i * tempo, 'bumbo');
@@ -568,6 +645,100 @@ export class Trilha {
     o.connect(g).connect(this.tonal!);
     o.start(t);
     o.stop(t + dur + 0.05);
+  }
+
+  /** A distorção (saturação dura): a entrada passa por um "waveshaper" e a saída volta. */
+  private curva: Float32Array<ArrayBuffer> | null = null;
+  private distorcer(entrada: AudioNode, quanto = 40): AudioNode {
+    const ac = this.ac!;
+    const ws = ac.createWaveShaper();
+    if (!this.curva) {
+      const n = 2048;
+      const c = new Float32Array(n);
+      for (let i = 0; i < n; i++) {
+        const x = (i * 2) / (n - 1) - 1;
+        c[i] = ((Math.PI + quanto) * x) / (Math.PI + quanto * Math.abs(x));
+      }
+      this.curva = c;
+    }
+    ws.curve = this.curva;
+    ws.oversample = '2x';
+    entrada.connect(ws);
+    return ws;
+  }
+
+  /** O baixo "reese": dois serrotes desafinados num filtro que balança (wobble, no andamento da
+   * música), sujo de distorção. */
+  private reese(n: number, t: number, dur: number, vol = 0.07) {
+    const ac = this.ac!;
+    const f = ac.createBiquadFilter();
+    f.type = 'lowpass';
+    f.Q.value = 7;
+    f.frequency.value = 650;
+    const lfo = ac.createOscillator();
+    lfo.frequency.value = (this.tema.bpm / 60) * 2;
+    const prof = ac.createGain();
+    prof.gain.value = 520;
+    lfo.connect(prof).connect(f.frequency);
+    lfo.start(t);
+    lfo.stop(t + dur + 0.05);
+    for (const det of [-16, 16]) {
+      const o = ac.createOscillator();
+      o.type = 'sawtooth';
+      o.frequency.value = hz(n);
+      o.detune.value = det;
+      o.connect(f);
+      o.start(t);
+      o.stop(t + dur + 0.05);
+    }
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(vol, t + 0.012);
+    g.gain.setValueAtTime(vol, t + Math.max(0.02, dur - 0.03));
+    g.gain.linearRampToValueAtTime(0.0001, t + dur);
+    this.distorcer(f, 30).connect(g);
+    g.connect(this.tonal!);
+  }
+
+  /** Um bipe de dados: onda quadrada curtinha. */
+  private bipe(n: number, t: number, dur: number, vol: number) {
+    const ac = this.ac!;
+    const o = ac.createOscillator();
+    o.type = 'square';
+    o.frequency.value = hz(n);
+    const f = ac.createBiquadFilter();
+    f.type = 'lowpass';
+    f.frequency.value = 5200;
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.003);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(0.03, dur));
+    o.connect(f).connect(g);
+    g.connect(this.tonal!);
+    g.connect(this.eco!);
+    o.start(t);
+    o.stop(t + Math.max(0.03, dur) + 0.02);
+  }
+
+  /** O laser: um serrote que despenca do agudo ao grave em um instante. */
+  private laser(t: number) {
+    const ac = this.ac!;
+    const o = ac.createOscillator();
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(5200, t);
+    o.frequency.exponentialRampToValueAtTime(160, t + 0.24);
+    const f = ac.createBiquadFilter();
+    f.type = 'lowpass';
+    f.frequency.value = 6500;
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.04, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.26);
+    o.connect(f).connect(g);
+    g.connect(this.musica!);
+    g.connect(this.eco!);
+    o.start(t);
+    o.stop(t + 0.3);
   }
 
   /** A estaca do techno: o acorde inteiro, serrote curto e brilhante, com eco. */
@@ -720,18 +891,21 @@ export class Trilha {
       o.start(t);
       o.stop(t + dur + 0.7);
     });
-    f.connect(g);
+    if (this.tema.estilo === 'dnb') this.distorcer(f, 45).connect(g);
+    else f.connect(g);
     g.connect(this.tonal!);
     g.connect(this.atraso!);
   }
 
-  private tambor(t: number, tipo: 'bumbo' | 'caixa' | 'chocalho' | 'aberto') {
+  private tambor(t: number, tipo: 'bumbo' | 'caixa' | 'chocalho' | 'aberto', vol = 1) {
     const ac = this.ac!;
-    if (tipo === 'aberto') return void this.rajada(t, 0.2, 'highpass', 6500, 0.045, 0.002, 0.13, this.musica!);
-    if (tipo === 'chocalho') return void this.rajada(t, 0.08, 'highpass', 7000, 0.025, 0.002, 0.05, this.musica!);
+    if (tipo === 'aberto') return void this.rajada(t, 0.2, 'highpass', 6500, 0.045 * vol, 0.002, 0.13, this.musica!);
+    if (tipo === 'chocalho') return void this.rajada(t, 0.08, 'highpass', 7000, 0.025 * vol, 0.002, 0.05, this.musica!);
     if (tipo === 'caixa') {
-      const g = this.rajada(t, 0.32, 'bandpass', 1500, 0.16, 0.002, 0.26, this.musica!);
-      if (g && this.eco) g.connect(this.eco);
+      // no drum & bass a caixa é seca (a reverberação borra a 172 BPM)
+      const seca = this.tema.estilo === 'dnb';
+      const g = this.rajada(t, seca ? 0.18 : 0.32, 'bandpass', seca ? 2100 : 1500, 0.16 * vol, 0.002, seca ? 0.12 : 0.26, this.musica!);
+      if (g && this.eco && !seca) g.connect(this.eco);
       return;
     }
     const o = ac.createOscillator();
@@ -740,7 +914,7 @@ export class Trilha {
     o.frequency.exponentialRampToValueAtTime(45, t + 0.3);
     const g = ac.createGain();
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(0.35, t + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.35 * vol, t + 0.005);
     g.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
     o.connect(g).connect(this.musica!);
     o.start(t);
