@@ -44,9 +44,9 @@ node scripts/entrada-fundos.mjs encaixar <imagem.png> <tema> <computador|celular
 
 O encaixe tira a faixa de sobra da base (o gerador devolve 1536×1024 ou 1024×1536; a tela é 1672×941 ou 941×1672), volta ao tamanho da tela e recoloca **o painel da arte de hoje** por cima (os campos de verdade ficam exatamente sobre os desenhados: o painel tem que bater no pixel). Grava `client/public/arte/login/fundo-<tela>-<tema>.webp`, que a tela usa sozinha, e uma prévia ao lado da imagem. A chama é achada na imagem (o miolo mais claro perto de onde ela fica hoje), então a vela pode ter mudado um pouco de lugar.
 
-- [x] fantasia, computador (07/10) · [ ] fantasia, celular
-- [ ] horror (computador / celular)
-- [ ] cyberpunk (computador / celular)
+- [x] fantasia (computador e celular) · [x] horror (computador e celular) · [x] cyberpunk (computador e celular) — todas em 07/10
+
+O encaixe recorta o gerador de um jeito que mostra mais vidro (alinhado ao topo no computador e à direita no celular) e recoloca o painel pela **forma exata** (`client/src/ui/entradaPainel.json`: a moldura com os cantos cortados, o emblema por cima e o enfeite de baixo), com uma **sombra suave** em volta, que tira o ar de caixa colada. O jogo usa o mesmo contorno para não iluminar o painel (a luz do dia, o véu do tempo fechado e o clarão do relâmpago saem por ele, com 2 px de borda macia).
 
 ### A cidade lá fora
 
@@ -58,9 +58,11 @@ Nas imagens dos temas, os **vidros da janela vêm em magenta** (pedido do Felipe
 
 Neve parada nos telhados o código não faz: cada cidade tem também a versão com neve (`paisagem-<tema>-neve.webp`), usada quando o clima sorteado é neve. Encaixe: `node scripts/entrada-fundos.mjs paisagem <imagem> <tema> [neve]` (vai sem perda, em 1024×683, o tamanho em que aparece).
 
-- [x] fantasia (lote 1) · [ ] fantasia com neve
-- [ ] horror · [ ] horror com neve
-- [ ] cyberpunk · [ ] cyberpunk com neve
+- [x] fantasia · [x] fantasia com neve
+- [x] horror · [x] horror com neve
+- [x] cyberpunk · [x] cyberpunk com neve
+
+**O enquadramento:** o vidro vai de 834 a 1672 por 240 de altura no computador (o painel cobre parte) e de 421 a 940 por 314 no celular. A cidade entra grande, encostada à direita (o castelo, o farol e os arranha-céus ficam à vista); em tela mais estreita que a arte, ela anda para o que a tela mostra, e a ponta que sobra esmaece no céu. O sol atravessa a janela de um lado ao outro; a lua é posta sozinha num pedaço de céu livre, longe da cidade, do painel e do botão do som; os olhos de fora aparecem em céu livre e os de dentro, nos cantos escuros que o jogo acha na própria imagem. O letreiro de neon só acende no cyberpunk e o farol só gira no horror. Com neve, a cidade dos telhados brancos aparece aos poucos por cima da outra.
 
 ## A prévia
 
@@ -75,12 +77,12 @@ A prévia publicada (artefato "Entrada Viva do CRONA") tem o **Passeio pelos mom
 - **07/10:** nas imagens dos temas, os vidros da janela vêm em magenta e lá fora entra a cidade do tema, com luz neutra, numa versão normal e numa com neve (sol, chuva e neblina são efeito do código). A primeira é a paisagem do lote 1.
 - **07/10:** as estrelinhas em volta do emblema saíram da arte parada e voltaram animadas: são as mesmas da arte, recortadas (`client/public/arte/login/brilhos/`, posições em `client/src/ui/entradaBrilhos.json`), cada uma piscando no seu ritmo; as grandes respiram e de vez em quando faíscam. Um brilho passa pelas letras do CRONA de tempos em tempos. O campo selecionado acende inteiro (sem o contorno quadrado do campo de dentro).
 - **07/10:** o botão ENTRAR fica sem ícones; só o brilho que corre pelo ouro.
+- **07/10:** a logo azul-prateada (a variação de cor que o Felipe mandou) virou um brilho: de tempos em tempos uma faixa varre o emblema e as letras do CRONA e troca o dourado por prata e azul (o relevo fica, só a cor muda), com um clarão azul em volta e um fio de luz branca no meio (`.ent-ouro`, em `entrada.css`; as máscaras são as partes douradas da arte). Foi feito em código, a partir da logo do painel.
+- **07/10:** o painel não tem mais caixa em volta: recorte pela forma exata e sombra suave (ver "As imagens dos temas"), no encaixe e no jogo.
 - **07/10:** a tela tem trilha, sintetizada na hora, e o som do ambiente. A música começa sozinha; se o navegador segurar, no primeiro toque.
 - **07/10:** cada universo tem uma LISTA de músicas, sorteada a cada visita (o Felipe vai criar outras com o tempo). A synthwave de aventura, que não soava a cyberpunk, foi para a fantasia (Marcha dos Heróis); o cyberpunk ganhou uma techno sombria (Neon Noir, que o Felipe gostou e fica) e um drum & bass hi-tech agressivo (Overclock), nenhuma substitui a outra.
 - **07/10:** o celular vale tanto quanto o computador: os olhos, o sol e os pássaros ficam no pedaço da arte que a tela mostra (o celular estreito corta as laterais), e cada tema vem nas duas telas.
 
 ## O que falta
 
-- As imagens dos temas que faltam (fantasia no celular, horror e cyberpunk) e as cidades (o `PROMPT-ENTRADA.txt`, partes 1 e 2).
-- No celular, a cidade lá fora entra quando chegar a imagem do tema do celular com os vidros em magenta.
 - Ideias para depois: os dados rolando ao abrir a página, as miniaturas se mexendo de leve (com as imagens prontas, dá para animar recortes delas no lugar), o livro da mesa trocando de capa.

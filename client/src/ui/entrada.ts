@@ -1,8 +1,9 @@
 import type { ClientMsg } from '@crona/shared';
 import { h } from './dom';
 import { existeArte } from './icons';
-import { Cena, UNIVERSOS, pedidos, type CenaLayout, type Clima } from './entradaCena';
+import { Cena, UNIVERSOS, pedidos, type CenaLayout, type Clima, type Pol } from './entradaCena';
 import BRILHOS from './entradaBrilhos.json';
+import PAINEL from './entradaPainel.json';
 import { Trilha } from './entradaTrilha';
 
 /**
@@ -47,6 +48,8 @@ interface Layout {
   criar: { nome: Caixa; email: Caixa; senha: Caixa; botao: Caixa; ou: number; outro: Caixa };
   /** as letras do CRONA na arte (o brilho passa por elas) */
   logo: Ret;
+  /** o emblema (o d20 dourado) na arte: o brilho também passa por ele */
+  selo: Ret;
   /** x, y e raio do brilho */
   chama: [number, number, number];
   lua: [number, number, number];
@@ -71,33 +74,35 @@ const COMPUTADOR: Layout = {
   entrar: { email: [398, 59], senha: [475, 59], botao: [553, 61], ou: 653, outro: [678, 50] },
   criar: { nome: [396, 52], email: [458, 52], senha: [520, 52], botao: [584, 56], ou: 656, outro: [678, 50] },
   logo: { x: 955, y: 262, w: 335, h: 84 },
-  chama: [430, 88, 230],
+  selo: { x: 1016, y: 74, w: 204, h: 190 },
+  chama: [429, 160, 205],
   lua: [1448, 27, 64],
-  fumaca: [1530, 232],
-  emblema: [1118, 178, 150],
+  fumaca: [1560, 345],
+  emblema: [1118, 178, 115],
   ceu: [1250, 0, 1672, 110],
   cena: {
-    // a janela (nas imagens dos temas, os vidros em magenta vão de 834 a 1672, até a altura 152)
-    janela: [820, 0, 1672, 160],
-    // o painel e o emblema que sobe acima dele
-    painel: [
-      [848, 128, 1392, 826],
-      // o escudo do emblema, que sobe acima do painel (estreito, como o desenho)
-      [1066, 78, 1172, 130],
-    ],
-    sol: { x0: 1415, x1: 1650, horizonte: 128, alto: 22 },
-    lua: [1448, 27, 15],
-    chama: [430, 76, 17, 29],
+    // a janela: nas imagens dos temas os vidros em magenta vão de 834 a 1672, até a altura 240 (o painel
+    // cobre parte dele)
+    janela: [820, 0, 1672, 245],
+    // o painel, o escudo do emblema que sobe acima dele e o enfeite de baixo
+    painel: PAINEL.computador as Pol[],
+    // o sol atravessa a janela de um lado ao outro, até o horizonte da cidade
+    sol: { x0: 880, x1: 1650, horizonte: 122, alto: 24 },
+    lua: [1330, 40, 15],
+    // a vela (ou o abajur) da mesa: o miolo da chama e o tamanho dela
+    chama: [429, 162, 16, 34],
     cantos: [
       [165, 95],
       [1645, 262],
       [25, 135],
       [815, 915],
     ],
-    raios: { y0: 140, y1: 941, xs: [1430, 1515, 1600], desvio: 300, largura: 30 },
+    evitar: [[1440, 0, 1672, 62]],
+    raios: { y0: 240, y1: 941, xs: [1400, 1480, 1570], desvio: 300, largura: 30 },
     nevoa: [0, 640, 1672, 941],
-    // a paisagem atrás dos vidros em magenta: o castelo cai na parte da janela que aparece
-    paisagem: { x: 740, y: -150, w: 1000 },
+    // a cidade atrás dos vidros em magenta: o castelo cai na parte da janela que aparece (encosta na
+    // direita e, em tela mais estreita, anda para a esquerda; a ponta que sobra esmaece)
+    paisagem: { x: 952, y: -70, w: 720 },
     px: 3,
   },
 };
@@ -113,29 +118,28 @@ const CELULAR: Layout = {
   entrar: { email: [740, 79], senha: [839, 79], botao: [941, 80], ou: 1063, outro: [1097, 69] },
   criar: { nome: [736, 68], email: [818, 68], senha: [900, 68], botao: [984, 72], ou: 1076, outro: [1097, 69] },
   logo: { x: 280, y: 580, w: 400, h: 88 },
-  chama: [300, 215, 260],
+  selo: { x: 362, y: 352, w: 216, h: 222 },
+  chama: [192, 205, 230],
   lua: [720, 85, 72],
-  fumaca: [855, 470],
-  emblema: [470, 478, 175],
+  fumaca: [848, 495],
+  emblema: [470, 478, 140],
   ceu: [505, 0, 941, 250],
   cena: {
-    janela: [500, 0, 941, 262],
-    painel: [
-      [155, 405, 790, 1290],
-      [388, 350, 552, 410],
-    ],
-    sol: { x0: 540, x1: 860, horizonte: 215, alto: 40 },
-    lua: [720, 85, 18],
-    chama: [300, 210, 15, 33],
+    janela: [415, 0, 941, 320],
+    painel: PAINEL.celular as Pol[],
+    sol: { x0: 440, x1: 850, horizonte: 106, alto: 24 },
+    lua: [700, 45, 18],
+    chama: [192, 204, 20, 36],
     cantos: [
       [150, 70],
       [614, 316],
       [246, 1364],
       [75, 475],
     ],
-    raios: { y0: 262, y1: 1672, xs: [570, 690, 810], desvio: 360, largura: 40 },
+    evitar: [[715, 20, 845, 105]],
+    raios: { y0: 320, y1: 1672, xs: [470, 620, 780], desvio: 360, largura: 40 },
     nevoa: [0, 1250, 941, 1672],
-    paisagem: { x: 470, y: -60, w: 640 },
+    paisagem: { x: 421, y: -33, w: 520 },
     px: 3,
   },
 };
@@ -168,8 +172,13 @@ export class Entrada {
   private fx: HTMLElement;
   private poeira: HTMLCanvasElement;
   private logo: HTMLElement;
-  /** a paisagem lá fora do tema (atrás dos vidros em magenta), se existir */
-  private paisagem: string | null = null;
+  /** a variação azul-prateada da logo: uma faixa que passa pelas letras e pelo emblema (e o brilho em volta) */
+  private logoAzul: HTMLElement;
+  private logoHalo: HTMLElement;
+  private seloAzul: HTMLElement;
+  private seloHalo: HTMLElement;
+  /** a cidade lá fora do tema (atrás dos vidros em magenta) e a versão dela com neve, se existirem */
+  private paisagem: { normal: string; neve: string | null } | null = null;
   /** o fundo vivo: a hora, o clima e o universo sorteado */
   private cena = new Cena();
   /** a trilha e o som do ambiente */
@@ -206,7 +215,12 @@ export class Entrada {
   constructor(private op: EntradaOpcoes) {
     this.fundo = h('img', { class: 'ent-fundo', alt: '', draggable: 'false' });
     this.poeira = h('canvas', { class: 'ent-poeira', 'aria-hidden': 'true' });
-    this.logo = h('div', { class: 'ent-logo', 'aria-hidden': 'true' });
+    this.logo = h('div', { class: 'ent-ouro ent-logo', 'aria-hidden': 'true' });
+    const ouro = (cls: string, atraso: string) => h('div', { class: `ent-ouro ${cls}`, 'aria-hidden': 'true', style: `--atraso:${atraso}` });
+    this.logoAzul = ouro('ent-ouro-azul', '2.6s');
+    this.logoHalo = ouro('ent-ouro-halo', '2.6s');
+    this.seloAzul = ouro('ent-ouro-azul', '2.2s');
+    this.seloHalo = ouro('ent-ouro-halo', '2.2s');
     this.fx = h('div', { class: 'ent-fx', 'aria-hidden': 'true' });
     const campo = (qual: 'nome' | 'email' | 'senha', rotulo: string, tipo: string, auto: string) => {
       const input = h('input', { class: 'ent-input', type: tipo, placeholder: rotulo, 'aria-label': rotulo, autocomplete: auto, spellcheck: 'false', autocapitalize: 'off' });
@@ -238,7 +252,7 @@ export class Entrada {
       this.erroEl,
       this.outro,
     );
-    this.palco = h('div', { class: 'ent-palco' }, this.fundo, this.cena.ceu, this.cena.arte, this.fx, this.cena.luz, this.poeira, this.logo, this.painel);
+    this.palco = h('div', { class: 'ent-palco' }, this.fundo, this.cena.ceu, this.cena.arte, this.fx, this.cena.luz, this.poeira, this.logoHalo, this.seloHalo, this.logo, this.logoAzul, this.seloAzul, this.painel);
     const s = this.cena.sorteio;
     const pedida = Number(pedidos.ler('musica'));
     this.trilha = new Trilha(s.universo, s.clima, Number.isFinite(pedida) && pedida > 0 ? pedida : undefined);
@@ -285,7 +299,7 @@ export class Entrada {
       // a cena reiluminada fica por cima da arte; a tela aparece quando ela fica pronta
       const L = this.layout;
       if (!L) return;
-      this.mascaraDoLogo(L);
+      this.mascarasDoOuro(L);
       // se a cena demorar ou falhar (a imagem de outro endereço não deixa ler os pixels), a tela
       // aparece com a arte de sempre e os brilhos em CSS
       const semCena = () => {
@@ -293,16 +307,17 @@ export class Entrada {
       };
       const espera = setTimeout(semCena, 4000);
       // a paisagem lá fora (se o tema tiver) carrega antes de montar
-      const paisagem = this.paisagem
-        ? new Promise<HTMLImageElement | null>((ok) => {
-            const img = new Image();
-            img.onload = () => ok(img);
-            img.onerror = () => ok(null);
-            img.src = this.paisagem!;
-          })
-        : Promise.resolve(null);
-      paisagem
-        .then((p) => this.cena.montar({ ...L.cena, nome: L.nome, w: L.w, h: L.h }, this.fundo, p))
+      const carregar = (url: string | null) =>
+        url
+          ? new Promise<HTMLImageElement | null>((ok) => {
+              const img = new Image();
+              img.onload = () => ok(img);
+              img.onerror = () => ok(null);
+              img.src = url;
+            })
+          : Promise.resolve(null);
+      Promise.all([carregar(this.paisagem?.normal ?? null), carregar(this.paisagem?.neve ?? null)])
+        .then(([p, n]) => this.cena.montar({ ...L.cena, nome: L.nome, w: L.w, h: L.h }, this.fundo, p, n))
         .then(() => {
           clearTimeout(espera);
           if (this.layout !== L) return;
@@ -523,32 +538,58 @@ export class Entrada {
   }
 
   // ---------------------------------------------------------------- palco
-  /** As letras do CRONA viram a máscara do brilho que passa (os pixels dourados da arte). */
-  private mascaraDoLogo(L: Layout) {
-    const { x, y, w, h: alt } = L.logo;
-    Object.assign(this.logo.style, { left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${alt}px` });
-    try {
-      const c = document.createElement('canvas');
-      c.width = w;
-      c.height = alt;
-      const ctx = c.getContext('2d', { willReadFrequently: true })!;
-      ctx.drawImage(this.fundo, x, y, w, alt, 0, 0, w, alt);
-      const img = ctx.getImageData(0, 0, w, alt);
-      const d = img.data;
-      for (let i = 0; i < d.length; i += 4) {
-        const ouro = d[i] > 120 && d[i + 1] > 70 && d[i] - d[i + 2] > 60;
-        const a = ouro ? Math.min(255, (d[i] + d[i + 1]) * 0.55) : 0;
-        d[i] = d[i + 1] = d[i + 2] = 255;
-        d[i + 3] = a;
+  /**
+   * As partes douradas da arte (as letras do CRONA e o emblema) viram máscaras: por elas passam o
+   * brilho dourado e a variação azul-prateada da logo (uma faixa que troca o ouro por prata e azul, sem
+   * perder o relevo), com um brilho azul em volta (a máscara borrada).
+   */
+  private mascarasDoOuro(L: Layout) {
+    const FOLGA = 14;
+    const grupos: [Ret, HTMLElement[], HTMLElement][] = [
+      [L.logo, [this.logo, this.logoAzul], this.logoHalo],
+      [L.selo, [this.seloAzul], this.seloHalo],
+    ];
+    for (const [{ x, y, w, h: alt }, nucleos, halo] of grupos) {
+      const todos = [...nucleos, halo];
+      try {
+        const c = document.createElement('canvas');
+        c.width = w;
+        c.height = alt;
+        const ctx = c.getContext('2d', { willReadFrequently: true })!;
+        ctx.drawImage(this.fundo, x, y, w, alt, 0, 0, w, alt);
+        const img = ctx.getImageData(0, 0, w, alt);
+        const d = img.data;
+        for (let i = 0; i < d.length; i += 4) {
+          const ouro = d[i] > 120 && d[i + 1] > 70 && d[i] - d[i + 2] > 60;
+          const a = ouro ? Math.min(255, (d[i] + d[i + 1]) * 0.55) : 0;
+          d[i] = d[i + 1] = d[i + 2] = 255;
+          d[i + 3] = a;
+        }
+        ctx.putImageData(img, 0, 0);
+        const url = `url(${c.toDataURL()})`;
+        for (const el of nucleos) {
+          Object.assign(el.style, { left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${alt}px` });
+          el.style.setProperty('mask-image', url);
+          el.style.setProperty('-webkit-mask-image', url);
+        }
+        // o brilho em volta: o mesmo desenho, borrado (só a sombra aparece)
+        const g = document.createElement('canvas');
+        g.width = w + FOLGA * 2;
+        g.height = alt + FOLGA * 2;
+        const gx = g.getContext('2d')!;
+        gx.shadowColor = '#fff';
+        gx.shadowBlur = 9;
+        gx.shadowOffsetX = 10000;
+        for (let k = 0; k < 2; k++) gx.drawImage(c, FOLGA - 10000, FOLGA);
+        const gurl = `url(${g.toDataURL()})`;
+        Object.assign(halo.style, { left: `${x - FOLGA}px`, top: `${y - FOLGA}px`, width: `${w + FOLGA * 2}px`, height: `${alt + FOLGA * 2}px` });
+        halo.style.setProperty('mask-image', gurl);
+        halo.style.setProperty('-webkit-mask-image', gurl);
+        for (const el of todos) el.hidden = false;
+      } catch {
+        // a imagem de outro endereço não deixa ler os pixels: fica sem o brilho
+        for (const el of todos) el.hidden = true;
       }
-      ctx.putImageData(img, 0, 0);
-      const url = `url(${c.toDataURL()})`;
-      this.logo.style.setProperty('mask-image', url);
-      this.logo.style.setProperty('-webkit-mask-image', url);
-      this.logo.hidden = false;
-    } catch {
-      // a imagem de outro endereço não deixa ler os pixels: fica sem o brilho
-      this.logo.hidden = true;
     }
   }
 
@@ -597,11 +638,10 @@ export class Entrada {
     // a cidade lá fora: com neve, a versão de telhados brancos (se o Códex já pintou)
     const paisagem = `/arte/login/paisagem-${universo}.webp`;
     const comNeve = `/arte/login/paisagem-${universo}-neve.webp`;
-    const neve = this.cena.sorteio.clima === 'neve';
-    void Promise.all([existeArte(propria), existeArte(paisagem), neve ? existeArte(comNeve) : Promise.resolve(false)]).then(([tem, temPaisagem, temNeve]) => {
+    void Promise.all([existeArte(propria), existeArte(paisagem), existeArte(comNeve)]).then(([tem, temPaisagem, temNeve]) => {
       if (this.layout !== L) return;
       this.cena.fundoProprio = tem;
-      this.paisagem = temNeve ? comNeve : temPaisagem ? paisagem : null;
+      this.paisagem = temPaisagem ? { normal: paisagem, neve: temNeve ? comNeve : null } : null;
       this.el.dataset.fundo = tem ? universo : 'hoje';
       this.fundo.src = tem ? propria : L.fundo;
     });

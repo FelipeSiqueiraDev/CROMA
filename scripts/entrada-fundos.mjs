@@ -25,23 +25,18 @@ import sharp from 'sharp';
 const RAIZ = path.resolve(import.meta.dirname, '..');
 const LOGIN = path.join(RAIZ, 'client/public/arte/login');
 const TELAS = {
-  // tamanho da tela, tamanho do gerador e onde a tela fica dentro dele
-  computador: { w: 1672, h: 941, gw: 1536, gh: 1024, x: 0, y: 80, iw: 1536, ih: 864 },
-  celular: { w: 941, h: 1672, gw: 1024, gh: 1536, x: 80, y: 0, iw: 864, ih: 1536 },
+  // tamanho da tela, tamanho do gerador, onde a tela ficava dentro da base (x, y: a faixa de sobra
+  // em volta, que o gerador continua com a cena) e o recorte que vira a tela (cx, cy): alinhado ao
+  // topo no computador e à direita no celular, onde a janela mostra mais vidro (o recorte de antes,
+  // centrado, cortava a janela, que continua para cima e para a direita)
+  computador: { w: 1672, h: 941, gw: 1536, gh: 1024, x: 0, y: 80, iw: 1536, ih: 864, cx: 0, cy: 0 },
+  celular: { w: 941, h: 1672, gw: 1024, gh: 1536, x: 80, y: 0, iw: 864, ih: 1536, cx: 160, cy: 0 },
 };
-/** o contorno do painel em cada tela (retângulo da moldura, o emblema por cima, o enfeite de baixo) */
-const PAINEL = {
-  computador: [
-    [[849, 126], [1391, 126], [1391, 813], [849, 813]],
-    [[1118, 70], [1213, 118], [1213, 300], [1023, 300], [1023, 118]],
-    [[1096, 808], [1142, 808], [1119, 839]],
-  ],
-  celular: [
-    [[156, 405], [790, 405], [790, 1284], [156, 1284]],
-    [[470, 352], [578, 402], [578, 600], [362, 600], [362, 402]],
-    [[440, 1280], [500, 1280], [470, 1306]],
-  ],
-};
+/**
+ * o contorno do painel em cada tela (a moldura dourada com os cantos cortados, o emblema por cima e o
+ * enfeite de baixo): o mesmo que o jogo usa (client/src/ui/entradaPainel.json) para não iluminar o painel
+ */
+const PAINEL = JSON.parse(fs.readFileSync(path.join(RAIZ, 'client/src/ui/entradaPainel.json'), 'utf8'));
 const UNIVERSOS = ['fantasia', 'horror', 'cyberpunk'];
 
 async function bases(pasta) {
@@ -57,12 +52,13 @@ async function bases(pasta) {
   }
 }
 
-/** a máscara do painel (branco = painel), com a borda suavizada em 2 px */
-function mascara(tela) {
+/** a máscara do painel (branco = painel), com a borda suavizada; `sombra`: a mesma forma, mais baixa e borrada */
+function mascara(tela, sombra = false) {
   const T = TELAS[tela];
-  const poligonos = PAINEL[tela].map((p) => `<polygon points="${p.map(([x, y]) => `${x},${y}`).join(' ')}" fill="#fff"/>`).join('');
+  const dy = sombra ? 7 : 0;
+  const poligonos = PAINEL[tela].map((p) => `<polygon points="${p.map(([x, y]) => `${x},${y + dy}`).join(' ')}" fill="#fff"/>`).join('');
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${T.w}" height="${T.h}"><rect width="100%" height="100%" fill="#000"/>${poligonos}</svg>`;
-  return sharp(Buffer.from(svg)).blur(1.2).toColourspace('b-w').raw().toBuffer();
+  return sharp(Buffer.from(svg)).blur(sombra ? 9 : 1).toColourspace('b-w').raw().toBuffer();
 }
 
 async function encaixar(entrega, universo, tela) {
@@ -71,14 +67,17 @@ async function encaixar(entrega, universo, tela) {
   if (!T) throw new Error(`tela "${tela}": use computador ou celular`);
   // (o sharp faz um resize por vez: cada passo sai num buffer)
   const cheia = await sharp(entrega).resize(T.gw, T.gh, { fit: 'fill' }).png().toBuffer();
-  const meio = await sharp(cheia).extract({ left: T.x, top: T.y, width: T.iw, height: T.ih }).png().toBuffer();
+  const meio = await sharp(cheia).extract({ left: T.cx, top: T.cy, width: T.iw, height: T.ih }).png().toBuffer();
   const corpo = await sharp(meio).resize(T.w, T.h, { kernel: 'lanczos3', fit: 'fill' }).removeAlpha().raw().toBuffer();
   const hoje = await sharp(path.join(LOGIN, `fundo-${tela}.webp`)).removeAlpha().raw().toBuffer();
   const m = await mascara(tela);
+  const sombra = await mascara(tela, true);
   const saida = Buffer.alloc(T.w * T.h * 3);
   for (let i = 0; i < T.w * T.h; i++) {
     const a = m[i] / 255;
-    for (let c = 0; c < 3; c++) saida[i * 3 + c] = Math.round(corpo[i * 3 + c] * (1 - a) + hoje[i * 3 + c] * a);
+    // o painel assenta na mesa: uma sombra suave em volta, que tira o ar de caixa colada
+    const escuro = 1 - 0.55 * (sombra[i] / 255) * (1 - a);
+    for (let c = 0; c < 3; c++) saida[i * 3 + c] = Math.round(corpo[i * 3 + c] * escuro * (1 - a) + hoje[i * 3 + c] * a);
   }
   const img = sharp(saida, { raw: { width: T.w, height: T.h, channels: 3 } });
   const destino = path.join(LOGIN, `fundo-${tela}-${universo}.webp`);
@@ -97,7 +96,7 @@ async function paisagem(entrega, tema, neve) {
   if (!UNIVERSOS.includes(tema)) throw new Error(`tema "${tema}": use ${UNIVERSOS.join(', ')}`);
   const destino = path.join(LOGIN, `paisagem-${tema}${neve ? '-neve' : ''}.webp`);
   // no tamanho em que aparece na janela (mais leve para o celular)
-  await sharp(entrega).resize(1024, 683, { fit: 'fill', kernel: 'lanczos3' }).webp({ lossless: true }).toFile(destino);
+  await sharp(entrega).resize(1024, 683, { fit: 'fill', kernel: 'lanczos3' }).webp({ quality: 90, effort: 6 }).toFile(destino);
   console.log(path.relative(process.cwd(), destino));
 }
 

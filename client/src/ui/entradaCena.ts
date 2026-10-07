@@ -22,6 +22,41 @@ export type LayoutNome = 'computador' | 'celular';
 
 type Rgb = [number, number, number];
 type Ret4 = [number, number, number, number];
+/** um polígono: lista de pontos x, y */
+export type Pol = [number, number][];
+
+/** o caminho de uma lista de polígonos */
+function caminho(pols: Pol[]): Path2D {
+  const p = new Path2D();
+  for (const pol of pols) {
+    pol.forEach(([x, y], i) => (i ? p.lineTo(x, y) : p.moveTo(x, y)));
+    p.closePath();
+  }
+  return p;
+}
+
+/** o ponto está dentro de algum dos polígonos? */
+function dentroDe(pols: Pol[], x: number, y: number): boolean {
+  for (const pol of pols) {
+    let dentro = false;
+    for (let i = 0, j = pol.length - 1; i < pol.length; j = i++) {
+      const [xi, yi] = pol[i];
+      const [xj, yj] = pol[j];
+      if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) dentro = !dentro;
+    }
+    if (dentro) return true;
+  }
+  return false;
+}
+
+/** o ponto está a menos de `m` da caixa de algum polígono? */
+function pertoDe(pols: Pol[], x: number, y: number, m: number): boolean {
+  return pols.some((pol) => {
+    const xs = pol.map((q) => q[0]);
+    const ys = pol.map((q) => q[1]);
+    return x > Math.min(...xs) - m && x < Math.max(...xs) + m && y > Math.min(...ys) - m && y < Math.max(...ys) + m;
+  });
+}
 
 /** As medidas da arte que a cena usa (uma por tamanho). */
 export interface CenaLayout {
@@ -36,8 +71,11 @@ export interface CenaLayout {
   lua: [number, number, number];
   /** a chama da vela: x, y (o pavio fica logo abaixo), meia largura e meia altura */
   chama: [number, number, number, number];
-  /** x0, y0, x1, y1: o painel e o emblema (não são céu, mesmo azul-escuros) */
-  painel: Ret4[];
+  /** retângulos que a lua evita (os botões da tela por cima da janela): x0, y0, x1, y1 */
+  evitar: Ret4[];
+  /** o contorno do painel (a moldura, o emblema por cima e o enfeite de baixo): não é céu, mesmo azul-escuro,
+   * e a luz do tempo não passa por cima dele (o mesmo contorno do `entrada-fundos.mjs`) */
+  painel: Pol[];
   /** cantos escuros da sala, onde olhos podem aparecer */
   cantos: [number, number][];
   /** onde os raios de sol caem (x do topo e x do pé, para a esquerda) */
@@ -48,6 +86,18 @@ export interface CenaLayout {
   nevoa: [number, number, number, number];
   /** tamanho do pixel da arte */
   px: number;
+}
+
+/** a cidade lá fora recortada no tamanho da janela, em três luzes, com as marcas de cor acesas */
+interface Paisagem {
+  noite: HTMLCanvasElement;
+  dourado: HTMLCanvasElement;
+  dia: HTMLCanvasElement;
+  /** os letreiros de neon (pintados em ciano puro), acesos, e o brilho deles */
+  neon: HTMLCanvasElement | null;
+  neonBrilho: HTMLCanvasElement | null;
+  /** a lâmpada do farol (pintada em amarelo puro), em pixels da janela */
+  farol: [number, number] | null;
 }
 
 export interface DefUniverso {
@@ -271,19 +321,22 @@ export class Cena {
   /** os vidros da janela vieram em magenta (a imagem do tema): o céu é todo do código */
   private ceuChroma = false;
   /** a paisagem lá fora, na noite, no dourado e no dia (só com a janela em magenta) */
-  private paisagens: {
-    noite: HTMLCanvasElement;
-    dourado: HTMLCanvasElement;
-    dia: HTMLCanvasElement;
-    /** os letreiros de neon (pintados em ciano puro), acesos, e o brilho deles */
-    neon: HTMLCanvasElement | null;
-    neonBrilho: HTMLCanvasElement | null;
-    /** a lâmpada do farol (pintada em amarelo puro), em pixels da janela */
-    farol: [number, number] | null;
-  } | null = null;
+  private paisagens: Paisagem | null = null;
+  /** a mesma cidade com neve nos telhados: aparece aos poucos quando o clima vira neve */
+  private paisagensNeve: Paisagem | null = null;
+  private neveMix = 0;
+  /** onde a lua fica (um pedaço de céu livre da janela, longe do skyline e do painel) e onde há céu livre */
+  private luaPos: [number, number] | null = null;
+  private ceuLivre: { dados: Uint8Array; w: number; h: number } | null = null;
+  /** cantos escuros da sala achados na própria imagem (onde os olhos aparecem) */
+  private cantosAchados: [number, number][] = [];
   /** as estrelas do céu do código (pixel, x e y no céu baixo, fase do piscar) */
   private estrelas: [number, number, number][] = [];
   private imagens: { noite: HTMLCanvasElement; luar: HTMLCanvasElement; dourado: HTMLCanvasElement; dia: HTMLCanvasElement } | null = null;
+  /** o contorno macio do painel (só a transparência importa) e o painel como foi desenhado, recortado por ele */
+  private painelAlfa: HTMLCanvasElement | null = null;
+  private painelNoite: HTMLCanvasElement | null = null;
+  private painelPol: Pol[] | null = null;
   private ultimoPeso = '';
   /** a imagem de fundo num canvas (para refazer a luz quando a vela muda) */
   private fonteCanvas: HTMLCanvasElement | null = null;
@@ -332,7 +385,7 @@ export class Cena {
   }
 
   /** Prepara a cena para a arte deste tamanho (a imagem já carregada). */
-  async montar(L: CenaLayout, img: HTMLImageElement, paisagem: HTMLImageElement | null = null) {
+  async montar(L: CenaLayout, img: HTMLImageElement, paisagem: HTMLImageElement | null = null, neve: HTMLImageElement | null = null) {
     this.L = L;
     this.imagens = null;
     const [x0, y0, x1, y1] = L.janela;
@@ -347,7 +400,12 @@ export class Cena {
     this.arte.height = this.luz.height = L.h;
     this.fonteCanvas = this.fonte(L, img);
     this.preparar(L, this.fonteCanvas);
-    this.paisagens = this.ceuChroma && paisagem ? this.prepararPaisagem(L, paisagem) : null;
+    this.luaPos = null;
+    this.ceuLivre = null;
+    this.paisagens = this.ceuChroma && paisagem ? this.prepararPaisagem(L, paisagem, true) : null;
+    this.paisagensNeve = this.paisagens && neve ? this.prepararPaisagem(L, neve, false) : null;
+    this.neveMix = this.sorteio.clima === 'neve' && this.paisagensNeve ? 1 : 0;
+    if (this.ceuChroma) this.luaPos = this.acharLua(L);
     this.estrelas = [];
     this.criarClima(L);
     this.ultimoPeso = '';
@@ -397,7 +455,7 @@ export class Cena {
     const base = ctx.getImageData(0, 0, W, H);
     const d = base.data;
     const [jx0, jy0, jx1, jy1] = L.janela;
-    const noPainel = (x: number, y: number) => L.painel.some(([a, b, c, e]) => x >= a && x < c && y >= b && y < e);
+    const noPainel = (x: number, y: number) => dentroDe(L.painel, x, y);
     const [lx, ly, lr] = L.lua;
 
     // ---- o céu: azul-escuro dentro da janela (e a lua), fora do painel
@@ -601,18 +659,17 @@ export class Cena {
           gd[o + 2] = g80[b] * 0.9;
         }
       }
-    // o painel desenhado na arte não muda com a hora (o painel de verdade fica em cima dele);
-    // a borda se mistura em alguns pixels
-    const borda = 10;
-    for (const [a, b, c, e] of L.painel)
-      for (let y = Math.max(0, b - borda); y < Math.min(H, e + borda); y++)
-        for (let x = Math.max(0, a - borda); x < Math.min(W, c + borda); x++) {
-          const fora = Math.max(a - x, x - c + 1, b - y, y - e + 1, 0);
-          const t = 1 - fora / borda;
-          if (t <= 0) continue;
-          const o = (y * W + x) * 4;
-          for (const arr of [ld, gd, dd]) for (let k = 0; k < 3; k++) arr[o + k] += (nd[o + k] - arr[o + k]) * t;
-        }
+    // o painel desenhado na arte não muda com a hora (o painel de verdade fica em cima dele): em volta
+    // dele, a mistura com a noite segue o contorno, com a borda macia
+    this.criarMascaraPainel(L);
+    this.cantosAchados = this.acharCantos(L, d);
+    const pa = this.painelAlfa!.getContext('2d', { willReadFrequently: true })!.getImageData(0, 0, W, H).data;
+    for (let i = 0; i < W * H; i++) {
+      const t = pa[i * 4 + 3] / 255;
+      if (t <= 0) continue;
+      const o = i * 4;
+      for (const arr of [ld, gd, dd]) for (let k = 0; k < 3; k++) arr[o + k] += (nd[o + k] - arr[o + k]) * t;
+    }
     // o céu da arte (lua e estrelas) fica à parte, para ficar atrás das nuvens
     const ceuArte = document.createElement('canvas');
     ceuArte.width = jx1 - jx0;
@@ -631,6 +688,40 @@ export class Cena {
       return c;
     };
     this.imagens = { noite: tela(noite), luar: tela(luar), dourado: tela(dourado), dia: tela(dia) };
+    // o painel como foi desenhado (a noite recortada pelo contorno macio)
+    const pn = document.createElement('canvas');
+    pn.width = W;
+    pn.height = H;
+    const px = pn.getContext('2d')!;
+    px.drawImage(this.imagens.noite, 0, 0);
+    px.globalCompositeOperation = 'destination-in';
+    px.drawImage(this.painelAlfa!, 0, 0);
+    this.painelNoite = pn;
+  }
+
+  /**
+   * O contorno do painel como máscara: opaca dentro e com a borda macia (2 px). A luz do tempo, o véu e o
+   * clarão do relâmpago saem por ela, em vez de um retângulo em volta do painel.
+   */
+  private criarMascaraPainel(L: CenaLayout) {
+    if (this.painelAlfa && this.painelPol === L.painel) return;
+    this.painelPol = L.painel;
+    const c = document.createElement('canvas');
+    c.width = L.w;
+    c.height = L.h;
+    const x = c.getContext('2d')!;
+    const p = caminho(L.painel);
+    x.fillStyle = '#000';
+    x.fill(p);
+    x.strokeStyle = '#000';
+    x.lineJoin = 'round';
+    // só 2 px de borda macia (a sombra em volta do painel já está na imagem e acompanha a luz da hora)
+    x.globalAlpha = 0.3;
+    for (const k of [2, 1]) {
+      x.lineWidth = k * 2;
+      x.stroke(p);
+    }
+    this.painelAlfa = c;
   }
 
   /**
@@ -638,12 +729,29 @@ export class Cena {
    * casas em verde): recortada no tamanho da janela, em três luzes. De noite as janelas acendem;
    * de dia viram vidro escuro.
    */
-  private prepararPaisagem(L: CenaLayout, img: HTMLImageElement) {
+  private prepararPaisagem(L: CenaLayout, img: HTMLImageElement, principal: boolean): Paisagem {
     const [jx0, jy0, jx1, jy1] = L.janela;
     const jw = jx1 - jx0;
     const jh = jy1 - jy0;
-    const { x, y, w } = L.paisagem;
+    const { y, w } = L.paisagem;
+    let x = L.paisagem.x;
+    // a tela estreita corta as laterais: a cidade se desloca até o castelo (a parte da direita) ficar à vista
+    const vis = this.visivel;
+    if (vis && vis[2] < x + w) x = Math.max(vis[2] - w, jx0 - w * 0.35);
     const hgt = Math.round((w * img.height) / img.width);
+    // as pontas da cidade que ficam dentro do vidro esmaecem no céu (não termina num corte reto)
+    const ex0 = x - jx0;
+    const ex1 = x + w - jx0;
+    const suave = (t: number) => {
+      const c = Math.max(0, Math.min(1, t));
+      return c * c * (3 - 2 * c);
+    };
+    // o letreiro de neon é do cyberpunk e o farol, do horror (a cidade das outras não tem marcas de cor
+    // a acender: qualquer pixel azul-claro ali é neve, água ou vidro)
+    const universo = this.sorteio.universo;
+    const temNeon = !!UNIVERSOS[universo].neon;
+    const temFarol = universo === 'horror';
+    const livre = principal ? new Uint8Array(jw * jh) : null;
     const c = document.createElement('canvas');
     c.width = jw;
     c.height = jh;
@@ -663,16 +771,18 @@ export class Cena {
       const g = d[i + 1];
       const b = d[i + 2];
       let a = d[i + 3];
+      const px = (i / 4) % jw;
       // o céu em magenta sai (a borda misturada sai pela metade)
       const mg = Math.min(r - g, b - g);
       if (mg > 80 && r > 140 && b > 140) a = 0;
       else if (mg > 40) a = Math.round(a * (1 - (mg - 40) / 40));
+      if (livre) livre[i / 4] = a > 24 ? 1 : 0;
+      a = Math.round(a * Math.min(suave((px - ex0) / 70), suave((ex1 - px) / 70)));
       const janela = g > 150 && g - r > 60 && g - b > 60;
       const por = (v: ImageData, cor: Rgb) => ((v.data[i] = cor[0]), (v.data[i + 1] = cor[1]), (v.data[i + 2] = cor[2]), (v.data[i + 3] = a));
       // o letreiro de neon (ciano puro): de dia, placa apagada; de noite, aceso em rosa ou ciano
       // (a cor muda em faixas, para a cidade não ficar de uma cor só)
-      if (g > 150 && b > 150 && r < 110 && g - r > 70 && b - r > 70) {
-        const px = (i / 4) % jw;
+      if (temNeon && g > 150 && b > 150 && r < 110 && g - r > 70 && b - r > 70) {
         const rosa = Math.floor(px / 37) % 3 !== 0;
         por(versoes.noite, [40, 34, 52]);
         por(versoes.dourado, [70, 66, 80]);
@@ -686,7 +796,7 @@ export class Cena {
         continue;
       }
       // a lâmpada do farol (amarelo puro): acesa de noite, apagada de dia; o facho gira em volta
-      if (r > 235 && g > 230 && b < 60) {
+      if (temFarol && r > 235 && g > 230 && b < 60) {
         fx += (i / 4) % jw;
         fy += Math.floor(i / 4 / jw);
         fn++;
@@ -726,6 +836,7 @@ export class Cena {
       nb.drawImage(neonTela, 0, 0);
       nb.drawImage(neonTela, 0, 0);
     }
+    if (livre) this.ceuLivre = { dados: livre, w: jw, h: jh };
     return {
       noite: tela(versoes.noite),
       dourado: tela(versoes.dourado),
@@ -736,6 +847,81 @@ export class Cena {
     };
   }
 
+  /** O céu está livre (sem cidade) num raio `r` em volta do ponto (em pixels da arte)? */
+  private ceuLivreEm(x: number, y: number, r: number): boolean {
+    const c = this.ceuLivre;
+    if (!c) return true;
+    const [jx0, jy0] = this.L!.janela;
+    for (let k = 0; k < 9; k++) {
+      const px = Math.round(x - jx0 + (k === 0 ? 0 : Math.cos((k / 8) * Math.PI * 2) * r));
+      const py = Math.round(y - jy0 + (k === 0 ? 0 : Math.sin((k / 8) * Math.PI * 2) * r));
+      if (px < 0 || py < 0 || px >= c.w || py >= c.h) return false;
+      if (!c.dados[py * c.w + px]) continue;
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Onde a lua fica: um pedaço de céu livre da janela (longe da cidade, do painel e dos botões da
+   * tela), do lado direito e no alto, dentro do que esta tela mostra.
+   */
+  private acharLua(L: CenaLayout): [number, number] | null {
+    const [jx0, jy0, jx1] = L.janela;
+    let melhor: [number, number] | null = null;
+    let nota = -1;
+    for (let y = jy0 + 24; y < L.sol.horizonte - 30; y += 6)
+      for (let x = jx0 + 30; x < jx1 - 30; x += 6) {
+        if (!this.naTela(x, y, 30) || pertoDe(L.painel, x, y, 26) || L.evitar.some(([a, b, c, e]) => x > a - 30 && x < c + 30 && y > b - 30 && y < e + 30)) continue;
+        if (!this.ceuLivreEm(x, y, 34) || !this.ceuLivreEm(x, y, 16)) continue;
+        const n = (x - jx0) / (jx1 - jx0) + (1 - y / L.sol.horizonte) * 0.6;
+        if (n > nota) (nota = n), (melhor = [x, y]);
+      }
+    return melhor;
+  }
+
+  /**
+   * Os cantos escuros da sala, achados na própria imagem: blocos bem escuros e lisos, fora do painel,
+   * da janela e do que a tela corta, bem espalhados (é onde os olhos aparecem).
+   */
+  private acharCantos(L: CenaLayout, d: Uint8ClampedArray): [number, number][] {
+    const W = L.w;
+    const H = L.h;
+    const [jx0, jy0, jx1, jy1] = L.janela;
+    const bloco = 22;
+    const achados: { x: number; y: number; nota: number }[] = [];
+    for (let y = 40; y < H - 60; y += bloco)
+      for (let x = 20; x < W - 40; x += bloco) {
+        const cx = x + bloco / 2;
+        const cy = y + bloco / 2;
+        if (!this.naTela(cx, cy, 20) || pertoDe(L.painel, cx, cy, 50)) continue;
+        if (cx > jx0 - 20 && cx < jx1 + 20 && cy < jy1 + 30) continue;
+        let soma = 0;
+        let soma2 = 0;
+        let n = 0;
+        let maximo = 0;
+        for (let yy = y; yy < y + bloco; yy += 2)
+          for (let xx = x; xx < x + bloco; xx += 2) {
+            const o = (yy * W + xx) * 4;
+            const l = d[o] * 0.3 + d[o + 1] * 0.59 + d[o + 2] * 0.11;
+            soma += l;
+            soma2 += l * l;
+            maximo = Math.max(maximo, l);
+            n++;
+          }
+        const media = soma / n;
+        const desvio = Math.sqrt(Math.max(0, soma2 / n - media * media));
+        if (media < 34 && maximo < 80 && desvio < 12) achados.push({ x: cx, y: cy, nota: media + desvio });
+      }
+    achados.sort((a, b) => a.nota - b.nota);
+    const fora: [number, number][] = [];
+    for (const c of achados) {
+      if (fora.every(([x, y]) => Math.hypot(x - c.x, y - c.y) > 170)) fora.push([c.x, c.y]);
+      if (fora.length >= 6) break;
+    }
+    return fora;
+  }
+
   // ---------------------------------------------------------------- clima
 
   private criarClima(L: CenaLayout) {
@@ -743,29 +929,30 @@ export class Cena {
     const bh = this.baixo.height;
     const { clima } = this.sorteio;
     const quantas = { limpo: 2, nuvens: 6, chuva: 9, neblina: 4, tempestade: 11, neve: 7 }[clima];
-    this.nuvens = Array.from({ length: quantas }, () => this.novaNuvem(bw, bh, Math.random() * bw * 1.4 - bw * 0.2));
+    const hz = Math.max(8, (L.sol.horizonte - L.janela[1]) / L.px);
+    this.nuvens = Array.from({ length: quantas }, () => this.novaNuvem(bw, hz, Math.random() * bw * 1.4 - bw * 0.2));
     this.gotas =
       clima === 'chuva' || clima === 'tempestade' || clima === 'neve'
         ? Array.from({ length: Math.round(bw * bh * (clima === 'neve' ? 0.009 : clima === 'tempestade' ? 0.045 : 0.03)) }, () => ({ x: Math.random() * bw, y: Math.random() * bh, v: 0.9 + Math.random() * 0.6 }))
         : [];
     this.voadores = [];
     // as estrelas ficam no lugar quando só o clima muda
-    if (!this.estrelas.length) this.estrelas = Array.from({ length: Math.round(bw * bh * 0.006) }, () => [Math.floor(Math.random() * bw), Math.floor(Math.random() * bh * 0.7), Math.random() * 6]);
+    if (!this.estrelas.length) this.estrelas = Array.from({ length: Math.round(bw * bh * 0.006) }, () => [Math.floor(Math.random() * bw), Math.floor(Math.random() * hz * 0.85), Math.random() * 6]);
     // os olhos: lá fora, na janela (de noite), e no canto escuro da sala
     this.olhos = [];
     if (this.sorteio.monstro) {
       // só onde aparece: fora do painel e dentro do pedaço da arte que esta tela mostra
       // (o celular estreito corta as laterais)
-      const livre = (x: number, y: number) => this.naTela(x, y, 24) && !L.painel.some(([a, b, c, e]) => x > a - 20 && x < c + 20 && y > b - 20 && y < e + 20);
-      const [jx0, jy0, jx1, jy1] = L.janela;
-      for (let k = 0; k < 40; k++) {
+      const livre = (x: number, y: number) => this.naTela(x, y, 24) && !pertoDe(L.painel, x, y, 20);
+      const [jx0, jy0, jx1] = L.janela;
+      for (let k = 0; k < 80; k++) {
         const x = jx0 + 20 + Math.random() * (jx1 - jx0 - 50);
-        const y = jy0 + (jy1 - jy0) * (0.45 + Math.random() * 0.25);
-        if (!livre(x, y)) continue;
+        const y = jy0 + 18 + Math.random() * (L.sol.horizonte - jy0 - 40);
+        if (!livre(x, y) || !this.ceuLivreEm(x, y, 14)) continue;
         this.olhos.push({ x, y, escala: 1.4, piscar: 0, abertos: 0, dentro: false });
         break;
       }
-      const cantos = L.cantos.filter(([x, y]) => livre(x, y));
+      const cantos = (this.cantosAchados.length ? this.cantosAchados : L.cantos).filter(([x, y]) => livre(x, y));
       const canto = cantos[Math.floor(Math.random() * cantos.length)];
       if (canto) this.olhos.push({ x: canto[0], y: canto[1], escala: 1, piscar: 0, abertos: 0, dentro: true });
     }
@@ -820,20 +1007,18 @@ export class Cena {
     const { clima } = this.sorteio;
     const fecho = { limpo: 0, nuvens: 0.06, chuva: 0.22, neblina: 0.14, tempestade: 0.36, neve: 0.12 }[clima] * (dia + dourado * 0.6);
     if (fecho > 0.005) {
-      // (o painel desenhado na arte não muda com o tempo: o véu passa fora dele)
+      // (source-atop: só onde a arte é opaca; os vidros da janela são buracos e não podem ser pintados)
       ctx.save();
-      ctx.beginPath();
-      ctx.rect(0, 0, ctx.canvas.width, ctx.canvas.height);
-      for (const [a, b, c2, e] of this.L!.painel) ctx.rect(a - 6, b - 6, c2 - a + 12, e - b + 12);
-      ctx.clip('evenodd');
-      ctx.globalCompositeOperation = 'multiply';
+      ctx.globalCompositeOperation = 'source-atop';
       ctx.globalAlpha = 1;
-      const v = 255 * (1 - fecho);
-      ctx.fillStyle = `rgb(${v * 0.82}, ${v * 0.9}, ${v})`;
+      ctx.fillStyle = `rgba(22, 32, 54, ${Math.min(1, fecho * 1.15)})`;
       ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
       ctx.restore();
     }
     ctx.globalAlpha = 1;
+    // o painel desenhado na arte não muda com a hora nem com o tempo: volta como foi desenhado, com a
+    // borda macia (sem retângulo em volta)
+    if (this.painelNoite) ctx.drawImage(this.painelNoite, 0, 0);
   }
 
   /** O céu da janela: degradê, sol, a lua da arte, nuvens, chuva, raio, estrela cadente... */
@@ -858,10 +1043,13 @@ export class Cena {
     const topo = corDe(0);
     const meio = corDe(1);
     const baixoCor = corDe(2);
-    // o degradê em faixas pontilhadas
+    // o degradê em faixas pontilhadas, do topo da janela até o horizonte da cidade (abaixo dele a
+    // cidade cobre o céu)
+    const [jx0, jy0] = L.janela;
+    const hz = Math.max(8, (L.sol.horizonte - jy0) / L.px);
     const img = ctx.createImageData(bw, bh);
     for (let y = 0; y < bh; y++) {
-      const t = y / Math.max(1, bh - 1);
+      const t = Math.min(1, y / hz);
       const faixas = 7;
       for (let x = 0; x < bw; x++) {
         const tq = Math.min(1, Math.floor(t * faixas + BAYER[(y & 3) * 4 + (x & 3)]) / faixas);
@@ -874,7 +1062,6 @@ export class Cena {
       }
     }
     ctx.putImageData(img, 0, 0);
-    const [jx0, jy0] = L.janela;
     const bx = (x: number) => (x - jx0) / L.px;
     const by = (y: number) => (y - jy0) / L.px;
 
@@ -909,7 +1096,7 @@ export class Cena {
         ctx.fillStyle = `rgba(255, 244, 205, ${a})`;
         ctx.fillRect(x, y, 1, 1);
       }
-      const [lx, ly] = L.lua;
+      const [lx, ly] = this.luaPos ?? L.lua;
       const mx = bx(lx);
       const my = by(ly);
       const halo = ctx.createRadialGradient(mx, my, 0, mx, my, 16);
@@ -934,20 +1121,20 @@ export class Cena {
     if (def.aurora && noite > 0.2) {
       for (let x = 0; x < bw; x++) {
         const onda = Math.sin(x * 0.09 + agora / 2400) * 0.5 + Math.sin(x * 0.031 - agora / 3700) * 0.5;
-        const alto = bh * (0.25 + 0.18 * onda);
+        const alto = hz * (0.25 + 0.18 * onda);
         const a = (0.1 + 0.12 * (0.5 + 0.5 * Math.sin(x * 0.2 + agora / 900))) * noite;
-        const g = atras.createLinearGradient(0, alto, 0, alto + bh * 0.45);
+        const g = atras.createLinearGradient(0, alto, 0, alto + hz * 0.45);
         g.addColorStop(0, rgb(def.aurora, 0));
         g.addColorStop(0.3, rgb(def.aurora, a));
         g.addColorStop(1, rgb(def.aurora, 0));
         atras.fillStyle = g;
-        atras.fillRect(x, alto, 1, bh * 0.45);
+        atras.fillRect(x, alto, 1, hz * 0.45);
       }
     }
     // a estrela cadente (noite, céu aberto)
     this.proximaCadente -= dt;
     if (!this.cadente && this.proximaCadente <= 0 && noite > 0.7 && fechado < 0.5) {
-      this.cadente = { x: bw * (0.2 + Math.random() * 0.7), y: bh * Math.random() * 0.3, vx: -(0.09 + Math.random() * 0.05), vy: 0.04, vida: 1 };
+      this.cadente = { x: bw * (0.2 + Math.random() * 0.7), y: hz * Math.random() * 0.3, vx: -(0.09 + Math.random() * 0.05), vy: 0.04, vida: 1 };
       this.proximaCadente = 6000 + Math.random() * 14000;
     }
     if (this.cadente) {
@@ -979,7 +1166,7 @@ export class Cena {
     if (clima === 'neblina' || def.nevoaSala) {
       const cor = mix(mix([60, 66, 90], [200, 205, 215], dia), def.nevoaSala ?? [180, 180, 190], 0.3);
       for (let k = 0; k < 3; k++) {
-        const y = bh * (0.55 + k * 0.14);
+        const y = hz * (0.8 + k * 0.18);
         const desl = Math.sin(agora / (5000 + k * 1700) + k) * 8;
         const g = s.createLinearGradient(0, y - 6, 0, y + 6);
         g.addColorStop(0, rgb(cor, 0));
@@ -998,7 +1185,7 @@ export class Cena {
     if (this.voadores.length < (sol ? 9 : 3) && Math.random() < dt / (sol ? 3500 : 9000) && clima !== 'tempestade') {
       const n = 2 + Math.floor(Math.random() * 3);
       const tipo = noite > 0.5 ? 'morcego' : 'passaro';
-      const y = bh * (0.15 + Math.random() * 0.4);
+      const y = hz * (0.15 + Math.random() * 0.5);
       for (let i = 0; i < n; i++) this.voadores.push({ x: -4 - i * (3 + Math.random() * 3), y: y + (Math.random() - 0.5) * 6, v: 0.012 + Math.random() * 0.004, fase: Math.random() * 6, tipo });
     }
     s.fillStyle = noite > 0.5 ? 'rgba(6, 6, 12, 0.95)' : 'rgba(30, 30, 40, 0.85)';
@@ -1057,7 +1244,7 @@ export class Cena {
         this.proximoRelampago = 4000 + Math.random() * 9000;
         let x = bw * (0.15 + Math.random() * 0.7);
         const pts: [number, number][] = [[x, 0]];
-        for (let y = 0; y < bh * 0.85; ) {
+        for (let y = 0; y < hz * 0.95; ) {
           y += 2 + Math.random() * 3;
           x += (Math.random() - 0.5) * 5;
           pts.push([x, y]);
@@ -1107,24 +1294,33 @@ export class Cena {
       c2.drawImage(ceuArte, 0, 0);
       c2.globalAlpha = 1;
     }
-    // a paisagem lá fora, na luz da hora (a noite, o dourado e o dia misturados)
+    // a paisagem lá fora, na luz da hora (a noite, o dourado e o dia misturados); com neve, a cidade dos
+    // telhados brancos aparece aos poucos por cima
     const p = this.paisagens;
     if (p) {
       c2.imageSmoothingEnabled = true;
-      c2.drawImage(p.noite, 0, 0);
-      if (dourado > 0.001) {
-        c2.globalAlpha = dourado / (noite + dourado || 1);
-        c2.drawImage(p.dourado, 0, 0);
-      }
-      if (dia > 0.001) {
-        c2.globalAlpha = dia;
-        c2.drawImage(p.dia, 0, 0);
-      }
+      const alvoNeve = clima === 'neve' && this.paisagensNeve ? 1 : 0;
+      const passoNeve = dt / 3000;
+      this.neveMix += Math.max(-passoNeve, Math.min(passoNeve, alvoNeve - this.neveMix));
+      const cidade = (q: Paisagem, alfa: number) => {
+        c2.globalAlpha = alfa;
+        c2.drawImage(q.noite, 0, 0);
+        if (dourado > 0.001) {
+          c2.globalAlpha = alfa * (dourado / (noite + dourado || 1));
+          c2.drawImage(q.dourado, 0, 0);
+        }
+        if (dia > 0.001) {
+          c2.globalAlpha = alfa * dia;
+          c2.drawImage(q.dia, 0, 0);
+        }
+      };
+      cidade(p, 1);
+      if (this.paisagensNeve && this.neveMix > 0.002) cidade(this.paisagensNeve, this.neveMix);
       c2.globalAlpha = 1;
       // os letreiros de neon acesos, piscando de vez em quando (mais fortes com a noite)
       const acesos = noite + dourado * 0.4;
       if (p.neon && acesos > 0.05) {
-        const pisca = Math.sin(agora / 97) > 0.92 || Math.sin(agora / 1310 + 1) > 0.985 ? 0.35 : 1;
+        const pisca = (Math.sin(agora / 97) > 0.92 || Math.sin(agora / 1310 + 1) > 0.985 ? 0.35 : 1) * (1 - this.neveMix * 0.4);
         c2.globalCompositeOperation = 'lighter';
         c2.globalAlpha = 0.55 * acesos * pisca;
         c2.drawImage(p.neonBrilho!, 0, 0);
@@ -1244,8 +1440,13 @@ export class Cena {
       ctx.fillRect(0, 0, L.w, L.h);
       ctx.globalCompositeOperation = 'source-over';
     }
-    // nada disso pinta o painel (o painel de verdade fica por cima e não muda)
-    for (const [a, b, c, e] of L.painel) ctx.clearRect(a - 6, b - 6, c - a + 12, e - b + 12);
+    // nada disso pinta o painel (o painel de verdade fica por cima e não muda): a luz sai em volta dele,
+    // pelo contorno e com a borda macia
+    if (this.painelAlfa) {
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.drawImage(this.painelAlfa, 0, 0);
+      ctx.globalCompositeOperation = 'source-over';
+    }
   }
 
   /** Dois olhos que brilham e piscam. `px` = tamanho de um pixel. */

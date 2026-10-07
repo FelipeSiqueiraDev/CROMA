@@ -53,25 +53,49 @@
   pointer-events: none;
   image-rendering: pixelated;
 }
-/* o brilho que passa pelas letras do CRONA (a máscara são as letras da arte) */
-.ent-logo {
+/* o brilho que passa pelo emblema e pelas letras do CRONA: as máscaras são as partes douradas da arte.
+   Uma faixa varre da esquerda para a direita (primeiro o emblema, depois as letras) e, por onde passa,
+   troca o dourado pela variação azul-prateada da logo (o relevo fica, só a cor muda), com um clarão
+   azul em volta e um fio de luz branca no meio. */
+.ent-ouro {
   position: absolute;
   pointer-events: none;
-  mix-blend-mode: screen;
   -webkit-mask-size: 100% 100%;
   mask-size: 100% 100%;
-  background: linear-gradient(105deg, transparent 38%, rgba(255, 246, 214, 0.95) 48%, rgba(255, 220, 140, 0.6) 52%, transparent 62%) no-repeat;
-  background-size: 300% 100%;
-  background-position: 150% 0;
-  animation: ent-logo-varre 7s 2.4s infinite;
+  background-repeat: no-repeat;
+  background-size: 400% 100%;
+  background-position: 100% 0;
+  animation: ent-ouro-varre 8s var(--atraso, 2.4s) infinite;
 }
-@keyframes ent-logo-varre {
+.ent-logo {
+  mix-blend-mode: screen;
+  background-image: linear-gradient(105deg, transparent 44%, rgba(255, 250, 235, 0.95) 49.5%, rgba(255, 236, 190, 0.5) 52%, transparent 57%);
+  --atraso: 2.72s;
+}
+.ent-ouro-azul {
+  mix-blend-mode: color;
+  background-image: linear-gradient(
+    105deg,
+    transparent 33%,
+    rgba(96, 146, 250, 0.55) 40%,
+    rgba(150, 188, 255, 0.95) 45%,
+    rgba(224, 236, 255, 1) 50%,
+    rgba(150, 188, 255, 0.95) 55%,
+    rgba(96, 146, 250, 0.55) 60%,
+    transparent 67%
+  );
+}
+.ent-ouro-halo {
+  mix-blend-mode: screen;
+  background-image: linear-gradient(105deg, transparent 33%, rgba(80, 132, 255, 0.5) 42%, rgba(160, 200, 255, 0.85) 50%, rgba(80, 132, 255, 0.5) 58%, transparent 67%);
+}
+@keyframes ent-ouro-varre {
   0% {
-    background-position: 150% 0;
+    background-position: 100% 0;
   }
-  18%,
+  26%,
   100% {
-    background-position: -50% 0;
+    background-position: 0% 0;
   }
 }
 
@@ -441,6 +465,10 @@
     opacity: 1;
     transform: translate(-50%, -50%) scale(1.04);
   }
+}
+/* nas imagens dos temas a lua e as estrelas são do código: desenhadas no céu da janela, atrás da cidade */
+.entrada:not([data-fundo='hoje']) :is(.fx-lua, .fx-estrela) {
+  display: none;
 }
 .fx-estrela {
   width: calc(var(--u) * 3px);
@@ -872,6 +900,7 @@
   .ent-som-barras i,
   .ent-som-caixa,
   .ent-som-dica,
+  .ent-ouro,
   .ent-principal,
   .entrada.pronta .ent-painel > *,
   .ent-painel.troca > * {
