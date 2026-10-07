@@ -211,23 +211,68 @@ export class Trilha {
 
   // ---------------------------------------------------------------- o som da cena
 
-  /** O trovão: um estalo e o ronco grave que rola. `perto` de 0 a 1. */
+  /**
+   * O trovão, `perto` de 0 a 1: o estalo que rasga (quando é perto), o ronco que rola e vai
+   * descendo do médio para o grave, e uma camada bem grave para quem tem caixa de som boa.
+   * O médio é o que se ouve na caixinha do celular e do notebook. A música abaixa enquanto ele
+   * ressoa.
+   */
   trovao(perto = Math.random()) {
     const ac = this.ac;
-    if (!ac || !this.mestre || !this.tocando) return;
-    const t = ac.currentTime + 0.15 + (1 - perto) * 1.2;
-    // o estalo (só quando é perto)
-    if (perto > 0.4) this.rajada(t, 0.25, 'highpass', 1800, 0.3 * perto, 0.003, 0.22);
-    // o ronco: grave, longo e rolando
-    const ronco = this.rajada(t + 0.05, 3.6, 'lowpass', 160, 0.9, 0.08, 3.4);
-    if (ronco) {
+    if (!ac || !this.mestre || !this.ruido || !this.tocando) return;
+    // a luz chega antes do som: quanto mais longe, mais demora
+    const t = ac.currentTime + 0.12 + (1 - perto) * 1.1;
+    const forca = 0.55 + 0.45 * perto;
+    const dur = 3.2 + 2.2 * perto;
+    // o estalo: dois rasgos curtos e agudos
+    if (perto > 0.35) {
+      this.rajada(t, 0.4, 'highpass', 1200, 1.1 * forca, 0.002, 0.3);
+      this.rajada(t + 0.07, 0.5, 'bandpass', 2400, 0.7 * forca, 0.002, 0.4);
+    }
+    // o ronco: ruído em laço, num filtro que desce de 900 para 220 Hz, rolando em ondas
+    const src = ac.createBufferSource();
+    src.buffer = this.ruido;
+    src.loop = true;
+    src.playbackRate.value = 0.7 + Math.random() * 0.2;
+    const f = ac.createBiquadFilter();
+    f.type = 'lowpass';
+    f.Q.value = 0.9;
+    f.frequency.setValueAtTime(900 * (0.7 + 0.3 * perto), t);
+    f.frequency.exponentialRampToValueAtTime(220, t + dur);
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(2.6 * forca, t + 0.12 + (1 - perto) * 0.4);
+    g.gain.exponentialRampToValueAtTime(1.2 * forca, t + dur * 0.35);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    // as ondas: três tremores lentos somados, cada trovão de um jeito
+    const ondas = ac.createGain();
+    ondas.gain.value = 1;
+    for (const [freq, prof] of [
+      [1.3 + Math.random(), 0.35],
+      [3 + Math.random() * 2, 0.25],
+      [7 + Math.random() * 4, 0.15],
+    ]) {
       const lfo = ac.createOscillator();
-      const prof = ac.createGain();
-      lfo.frequency.value = 5 + Math.random() * 4;
-      prof.gain.value = 0.35;
-      lfo.connect(prof).connect(ronco.gain);
+      lfo.frequency.value = freq;
+      const p = ac.createGain();
+      p.gain.value = prof;
+      lfo.connect(p).connect(ondas.gain);
       lfo.start(t);
-      lfo.stop(t + 3.8);
+      lfo.stop(t + dur + 0.2);
+    }
+    src.connect(f).connect(ondas).connect(g).connect(this.mestre);
+    g.connect(this.eco!);
+    src.start(t, Math.random() * 2);
+    src.stop(t + dur + 0.2);
+    // a camada bem grave
+    this.rajada(t + 0.05, dur, 'lowpass', 110, 1.4 * forca, 0.2, dur * 0.8);
+    // a música abaixa e volta
+    if (this.musica) {
+      const m = this.musica.gain;
+      m.cancelScheduledValues(t);
+      m.setValueAtTime(m.value, t);
+      m.linearRampToValueAtTime(0.35, t + 0.2);
+      m.linearRampToValueAtTime(0.85, t + dur);
     }
   }
 
@@ -242,7 +287,13 @@ export class Trilha {
     ac.onstatechange = () => this.aoMudarEstado();
     this.mestre = ac.createGain();
     this.mestre.gain.value = 0;
-    this.mestre.connect(ac.destination);
+    const compressor = ac.createDynamicsCompressor();
+    compressor.threshold.value = -8;
+    compressor.knee.value = 6;
+    compressor.ratio.value = 12;
+    compressor.attack.value = 0.002;
+    compressor.release.value = 0.25;
+    this.mestre.connect(compressor).connect(ac.destination);
     // o ruído (chuva, vento, trovão, estalos, tambor)
     const len = ac.sampleRate * 3;
     this.ruido = ac.createBuffer(1, len, ac.sampleRate);
@@ -314,6 +365,7 @@ export class Trilha {
     if (!ac || !this.ruido || !this.mestre) return null;
     const src = ac.createBufferSource();
     src.buffer = this.ruido;
+    src.loop = true;
     src.playbackRate.value = 0.8 + Math.random() * 0.4;
     const f = ac.createBiquadFilter();
     f.type = tipo;
