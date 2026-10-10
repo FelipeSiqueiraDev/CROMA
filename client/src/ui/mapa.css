@@ -239,6 +239,168 @@
   top: 4.6rem;
   height: calc(100% - 6rem);
 }
+/* ---------- minimapa (minimapa.ts): o caminho Terreno › Prédio, os botões do canto e o cartão ---------- */
+.p-plan .mm-trilha {
+  right: 5rem;
+  padding-top: 0.4rem;
+  line-height: 1.5;
+  top: 1.1rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.mm-trilha .mm-migalha {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: uppercase;
+  color: rgba(28, 25, 21, 0.5);
+}
+.mm-trilha button.mm-migalha {
+  cursor: pointer;
+}
+.mm-trilha button.mm-migalha:hover {
+  color: #a3221a;
+}
+.mm-trilha .mm-migalha.on {
+  color: rgba(28, 25, 21, 0.88);
+}
+.mm-trilha .mm-sep {
+  color: rgba(28, 25, 21, 0.4);
+}
+/* quem está no andar: as bolinhas na aba */
+.plan-tab .mm-gente {
+  display: inline-flex;
+  gap: 0.15rem;
+  margin-left: 0.4rem;
+  vertical-align: 0.1rem;
+}
+.plan-tab .mm-gente i {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  box-shadow: 0 0 0 0.1rem #f3ead6;
+}
+.p-plan.mm .plan-tabs {
+  right: 8.4rem;
+}
+.p-plan .mm-botoes {
+  position: absolute;
+  z-index: 3;
+  right: 1.8rem;
+  top: 4.2rem;
+  display: flex;
+  gap: 0.5rem;
+}
+.mm-bt {
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  padding: 0;
+  border: 0.1rem solid rgba(28, 25, 21, 0.6);
+  border-radius: 0.3rem;
+  background: #efe4cc;
+  color: #2a241f;
+  cursor: pointer;
+  box-shadow: 0.1rem 0.2rem 0.3rem rgba(0, 0, 0, 0.25);
+}
+.mm-bt:hover {
+  color: #a3221a;
+  border-color: #a3221a;
+}
+.mm-bt .ic {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+/* o cartão do cômodo escolhido: nome, onde fica, quem está e o Entrar */
+.p-plan .mm-cartao {
+  position: absolute;
+  z-index: 3;
+  left: 2rem;
+  right: 2rem;
+  bottom: 1.6rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 0.8rem;
+  border: 0.1rem solid rgba(28, 25, 21, 0.55);
+  background: rgba(243, 234, 214, 0.96);
+  box-shadow: 0.2rem 0.3rem 0.6rem rgba(0, 0, 0, 0.3);
+  transform: rotate(-0.4deg);
+  animation: mm-cartao 0.18s ease-out;
+}
+.p-plan .mm-cartao.hidden {
+  display: none;
+}
+@keyframes mm-cartao {
+  from {
+    opacity: 0;
+    transform: translateY(0.6rem) rotate(-0.4deg);
+  }
+}
+.mm-c-txt {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  font-family: 'Courier Prime', monospace;
+  font-size: 1.1rem;
+  color: rgba(28, 25, 21, 0.75);
+}
+.mm-c-txt > * {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mm-c-txt b {
+  font-family: 'Special Elite', var(--f-maquina);
+  font-size: 1.4rem;
+  font-weight: 400;
+  color: #1d1a17;
+}
+.mm-c-quem {
+  font-style: italic;
+}
+.mm-c-entrar,
+.mm-c-aqui {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 3rem;
+  padding: 0 1rem;
+  font-family: 'Special Elite', var(--f-maquina);
+  font-size: 1.3rem;
+  letter-spacing: 0.06em;
+}
+.mm-c-entrar {
+  border: 0.1rem solid #6e140e;
+  border-radius: 0.3rem;
+  background: linear-gradient(#c13328, #8f1b13);
+  color: #fbeee4;
+  cursor: pointer;
+  box-shadow: 0.1rem 0.2rem 0.3rem rgba(0, 0, 0, 0.3);
+}
+.mm-c-entrar:hover {
+  filter: brightness(1.12);
+}
+.mm-c-aqui {
+  color: #a3221a;
+}
+.mm-c-entrar .ic,
+.mm-c-aqui .ic {
+  width: 1.4rem;
+  height: 1.4rem;
+}
 .p-plan .tachinha {
   position: absolute;
   right: 1.6rem;

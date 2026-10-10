@@ -327,8 +327,13 @@ export interface SceneInfo {
   /** ao ar livre: a planta desenha o terreno (grama, estrada, água) no lugar da pedra */
   aberto?: boolean;
   terreno?: string;
-  /** os prédios do lugar (casas que ocupam e o nome), para a planta de quem está ao ar livre */
-  marcos?: { x: number; y: number; w: number; h: number; nome: string }[];
+  /**
+   * os prédios do lugar (casas que ocupam e o nome), para a planta de quem está ao ar livre:
+   * `kind` é o desenho do mobi (casarao, celeiro...) e `entra`, a cena que a entrada dele abre
+   */
+  marcos?: { x: number; y: number; w: number; h: number; nome: string; kind?: string; entra?: number }[];
+  /** o resto do que está no chão ao ar livre, para o minimapa desenhar: [kind, x, y, w, h] */
+  simbolos?: [string, number, number, number, number][];
 }
 
 export interface InvItem {
