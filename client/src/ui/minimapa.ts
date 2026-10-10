@@ -1,5 +1,6 @@
 import { montarLocais, nomeCurto, parseHeightmap, type CampaignState, type Heightmap, type Locais, type LocalPredio, type SceneInfo } from '@crona/shared';
 import { clear, h } from './dom';
+import { janela } from './fichaModal';
 import { existeArte, ic } from './icons';
 import { pencilShade, reduced, wait } from './motion';
 import { sfx } from './sfx';
@@ -10,7 +11,8 @@ import { sfx } from './sfx';
  * - No terreno (a cena ao ar livre), o mapa desenhado à mão: o chão, as árvores, a cerca, as
  *   plantações, os prédios com o telhado e a plaquinha, as saídas e as peças.
  * - Clicar num prédio desce até ele (o mapa dá zoom no telhado e vira a planta do andar);
- *   as abas trocam o andar; o caminho no topo, o botão direito ou a roda para trás sobem.
+ *   a escada (▲ ▼) troca o andar; o botão ‹, o direito ou a roda para trás sobem. O botão
+ *   das camadas abre a lista de todos os lugares, prédio por prédio, andar por andar.
  * - Clicar num cômodo só olha (o cartão embaixo diz o que é e quem está); "Entrar" ou o
  *   clique duplo levam a cena (o tabuleiro e a mesa vão junto).
  *
@@ -30,7 +32,7 @@ export interface MinimapaHost {
 type Vista = { tipo: 'terreno'; cena: number } | { tipo: 'predio'; predio: string; andar: string };
 type Caixa = { x: number; y: number; w: number; h: number };
 interface Alvo extends Caixa {
-  tipo: 'cena' | 'predio' | 'saida';
+  tipo: 'cena' | 'predio' | 'saida' | 'andar';
   id: number | string;
   nome: string;
   forma?: Path2D;
@@ -63,7 +65,6 @@ const mesma = (a: Vista | null, b: Vista | null) =>
 
 export class Minimapa {
   readonly trilha = h('div', { class: 'p-title mm-trilha' });
-  readonly abas = h('div', { class: 'plan-tabs hidden', role: 'tablist', 'aria-label': 'Andares' });
   readonly canvas = h('canvas', { class: 'plan-canvas mm-canvas' });
   readonly cartao = h('div', { class: 'mm-cartao hidden' });
   readonly botoes = h('div', { class: 'mm-botoes' });
@@ -326,6 +327,11 @@ export class Minimapa {
         if (p) this.descer(p);
         return;
       }
+      if (a.tipo === 'andar' && this.vista?.tipo === 'predio') {
+        sfx.paper();
+        this.mostrar({ tipo: 'predio', predio: this.vista.predio, andar: a.id as string }, false);
+        return;
+      }
       if (a.tipo === 'saida') {
         sfx.paper();
         this.mostrar({ tipo: 'terreno', cena: a.id as number }, false);
@@ -376,55 +382,25 @@ export class Minimapa {
     const p = v?.tipo === 'predio' ? this.predio(v.predio) : undefined;
     const terreno = v?.tipo === 'terreno' ? v.cena : p?.terreno ?? null;
     const tNome = terreno !== null ? l?.terrenos.find((t) => t.cena === terreno)?.nome : undefined;
-    // o caminho: Terreno › Prédio
-    const partes: { nome: string; ir?: () => void }[] = [];
-    if (v?.tipo === 'terreno') partes.push({ nome: camp?.title || tNome || 'Planta' });
-    else if (tNome !== undefined) partes.push({ nome: tNome, ir: () => this.subir() });
-    if (p) partes.push({ nome: p.nome || camp?.title || 'Planta' });
-    if (!partes.length) partes.push({ nome: 'Planta' });
-    const sig = JSON.stringify([partes.map((x) => [x.nome, !!x.ir])]);
+    // o título: o lugar (a fazenda, os arredores) ou o prédio e o andar ("Casarão › Térreo")
+    const partes: string[] = [];
+    if (v?.tipo === 'terreno') partes.push(terreno === l?.terrenos[0]?.cena ? camp?.title || tNome || 'Planta' : tNome || 'Planta');
+    if (p) {
+      partes.push(p.nome || camp?.title || 'Planta');
+      const a = p.andares.find((x) => v?.tipo === 'predio' && x.nome === v.andar);
+      if (a && p.andares.length > 1) partes.push(a.rotulo);
+    }
+    if (!partes.length) partes.push('Planta');
+    const sig = JSON.stringify(partes);
     if (this.trilha.dataset.sig !== sig) {
       this.trilha.dataset.sig = sig;
       clear(this.trilha);
       partes.forEach((x, i) => {
         if (i) this.trilha.append(h('span', { class: 'mm-sep', 'aria-hidden': 'true' }, '›'));
-        this.trilha.append(x.ir ? h('button', { class: 'mm-migalha', type: 'button', title: 'Subir', onclick: x.ir }, x.nome) : h('span', { class: 'mm-migalha on' }, x.nome));
+        this.trilha.append(h('span', { class: `mm-migalha${i === partes.length - 1 ? ' on' : ''}` }, x));
       });
     }
-    // as abas: os andares do prédio, ou os terrenos (a fazenda e os arredores)
-    type Aba = { nome: string; on: boolean; gente: string[]; ir: () => void };
-    const gente = (ids: number[]) => this.genteEm(ids);
-    let abas: Aba[] = [];
-    if (p)
-      abas = p.andares.map((a) => ({
-        nome: a.rotulo,
-        on: v?.tipo === 'predio' && a.nome === v.andar,
-        gente: gente(a.cenas),
-        ir: () => (sfx.paper(), this.mostrar({ tipo: 'predio', predio: p.id, andar: a.nome }, false)),
-      }));
-    else if (l && v?.tipo === 'terreno')
-      abas = l.terrenos.map((t) => ({
-        nome: t.nome,
-        on: t.cena === v.cena,
-        gente: gente([t.cena, ...t.predios.flatMap((id) => this.predio(id)?.cenas ?? [])]),
-        ir: () => (sfx.paper(), this.mostrar({ tipo: 'terreno', cena: t.cena }, false)),
-      }));
-    const sigA = JSON.stringify(abas.map((a) => [a.nome, a.on, a.gente]));
-    if (this.abas.dataset.sig !== sigA) {
-      this.abas.dataset.sig = sigA;
-      clear(this.abas).classList.toggle('hidden', abas.length < 2);
-      this.abas.classList.toggle('muitas', abas.length > 3);
-      for (const a of abas)
-        this.abas.append(
-          h(
-            'button',
-            { class: `plan-tab${a.on ? ' on' : ''}`, role: 'tab', 'aria-selected': String(a.on), onclick: () => !a.on && a.ir() },
-            a.nome.toUpperCase(),
-            a.gente.length ? h('span', { class: 'mm-gente', 'aria-label': `${a.gente.length} aqui` }, ...a.gente.slice(0, 4).map((cor) => h('i', { style: `background:${cor}` }))) : null,
-          ),
-        );
-    }
-    // os botões do canto: subir e voltar para onde o grupo está
+    // os botões do canto: subir, voltar para onde o grupo está e a lista de todos os lugares
     const podeSubir = v?.tipo === 'predio' && p?.terreno != null;
     const longe = !this.seguindo && cur !== undefined && !!this.vistaDe(cur);
     const sigB = JSON.stringify([podeSubir, longe]);
@@ -433,10 +409,115 @@ export class Minimapa {
       clear(this.botoes).append(
         podeSubir ? h('button', { class: 'mm-bt', type: 'button', title: 'Voltar ao terreno (botão direito)', 'aria-label': 'Voltar ao terreno', onclick: () => this.subir() }, ic('esquerda')) : '',
         longe ? h('button', { class: 'mm-bt', type: 'button', title: 'Onde o grupo está', 'aria-label': 'Centralizar', onclick: () => this.centralizar() }, ic('centralizar')) : '',
+        h('button', { class: 'mm-bt', type: 'button', title: 'Todos os lugares', 'aria-label': 'Todos os lugares', onclick: () => this.abrirLugares() }, ic('camadas')),
       );
     }
-    void cur;
     this.renderCartao();
+  }
+
+  /** Mostra a cena no minimapa (o nível dela) com o cartão aberto. */
+  private focar(id: number) {
+    const v = this.vistaDe(id);
+    if (!v) return;
+    this.mostrar(v);
+    this.sel = { tipo: 'cena', id };
+    this.desenhar();
+  }
+
+  /** Abertos na lista de lugares (os prédios e os andares); o do grupo abre sozinho. */
+  private abertos = new Set<string>();
+
+  /**
+   * A lista de todos os lugares, numa janela: cada terreno com os prédios dele, cada prédio
+   * abre os andares e os cômodos. Clicar num nome mostra no minimapa; o Entrar leva a cena.
+   */
+  private abrirLugares() {
+    const l = this.locais;
+    const camp = this.host.campanha();
+    if (!l || !camp) return;
+    sfx.paper();
+    const cur = this.host.cenaAtual();
+    const ondeCur = cur !== undefined ? l.onde.get(cur) : undefined;
+    if (ondeCur?.predio) (this.abertos.add(ondeCur.predio), this.abertos.add(`${ondeCur.predio}/${ondeCur.andar}`));
+    const j = janela(camp.title ? camp.title.toUpperCase() : 'LUGARES', 'camadas', () => {}, 52);
+    const lista = h('div', { class: 'mm-lugares' });
+    j.corpo.append(lista);
+    const bolinhas = (ids: number[]) => {
+      const g = this.genteEm(ids);
+      return g.length ? h('span', { class: 'mm-gente', 'aria-label': `${g.length} aqui` }, ...g.slice(0, 6).map((cor) => h('i', { style: `background:${cor}` }))) : null;
+    };
+    const entrar = (id: number) =>
+      id === cur
+        ? h('span', { class: 'mm-l-aqui', title: 'O grupo está aqui' }, ic('pino'), 'Aqui')
+        : h('button', { class: 'mm-l-entrar', type: 'button', title: 'Levar a cena para lá', onclick: (e: Event) => (e.stopPropagation(), j.fechar(), this.host.ir(id)) }, ic('entrar'), 'Entrar');
+    const ver = (id: number) => () => (sfx.click(), j.fechar(), this.focar(id));
+    /** linha de um lugar que é uma cena: o nome mostra no minimapa */
+    const linhaCena = (id: number, nome: string, cls: string, icone: string) =>
+      h(
+        'div',
+        { class: `mm-l-linha ${cls}${id === cur ? ' atual' : ''}` },
+        h('button', { class: 'mm-l-nome', type: 'button', title: 'Mostrar no minimapa', onclick: ver(id) }, ic(icone), h('span', null, nome), bolinhas([id])),
+        entrar(id),
+      );
+    /** grupo que abre e fecha (o prédio, o andar) */
+    const grupo = (chave: string, cabeca: (seta: Element) => HTMLElement, filhos: () => HTMLElement[], cls: string) => {
+      const box = h('div', { class: `mm-l-grupo ${cls}` });
+      const desenha = () => {
+        const aberto = this.abertos.has(chave);
+        box.classList.toggle('aberto', aberto);
+        clear(box).append(
+          cabeca(h('span', { class: 'mm-l-seta', 'aria-hidden': 'true' }, aberto ? '▾' : '▸')),
+          aberto ? h('div', { class: 'mm-l-filhos' }, ...filhos()) : '',
+        );
+      };
+      const alternar = () => {
+        sfx.paper();
+        if (this.abertos.has(chave)) this.abertos.delete(chave);
+        else this.abertos.add(chave);
+        desenha();
+      };
+      desenha();
+      return { box, alternar };
+    };
+    const predioEl = (p: LocalPredio) => {
+      let alt: () => void = () => {};
+      const g = grupo(
+        p.id,
+        (seta) =>
+          h(
+            'div',
+            { class: `mm-l-linha predio${ondeCur?.predio === p.id ? ' atual' : ''}` },
+            h('button', { class: 'mm-l-nome', type: 'button', 'aria-expanded': String(this.abertos.has(p.id)), onclick: () => alt() }, seta, ic('mapa'), h('span', null, p.nome || camp.title || 'Prédio'), h('small', null, `${p.cenas.length} ${p.cenas.length === 1 ? 'cômodo' : 'cômodos'}`), bolinhas(p.cenas)),
+            entrar(p.entrada),
+          ),
+        () =>
+          p.andares.length === 1
+            ? p.andares[0].cenas.map((id) => linhaCena(id, nomeCurto(this.cena(id)?.name ?? ''), 'comodo', 'pino'))
+            : p.andares.map((a) => {
+                let altA: () => void = () => {};
+                const ga = grupo(
+                  `${p.id}/${a.nome}`,
+                  (seta) => h('div', { class: 'mm-l-linha andar' }, h('button', { class: 'mm-l-nome', type: 'button', onclick: () => altA() }, seta, ic('camadas'), h('span', null, a.rotulo), bolinhas(a.cenas))),
+                  () => a.cenas.map((id) => linhaCena(id, nomeCurto(this.cena(id)?.name ?? ''), 'comodo', 'pino')),
+                  'andar',
+                );
+                altA = ga.alternar;
+                return ga.box;
+              }),
+        'predio',
+      );
+      alt = g.alternar;
+      return g.box;
+    };
+    for (const t of l.terrenos) {
+      lista.append(linhaCena(t.cena, t.nome, 'terreno', 'montanha'));
+      const filhos = t.predios.map((id) => this.predio(id)).filter((p): p is LocalPredio => !!p);
+      if (filhos.length) lista.append(h('div', { class: 'mm-l-filhos' }, ...filhos.map(predioEl)));
+    }
+    for (const p of l.predios.filter((q) => q.terreno === null)) {
+      this.abertos.add(p.id);
+      lista.append(predioEl(p));
+    }
   }
 
   /** As cores de quem está nessas cenas. */
@@ -1252,6 +1333,7 @@ export class Minimapa {
     ctx.fillStyle = granito;
     for (const f of formas.values()) ctx.fill(f);
     const nomes: { txt: string; x: number; y: number; w: number; h: number; atual: boolean }[] = [];
+    const escadas: Alvo[] = [];
     for (const { s, hm, p: q, rot } of parsed) {
       const ox = O.x + q.x * S;
       const oy = O.y + q.y * S;
@@ -1351,6 +1433,15 @@ export class Minimapa {
           ctx.lineWidth = 1;
           ctx.strokeStyle = TINTA;
           ctx.stroke();
+          const m = Math.max(r + 3, 6);
+          escadas.push({ tipo: 'andar', id: outroAndar.nome, nome: `${sobe ? 'Subir' : 'Descer'} para ${outroAndar.rotulo}`, x: cx - m, y: cy - m, w: m * 2, h: m * 2 });
+          if (this.hover === `andar:${outroAndar.nome}`) {
+            ctx.beginPath();
+            ctx.arc(cx, cy, m, 0, Math.PI * 2);
+            ctx.strokeStyle = '#a3221a';
+            ctx.lineWidth = 1.4;
+            ctx.stroke();
+          }
           continue;
         }
         ctx.fillStyle = '#26201b';
@@ -1363,6 +1454,8 @@ export class Minimapa {
       nomes.push({ txt: nomeCurto(s.name), ...rect, atual });
       alvos.push({ tipo: 'cena', id: s.id, nome: nomeCurto(s.name), ...rect, forma });
     }
+    // as escadas ganham dos cômodos no clique
+    alvos.push(...escadas);
     // o nome de cada cômodo, quando cabe
     ctx.save();
     ctx.textAlign = 'center';

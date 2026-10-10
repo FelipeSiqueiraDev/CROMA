@@ -440,7 +440,7 @@ export class Shell {
       moverCena: (roomId, x, y) => this.app.net.send({ t: 'layoutSet', roomId, x, y }),
     });
     const mm = this.minimapa;
-    const plan = h('section', { class: 'sheet p-plan wide mm' }, mm.trilha, mm.abas, mm.canvas, mm.botoes, mm.cartao, h('span', { class: 'tachinha', 'aria-hidden': 'true' }));
+    const plan = h('section', { class: 'sheet p-plan wide mm' }, mm.trilha, mm.canvas, mm.botoes, mm.cartao, h('span', { class: 'tachinha', 'aria-hidden': 'true' }));
     paperize(plan, { kit: false, seed: 12, tone: '#c3b09a', burn: 0.85, grid: 11, backs: [{ dx: -10, dy: 5, rot: -1.4 }] });
     // a lista de cenários saiu: a planta interativa é a navegação (a lista fica pronta, fora da tela)
     void scenes;
