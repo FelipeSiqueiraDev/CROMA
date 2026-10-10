@@ -100,6 +100,7 @@ const GM_ONLY = new Set([
   'nevoa',
   'mapaImprovisado',
   'grupoPara',
+  'visitada',
   'setLink',
   'unlock',
   'relock',
@@ -965,6 +966,7 @@ export class Hotel implements HotelApi {
       ...(r.data.aberto ? { aberto: true, terreno: r.data.terreno, marcos: r.marcos(), simbolos: r.simbolos() } : {}),
     }));
     this.ensureLayout(camp, scenes);
+    this.marcarVisitas(camp, rooms);
     // grupo = as peças de todas as cenas da campanha
     const load = new Map<string, number>();
     for (const r of rooms) for (const l of r.heldLoot()) load.set(l.holder.toLowerCase(), (load.get(l.holder.toLowerCase()) ?? 0) + l.espacos);
@@ -998,7 +1000,18 @@ export class Hotel implements HotelApi {
       party: [...party.values()].sort((a, b) => (a.id ?? 0) > (b.id ?? 0) ? -1 : 1),
       scenes,
       notas: camp.notas ?? [],
+      visitadas: camp.visitadas ?? [],
     };
+  }
+
+  /** Cena onde um agente está passa a ser visitada (o minimapa deixa de apagá-la). */
+  private marcarVisitas(camp: CampaignData, rooms: RoomInstance[]) {
+    const set = new Set(camp.visitadas ?? []);
+    const antes = set.size;
+    for (const r of rooms) if (!set.has(r.data.id) && r.tokenList().some((t) => this.ehAgente(t.look?.charId))) set.add(r.data.id);
+    if (set.size === antes) return;
+    camp.visitadas = [...set].sort((a, b) => a - b);
+    this.save();
   }
 
   /** Planta: posiciona cenas novas lado a lado. */
@@ -1548,6 +1561,9 @@ export class Hotel implements HotelApi {
       case 'grupoPara':
         this.grupoPara(c, m);
         return;
+      case 'visitada':
+        this.visitada(c, m);
+        return;
       case 'join': {
         const room = typeof m.roomId === 'number' ? this.rooms.get(m.roomId) : undefined;
         if (!room) return c.send({ t: 'error', msg: 'Quarto não encontrado.' });
@@ -1770,23 +1786,50 @@ export class Hotel implements HotelApi {
    * volta). Com `levar`, os agentes da cena de agora vão junto, e o mestre (e a mesa) também.
    */
   /**
-   * Leva o grupo para a cena (o "Levar o grupo" do minimapa): as peças dos agentes, de todas
-   * as cenas da campanha, chegam lá (pela passagem de onde vieram, como quem anda), e o mestre
-   * e a mesa abrem a cena. As outras peças (NPCs, ameaças) ficam onde estão.
+   * Leva o grupo para a cena (o "Levar o grupo" do minimapa): as peças chegam lá (pela
+   * passagem de onde vieram, como quem anda), e o mestre e a mesa abrem a cena. Sem `tokens`,
+   * vão os agentes de todas as cenas da campanha (NPCs e ameaças ficam); com `tokens`, só essas
+   * peças (o grupo dividido, ou a peça que o mestre arrastou no minimapa). `entrar: false`
+   * move sem trocar a cena.
    */
   private grupoPara(c: Client, m: Record<string, unknown>) {
     const alvo = typeof m.roomId === 'number' ? this.rooms.get(m.roomId) : undefined;
     if (!alvo) return c.send({ t: 'error', msg: 'Cena não encontrada.' });
-    let n = 0;
+    const escolhidas = Array.isArray(m.tokens) ? new Set(m.tokens.filter((x): x is number => typeof x === 'number')) : null;
+    const nomes: string[] = [];
     for (const id of this.sceneGroup(alvo.data.id)) {
       const de = this.rooms.get(id);
       if (!de || de === alvo) continue;
-      for (const t of de.tokenList()) if (this.ehAgente(t.look?.charId)) (this.moveToken(de, t.id, alvo.data.id), n++);
+      for (const t of de.tokenList())
+        if (escolhidas ? escolhidas.has(t.id) : this.ehAgente(t.look?.charId)) {
+          this.moveToken(de, t.id, alvo.data.id);
+          nomes.push(t.name);
+        }
     }
-    if (n) this.log(alvo.data.id, 'scene', `O grupo foi para ${sceneShortName(alvo.data.name)}.`);
+    const lugar = sceneShortName(alvo.data.name);
+    if (nomes.length) this.log(alvo.data.id, 'scene', escolhidas ? `${nomes.join(', ')} ${nomes.length > 1 ? 'foram' : 'foi'} para ${lugar}.` : `O grupo foi para ${lugar}.`);
     this.save();
     this.roomChanged();
-    this.enter(c, alvo);
+    if (m.entrar !== false) this.enter(c, alvo);
+    else this.touch();
+  }
+
+  /** O mestre marca uma cena (ou todas da campanha) como visitada ou não. */
+  private visitada(c: Client, m: Record<string, unknown>) {
+    const ref = typeof m.roomId === 'number' ? m.roomId : typeof m.campanha === 'number' ? m.campanha : c.room?.data.id;
+    if (ref === undefined || !this.rooms.has(ref)) return;
+    const group = this.sceneGroup(ref);
+    const camp = this.campaignFor(Math.min(...group));
+    const ids = typeof m.roomId === 'number' ? [m.roomId] : group;
+    const set = new Set(camp.visitadas ?? []);
+    for (const id of ids) {
+      if (m.visitada) set.add(id);
+      else set.delete(id);
+    }
+    camp.visitadas = [...set].sort((a, b) => a - b);
+    this.save();
+    this.touch();
+    this.pushNow();
   }
 
   private mapaImprovisado(c: Client, m: Record<string, unknown>) {

@@ -15,7 +15,9 @@ import { sfx } from './sfx';
  *   das camadas abre a lista de todos os lugares, prédio por prédio, andar por andar.
  * - Clicar num cômodo só olha (o cartão embaixo diz o que é e quem está); "Entrar" ou o
  *   clique duplo levam a cena (o tabuleiro e a mesa vão junto, as peças ficam); "Levar o
- *   grupo" leva também as peças dos agentes, de onde estiverem.
+ *   grupo" leva também as peças dos agentes, de onde estiverem, e no cartão o mestre tira
+ *   quem fica (o grupo dividido). Arrastar a peça de um lugar para outro leva só ela.
+ * - O que nenhum agente pisou ainda fica apagado (não visitado); o mestre marca e limpa.
  *
  * Tudo sai das cenas (`montarLocais`, em shared/src/locais.ts): mapa novo ganha minimapa
  * sozinho, sem arte de cada mapa.
@@ -27,8 +29,13 @@ export interface MinimapaHost {
   /** o mestre arruma a planta (Alt + arrastar um cômodo) */
   mestre(): boolean;
   ir(id: number): void;
-  /** as peças dos agentes vão para a cena, e o mestre e a mesa vão junto */
-  levarGrupo(id: number): void;
+  /**
+   * as peças vão para a cena: sem `tokens`, todos os agentes; `entrar` (padrão sim) leva
+   * também o mestre e a mesa
+   */
+  levar(roomId: number, tokens?: number[], entrar?: boolean): void;
+  /** o mestre marca a cena (null = todas da campanha) como visitada ou não */
+  marcarVisita(roomId: number | null, visitada: boolean): void;
   /** o personagem é de um agente (tem ficha): só esses vão no "Levar o grupo" */
   ehAgente(charId: number | null | undefined): boolean;
   moverCena(id: number, x: number, y: number): void;
@@ -37,10 +44,12 @@ export interface MinimapaHost {
 type Vista = { tipo: 'terreno'; cena: number } | { tipo: 'predio'; predio: string; andar: string };
 type Caixa = { x: number; y: number; w: number; h: number };
 interface Alvo extends Caixa {
-  tipo: 'cena' | 'predio' | 'saida' | 'andar';
+  tipo: 'cena' | 'predio' | 'saida' | 'andar' | 'peca';
   id: number | string;
   nome: string;
   forma?: Path2D;
+  /** a peça: a cena onde ela está */
+  cena?: number;
 }
 interface Anim {
   terreno: Vista;
@@ -91,6 +100,11 @@ export class Minimapa {
   private hatch = { room: -1, t: 1 };
   private fade = { room: -1, t: 1 };
   private drag: { id: number; sx: number; sy: number; ox: number; oy: number; moved: boolean } | null = null;
+  /** a peça arrastada no minimapa (leva só ela para onde soltar) */
+  private arraste: { token: number; de: number; sx: number; sy: number; x: number; y: number; moved: boolean } | null = null;
+  /** no cartão: os agentes que o mestre tirou do "Levar" (ficam onde estão) */
+  private ficam = new Set<number>();
+  private cartaoDe = -1;
   /** escala e origem do andar desenhado agora (para arrastar cômodos) */
   private S = 6;
   private O = { x: 0, y: 0 };
@@ -155,6 +169,11 @@ export class Minimapa {
 
   private cena(id: number) {
     return this.host.campanha()?.scenes.find((s) => s.id === id);
+  }
+
+  /** Algum agente já pisou na cena (as outras ficam apagadas). */
+  private visitada(id: number) {
+    return !!this.host.campanha()?.visitadas?.includes(id);
   }
 
   /** Muda o nível mostrado; volta a acompanhar se for o da cena aberta. */
@@ -237,9 +256,10 @@ export class Minimapa {
       const r = c.getBoundingClientRect();
       return { x: ((e.clientX - r.left) * c.clientWidth) / r.width, y: ((e.clientY - r.top) * c.clientHeight) / r.height };
     };
-    const acerta = (p: { x: number; y: number }) => {
+    const acerta = (p: { x: number; y: number }, semPeca = false) => {
       const ctx = c.getContext('2d')!;
       for (const a of [...this.alvos].reverse()) {
+        if (semPeca && a.tipo === 'peca') continue;
         if (p.x < a.x || p.x > a.x + a.w || p.y < a.y || p.y > a.y + a.h) continue;
         if (a.forma) {
           ctx.save();
@@ -252,9 +272,17 @@ export class Minimapa {
       }
       return undefined;
     };
+    /** onde a peça arrastada vai parar: o cômodo, o chão do terreno ou a entrada do prédio */
+    const destino = (a: Alvo | undefined) => (a?.tipo === 'cena' ? (a.id as number) : a?.tipo === 'predio' ? this.predio(a.id as string)?.entrada : undefined);
     c.addEventListener('pointerdown', (e) => {
       if (e.button !== 0 || this.anim) return;
       const a = acerta(at(e));
+      if (a?.tipo === 'peca' && this.host.mestre() && a.cena !== undefined) {
+        const p = at(e);
+        this.arraste = { token: a.id as number, de: a.cena, sx: p.x, sy: p.y, x: p.x, y: p.y, moved: false };
+        c.setPointerCapture(e.pointerId);
+        return;
+      }
       if (!a) {
         this.sel = null;
         return this.desenhar();
@@ -268,6 +296,18 @@ export class Minimapa {
     });
     c.addEventListener('pointermove', (e) => {
       const p = at(e);
+      const ar = this.arraste;
+      if (ar) {
+        ar.x = p.x;
+        ar.y = p.y;
+        if (Math.hypot(p.x - ar.sx, p.y - ar.sy) > 4) ar.moved = true;
+        const alvo = acerta(p, true);
+        const k = destino(alvo) !== undefined && alvo ? `${alvo.tipo}:${alvo.id}` : '';
+        this.hover = k;
+        c.style.cursor = 'grabbing';
+        this.desenhar();
+        return;
+      }
       const d = this.drag;
       if (d) {
         const camp = this.host.campanha();
@@ -281,7 +321,7 @@ export class Minimapa {
         return;
       }
       const a = acerta(p);
-      c.style.cursor = a ? 'pointer' : 'default';
+      c.style.cursor = a?.tipo === 'peca' && this.host.mestre() ? 'grab' : a ? 'pointer' : 'default';
       const k = a ? `${a.tipo}:${a.id}` : '';
       if (k !== this.hover) {
         this.hover = k;
@@ -296,6 +336,22 @@ export class Minimapa {
       this.desenhar();
     });
     c.addEventListener('pointerup', (e) => {
+      const ar = this.arraste;
+      if (ar) {
+        this.arraste = null;
+        this.hover = '';
+        const para = ar.moved ? destino(acerta(at(e), true)) : undefined;
+        if (para !== undefined && para !== ar.de) {
+          sfx.drop();
+          this.host.levar(para, [ar.token], false);
+        } else if (!ar.moved) {
+          // clique na peça: o cartão da cena dela
+          this.sel = { tipo: 'cena', id: ar.de };
+          sfx.click();
+        }
+        this.desenhar();
+        return;
+      }
       const d = this.drag;
       this.drag = null;
       if (d?.moved) {
@@ -424,7 +480,17 @@ export class Minimapa {
     const ondeCur = cur !== undefined ? l.onde.get(cur) : undefined;
     if (ondeCur?.predio) (this.abertos.add(ondeCur.predio), this.abertos.add(`${ondeCur.predio}/${ondeCur.andar}`));
     const lista = h('div', { class: 'mm-lugares' });
-    const j = this.janelaHud(camp.title || 'Lugares', lista);
+    // o mestre marca tudo como visitado (a base do grupo) ou limpa (missão nova)
+    const rodape = this.host.mestre()
+      ? h(
+          'footer',
+          { class: 'mm-l-rodape' },
+          h('span', null, 'Não visitado fica apagado no minimapa.'),
+          h('button', { class: 'mm-l-entrar mm-l-sempre', type: 'button', onclick: () => (sfx.tick(), this.host.marcarVisita(null, true), j.fechar()) }, 'Tudo visitado'),
+          h('button', { class: 'mm-l-entrar mm-l-sempre', type: 'button', onclick: () => (sfx.tick(), this.host.marcarVisita(null, false), j.fechar()) }, 'Limpar visitas'),
+        )
+      : '';
+    const j = this.janelaHud(camp.title || 'Lugares', h('div', { class: 'mm-l-corpo' }, lista, rodape));
     const bolinhas = (ids: number[]) => {
       const g = this.genteEm(ids);
       return g.length ? h('span', { class: 'mm-gente', 'aria-label': `${g.length} aqui` }, ...g.slice(0, 6).map((cor) => h('i', { style: `background:${cor}` }))) : null;
@@ -433,7 +499,7 @@ export class Minimapa {
       h(
         'span',
         { class: 'mm-l-acoes' },
-        h('button', { class: 'mm-l-entrar', type: 'button', title: 'Levar o grupo: as peças dos agentes vão para lá, e a cena também', 'aria-label': 'Levar o grupo', onclick: (e: Event) => (e.stopPropagation(), j.fechar(), this.host.levarGrupo(id)) }, ic('pessoa')),
+        h('button', { class: 'mm-l-entrar', type: 'button', title: 'Levar o grupo: as peças dos agentes vão para lá, e a cena também', 'aria-label': 'Levar o grupo', onclick: (e: Event) => (e.stopPropagation(), j.fechar(), this.host.levar(id)) }, ic('pessoa')),
         id === cur
           ? h('span', { class: 'mm-l-aqui', title: 'A cena aberta' }, ic('pino'), 'Aqui')
           : h('button', { class: 'mm-l-entrar', type: 'button', title: 'Só a cena vai para lá; as peças ficam', onclick: (e: Event) => (e.stopPropagation(), j.fechar(), this.host.ir(id)) }, ic('entrar'), 'Entrar'),
@@ -443,7 +509,7 @@ export class Minimapa {
     const linhaCena = (id: number, nome: string, cls: string, icone: string) =>
       h(
         'div',
-        { class: `mm-l-linha ${cls}${id === cur ? ' atual' : ''}` },
+        { class: `mm-l-linha ${cls}${id === cur ? ' atual' : ''}${this.visitada(id) ? '' : ' novo'}`, title: this.visitada(id) ? undefined : 'Não visitado' },
         h('button', { class: 'mm-l-nome', type: 'button', title: 'Mostrar no minimapa', onclick: ver(id) }, ic(icone), h('span', null, nome), bolinhas([id])),
         entrar(id),
       );
@@ -474,7 +540,7 @@ export class Minimapa {
         (seta) =>
           h(
             'div',
-            { class: `mm-l-linha predio${ondeCur?.predio === p.id ? ' atual' : ''}` },
+            { class: `mm-l-linha predio${ondeCur?.predio === p.id ? ' atual' : ''}${p.cenas.some((id) => this.visitada(id)) ? '' : ' novo'}` },
             h('button', { class: 'mm-l-nome', type: 'button', 'aria-expanded': String(this.abertos.has(p.id)), onclick: () => alt() }, seta, ic('mapa'), h('span', null, p.nome || camp.title || 'Prédio'), h('small', null, `${p.cenas.length} ${p.cenas.length === 1 ? 'cômodo' : 'cômodos'}`), bolinhas(p.cenas)),
             entrar(p.entrada),
           ),
@@ -543,16 +609,26 @@ export class Minimapa {
     return out;
   }
 
-  /** O cartão do cômodo escolhido: o que é, quem está lá e o Entrar. */
+  /**
+   * O cartão do cômodo escolhido: o que é, quem está lá, se já foi visitado, o Entrar e o
+   * Levar o grupo, com os agentes de fora (clicar num tira ele do grupo: fica onde está).
+   */
   private renderCartao() {
     const sel = this.sel;
     const s = sel ? this.cena(sel.id) : undefined;
     const cur = this.host.cenaAtual();
     const camp = this.host.campanha();
+    if ((sel?.id ?? -1) !== this.cartaoDe) {
+      this.cartaoDe = sel?.id ?? -1;
+      this.ficam.clear();
+    }
     const quem = s ? s.users.map((u) => camp?.party.find((q) => q.id === u.id)?.name ?? u.name) : [];
-    // tem agente fora dela: dá para levar o grupo
-    const fora = s ? (camp?.party ?? []).some((q) => q.id && this.host.ehAgente(q.look?.charId) && q.roomId !== s.id) : false;
-    const sig = JSON.stringify([sel?.id, s?.name, quem, cur, fora]);
+    // os agentes de fora dela: o grupo que dá para levar
+    const deFora = s ? (camp?.party ?? []).filter((q) => q.id && this.host.ehAgente(q.look?.charId) && q.roomId !== s.id) : [];
+    const vao = deFora.filter((q) => !this.ficam.has(q.id!));
+    const visitada = s ? this.visitada(s.id) : true;
+    const mestre = this.host.mestre();
+    const sig = JSON.stringify([sel?.id, s?.name, quem, cur, deFora.map((q) => [q.id, q.name, q.color, q.roomId]), [...this.ficam], visitada, mestre]);
     if (this.cartao.dataset.sig === sig) return;
     this.cartao.dataset.sig = sig;
     clear(this.cartao).classList.toggle('hidden', !s);
@@ -562,25 +638,68 @@ export class Minimapa {
     const andar = p?.andares.find((a) => a.nome === o?.andar)?.rotulo;
     const onde = [andar, p?.nome].filter(Boolean).join(' · ') || (s.aberto ? 'Ao ar livre' : '');
     const aqui = s.id === cur;
+    const todos = vao.length === deFora.length;
+    const levar = () => this.host.levar(s.id, todos ? undefined : vao.map((q) => q.id!));
     this.cartao.append(
+      // o nome, onde fica e quem está; o visitado no canto (o mestre troca)
       h(
         'div',
-        { class: 'mm-c-txt' },
-        h('b', null, nomeCurto(s.name)),
-        h('span', null, onde),
-        h('span', { class: 'mm-c-quem' }, quem.length ? quem.join(', ') : 'Ninguém aqui'),
+        { class: 'mm-c-topo' },
+        h('div', { class: 'mm-c-txt', title: quem.length ? `${quem.join(', ')} aqui` : 'Ninguém aqui' }, h('b', null, nomeCurto(s.name)), h('span', null, [onde, quem.length ? `${quem.length} aqui` : ''].filter(Boolean).join(' · '))),
+        mestre
+          ? h(
+              'button',
+              { class: `mm-c-visita${visitada ? '' : ' nao'}`, type: 'button', title: visitada ? 'Marcar como não visitado (fica apagado no minimapa)' : 'Marcar como visitado', onclick: () => (sfx.tick(), this.host.marcarVisita(s.id, !visitada)) },
+              visitada ? 'visitado' : 'não visitado',
+            )
+          : '',
       ),
+      // o grupo dividido: quem vai (aceso) e quem fica (apagado)
+      deFora.length > 1 || (deFora.length === 1 && this.ficam.size)
+        ? h(
+            'div',
+            { class: 'mm-c-grupo' },
+            ...deFora.map((q) => {
+              const fica = this.ficam.has(q.id!);
+              return h(
+                'button',
+                {
+                  class: `mm-c-agente${fica ? ' fica' : ''}`,
+                  type: 'button',
+                  style: `--c:${q.color}`,
+                  'aria-pressed': String(!fica),
+                  title: `${q.name} (em ${nomeCurto(this.cena(q.roomId ?? -1)?.name ?? '?')}): ${fica ? 'fica, clique para levar' : 'vai, clique para deixar'}`,
+                  onclick: () => {
+                    sfx.tick();
+                    if (fica) this.ficam.delete(q.id!);
+                    else this.ficam.add(q.id!);
+                    this.renderCartao();
+                    this.desenhar();
+                  },
+                },
+                h('i'),
+                q.name.split(/\s+/)[0],
+              );
+            }),
+          )
+        : '',
       h(
         'div',
         { class: 'mm-c-acoes' },
-        fora ? h('button', { class: 'mm-c-entrar grupo', type: 'button', title: 'As peças dos agentes vão para lá, e a cena (e a mesa) também', onclick: () => this.host.levarGrupo(s.id) }, ic('pessoa'), 'Levar o grupo') : '',
+        deFora.length
+          ? h(
+              'button',
+              { class: 'mm-c-entrar grupo', type: 'button', disabled: !vao.length, title: 'As peças marcadas vão para lá, e a cena (e a mesa) também', onclick: levar },
+              ic('pessoa'),
+              todos ? 'Levar o grupo' : vao.length ? `Levar ${vao.length}` : 'Ninguém',
+            )
+          : '',
         aqui
           ? h('span', { class: 'mm-c-aqui' }, ic('pino'), 'Aqui')
           : h('button', { class: 'mm-c-entrar', type: 'button', title: 'Só a cena (e a mesa) vai para lá; as peças ficam (clique duplo também)', onclick: () => this.host.ir(s.id) }, ic('entrar'), 'Entrar'),
       ),
     );
   }
-
 
   // ------------------------------------------------------------------ desenho
 
@@ -640,6 +759,7 @@ export class Minimapa {
     const alvos: Alvo[] = [];
     this.desenharVista(ctx, v, W, H, alvos);
     this.alvos = alvos;
+    this.fantasma(ctx);
   }
 
   /** A altura útil do desenho: sem o pedaço que o cartão cobre. */
@@ -702,9 +822,14 @@ export class Minimapa {
     }
     moldura(ctx, O.x, O.y, mw, mh);
     ctx.drawImage(cam.c, O.x, O.y, mw, mh);
+    // ninguém do grupo pisou aqui ainda: o mapa fica apagado
+    if (!this.visitada(s.id)) {
+      ctx.fillStyle = 'rgba(5,7,10,0.42)';
+      ctx.fillRect(O.x, O.y, mw, mh);
+    }
     // os prédios: o mouse em cima acende a borda; o do grupo fica vermelho, com a seta
     const ondeCur = cur !== undefined ? l.onde.get(cur) : undefined;
-    const telhados: (Caixa & { id: string; nome: string; atual: boolean; gente: string[] })[] = [];
+    const telhados: (Caixa & { id: string; nome: string; atual: boolean; novo: boolean; gente: string[] })[] = [];
     for (const id of lt?.predios ?? []) {
       const p = this.predio(id);
       if (!p?.marco) continue;
@@ -733,7 +858,12 @@ export class Minimapa {
         ctx.lineWidth = 2;
         ctx.strokeRect(x - 1, y - 1, w + 2, hh + 2);
       }
-      telhados.push({ id, nome: p.nome, x, y, w, h: hh, atual, gente: this.genteEm(p.cenas) });
+      const novo = !p.cenas.some((id2) => this.visitada(id2));
+      if (novo && !atual) {
+        ctx.fillStyle = 'rgba(5,7,10,0.5)';
+        ctx.fillRect(x, y, w, hh);
+      }
+      telhados.push({ id, nome: p.nome, x, y, w, h: hh, atual, novo, gente: this.genteEm(p.cenas) });
     }
     // as plaquinhas: no telhado quando cabe; senão embaixo, em cima ou do lado, sem tampar outra
     const ocupado: Caixa[] = [];
@@ -754,9 +884,10 @@ export class Minimapa {
       });
       const c = caixa(livre ?? lugares[0]);
       ocupado.push(c);
-      desenharPlaca(ctx, m, c, t.atual ? 'aqui' : this.hover === `predio:${t.id}` ? 'foco' : '');
+      desenharPlaca(ctx, m, c, t.atual ? 'aqui' : this.hover === `predio:${t.id}` ? 'foco' : t.novo ? 'novo' : '');
       alvos.push({ tipo: 'predio', id: t.id, nome: `${t.nome}: clique para ver dentro`, ...c });
-      if (t.gente.length) selo(ctx, t.gente, t.x + t.w - 2, t.y + 2);
+      // quem está lá dentro: o selo no canto de baixo do telhado (a seta fica em cima da plaquinha)
+      if (t.gente.length) selo(ctx, t.gente, t.x + t.w - 2, t.y + t.h - 13);
       if (t.atual) seta(ctx, c.x + c.w / 2, c.y - 2);
     }
     // os nomes soltos do chão (plantações, lago, rio)
@@ -777,7 +908,13 @@ export class Minimapa {
       alvos.push({ tipo: 'saida', id: sd.para, nome: `Ver o mapa de ${nome}`, ...c });
     }
     // as peças ao ar livre
-    for (const u of s.users) this.peca(ctx, u.id, O.x + (u.x + 0.5) * S, O.y + (u.y + 0.5) * S);
+    for (const u of s.users) {
+      const x = O.x + (u.x + 0.5) * S;
+      const y = O.y + (u.y + 0.5) * S;
+      if (this.arraste?.moved && this.arraste.token === u.id) continue;
+      this.peca(ctx, u.id, x, y);
+      alvos.push(this.alvoPeca(u, s.id, x, y));
+    }
     rosa(ctx, O.x + mw - 14, O.y + 14);
     escala(ctx, S, O.x + 6, O.y + mh - 8);
     // o chão inteiro também é um alvo (o primeiro da lista: os prédios ganham dele)
@@ -789,6 +926,26 @@ export class Minimapa {
       ctx.strokeRect(O.x - 4, O.y - 4, mw + 8, mh + 8);
       ctx.setLineDash([]);
     }
+  }
+
+  /** A peça como alvo: o mestre arrasta para outro lugar (leva só ela). */
+  private alvoPeca(u: { id: number; name: string }, cena: number, x: number, y: number): Alvo {
+    const nome = this.host.campanha()?.party.find((q) => q.id === u.id)?.name ?? u.name;
+    return { tipo: 'peca', id: u.id, cena, nome: this.host.mestre() ? `${nome}: arraste para levar a outro lugar` : nome, x: x - 6, y: y - 6, w: 12, h: 12 };
+  }
+
+  /** A peça arrastada, embaixo do mouse, com o nome. */
+  private fantasma(ctx: CanvasRenderingContext2D) {
+    const ar = this.arraste;
+    if (!ar?.moved) return;
+    const nome = this.host.campanha()?.party.find((q) => q.id === ar.token)?.name ?? '';
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    this.peca(ctx, ar.token, ar.x, ar.y);
+    ctx.restore();
+    if (!nome) return;
+    const m = medirPlaca(ctx, nome.split(/\s+/)[0]);
+    desenharPlaca(ctx, m, { x: Math.round(ar.x + 8), y: Math.round(ar.y - m.h - 6), w: m.w, h: m.h }, 'saida');
   }
 
   /** A peça: o quadradinho na cor do agente, com a borda escura. */
@@ -860,23 +1017,26 @@ export class Minimapa {
           dono.set(`${q.x + x},${q.y + y}`, s.id);
         }
     // o estado de cada cômodo pinta o piso e a parede dele
-    const estado = (id: number) => (id === cur ? 'aqui' : this.sel?.id === id ? 'sel' : this.hover === `cena:${id}` ? 'foco' : '');
+    const estado = (id: number) => (id === cur ? 'aqui' : this.sel?.id === id ? 'sel' : this.hover === `cena:${id}` ? 'foco' : this.visitada(id) ? '' : 'novo');
     const PISO: Record<string, [number, number, number]> = {
       '': [cor('#26303b'), cor('#2a3540'), cor('#323e4b')],
       foco: [cor('#2f3b49'), cor('#33404f'), cor('#3c4a5a')],
       sel: [cor('#22405c'), cor('#264663'), cor('#2e5272')],
       aqui: [cor('#4a2226'), cor('#52262b'), cor('#5e2e33')],
+      // não visitado: apagado
+      novo: [cor('#14181e'), cor('#171c23'), cor('#1c222a')],
     };
     const PAREDE: Record<string, [number, number]> = {
       '': [cor('#a9c6e4'), cor('#5d7186')],
       foco: [cor('#d6e8f8'), cor('#7d93a8')],
       sel: [cor('#8fd0ff'), cor('#6aa6d0')],
       aqui: [cor('#ff6a52'), cor('#d0503e')],
+      novo: [cor('#4a5868'), cor('#2c3640')],
     };
     const PORTA = cor('#e0b45a');
     const px = new Pix(bw * P, bh * P);
     const escadas: { x: number; y: number; sobe: boolean; andar: string; rotulo: string }[] = [];
-    const nomes: { txt: string; x: number; y: number; w: number; h: number; atual: boolean }[] = [];
+    const nomes: { txt: string; x: number; y: number; w: number; h: number; atual: boolean; novo: boolean }[] = [];
     for (const { s, hm, p: q, rot } of parsed) {
       const est = estado(s.id);
       const [p1, p2, p3] = PISO[est];
@@ -919,7 +1079,7 @@ export class Minimapa {
             }
           }
         }
-      nomes.push({ txt: nomeCurto(s.name), x: O.x + q.x * S, y: O.y + q.y * S, w: hm.width * S, h: hm.height * S, atual: s.id === cur });
+      nomes.push({ txt: nomeCurto(s.name), x: O.x + q.x * S, y: O.y + q.y * S, w: hm.width * S, h: hm.height * S, atual: s.id === cur, novo: est === 'novo' });
     }
     const camada = px.canvas();
     ctx.save();
@@ -967,7 +1127,7 @@ export class Minimapa {
       ctx.lineJoin = 'round';
       ctx.strokeStyle = 'rgba(5,7,10,0.85)';
       ctx.strokeText(n.txt, Math.round(n.x + n.w / 2), Math.round(n.y + n.h / 2));
-      ctx.fillStyle = n.atual ? '#ffb4a6' : HUD.texto;
+      ctx.fillStyle = n.atual ? '#ffb4a6' : n.novo ? '#6f8295' : HUD.texto;
       ctx.fillText(n.txt, Math.round(n.x + n.w / 2), Math.round(n.y + n.h / 2));
     }
     ctx.restore();
@@ -993,7 +1153,11 @@ export class Minimapa {
     for (const { s, p: q, rot } of parsed)
       for (const u of s.users) {
         const [ux, uy] = rot(u.x, u.y);
-        this.peca(ctx, u.id, O.x + (q.x + ux + 0.5) * S, O.y + (q.y + uy + 0.5) * S);
+        const x = O.x + (q.x + ux + 0.5) * S;
+        const y = O.y + (q.y + uy + 0.5) * S;
+        if (this.arraste?.moved && this.arraste.token === u.id) continue;
+        this.peca(ctx, u.id, x, y);
+        alvos.push(this.alvoPeca(u, s.id, x, y));
       }
   }
 }
@@ -1261,9 +1425,9 @@ function medirPlaca(ctx: CanvasRenderingContext2D, nome: string) {
   return { linhas, w: Math.ceil(tw) + 10, h: 12 * linhas.length + 5 };
 }
 
-/** A plaquinha do HUD: caixa escura, fio azul (vermelho no lugar do grupo, dourado na saída). */
-function desenharPlaca(ctx: CanvasRenderingContext2D, m: { linhas: string[]; w: number; h: number }, c: Caixa, tom: '' | 'foco' | 'aqui' | 'saida') {
-  const fio = tom === 'aqui' ? HUD.aqui : tom === 'foco' ? HUD.texto : tom === 'saida' ? HUD.ouro : HUD.borda;
+/** A plaquinha do HUD: caixa escura, fio azul (vermelho no lugar do grupo, dourado na saída, apagado no não visitado). */
+function desenharPlaca(ctx: CanvasRenderingContext2D, m: { linhas: string[]; w: number; h: number }, c: Caixa, tom: '' | 'foco' | 'aqui' | 'saida' | 'novo') {
+  const fio = tom === 'aqui' ? HUD.aqui : tom === 'foco' ? HUD.texto : tom === 'saida' ? HUD.ouro : tom === 'novo' ? '#4a5868' : HUD.borda;
   ctx.save();
   ctx.fillStyle = 'rgba(0,0,0,0.5)';
   ctx.fillRect(c.x + 2, c.y + 2, c.w, c.h);
@@ -1277,7 +1441,7 @@ function desenharPlaca(ctx: CanvasRenderingContext2D, m: { linhas: string[]; w: 
   ctx.font = `600 11px ${FONTE}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillStyle = tom === 'aqui' ? '#ffcfc4' : tom === 'saida' ? HUD.ouro : HUD.texto;
+  ctx.fillStyle = tom === 'aqui' ? '#ffcfc4' : tom === 'saida' ? HUD.ouro : tom === 'novo' ? '#7d8fa3' : HUD.texto;
   m.linhas.forEach((l, i) => ctx.fillText(l, c.x + c.w / 2, c.y + 3 + 6 + i * 12));
   ctx.restore();
 }

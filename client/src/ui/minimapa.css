@@ -107,9 +107,9 @@
   right: 0.4rem;
   bottom: 0.2rem;
   display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.7rem 0.9rem;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.6rem 0.8rem;
   border: 0.1rem solid rgba(143, 176, 210, 0.55);
   border-radius: 0.3rem;
   background: rgba(9, 12, 18, 0.94);
@@ -149,12 +149,17 @@
 .mm-c-quem {
   color: #f0c96a;
 }
-.mm-c-acoes {
-  flex: none;
+.mm-c-topo {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.4rem;
+  align-items: center;
+  gap: 0.8rem;
+}
+.mm-c-acoes {
+  display: flex;
+  gap: 0.5rem;
+}
+.mm-c-acoes > * {
+  flex: 1;
 }
 .mm-c-entrar,
 .mm-c-aqui {
@@ -188,8 +193,9 @@
 }
 .mm-c-acoes .mm-c-entrar,
 .mm-c-acoes .mm-c-aqui {
-  height: 3rem;
+  height: 2.8rem;
   justify-content: center;
+  font-size: 1.25rem;
 }
 .mm-c-aqui {
   color: #ff6a52;
@@ -400,4 +406,90 @@
   width: 0.8rem;
   height: 0.8rem;
   box-shadow: 0 0 0 0.1rem #05070a;
+}
+
+/* o cartão: visitado ou não (o mestre clica para trocar) */
+.mm-c-visita {
+  flex: none;
+  padding: 0 0.5rem;
+  border: 0.1rem solid rgba(143, 176, 210, 0.45);
+  background: none;
+  font: 500 1rem/1.5 'Pixelify Sans', 'Silkscreen', monospace;
+  color: #8fb0d2;
+  cursor: pointer;
+}
+.mm-c-visita.nao {
+  border-style: dashed;
+  color: #7d8fa3;
+}
+.mm-c-visita:hover {
+  border-color: #eef6ff;
+  color: #eef6ff;
+}
+.mm-c-entrar:disabled {
+  filter: grayscale(1) brightness(0.6);
+  cursor: default;
+}
+/* o grupo dividido: quem vai (aceso) e quem fica (apagado) */
+.mm-c-grupo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  font: 500 1.1rem/1 'Pixelify Sans', 'Silkscreen', monospace;
+  color: #8fb0d2;
+}
+.mm-c-agente {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 2rem;
+  padding: 0 0.6rem;
+  border: 0.1rem solid var(--c);
+  background: color-mix(in srgb, var(--c) 22%, rgba(9, 12, 18, 0.9));
+  font: 600 1.1rem/1 'Pixelify Sans', 'Silkscreen', monospace;
+  color: #eef6ff;
+  cursor: pointer;
+}
+.mm-c-agente i {
+  width: 0.8rem;
+  height: 0.8rem;
+  background: var(--c);
+  box-shadow: 0 0 0 0.1rem #05070a;
+}
+.mm-c-agente.fica {
+  border-style: dashed;
+  border-color: #4a5868;
+  background: rgba(9, 12, 18, 0.9);
+  color: #6f8295;
+  text-decoration: line-through;
+}
+.mm-c-agente.fica i {
+  opacity: 0.35;
+}
+/* a lista: o não visitado apagado, e o rodapé do mestre */
+.mm-l-corpo {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  gap: 1rem;
+}
+.mm-l-linha.novo .mm-l-nome {
+  opacity: 0.5;
+}
+.mm-l-rodape {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding-top: 0.8rem;
+  border-top: 0.1rem solid rgba(143, 176, 210, 0.35);
+  font: 500 1.1rem/1.2 'Pixelify Sans', 'Silkscreen', monospace;
+  color: #7d8fa3;
+}
+.mm-l-rodape span {
+  flex: 1;
+}
+.mm-l-entrar.mm-l-sempre {
+  opacity: 1;
+  padding: 0 0.6rem;
 }

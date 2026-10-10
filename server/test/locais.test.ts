@@ -158,4 +158,47 @@ describe("Locais do minimapa", () => {
       agentes.length,
     );
   });
+
+  test("grupo dividido: só as peças escolhidas vão, e sem entrar a cena fica", () => {
+    const fora = hotel.rooms.get(idDe(FAZENDA + "Olhos de Águia"))!;
+    const celeiro = hotel.rooms.get(idDe(FAZENDA + "Celeiro"))!;
+    send({ t: "join", roomId: fora.data.id });
+    const [um, dois, ...resto] = fora.tokenList();
+    send({ t: "grupoPara", roomId: celeiro.data.id, tokens: [um.id, dois.id], entrar: false });
+    assert.deepEqual(
+      celeiro.tokenList().map((t) => t.id).sort(),
+      [um.id, dois.id].sort(),
+    );
+    assert.equal(fora.tokenList().length, resto.length);
+    // o mestre continua onde estava
+    assert.equal(client.room, fora);
+  });
+
+  test("visitadas: a cena com agente vira visitada; o mestre marca e limpa", () => {
+    const fora = hotel.rooms.get(idDe(FAZENDA + "Olhos de Águia"))!;
+    const hall = idDe(FAZENDA + "Hall do Casarão");
+    const agora = new Date().toISOString();
+    for (const t of fora.tokenList())
+      send({
+        t: "fichaSalvar",
+        ficha: { id: 0, nome: t.name, personagem: t.look!.charId!, ficha: regras.novaFicha(t.name), criadaEm: agora, atualizadaEm: agora },
+      });
+    send({ t: "join", roomId: fora.data.id });
+    const camp = () => {
+      hotel.pushNow();
+      for (let i = inbox.length - 1; i >= 0; i--) {
+        const m = inbox[i];
+        if (m.t === "campaign" && m.state.scenes.some((s) => s.id === fora.data.id)) return m.state;
+      }
+      throw new Error("sem campanha");
+    };
+    assert.deepEqual(camp().visitadas, [fora.data.id]);
+    send({ t: "visitada", roomId: hall, visitada: true });
+    assert.deepEqual(camp().visitadas, [fora.data.id, hall].sort((a, b) => a - b));
+    send({ t: "visitada", campanha: fora.data.id, visitada: false });
+    // limpar tira tudo, mas onde o grupo está volta a ser visitada na hora
+    assert.deepEqual(camp().visitadas, [fora.data.id]);
+    send({ t: "visitada", campanha: fora.data.id, visitada: true });
+    assert.equal(camp().visitadas?.length, camp().scenes.length);
+  });
 });

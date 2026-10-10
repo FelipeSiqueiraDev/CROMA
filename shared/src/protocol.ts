@@ -419,8 +419,14 @@ export type ClientMsg =
    * largura × altura casas, ligada à cena atual por uma Entrada; `levar` leva os agentes da cena atual
    */
   | { t: 'mapaImprovisado'; nome: string; url: string; largura: number; altura: number; levar?: boolean }
-  /** o minimapa: as peças dos agentes de todas as cenas da campanha vão para a cena, e o mestre (e a mesa) vão junto */
-  | { t: 'grupoPara'; roomId: number }
+  /**
+   * o minimapa: as peças vão para a cena. Sem `tokens`, todos os agentes da campanha; com
+   * `tokens`, só essas (o grupo dividido, ou a peça arrastada). `entrar` (padrão sim): o
+   * mestre e a mesa vão junto.
+   */
+  | { t: 'grupoPara'; roomId: number; tokens?: number[]; entrar?: boolean }
+  /** o minimapa: o mestre marca a cena como visitada ou não (`roomId` sem valor = todas da campanha) */
+  | { t: 'visitada'; roomId?: number; campanha?: number; visitada: boolean }
   | { t: 'setLink'; id: number; roomId: number | null }
   | { t: 'sendTo'; userId: number | 'all'; roomId: number }
   | { t: 'tokenAdd'; name: string; look: AvatarLook; color?: string; capacity?: number }

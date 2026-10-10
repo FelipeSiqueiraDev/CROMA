@@ -437,7 +437,8 @@ export class Shell {
       cenaAtual: () => this.app.state.room?.id,
       mestre: () => this.owner,
       ir: (id) => this.goScene(id),
-      levarGrupo: (roomId) => (sfx.click(), this.app.net.send({ t: 'grupoPara', roomId })),
+      levar: (roomId, tokens, entrar) => (sfx.click(), this.app.net.send({ t: 'grupoPara', roomId, ...(tokens ? { tokens } : {}), ...(entrar === false ? { entrar } : {}) })),
+      marcarVisita: (roomId, visitada) => this.app.net.send(roomId === null ? { t: 'visitada', campanha: this.app.state.room?.id, visitada } : { t: 'visitada', roomId, visitada }),
       ehAgente: (charId) => !!charId && this.fichasMapa.some((f) => f.personagem === charId),
       moverCena: (roomId, x, y) => this.app.net.send({ t: 'layoutSet', roomId, x, y }),
     });
