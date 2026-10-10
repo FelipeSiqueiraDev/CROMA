@@ -11,6 +11,7 @@ import './ui/teclado.css';
 import './ui/requisicao.css';
 import './ui/entrada.css';
 import './ui/kit.css';
+import './ui/minimapa.css';
 import './ui/jogador.css';
 import { anyFurniName, getFurni, getWallFurni, portraitState, vitalConditions, type ServerMsg } from '@crona/shared';
 import { Net } from './net';

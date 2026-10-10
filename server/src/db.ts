@@ -89,6 +89,8 @@ export interface CampaignData {
   ameacas?: Record<string, combate.FichaAmeaca>;
   /** anotações do mestre na planta, por andar */
   notas?: NotaPlanta[];
+  /** as cenas onde um agente já pisou (o minimapa apaga as outras); o mestre também marca */
+  visitadas?: number[];
 }
 
 export interface Database {

@@ -55,6 +55,7 @@ import { infoItem, romano, textoRef } from './fichaRegras';
 import { doCatalogoPeloNome, listaDoCatalogo } from './catalogoItens';
 import { TecladoSenha } from './teclado';
 import { FerramentasMesa } from './ferramentasMesa';
+import { Minimapa } from './minimapa';
 import { AbaInterludio } from './interludio';
 import { TopBar } from './topbar';
 import { botao, escolher, janela } from './fichaModal';
@@ -305,22 +306,8 @@ export class Shell {
   private sceneRows = new Map<number, HTMLElement>();
   private activeScene: number | null = null;
   private peeked = new Set<number>();
-  private planCanvas: HTMLCanvasElement;
-  /** andar que a planta está mostrando agora */
-  private planShown = '';
-  /** a arte do alfinete (interface/alfinete.png), quando existe */
-  private alfineteImg: HTMLImageElement | null = null;
-  private planRects: { id: number; x: number; y: number; w: number; h: number; name: string }[] = [];
-  private planDrag: { id: number; sx: number; sy: number; ox: number; oy: number; moved: boolean; mover: boolean } | null = null;
-  private planScale = 6;
-  private planOrigin = { x: 0, y: 0 };
-  private planHatch = { room: -1, t: 1 };
-  private planFade = { room: -1, t: 1 };
-  private planHover = -1;
-  /** andar que a planta mostra (null = o da cena atual) */
-  private planFloor: string | null = null;
-  private planTitle!: HTMLElement;
-  private planTabs!: HTMLElement;
+  /** o minimapa: Terreno › Prédio › Andar › Cômodo (minimapa.ts) */
+  private minimapa: Minimapa;
   /** o teclado de senha grande, no meio do tabuleiro (a geladeira do bar) */
   private teclado: TecladoSenha;
   /** painel da direita: controle do RPG */
@@ -445,24 +432,19 @@ export class Shell {
     this.scenesEl = h('div', { class: 'scene-list' });
     const scenes = h('section', { class: 'sheet p-scenes' }, h('h3', { class: 'p-title' }, 'CENÁRIO ATUAL'), this.scenesEl);
     paperize(scenes, { seed: 11, tone: '#ceb69b', burn: 1, curl: 'br', curlSize: 32, backs: [{ dx: -6, dy: -3, rot: -1.1, dw: 2, dh: 4 }, { dx: 5, dy: 5, rot: 0.9 }] });
-    this.planCanvas = h('canvas', { class: 'plan-canvas' });
-    this.planTitle = h('span', null, 'PLANTA');
-    this.planTabs = h('div', { class: 'plan-tabs hidden', role: 'tablist', 'aria-label': 'Andares' });
-    // rosa dos ventos a nanquim (desenho padrão até chegar rosa-dos-ventos.png)
-    const rosa = svg(`<svg class="rosa" viewBox="0 0 64 64" aria-hidden="true" fill="none" stroke="#2a241f" stroke-linejoin="round">
-      <circle cx="32" cy="34" r="17" stroke-width="1.2"/><circle cx="32" cy="34" r="12.5" stroke-width="0.7" stroke-dasharray="1.6 1.6"/>
-      <path d="M32 11 36 30 32 34 28 30Z" fill="#2a241f"/><path d="M32 57 36 38 32 34 28 38Z" fill="#fff8" /><path d="M9 34 28 30 32 34 28 38Z" fill="#fff8"/><path d="M55 34 36 30 32 34 36 38Z" fill="#2a241f"/>
-      <path d="M32 11 32 57M9 34 55 34" stroke-width="0.6"/><text x="32" y="8" text-anchor="middle" font-size="8" font-family="Courier Prime, monospace" font-weight="700" fill="#2a241f" stroke="none">N</text></svg>`);
-    void rosa;
-    const plan = h('section', { class: 'sheet p-plan wide' }, h('h3', { class: 'p-title' }, this.planTitle), this.planTabs, this.planCanvas, h('span', { class: 'tachinha', 'aria-hidden': 'true' }));
-    void existeArte('/arte/interface/alfinete.png').then((ok) => {
-      if (!ok) return;
-      const im = new Image();
-      im.onload = () => ((this.alfineteImg = im), this.drawPlan());
-      im.src = '/arte/interface/alfinete.png';
+    this.minimapa = new Minimapa({
+      campanha: () => this.campaign,
+      cenaAtual: () => this.app.state.room?.id,
+      mestre: () => this.owner,
+      ir: (id) => this.goScene(id),
+      levar: (roomId, tokens, entrar) => (sfx.click(), this.app.net.send({ t: 'grupoPara', roomId, ...(tokens ? { tokens } : {}), ...(entrar === false ? { entrar } : {}) })),
+      marcarVisita: (roomId, visitada) => this.app.net.send(roomId === null ? { t: 'visitada', campanha: this.app.state.room?.id, visitada } : { t: 'visitada', roomId, visitada }),
+      ehAgente: (charId) => !!charId && this.fichasMapa.some((f) => f.personagem === charId),
+      moverCena: (roomId, x, y) => this.app.net.send({ t: 'layoutSet', roomId, x, y }),
     });
-    paperize(plan, { kit: false, seed: 12, tone: '#c3b09a', burn: 0.85, grid: 11, backs: [{ dx: -10, dy: 5, rot: -1.4 }] });
-    this.bindPlan();
+    const mm = this.minimapa;
+    // o minimapa é um HUD (a moldura azul do tabuleiro), não papel
+    const plan = h('section', { class: 'sheet p-plan wide mm' }, mm.trilha, mm.canvas, mm.botoes, mm.cartao);
     // a lista de cenários saiu: a planta interativa é a navegação (a lista fica pronta, fora da tela)
     void scenes;
     const scrapA = h('span', { class: 'scrap scrap-a', 'aria-hidden': 'true' });
@@ -601,7 +583,7 @@ export class Shell {
     app.on('characters', () => ((this.sigs.party = ''), this.renderParty()));
     setInterval(() => this.captureThumb(), 4000);
     setInterval(() => this.markWalking(), 180);
-    window.addEventListener('resize', () => this.drawPlan());
+    window.addEventListener('resize', () => this.minimapa.desenhar());
   }
 
   // ================= montagem =================
@@ -653,7 +635,7 @@ export class Shell {
     this.renderRpg();
     this.renderTop();
     this.renderScenes();
-    this.drawPlan();
+    this.minimapa.atualizar();
     this.renderObjectives();
     this.renderParty();
     this.renderLog();
@@ -701,7 +683,6 @@ export class Shell {
     this.marcarVista();
     this.ferramentas.atualizar();
     const id = this.app.state.room?.id ?? null;
-    if (id !== this.lastRoom) this.planFloor = null;
     if (id !== this.lastRoom && this.lastRoom !== null) this.sceneFade();
     this.lastRoom = id;
     this.renderAll();
@@ -715,7 +696,7 @@ export class Shell {
     this.renderSala();
     this.renderAcoes();
     this.renderScenes();
-    this.drawPlan();
+    this.minimapa.atualizar();
     this.renderObjectives();
     this.renderInspector(true);
     this.renderParty();
@@ -944,8 +925,7 @@ export class Shell {
       const row = cur !== null ? this.sceneRows.get(cur) : undefined;
       if (row) this.markScene(row, this.intro(900));
       this.activeScene = cur;
-      this.planFade = { room: this.planHatch.room, t: 0 };
-      this.animatePlan(cur ?? -1, this.intro(1100));
+      this.minimapa.animarAtual(this.intro(1100));
     }
   }
 
@@ -977,101 +957,6 @@ export class Shell {
   }
 
   // ================= 1º andar =================
-  private bindPlan() {
-    const c = this.planCanvas;
-    const at = (e: PointerEvent) => {
-      const r = c.getBoundingClientRect();
-      return { x: ((e.clientX - r.left) * c.clientWidth) / r.width, y: ((e.clientY - r.top) * c.clientHeight) / r.height };
-    };
-    const hitRect = (p: { x: number; y: number }) => [...this.planRects].reverse().find((r) => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h);
-    c.addEventListener('pointerdown', (e) => {
-      const p = at(e);
-      const r = hitRect(p);
-      if (!r || !this.campaign) return;
-      const lay = this.campaign.layout[r.id] ?? { x: 0, y: 0 };
-      // clicar leva ao cômodo; mudar o cômodo de lugar na planta só segurando Alt (sem mexer no mapa por engano)
-      this.planDrag = { id: r.id, sx: p.x, sy: p.y, ox: lay.x, oy: lay.y, moved: false, mover: e.altKey };
-      c.setPointerCapture(e.pointerId);
-    });
-    c.addEventListener('pointermove', (e) => {
-      const d = this.planDrag;
-      const p = at(e);
-      const hit = hitRect(p);
-      c.style.cursor = hit ? 'pointer' : 'default';
-      const hid = hit?.id ?? -1;
-      if (hid !== this.planHover) {
-        this.planHover = hid;
-        this.drawPlan(true);
-      }
-      // o nome do cômodo só no aviso do navegador (aparece se o mouse parar em cima)
-      const titulo = hit ? hit.name : '';
-      if (c.title !== titulo) c.title = titulo;
-      if (!d || !d.mover || !this.campaign || !this.owner) return;
-      const dx = Math.round((p.x - d.sx) / this.planScale);
-      const dy = Math.round((p.y - d.sy) / this.planScale);
-      if (dx || dy) d.moved = true;
-      if (d.moved) {
-        this.campaign.layout[d.id] = { x: d.ox + dx, y: d.oy + dy };
-        this.drawPlan(true);
-      }
-    });
-    c.addEventListener('pointerleave', () => {
-      this.planHover = -1;
-      this.drawPlan(true);
-    });
-    c.addEventListener('pointerup', () => {
-      const d = this.planDrag;
-      this.planDrag = null;
-      if (!d || !this.campaign) return;
-      if (d.moved) {
-        const l = this.campaign.layout[d.id];
-        this.app.net.send({ t: 'layoutSet', roomId: d.id, x: l.x, y: l.y });
-      } else if (d.id !== this.app.state.room?.id) this.goScene(d.id);
-    });
-  }
-
-  /** Lápis de cor pintando o cômodo atual na planta (hachuras + preenchimento). */
-  private animatePlan(room: number, delay: number) {
-    this.planHatch = { room, t: 0 };
-    const run = async () => {
-      if (delay) await wait(delay);
-      if (this.planHatch.room !== room) return;
-      const r = this.planRects.find((x) => x.id === room);
-      const lines = r ? this.hatchLines(r) : [];
-      const cr = this.planCanvas.getBoundingClientRect();
-      const k = cr.width / (this.planCanvas.clientWidth || 1);
-      const pts: { x: number; y: number }[] = [];
-      lines.forEach(([x0, y0, x1, y1], i) => {
-        const a = { x: cr.left + x0 * k, y: cr.top + y0 * k };
-        const b = { x: cr.left + x1 * k, y: cr.top + y1 * k };
-        if (i % 2) pts.push(b, a);
-        else pts.push(a, b);
-      });
-      await pencilShade(pts, 950, (t) => {
-        if (this.planHatch.room !== room) return;
-        this.planHatch.t = t;
-        this.planFade.t = Math.min(1, t * 1.6);
-        this.drawPlan(true);
-      });
-      this.planHatch.t = 1;
-      this.planFade = { room: -1, t: 1 };
-      this.drawPlan(true);
-    };
-    void run();
-  }
-
-  /** Hachuras a 45° dentro do retângulo do cômodo (x0,y0 → x1,y1). */
-  private hatchLines(r: { x: number; y: number; w: number; h: number }) {
-    const out: [number, number, number, number][] = [];
-    const step = 3.2;
-    for (let c = r.x + r.y + step; c < r.x + r.w + r.y + r.h; c += step) {
-      const x0 = Math.max(r.x, c - (r.y + r.h));
-      const x1 = Math.min(r.x + r.w, c - r.y);
-      out.push([x0, c - x0, x1, c - x1]);
-    }
-    return out;
-  }
-
   // ================= direita: controle do RPG =================
   /** Abas da direita e o conteúdo da aba aberta (PLAYERS: a ficha de cada um). */
   private renderRpg(force = false) {
@@ -1157,365 +1042,6 @@ export class Shell {
     this.fichasMapa = lista;
     // a mochila (ITENS) e as condições marcadas (PLAYERS) vêm das fichas
     this.renderRpg(true);
-  }
-
-  /** Abas dos andares acima da planta (só com mais de um andar). */
-  private renderPlanTabs(floors: string[], shown: string) {
-    const label = (f: string) => (f ? f.toUpperCase() : '1º ANDAR');
-    const sig = JSON.stringify([floors, shown]);
-    if (this.planTabs.dataset.sig === sig) return;
-    this.planTabs.dataset.sig = sig;
-    clear(this.planTabs).classList.toggle('hidden', floors.length < 2);
-    // muitos andares (a fazenda tem cinco): as abas encolhem para caber
-    this.planTabs.classList.toggle('muitas', floors.length > 3);
-    for (const f of floors)
-      this.planTabs.append(
-        h(
-          'button',
-          {
-            class: `plan-tab${f === shown ? ' on' : ''}`,
-            role: 'tab',
-            'aria-selected': String(f === shown),
-            onclick: () => {
-              if (f === shown) return;
-              sfx.paper();
-              this.planFloor = f;
-              this.drawPlan();
-            },
-          },
-          label(f),
-        ),
-      );
-  }
-
-  /**
-   * Planta (como a referência): uma planta de arquitetura no papel quadriculado. Todos os
-   * andares da campanha na mesma escala (o bar fica pequeno perto do subsolo, como é); os
-   * cômodos de pedra cinza com o contorno grosso e a linha clara por dentro, as portas
-   * marcadas na parede, o atual em vermelho com o alfinete e o nome numa plaquinha. Ao ar
-   * livre, o terreno (grama, estrada, água) e os prédios com o nome.
-   */
-  private drawPlan(keepScale = false) {
-    const c = this.planCanvas;
-    const cssW = c.clientWidth || 220;
-    const cssH = c.clientHeight || 170;
-    const dpr = Math.min(2, devicePixelRatio || 1);
-    if (c.width !== Math.round(cssW * dpr) || c.height !== Math.round(cssH * dpr)) {
-      c.width = Math.round(cssW * dpr);
-      c.height = Math.round(cssH * dpr);
-    }
-    const ctx = c.getContext('2d')!;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, cssW, cssH);
-    const camp = this.campaign;
-    const cur = this.app.state.room?.id;
-    this.planRects = [];
-    if (!camp || !camp.scenes.length) return;
-    // um andar por vez: o da cena atual, ou o que o mestre escolheu nas abas
-    const floorOf = (id: number | undefined) => camp.scenes.find((s) => s.id === id)?.floor ?? '';
-    const floors = [...new Set(camp.scenes.map((s) => s.floor ?? ''))];
-    const shown = this.planFloor !== null && floors.includes(this.planFloor) ? this.planFloor : floorOf(cur);
-    this.planShown = shown;
-    this.renderPlanTabs(floors, shown);
-    const todos = camp.scenes.map((s) => {
-      const p = camp.layout[s.id] ?? { x: 0, y: 0 };
-      const raw = parseHeightmap(s.heightmap);
-      const rot = (x: number, y: number) => rotatePt(raw, p.r ?? 0, x, y);
-      // o vão da porta (a casa de fora da parede) não entra no desenho
-      const porta = s.aberto ? null : rot(s.door.x, s.door.y);
-      return { s, raw, hm: rotateHm(raw, p.r ?? 0), p, rot, porta };
-    });
-    const caixa = (lista: typeof todos) => {
-      let x0 = Infinity;
-      let y0 = Infinity;
-      let x1 = -Infinity;
-      let y1 = -Infinity;
-      for (const { hm, p } of lista) {
-        x0 = Math.min(x0, p.x);
-        y0 = Math.min(y0, p.y);
-        x1 = Math.max(x1, p.x + hm.width);
-        y1 = Math.max(y1, p.y + hm.height);
-      }
-      return { x0, y0, w: Math.max(1, x1 - x0), h: Math.max(1, y1 - y0) };
-    };
-    const parsed = todos.filter((q) => (q.s.floor ?? '') === shown);
-    void todos;
-    if (!keepScale || !this.planDrag) {
-      const pad = 8;
-      // o andar enche o papel (como o prédio da referência); um cômodo sozinho (o bar) fica em no máximo metade dele
-      const b = caixa(parsed);
-      const sozinho = parsed.length === 1 && !parsed[0].s.aberto;
-      const teto = sozinho ? Math.min((cssW * 0.5) / b.w, (cssH * 0.7) / b.h) : Infinity;
-      this.planScale = Math.max(1.5, Math.min(teto, (cssW - pad * 2) / b.w, (cssH - pad * 2) / b.h));
-      this.planOrigin = {
-        x: pad + (cssW - pad * 2 - b.w * this.planScale) / 2 - b.x0 * this.planScale,
-        y: pad + (cssH - pad * 2 - b.h * this.planScale) / 2 - b.y0 * this.planScale,
-      };
-    }
-    const S = this.planScale;
-    const O = this.planOrigin;
-    const granito = this.padraoGranito(ctx);
-    const TINTA = '#1d1a17';
-    // de quem é cada casa do andar (na planta): parede entre dois cômodos é fina; a de fora, grossa
-    const dono = new Map<string, number>();
-    const formas = new Map<number, Path2D>();
-    for (const { s, hm, p, porta } of parsed) {
-      if (s.aberto) continue;
-      const forma = new Path2D();
-      for (let y = 0; y < hm.height; y++)
-        for (let x = 0; x < hm.width; x++) {
-          if (hm.tiles[y]?.[x] === null || hm.tiles[y]?.[x] === undefined || (porta && x === porta[0] && y === porta[1])) continue;
-          dono.set(`${p.x + x},${p.y + y}`, s.id);
-          forma.rect(O.x + (p.x + x) * S, O.y + (p.y + y) * S, S + 0.35, S + 0.35);
-        }
-      formas.set(s.id, forma);
-    }
-    // a sombra do prédio no papel e a pedra (o andar inteiro é um prédio só, como na referência)
-    ctx.save();
-    ctx.translate(1.4, 1.8);
-    ctx.fillStyle = 'rgba(46,34,24,0.26)';
-    for (const f of formas.values()) ctx.fill(f);
-    ctx.restore();
-    ctx.fillStyle = granito;
-    for (const f of formas.values()) ctx.fill(f);
-    for (const { s, hm, raw, p, rot, porta } of parsed) {
-      const ox = O.x + p.x * S;
-      const oy = O.y + p.y * S;
-      const atual = s.id === cur;
-      const rect = { id: s.id, x: ox, y: oy, w: hm.width * S, h: hm.height * S, name: s.name.split('·').pop()!.trim() };
-      if (s.aberto) {
-        this.terrenoNaPlanta(ctx, s, raw, rot, ox, oy, S, granito);
-        this.planRects.push(rect);
-        continue;
-      }
-      const forma = formas.get(s.id)!;
-      const tile = (x: number, y: number) => dono.get(`${p.x + x},${p.y + y}`) === s.id;
-      // marcas escuras de móvel e de entulho, aqui e ali (a referência tem os quadradinhos)
-      ctx.fillStyle = 'rgba(42,38,34,0.55)';
-      for (let y = 0; y < hm.height; y++)
-        for (let x = 0; x < hm.width; x++) {
-          if (!tile(x, y) || !tile(x - 1, y) || !tile(x + 1, y) || !tile(x, y - 1) || !tile(x, y + 1)) continue;
-          const v = Math.sin((p.x + x) * 127.1 + (p.y + y) * 311.7) * 43758.5453;
-          if (v - Math.floor(v) < 0.045) ctx.fillRect(ox + (x + 0.2) * S, oy + (y + 0.3) * S, S * 0.6, S * 0.4);
-        }
-      // o cômodo atual: um véu vermelho (e, entrando, o lápis risca antes)
-      if (atual) {
-        const anima = this.planHatch.room === s.id ? this.planHatch.t : 1;
-        ctx.save();
-        ctx.clip(forma);
-        ctx.fillStyle = `rgba(196,40,28,${(0.4 * Math.min(1, anima / 0.7)).toFixed(3)})`;
-        ctx.fill(forma);
-        if (anima < 1) {
-          const lines = this.hatchLines(rect);
-          const drawn = anima * lines.length;
-          ctx.strokeStyle = `rgba(150,28,20,${(0.8 * (1 - anima)).toFixed(3)})`;
-          ctx.lineWidth = 1.2;
-          ctx.lineCap = 'round';
-          ctx.beginPath();
-          lines.forEach(([x0, y0, x1, y1], i) => {
-            if (i >= drawn) return;
-            const f = Math.min(1, drawn - i);
-            ctx.moveTo(x0, y0);
-            ctx.lineTo(x0 + (x1 - x0) * f, y0 + (y1 - y0) * f);
-          });
-          ctx.stroke();
-        }
-        ctx.restore();
-      } else if (s.id === this.planFade.room && this.planFade.t < 1) {
-        ctx.fillStyle = `rgba(190,36,26,${0.45 * (1 - this.planFade.t)})`;
-        ctx.fill(forma);
-      }
-      if (s.id === this.planHover) {
-        ctx.fillStyle = 'rgba(255,246,228,0.22)';
-        ctx.fill(forma);
-      }
-      // as paredes: fina entre dois cômodos, grossa por fora
-      const fina: [number, number, number, number][] = [];
-      const grossa: [number, number, number, number][] = [];
-      const vizinho = (x: number, y: number) => dono.get(`${p.x + x},${p.y + y}`);
-      for (let y = 0; y < hm.height; y++)
-        for (let x = 0; x < hm.width; x++) {
-          if (!tile(x, y)) continue;
-          const X = ox + x * S;
-          const Y = oy + y * S;
-          for (const [nx, ny, seg] of [
-            [x, y - 1, [X, Y, X + S, Y]],
-            [x, y + 1, [X, Y + S, X + S, Y + S]],
-            [x - 1, y, [X, Y, X, Y + S]],
-            [x + 1, y, [X + S, Y, X + S, Y + S]],
-          ] as [number, number, [number, number, number, number]][]) {
-            const v = vizinho(nx, ny);
-            if (v === s.id) continue;
-            (v === undefined ? grossa : fina).push(seg);
-          }
-        }
-      // traço de nanquim: cada ponta desvia um pouco, sempre igual (as paredes que se encontram continuam emendadas)
-      const tremor = (x: number, y: number) => {
-        const v = Math.sin(Math.round(x * 10) * 12.9898 + Math.round(y * 10) * 78.233) * 43758.5453;
-        return (v - Math.floor(v) - 0.5) * 0.9;
-      };
-      const traco = (segs: [number, number, number, number][], cor: string, lw: number) => {
-        if (!segs.length) return;
-        ctx.strokeStyle = cor;
-        ctx.lineWidth = lw;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.beginPath();
-        for (const [a, b2, c2, d2] of segs) (ctx.moveTo(a + tremor(a, b2), b2 + tremor(b2, a)), ctx.lineTo(c2 + tremor(c2, d2), d2 + tremor(d2, c2)));
-        ctx.stroke();
-      };
-      traco(fina, 'rgba(30,26,22,0.7)', 1);
-      traco(grossa, '#1d1a17', Math.max(1.6, Math.min(2.4, S * 0.42)));
-      if (atual) traco([...fina, ...grossa], 'rgba(122,18,12,0.85)', 1.2);
-      // as portas: um tracinho escuro atravessando a parede
-      ctx.fillStyle = '#26201b';
-      for (const pt of s.portals) {
-        const [px, py] = rot(pt.x, pt.y);
-        if (!tile(px, py)) continue;
-        const X = ox + px * S;
-        const Y = oy + py * S;
-        const e = Math.max(1.6, S * 0.32);
-        if (!tile(px, py - 1)) ctx.fillRect(X + S * 0.2, Y - e / 2, S * 0.6, e);
-        else if (!tile(px, py + 1)) ctx.fillRect(X + S * 0.2, Y + S - e / 2, S * 0.6, e);
-        else if (!tile(px - 1, py)) ctx.fillRect(X - e / 2, Y + S * 0.2, e, S * 0.6);
-        else if (!tile(px + 1, py)) ctx.fillRect(X + S - e / 2, Y + S * 0.2, e, S * 0.6);
-      }
-      this.planRects.push(rect);
-    }
-    // onde estão as peças: bolinhas na cor de cada um
-    for (const { s, p, rot } of parsed)
-      for (const u of s.users) {
-        const pm = camp.party.find((q) => q.id === u.id);
-        const [ux, uy] = rot(u.x, u.y);
-        ctx.beginPath();
-        ctx.arc(O.x + (p.x + ux + 0.5) * S, O.y + (p.y + uy + 0.5) * S, Math.max(2, Math.min(3.2, S * 0.36)), 0, Math.PI * 2);
-        ctx.fillStyle = pm?.color ?? '#fff';
-        ctx.fill();
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = '#f6efe2';
-        ctx.stroke();
-      }
-  }
-
-  /** O granito dos cômodos da planta: pedra cinza salpicada, com uns veios (como a referência). */
-  private granito: CanvasPattern | null = null;
-  private padraoGranito(ctx: CanvasRenderingContext2D): CanvasPattern | string {
-    if (this.granito) return this.granito;
-    const T = 72;
-    const p = document.createElement('canvas');
-    p.width = T;
-    p.height = T;
-    const g = p.getContext('2d');
-    if (!g) return '#9d9993';
-    let semente = 9;
-    const r = () => (semente = (semente * 16807) % 2147483647) / 2147483647;
-    g.fillStyle = '#928e87';
-    g.fillRect(0, 0, T, T);
-    // manchas grandes e claras/escuras (a pedra da referência), repetidas nas bordas para não ter emenda
-    const mancha = (x: number, y: number, rx: number, ry: number, cor: string) => {
-      for (const dx of [-T, 0, T])
-        for (const dy of [-T, 0, T]) {
-          g.beginPath();
-          g.ellipse(x + dx, y + dy, rx, ry, r() * 3, 0, Math.PI * 2);
-          g.fillStyle = cor;
-          g.fill();
-        }
-    };
-    for (let i = 0; i < 26; i++) mancha(r() * T, r() * T, 3 + r() * 7, 2 + r() * 5, r() < 0.55 ? 'rgba(70,66,60,0.16)' : 'rgba(225,221,212,0.18)');
-    for (let i = 0; i < 160; i++) {
-      g.fillStyle = r() < 0.6 ? 'rgba(52,48,44,0.38)' : 'rgba(232,228,220,0.35)';
-      g.fillRect(Math.floor(r() * T), Math.floor(r() * T), r() < 0.3 ? 2 : 1, r() < 0.3 ? 2 : 1);
-    }
-    g.strokeStyle = 'rgba(46,42,38,0.38)';
-    g.lineWidth = 0.7;
-    for (let i = 0; i < 4; i++) {
-      let x = r() * T;
-      let y = r() * T;
-      g.beginPath();
-      g.moveTo(x, y);
-      for (let k = 0; k < 3; k++) {
-        x += (r() - 0.5) * 18;
-        y += (r() - 0.5) * 18;
-        g.lineTo(x, y);
-      }
-      g.stroke();
-    }
-    this.granito = ctx.createPattern(p, 'repeat');
-    return this.granito ?? '#9d9993';
-  }
-
-  /** O lugar ao ar livre na planta: o terreno com cores de mapa e os prédios de pedra, com o nome. */
-  private terrenoNaPlanta(ctx: CanvasRenderingContext2D, s: SceneInfo, raw: Heightmap, rot: (x: number, y: number) => [number, number], ox: number, oy: number, S: number, granito: CanvasPattern | string) {
-    const linhas = (s.terreno ?? '').replace(/\r/g, '').split('\n');
-    const COR: Record<string, string> = { '.': '#a9ad7d', g: '#a9ad7d', t: '#d9c69c', l: '#b38c62', p: '#cfc8b8', d: '#b99b70', m: '#a67d55', a: '#8fb2bd' };
-    for (let y = 0; y < raw.height; y++)
-      for (let x = 0; x < raw.width; x++) {
-        const ch = linhas[y]?.[x] ?? '.';
-        const chao = raw.tiles[y]?.[x] !== null && raw.tiles[y]?.[x] !== undefined;
-        if (!chao && ch !== 'a') continue;
-        const [rx, ry] = rot(x, y);
-        ctx.fillStyle = COR[ch] ?? COR['.'];
-        ctx.fillRect(ox + rx * S, oy + ry * S, S + 0.35, S + 0.35);
-      }
-    // a borda do lugar
-    const largura = (rot(raw.width - 1, raw.height - 1)[0] === raw.width - 1 ? raw.width : raw.height) * S;
-    const altura = (rot(raw.width - 1, raw.height - 1)[0] === raw.width - 1 ? raw.height : raw.width) * S;
-    ctx.strokeStyle = s.id === this.app.state.room?.id ? '#b22a20' : '#1d1a17';
-    ctx.lineWidth = s.id === this.app.state.room?.id ? 2.2 : 1.4;
-    ctx.strokeRect(ox, oy, largura, altura);
-    // os prédios
-    for (const m of s.marcos ?? []) {
-      const [ax, ay] = rot(m.x, m.y);
-      const [bx, by] = rot(m.x + m.w - 1, m.y + m.h - 1);
-      const x0 = ox + Math.min(ax, bx) * S;
-      const y0 = oy + Math.min(ay, by) * S;
-      const w = (Math.abs(bx - ax) + 1) * S;
-      const h = (Math.abs(by - ay) + 1) * S;
-      ctx.fillStyle = 'rgba(52,40,28,0.25)';
-      ctx.fillRect(x0 + 1.2, y0 + 1.4, w, h);
-      ctx.fillStyle = granito;
-      ctx.fillRect(x0, y0, w, h);
-      ctx.strokeStyle = '#1d1a17';
-      ctx.lineWidth = 1.6;
-      ctx.strokeRect(x0, y0, w, h);
-      const f = Math.min(8.5, h * 0.42, (w / Math.max(4, m.nome.length)) * 1.8);
-      if (f >= 5) {
-        ctx.save();
-        ctx.font = `600 ${f.toFixed(1)}px "Ubuntu Mono", monospace`;
-        ctx.fillStyle = '#efe6d1';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(m.nome, x0 + w / 2, y0 + h / 2);
-        ctx.restore();
-      }
-    }
-  }
-
-  /** O alfinete da sala atual: a arte (alfinete.png) ou o marcador de mapa desenhado. */
-  private alfinete(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
-    if (this.alfineteImg) {
-      const w = r * 2.4;
-      const hh = w * 1.4;
-      ctx.drawImage(this.alfineteImg, cx - w / 2, cy - hh * 0.8, w, hh);
-      return;
-    }
-    ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(cx, cy + r * 1.7);
-    ctx.bezierCurveTo(cx - r * 0.45, cy + r * 0.9, cx - r, cy + r * 0.3, cx - r, cy - r * 0.15);
-    ctx.arc(cx, cy - r * 0.15, r, Math.PI, 0);
-    ctx.bezierCurveTo(cx + r, cy + r * 0.3, cx + r * 0.45, cy + r * 0.9, cx, cy + r * 1.7);
-    ctx.closePath();
-    ctx.fillStyle = '#f6efe3';
-    ctx.fill();
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = '#4a120d';
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(cx, cy - r * 0.15, r * 0.4, 0, Math.PI * 2);
-    ctx.fillStyle = '#b3261e';
-    ctx.fill();
-    ctx.restore();
   }
 
   // ================= objetivos =================
@@ -2786,28 +2312,4 @@ function selo(): HTMLElement {
   const el = h('span', { class: 'insp-selo', 'aria-hidden': 'true' });
   el.innerHTML = `<svg viewBox="0 0 100 100"><defs><path id="selo-arco" d="M50,50 m-37,0 a37,37 0 1,1 74,0 a37,37 0 1,1 -74,0"/></defs><circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="50" cy="50" r="29" fill="none" stroke="currentColor" stroke-width="1"/><text font-size="8.6" letter-spacing="1.6" fill="currentColor" font-family="Courier Prime, monospace" font-weight="700"><textPath href="#selo-arco">ORDO REALITAS · SEDE DA ORDEM ·</textPath></text></svg><i></i>`;
   return el;
-}
-
-/** Planta girada em quartos de volta (r) no sentido horário, para encaixar o cômodo na planta. */
-function rotateHm(hm: Heightmap, r: number): Heightmap {
-  const k = ((r % 4) + 4) % 4;
-  if (!k) return hm;
-  const W = k % 2 ? hm.height : hm.width;
-  const H = k % 2 ? hm.width : hm.height;
-  const tiles = Array.from({ length: H }, (_, y) =>
-    Array.from({ length: W }, (_, x) => {
-      const [ox, oy] = k === 1 ? [y, hm.height - 1 - x] : k === 2 ? [hm.width - 1 - x, hm.height - 1 - y] : [hm.width - 1 - y, x];
-      return hm.tiles[oy]?.[ox] ?? null;
-    }),
-  );
-  return { width: W, height: H, tiles };
-}
-
-/** Uma casa (x, y) do cômodo na planta girada. */
-function rotatePt(hm: Heightmap, r: number, x: number, y: number): [number, number] {
-  const k = ((r % 4) + 4) % 4;
-  if (k === 1) return [hm.height - 1 - y, x];
-  if (k === 2) return [hm.width - 1 - x, hm.height - 1 - y];
-  if (k === 3) return [y, hm.width - 1 - x];
-  return [x, y];
 }

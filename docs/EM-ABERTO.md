@@ -1,4 +1,4 @@
-# Em aberto: onde paramos (06/10/2026)
+# Em aberto: onde paramos (10/10/2026)
 
 O que está pela metade, o que falta e o que o Códex ainda vai entregar. Leia junto com o [`GUIA-DO-CLAUDE.md`](GUIA-DO-CLAUDE.md), que diz como trabalhar aqui. **Atualize este arquivo ao fim de cada bloco de trabalho.**
 
@@ -110,6 +110,23 @@ O C: encheu em 05/10 (0 bytes livres, o Docker parou). A pedido do Felipe, tudo 
   - **Passagem secreta:** o mestre abre a qualquer hora (antes, a senha era recusada com a sala sem peça); ela se fecha sozinha quando não sobra peça e o mestre sai da cena (`temAlguem` em `roomInstance.ts`). Vale para a geladeira e para o feno do alçapão.
   - **Vista tática:** "Mover" um móvel funciona lá em cima (antes o clique ignorava): o fantasma verde ou vermelho na casa do mouse, com a frente marcada, e o móvel escolhido com o contorno tracejado.
   - **Entrada:** entra com o e-mail ou com o nome da conta; a regra dos 6 caracteres vale só para criar. `scripts/dev/conta.mts` cria uma conta direto no banco (servidor parado). A prévia (`crona_visual`) tem a conta `admin`, de mestre, para o Felipe ver a tela.
+
+## Feito em 10/10: o minimapa (na nuvem, branch `claude/nuvem-continuacao`)
+
+Conversa aberta na nuvem (claude.ai/code), num clone limpo do GitHub: **o que estava sem commit no PC do Felipe não está nesta branch.** Ao juntar, cuidado com conflito no `shell.ts` e no `mapa.css`.
+
+- **A planta virou o minimapa** (`client/src/ui/minimapa.ts`), em níveis: **Terreno › Prédio › Andar › Cômodo**.
+  - **Terreno** (a cena ao ar livre): o mapa gerado das cenas: o chão (`terreno`), as árvores, a cerca, as plantações, a fonte, os prédios com telhado de quatro águas e a plaquinha (que não tampa outra), "Plantações", "Lago" e "Rio" achados sozinhos, a saída para o outro terreno ("← Arredores"), a rosa dos ventos, a régua em metros e as peças. O prédio onde o grupo está fica vermelho com o alfinete; o selo no telhado mostra quem está lá dentro.
+  - **Clicar num prédio desce até ele** (zoom no telhado, a planta nasce dele); a escada (▲ ▼) troca o andar; o botão ‹, o botão direito ou a roda para trás sobem. O título diz onde se está ("Casarão › Térreo"). **Sem abas em cima do mapa** (pedido do Felipe em 10/10): navega-se pelo próprio mapa.
+  - **O botão das camadas** (no canto) abre a janela com todos os lugares: cada terreno, os prédios dele (abrem os andares e os cômodos), as bolinhas de quem está em cada um e o "Aqui" do grupo. Clicar num nome mostra no minimapa com o cartão; o Entrar (aparece no mouse em cima) leva a cena.
+  - **Espiar é diferente de ir:** clicar num cômodo só abre o cartão (nome, andar, prédio, quem está). **Entrar** (ou o clique duplo) leva só a cena: o tabuleiro e a mesa vão para lá e as peças ficam onde estão. **Levar o grupo** (dourado, aparece quando há agente fora dela; também na lista de lugares) leva as peças dos agentes de todas as cenas da campanha para lá e abre a cena (mensagem `grupoPara`, só o mestre; agente = peça de personagem com ficha, como no mapa improvisado; NPCs e ameaças ficam). O ◎ volta para onde o grupo está.
+  - **Grupo dividido (10/10):** no cartão, os agentes de fora aparecem como etiquetas ("Vão:"); clicar num deixa ele (riscado) e o botão vira "Levar 3". Arrastar a peça (o quadradinho) de um lugar para outro no minimapa leva só ela, sem trocar a cena (`grupoPara` com `tokens` e `entrar: false`); soltar num prédio do terreno leva para a entrada dele.
+  - **Visitado / não visitado (10/10):** a campanha guarda `visitadas` (as cenas onde já houve agente; o servidor marca sozinho em `marcarVisitas`). O não visitado fica apagado: o cômodo escuro, o prédio do terreno escurecido, o terreno inteiro mais escuro, a linha da lista apagada. O mestre troca no cartão ("visitado" / "não visitado") e, na lista de lugares, "Tudo visitado" ou "Limpar visitas" (mensagem `visitada`). **Campanha antiga começa sem visitas** (só onde o grupo está agora): na Sede, use "Tudo visitado".
+  - **Nada é preenchido à mão:** a hierarquia sai das passagens (`shared/src/locais.ts`, `montarLocais`, teste em `server/test/locais.test.ts`). O servidor manda, nas cenas ao ar livre, a cena que cada prédio abre (`marcos[].entra`, pela passagem encostada nele) e o que está no chão (`simbolos`). Mapa novo (o map building, no futuro) ganha minimapa sozinho.
+  - A Sede (sem terreno) continua como planta do prédio, com as abas Térreo e Subsolo, agora com o nome de cada cômodo e as escadas (▲ ▼).
+  - O Alt + arrastar do mestre continua mudando o cômodo de lugar na planta.
+  - **Visual de game antigo (10/10, pedido do Felipe: "abandonamos o papel"):** o painel é um HUD com a moldura azul do tabuleiro (`--ui-tabuleiro-moldura-tabuleiro-fonte`), os botões do HUD e a fonte Pixelify Sans, como a plaquinha do tabuleiro. O terreno é pixel art (4 pixels por casa, ampliado sem suavizar: grama pontilhada, estrada com beira, água com marola, copas redondas com sombra, telhado de quatro águas com telhas e cumeeira, milho em fileira, cerca com mourão). A planta do andar é como o mapa de masmorra: piso em ladrilhos escuros, parede clara por fora e apagada por dentro, portas douradas, escadas ▲ ▼ douradas; o cômodo do grupo em vermelho, que acende com uma varredura quando o grupo entra. A lista de lugares abre numa janela do HUD (Esc fecha). O CSS fica em `client/src/ui/minimapa.css`. **O resto da coluna da esquerda (o cartão da sala, "Nesta cena") ainda é papel.**
+- **Falta / ideias:** abrir o minimapa grande por cima do tabuleiro (tecla M); o painel "Local selecionado" da referência do Códex (foto da cena, descrição, conexões); dar nome às áreas do terreno (hoje "Plantações", "Lago" e "Rio" saem pelo chão); a mesa mostrar só o que o mestre revelou; ver o tablet de verdade.
 
 ## Feito em 06/10: as ferramentas da mesa
 
