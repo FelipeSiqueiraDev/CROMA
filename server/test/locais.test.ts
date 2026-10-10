@@ -3,6 +3,7 @@ import { beforeEach, describe, test } from "node:test";
 import {
   montarLocais,
   nomeCurto,
+  regras,
   rotuloDoAndar,
   type ClientMsg,
   type ServerMsg,
@@ -125,5 +126,36 @@ describe("Locais do minimapa", () => {
       ["Térreo", "Subsolo"],
     );
     assert.equal(l.predios[0].cenas.length, cenas.length);
+  });
+
+  test("levar o grupo: os agentes de todas as cenas vão para a escolhida, e o mestre também", () => {
+    const fora = hotel.rooms.get(idDe(FAZENDA + "Olhos de Águia"))!;
+    const quarto = hotel.rooms.get(idDe(FAZENDA + "Quarto 1"))!;
+    // agente = peça de personagem com ficha (as do grupo da fazenda ganham uma)
+    const agora = new Date().toISOString();
+    for (const t of fora.tokenList())
+      send({
+        t: "fichaSalvar",
+        ficha: { id: 0, nome: t.name, personagem: t.look!.charId!, ficha: regras.novaFicha(t.name), criadaEm: agora, atualizadaEm: agora },
+      });
+    const agentes = fora
+      .tokenList()
+      .filter((t) => hotel.ehAgente(t.look?.charId));
+    assert.ok(agentes.length >= 4, "os agentes começam no terreno");
+    send({ t: "join", roomId: fora.data.id });
+    send({ t: "grupoPara", roomId: quarto.data.id });
+    const chegaram = new Set(quarto.tokenList().map((t) => t.id));
+    for (const t of agentes) assert.ok(chegaram.has(t.id), `${t.name} chegou`);
+    assert.equal(
+      fora.tokenList().filter((t) => hotel.ehAgente(t.look?.charId)).length,
+      0,
+    );
+    // o mestre (e a mesa) abrem a cena, e a campanha mostra o grupo lá
+    assert.equal(client.room, quarto);
+    const cenas = cenasDa(quarto.data.id);
+    assert.equal(
+      cenas.find((s) => s.id === quarto.data.id)?.users.length,
+      agentes.length,
+    );
   });
 });

@@ -437,6 +437,8 @@ export class Shell {
       cenaAtual: () => this.app.state.room?.id,
       mestre: () => this.owner,
       ir: (id) => this.goScene(id),
+      levarGrupo: (roomId) => (sfx.click(), this.app.net.send({ t: 'grupoPara', roomId })),
+      ehAgente: (charId) => !!charId && this.fichasMapa.some((f) => f.personagem === charId),
       moverCena: (roomId, x, y) => this.app.net.send({ t: 'layoutSet', roomId, x, y }),
     });
     const mm = this.minimapa;

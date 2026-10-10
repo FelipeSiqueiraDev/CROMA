@@ -99,6 +99,7 @@ const GM_ONLY = new Set([
   'marca',
   'nevoa',
   'mapaImprovisado',
+  'grupoPara',
   'setLink',
   'unlock',
   'relock',
@@ -1544,6 +1545,9 @@ export class Hotel implements HotelApi {
       case 'mapaImprovisado':
         this.mapaImprovisado(c, m);
         return;
+      case 'grupoPara':
+        this.grupoPara(c, m);
+        return;
       case 'join': {
         const room = typeof m.roomId === 'number' ? this.rooms.get(m.roomId) : undefined;
         if (!room) return c.send({ t: 'error', msg: 'Quarto não encontrado.' });
@@ -1765,6 +1769,26 @@ export class Hotel implements HotelApi {
    * da borda de baixo liga a cena nova à de agora (as duas ficam na mesma campanha, e quem pisa nela
    * volta). Com `levar`, os agentes da cena de agora vão junto, e o mestre (e a mesa) também.
    */
+  /**
+   * Leva o grupo para a cena (o "Levar o grupo" do minimapa): as peças dos agentes, de todas
+   * as cenas da campanha, chegam lá (pela passagem de onde vieram, como quem anda), e o mestre
+   * e a mesa abrem a cena. As outras peças (NPCs, ameaças) ficam onde estão.
+   */
+  private grupoPara(c: Client, m: Record<string, unknown>) {
+    const alvo = typeof m.roomId === 'number' ? this.rooms.get(m.roomId) : undefined;
+    if (!alvo) return c.send({ t: 'error', msg: 'Cena não encontrada.' });
+    let n = 0;
+    for (const id of this.sceneGroup(alvo.data.id)) {
+      const de = this.rooms.get(id);
+      if (!de || de === alvo) continue;
+      for (const t of de.tokenList()) if (this.ehAgente(t.look?.charId)) (this.moveToken(de, t.id, alvo.data.id), n++);
+    }
+    if (n) this.log(alvo.data.id, 'scene', `O grupo foi para ${sceneShortName(alvo.data.name)}.`);
+    this.save();
+    this.roomChanged();
+    this.enter(c, alvo);
+  }
+
   private mapaImprovisado(c: Client, m: Record<string, unknown>) {
     const de = c.room;
     if (!de) return c.send({ t: 'error', msg: 'Abra uma cena antes de criar o mapa.' });

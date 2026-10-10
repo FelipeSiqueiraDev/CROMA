@@ -419,6 +419,8 @@ export type ClientMsg =
    * largura × altura casas, ligada à cena atual por uma Entrada; `levar` leva os agentes da cena atual
    */
   | { t: 'mapaImprovisado'; nome: string; url: string; largura: number; altura: number; levar?: boolean }
+  /** o minimapa: as peças dos agentes de todas as cenas da campanha vão para a cena, e o mestre (e a mesa) vão junto */
+  | { t: 'grupoPara'; roomId: number }
   | { t: 'setLink'; id: number; roomId: number | null }
   | { t: 'sendTo'; userId: number | 'all'; roomId: number }
   | { t: 'tokenAdd'; name: string; look: AvatarLook; color?: string; capacity?: number }

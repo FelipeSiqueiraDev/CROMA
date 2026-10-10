@@ -14,7 +14,8 @@ import { sfx } from './sfx';
  *   a escada (▲ ▼) troca o andar; o botão ‹, o direito ou a roda para trás sobem. O botão
  *   das camadas abre a lista de todos os lugares, prédio por prédio, andar por andar.
  * - Clicar num cômodo só olha (o cartão embaixo diz o que é e quem está); "Entrar" ou o
- *   clique duplo levam a cena (o tabuleiro e a mesa vão junto).
+ *   clique duplo levam a cena (o tabuleiro e a mesa vão junto, as peças ficam); "Levar o
+ *   grupo" leva também as peças dos agentes, de onde estiverem.
  *
  * Tudo sai das cenas (`montarLocais`, em shared/src/locais.ts): mapa novo ganha minimapa
  * sozinho, sem arte de cada mapa.
@@ -26,6 +27,10 @@ export interface MinimapaHost {
   /** o mestre arruma a planta (Alt + arrastar um cômodo) */
   mestre(): boolean;
   ir(id: number): void;
+  /** as peças dos agentes vão para a cena, e o mestre e a mesa vão junto */
+  levarGrupo(id: number): void;
+  /** o personagem é de um agente (tem ficha): só esses vão no "Levar o grupo" */
+  ehAgente(charId: number | null | undefined): boolean;
   moverCena(id: number, x: number, y: number): void;
 }
 
@@ -425,9 +430,14 @@ export class Minimapa {
       return g.length ? h('span', { class: 'mm-gente', 'aria-label': `${g.length} aqui` }, ...g.slice(0, 6).map((cor) => h('i', { style: `background:${cor}` }))) : null;
     };
     const entrar = (id: number) =>
-      id === cur
-        ? h('span', { class: 'mm-l-aqui', title: 'O grupo está aqui' }, ic('pino'), 'Aqui')
-        : h('button', { class: 'mm-l-entrar', type: 'button', title: 'Levar a cena para lá', onclick: (e: Event) => (e.stopPropagation(), j.fechar(), this.host.ir(id)) }, ic('entrar'), 'Entrar');
+      h(
+        'span',
+        { class: 'mm-l-acoes' },
+        h('button', { class: 'mm-l-entrar', type: 'button', title: 'Levar o grupo: as peças dos agentes vão para lá, e a cena também', 'aria-label': 'Levar o grupo', onclick: (e: Event) => (e.stopPropagation(), j.fechar(), this.host.levarGrupo(id)) }, ic('pessoa')),
+        id === cur
+          ? h('span', { class: 'mm-l-aqui', title: 'A cena aberta' }, ic('pino'), 'Aqui')
+          : h('button', { class: 'mm-l-entrar', type: 'button', title: 'Só a cena vai para lá; as peças ficam', onclick: (e: Event) => (e.stopPropagation(), j.fechar(), this.host.ir(id)) }, ic('entrar'), 'Entrar'),
+      );
     const ver = (id: number) => () => (sfx.click(), j.fechar(), this.focar(id));
     /** linha de um lugar que é uma cena: o nome mostra no minimapa */
     const linhaCena = (id: number, nome: string, cls: string, icone: string) =>
@@ -540,7 +550,9 @@ export class Minimapa {
     const cur = this.host.cenaAtual();
     const camp = this.host.campanha();
     const quem = s ? s.users.map((u) => camp?.party.find((q) => q.id === u.id)?.name ?? u.name) : [];
-    const sig = JSON.stringify([sel?.id, s?.name, quem, cur]);
+    // tem agente fora dela: dá para levar o grupo
+    const fora = s ? (camp?.party ?? []).some((q) => q.id && this.host.ehAgente(q.look?.charId) && q.roomId !== s.id) : false;
+    const sig = JSON.stringify([sel?.id, s?.name, quem, cur, fora]);
     if (this.cartao.dataset.sig === sig) return;
     this.cartao.dataset.sig = sig;
     clear(this.cartao).classList.toggle('hidden', !s);
@@ -558,9 +570,14 @@ export class Minimapa {
         h('span', null, onde),
         h('span', { class: 'mm-c-quem' }, quem.length ? quem.join(', ') : 'Ninguém aqui'),
       ),
-      aqui
-        ? h('span', { class: 'mm-c-aqui' }, ic('pino'), 'Aqui')
-        : h('button', { class: 'mm-c-entrar', type: 'button', title: 'Levar a cena para lá (clique duplo também)', onclick: () => this.host.ir(s.id) }, ic('entrar'), 'Entrar'),
+      h(
+        'div',
+        { class: 'mm-c-acoes' },
+        fora ? h('button', { class: 'mm-c-entrar grupo', type: 'button', title: 'As peças dos agentes vão para lá, e a cena (e a mesa) também', onclick: () => this.host.levarGrupo(s.id) }, ic('pessoa'), 'Levar o grupo') : '',
+        aqui
+          ? h('span', { class: 'mm-c-aqui' }, ic('pino'), 'Aqui')
+          : h('button', { class: 'mm-c-entrar', type: 'button', title: 'Só a cena (e a mesa) vai para lá; as peças ficam (clique duplo também)', onclick: () => this.host.ir(s.id) }, ic('entrar'), 'Entrar'),
+      ),
     );
   }
 
