@@ -1,15 +1,15 @@
 import { montarLocais, nomeCurto, parseHeightmap, type CampaignState, type Heightmap, type Locais, type LocalPredio, type SceneInfo } from '@crona/shared';
 import { clear, h } from './dom';
-import { janela } from './fichaModal';
-import { existeArte, ic } from './icons';
-import { pencilShade, reduced, wait } from './motion';
+import { ic } from './icons';
+import { reduced, wait } from './motion';
 import { sfx } from './sfx';
 
 /**
  * O minimapa da tela MAPA: a planta do lugar em níveis, Terreno › Prédio › Andar › Cômodo.
  *
- * - No terreno (a cena ao ar livre), o mapa desenhado à mão: o chão, as árvores, a cerca, as
- *   plantações, os prédios com o telhado e a plaquinha, as saídas e as peças.
+ * - No terreno (a cena ao ar livre), o mapa em pixel art, como o mapa de um jogo antigo: o
+ *   chão, as árvores, a cerca, as plantações, os prédios com o telhado e a plaquinha, as
+ *   saídas e as peças. O painel é um HUD, com a moldura azul do tabuleiro.
  * - Clicar num prédio desce até ele (o mapa dá zoom no telhado e vira a planta do andar);
  *   a escada (▲ ▼) troca o andar; o botão ‹, o direito ou a roda para trás sobem. O botão
  *   das camadas abre a lista de todos os lugares, prédio por prédio, andar por andar.
@@ -48,9 +48,12 @@ interface Anim {
   dur: number;
 }
 
-const TINTA = '#1d1a17';
-const FONTE_PLACA = '11px "Special Elite", "Courier Prime", monospace';
-const PAD = 8;
+const PAD = 10;
+/** pixels da arte por casa: o mapa é desenhado pequeno e ampliado sem suavizar */
+const P = 4;
+const FONTE = '"Pixelify Sans", "Silkscreen", monospace';
+/** as cores do HUD (as da plaquinha e dos botões do tabuleiro) */
+const HUD = { fundo: 'rgba(9,12,18,0.86)', borda: '#8fb0d2', texto: '#e2eefa', fraco: '#a9c6e4', aqui: '#ff6a52', ouro: '#f0c96a' };
 /** metros por casa (M_POR_CASA) */
 const M_CASA = 0.75;
 
@@ -87,18 +90,11 @@ export class Minimapa {
   private S = 6;
   private O = { x: 0, y: 0 };
   private hms = new Map<string, Heightmap>();
+  /** o terreno em pixel art, pronto (só muda quando o mapa muda) */
   private camadas = new Map<number, { sig: string; c: HTMLCanvasElement }>();
-  private granito: CanvasPattern | null = null;
-  private alfineteImg: HTMLImageElement | null = null;
 
   constructor(private host: MinimapaHost) {
     this.ligar();
-    void existeArte('/arte/interface/alfinete.png').then((ok) => {
-      if (!ok) return;
-      const im = new Image();
-      im.onload = () => ((this.alfineteImg = im), this.desenhar());
-      im.src = '/arte/interface/alfinete.png';
-    });
   }
 
   // ------------------------------------------------------------------ estado
@@ -183,12 +179,12 @@ export class Minimapa {
     if (v?.tipo !== 'predio') return;
     const p = this.predio(v.predio);
     if (p?.terreno === null || p?.terreno === undefined) return;
-    sfx.paper();
+    sfx.whoosh(260);
     this.mostrar({ tipo: 'terreno', cena: p.terreno });
   }
 
   private descer(p: LocalPredio) {
-    sfx.paper();
+    sfx.whoosh(260);
     const cur = this.host.cenaAtual();
     const dentro = cur !== undefined ? this.locais?.onde.get(cur) : undefined;
     const andar = dentro?.predio === p.id ? dentro.andar! : (p.andares.find((a) => a.cenas.includes(p.entrada))?.nome ?? p.andares[0].nome);
@@ -205,42 +201,25 @@ export class Minimapa {
     this.seguindo = true;
   }
 
-  /** A cena aberta mudou: o lápis pinta o cômodo novo (como antes, na planta). */
+  /** A cena aberta mudou: o cômodo novo acende com a varredura (como o radar de um jogo). */
   animarAtual(delay: number) {
     const room = this.host.cenaAtual() ?? -1;
     this.fade = { room: this.hatch.room, t: 0 };
-    this.hatch = { room, t: 0 };
+    this.hatch = { room, t: reduced() ? 1 : 0 };
+    if (reduced()) return this.desenhar();
     const run = async () => {
       if (delay) await wait(delay);
-      // espera o minimapa se desenhar no nível novo (os alvos são do último quadro)
-      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-      if (this.hatch.room !== room) return;
-      // ao ar livre não tem cômodo para pintar
-      const r = this.vista?.tipo === 'predio' ? this.alvos.find((x) => x.tipo === 'cena' && x.id === room) : undefined;
-      if (!r) {
-        this.hatch.t = 1;
-        this.fade = { room: -1, t: 1 };
-        return this.desenhar();
-      }
-      const lines = hatchLines(r);
-      const cr = this.canvas.getBoundingClientRect();
-      const k = cr.width / (this.canvas.clientWidth || 1);
-      const pts: { x: number; y: number }[] = [];
-      lines.forEach(([x0, y0, x1, y1], i) => {
-        const a = { x: cr.left + x0 * k, y: cr.top + y0 * k };
-        const b = { x: cr.left + x1 * k, y: cr.top + y1 * k };
-        if (i % 2) pts.push(b, a);
-        else pts.push(a, b);
-      });
-      await pencilShade(pts, 950, (t) => {
+      const t0 = performance.now();
+      const passo = () => {
         if (this.hatch.room !== room) return;
+        const t = Math.min(1, (performance.now() - t0) / 700);
         this.hatch.t = t;
         this.fade.t = Math.min(1, t * 1.6);
         this.desenhar();
-      });
-      this.hatch.t = 1;
-      this.fade = { room: -1, t: 1 };
-      this.desenhar();
+        if (t < 1) requestAnimationFrame(passo);
+        else this.fade = { room: -1, t: 1 };
+      };
+      requestAnimationFrame(passo);
     };
     void run();
   }
@@ -328,12 +307,12 @@ export class Minimapa {
         return;
       }
       if (a.tipo === 'andar' && this.vista?.tipo === 'predio') {
-        sfx.paper();
+        sfx.tick();
         this.mostrar({ tipo: 'predio', predio: this.vista.predio, andar: a.id as string }, false);
         return;
       }
       if (a.tipo === 'saida') {
-        sfx.paper();
+        sfx.tick();
         this.mostrar({ tipo: 'terreno', cena: a.id as number }, false);
         return;
       }
@@ -435,13 +414,12 @@ export class Minimapa {
     const l = this.locais;
     const camp = this.host.campanha();
     if (!l || !camp) return;
-    sfx.paper();
+    sfx.tick();
     const cur = this.host.cenaAtual();
     const ondeCur = cur !== undefined ? l.onde.get(cur) : undefined;
     if (ondeCur?.predio) (this.abertos.add(ondeCur.predio), this.abertos.add(`${ondeCur.predio}/${ondeCur.andar}`));
-    const j = janela(camp.title ? camp.title.toUpperCase() : 'LUGARES', 'camadas', () => {}, 52);
     const lista = h('div', { class: 'mm-lugares' });
-    j.corpo.append(lista);
+    const j = this.janelaHud(camp.title || 'Lugares', lista);
     const bolinhas = (ids: number[]) => {
       const g = this.genteEm(ids);
       return g.length ? h('span', { class: 'mm-gente', 'aria-label': `${g.length} aqui` }, ...g.slice(0, 6).map((cor) => h('i', { style: `background:${cor}` }))) : null;
@@ -471,7 +449,7 @@ export class Minimapa {
         );
       };
       const alternar = () => {
-        sfx.paper();
+        sfx.tick();
         if (this.abertos.has(chave)) this.abertos.delete(chave);
         else this.abertos.add(chave);
         desenha();
@@ -520,6 +498,31 @@ export class Minimapa {
     }
   }
 
+  /** A janela do HUD (a moldura azul do tabuleiro), no meio da tela; Esc ou fora dela fecha. */
+  private janelaHud(titulo: string, corpo: HTMLElement) {
+    const fechar = () => {
+      document.removeEventListener('keydown', tecla, true);
+      fundo.classList.add('saindo');
+      setTimeout(() => fundo.remove(), 140);
+    };
+    const tecla = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.stopPropagation();
+      fechar();
+    };
+    const caixa = h(
+      'section',
+      { class: 'mm-janela', role: 'dialog', 'aria-label': titulo },
+      h('header', null, ic('camadas'), h('h3', null, titulo), h('button', { class: 'mm-bt', type: 'button', title: 'Fechar (Esc)', 'aria-label': 'Fechar', onclick: () => fechar() }, ic('fechar'))),
+      corpo,
+    );
+    const fundo = h('div', { class: 'mm-janela-fundo' }, caixa);
+    fundo.addEventListener('pointerdown', (e) => e.target === fundo && fechar());
+    document.addEventListener('keydown', tecla, true);
+    document.body.append(fundo);
+    return { fechar };
+  }
+
   /** As cores de quem está nessas cenas. */
   private genteEm(ids: number[]): string[] {
     const camp = this.host.campanha();
@@ -561,6 +564,7 @@ export class Minimapa {
     );
   }
 
+
   // ------------------------------------------------------------------ desenho
 
   desenhar() {
@@ -584,7 +588,7 @@ export class Minimapa {
     }
     const ctx = c.getContext('2d')!;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, W, c.clientHeight || H);
+    ctx.clearRect(0, 0, W, Hc);
     const v = this.vista;
     if (!v || !this.locais) return;
     const a = this.anim;
@@ -592,7 +596,7 @@ export class Minimapa {
       const p = Math.min(1, (performance.now() - a.t0) / a.dur);
       const ease = 1 - (1 - p) ** 3;
       const e = a.dir > 0 ? ease : 1 - ease;
-      // o prédio no terreno cresce até encher o papel, e a planta dele nasce do telhado
+      // o prédio no terreno cresce até encher o painel, e a planta dele nasce do telhado
       const F = encaixar(a.R, W, H);
       const k = F.w / a.R.w;
       const s = 1 + (k - 1) * e;
@@ -634,6 +638,7 @@ export class Minimapa {
   }
 
   private desenharVista(ctx: CanvasRenderingContext2D, v: Vista, W: number, H: number, alvos: Alvo[]) {
+    ctx.imageSmoothingEnabled = false;
     if (v.tipo === 'terreno') {
       const s = this.cena(v.cena);
       if (s) this.desenharTerreno(ctx, s, W, H, alvos);
@@ -652,7 +657,7 @@ export class Minimapa {
   private encaixeDoTerreno(s: SceneInfo, W: number, H: number) {
     const raw = this.hm(s);
     const S = Math.min((W - PAD * 2) / raw.width, (H - PAD * 2) / raw.height);
-    return { S, O: { x: (W - raw.width * S) / 2, y: (H - raw.height * S) / 2 }, raw };
+    return { S, O: { x: Math.round((W - raw.width * S) / 2), y: Math.round((H - raw.height * S) / 2) }, raw };
   }
 
   private caixaDoPredio(terreno: number, p: LocalPredio): Caixa | null {
@@ -669,53 +674,47 @@ export class Minimapa {
     const l = this.locais!;
     const lt = l.terrenos.find((t) => t.cena === s.id);
     const cur = this.host.cenaAtual();
-    // o que não muda (o chão, as árvores, os prédios) fica guardado numa camada
-    const dpr = Math.min(2, devicePixelRatio || 1);
-    const sig = JSON.stringify([W, H, dpr, s.terreno?.length, s.marcos, s.simbolos?.length, s.heightmap.length]);
+    const mw = raw.width * S;
+    const mh = raw.height * S;
+    // a pixel art do chão e de tudo o que está nele fica guardada (só muda quando o mapa muda)
+    const sig = JSON.stringify([s.terreno?.length, s.marcos, s.simbolos?.length, s.heightmap.length]);
     let cam = this.camadas.get(s.id);
     if (!cam || cam.sig !== sig) {
-      const c = document.createElement('canvas');
-      c.width = Math.round(W * dpr);
-      c.height = Math.round(H * dpr);
-      const g = c.getContext('2d')!;
-      g.setTransform(dpr, 0, 0, dpr, 0, 0);
-      this.chao(g, s, raw, S, O);
-      cam = { sig, c };
+      cam = { sig, c: pixelTerreno(s, raw) };
       this.camadas.set(s.id, cam);
     }
-    ctx.drawImage(cam.c, 0, 0, W, H);
-    // os prédios: o mouse em cima clareia; o do grupo fica vermelho com o alfinete
+    moldura(ctx, O.x, O.y, mw, mh);
+    ctx.drawImage(cam.c, O.x, O.y, mw, mh);
+    // os prédios: o mouse em cima acende a borda; o do grupo fica vermelho, com a seta
     const ondeCur = cur !== undefined ? l.onde.get(cur) : undefined;
     const telhados: (Caixa & { id: string; nome: string; atual: boolean; gente: string[] })[] = [];
     for (const id of lt?.predios ?? []) {
       const p = this.predio(id);
       if (!p?.marco) continue;
       const m = p.marco;
-      const x = O.x + m.x * S;
-      const y = O.y + m.y * S;
-      const w = m.w * S;
-      const hh = m.h * S;
-      const forma = new Path2D();
-      forma.rect(x, y, w, hh);
-      alvos.push({ tipo: 'predio', id, nome: `${p.nome} — clique para ver dentro`, x, y, w, h: hh });
+      const x = Math.round(O.x + m.x * S);
+      const y = Math.round(O.y + m.y * S);
+      const w = Math.round(m.w * S);
+      const hh = Math.round(m.h * S);
+      alvos.push({ tipo: 'predio', id, nome: `${p.nome}: clique para ver dentro`, x, y, w, h: hh });
       const atual = ondeCur?.predio === id;
       if (atual) {
         ctx.save();
-        ctx.shadowColor = 'rgba(220,40,28,0.9)';
-        ctx.shadowBlur = 10;
-        ctx.strokeStyle = '#c4281c';
-        ctx.lineWidth = 2.2;
-        ctx.stroke(forma);
+        ctx.fillStyle = 'rgba(255,90,60,0.22)';
+        ctx.fillRect(x, y, w, hh);
+        ctx.shadowColor = HUD.aqui;
+        ctx.shadowBlur = 8;
+        ctx.strokeStyle = HUD.aqui;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x - 1, y - 1, w + 2, hh + 2);
         ctx.restore();
-        ctx.fillStyle = 'rgba(196,40,28,0.28)';
-        ctx.fill(forma);
       }
       if (this.hover === `predio:${id}`) {
-        ctx.fillStyle = 'rgba(255,246,228,0.28)';
-        ctx.fill(forma);
-        ctx.strokeStyle = TINTA;
-        ctx.lineWidth = 1.6;
-        ctx.stroke(forma);
+        ctx.fillStyle = 'rgba(200,230,255,0.16)';
+        ctx.fillRect(x, y, w, hh);
+        ctx.strokeStyle = HUD.texto;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x - 1, y - 1, w + 2, hh + 2);
       }
       telhados.push({ id, nome: p.nome, x, y, w, h: hh, atual, gente: this.genteEm(p.cenas) });
     }
@@ -723,7 +722,7 @@ export class Minimapa {
     const ocupado: Caixa[] = [];
     const bate = (a: Caixa, b: Caixa) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
     for (const t of telhados) {
-      const m = this.medirPlaca(ctx, t.nome);
+      const m = medirPlaca(ctx, t.nome);
       const lugares = [
         ...(m.w <= t.w * 1.3 && m.h <= t.h * 1.2 ? [[t.x + t.w / 2, t.y + t.h / 2]] : []),
         [t.x + t.w / 2, t.y + t.h + m.h / 2 + 3],
@@ -731,549 +730,72 @@ export class Minimapa {
         [t.x + t.w + m.w / 2 + 3, t.y + t.h / 2],
         [t.x - m.w / 2 - 3, t.y + t.h / 2],
       ];
-      const caixa = ([cx, cy]: number[]) => ({ x: cx - m.w / 2, y: cy - m.h / 2, w: m.w, h: m.h });
-      const livre = lugares.find((l) => {
-        const c = caixa(l);
+      const caixa = ([cx, cy]: number[]) => ({ x: Math.round(cx - m.w / 2), y: Math.round(cy - m.h / 2), w: m.w, h: m.h });
+      const livre = lugares.find((lu) => {
+        const c = caixa(lu);
         return c.x >= 0 && c.y >= 0 && c.x + c.w <= W && c.y + c.h <= H && !ocupado.some((o) => bate(c, o)) && !telhados.some((o) => o.id !== t.id && bate(c, o));
       });
-      const [cx, cy] = livre ?? lugares[0];
-      const c = caixa([cx, cy]);
+      const c = caixa(livre ?? lugares[0]);
       ocupado.push(c);
-      this.desenharPlaca(ctx, m, cx, cy, t.atual);
-      alvos.push({ tipo: 'predio', id: t.id, nome: `${t.nome} — clique para ver dentro`, ...c });
-      // quem está lá dentro: as bolinhas num selo no canto do telhado
-      if (t.gente.length) this.selo(ctx, t.gente, t.x + t.w - 2, t.y + 2);
-      // o alfinete espetado na plaquinha
-      if (t.atual) this.alfinete(ctx, cx, c.y - 6, 4.2);
+      desenharPlaca(ctx, m, c, t.atual ? 'aqui' : this.hover === `predio:${t.id}` ? 'foco' : '');
+      alvos.push({ tipo: 'predio', id: t.id, nome: `${t.nome}: clique para ver dentro`, ...c });
+      if (t.gente.length) selo(ctx, t.gente, t.x + t.w - 2, t.y + 2);
+      if (t.atual) seta(ctx, c.x + c.w / 2, c.y - 2);
     }
+    // os nomes soltos do chão (plantações, lago, rio)
+    for (const r of rotulosDoChao(s, raw)) textoSolto(ctx, r.txt, O.x + r.x * S, O.y + r.y * S);
     // as saídas para outro terreno (a porteira para os arredores)
     for (const sd of lt?.saidas ?? []) {
       const nome = l.terrenos.find((t) => t.cena === sd.para)?.nome ?? '';
-      const x = O.x + (sd.x + 0.5) * S;
-      const y = O.y + (sd.y + 0.5) * S;
       const esq = sd.x < raw.width / 2;
-      ctx.save();
-      ctx.font = '700 11px Caveat, cursive';
-      ctx.textBaseline = 'middle';
-      ctx.textAlign = esq ? 'left' : 'right';
-      const txt = esq ? `← ${nome}` : `${nome} →`;
-      const tw = ctx.measureText(txt).width;
-      const tx = esq ? x + 4 : x - 4;
-      const ty = y - 9;
-      const ativa = this.hover === `saida:${sd.para}`;
-      ctx.fillStyle = 'rgba(239,230,209,0.85)';
-      ctx.fillRect(esq ? tx - 2 : tx - tw - 2, ty - 7, tw + 4, 13);
-      ctx.fillStyle = ativa ? '#c4281c' : '#7a1a12';
-      ctx.fillText(txt, tx, ty);
-      ctx.restore();
-      alvos.push({ tipo: 'saida', id: sd.para, nome: `Ir para o mapa de ${nome}`, x: esq ? tx - 2 : tx - tw - 2, y: ty - 8, w: tw + 4, h: 16 });
+      const txt = esq ? `◄ ${nome}` : `${nome} ►`;
+      const m = medirPlaca(ctx, txt);
+      const x = Math.round(esq ? O.x + (sd.x + 0.5) * S + 4 : O.x + (sd.x + 0.5) * S - 4 - m.w);
+      const y = O.y + (sd.y + 0.5) * S;
+      // ao lado da passagem: em cima, embaixo ou no meio, onde não tampar uma plaquinha
+      const lugares = [y - m.h - 4, y + 4, y - m.h / 2].map((yy) => ({ x, y: Math.round(yy), w: m.w, h: m.h }));
+      const c = lugares.find((q) => !ocupado.some((o) => bate(q, o)) && !telhados.some((o) => bate(q, o))) ?? lugares[0];
+      ocupado.push(c);
+      desenharPlaca(ctx, m, c, this.hover === `saida:${sd.para}` ? 'foco' : 'saida');
+      alvos.push({ tipo: 'saida', id: sd.para, nome: `Ver o mapa de ${nome}`, ...c });
     }
     // as peças ao ar livre
-    for (const u of s.users) this.peca(ctx, u.id, O.x + (u.x + 0.5) * S, O.y + (u.y + 0.5) * S, Math.max(2.4, Math.min(4, S * 0.6)));
-    this.rosa(ctx, W - 20, 22);
-    this.escala(ctx, S, PAD + 4, H - PAD - 4);
-    // o chão inteiro também é um alvo (o último da lista de baixo: os prédios ganham dele)
-    alvos.unshift({ tipo: 'cena', id: s.id, nome: lt?.nome ?? nomeCurto(s.name), x: O.x, y: O.y, w: raw.width * S, h: raw.height * S });
+    for (const u of s.users) this.peca(ctx, u.id, O.x + (u.x + 0.5) * S, O.y + (u.y + 0.5) * S);
+    rosa(ctx, O.x + mw - 14, O.y + 14);
+    escala(ctx, S, O.x + 6, O.y + mh - 8);
+    // o chão inteiro também é um alvo (o primeiro da lista: os prédios ganham dele)
+    alvos.unshift({ tipo: 'cena', id: s.id, nome: lt?.nome ?? nomeCurto(s.name), x: O.x, y: O.y, w: mw, h: mh });
     if (this.sel?.id === s.id) {
-      ctx.strokeStyle = 'rgba(29,26,23,0.85)';
+      ctx.strokeStyle = HUD.texto;
       ctx.setLineDash([4, 3]);
-      ctx.lineWidth = 1.4;
-      ctx.strokeRect(O.x - 2, O.y - 2, raw.width * S + 4, raw.height * S + 4);
+      ctx.lineWidth = 2;
+      ctx.strokeRect(O.x - 4, O.y - 4, mw + 8, mh + 8);
       ctx.setLineDash([]);
     }
   }
 
-  /** O chão do terreno e tudo o que está nele, desenhado à mão (fica na camada guardada). */
-  private chao(g: CanvasRenderingContext2D, s: SceneInfo, raw: Heightmap, S: number, O: { x: number; y: number }) {
-    const linhas = (s.terreno ?? '').replace(/\r/g, '').split('\n');
-    const ch = (x: number, y: number) => {
-      if (x < 0 || y < 0 || x >= raw.width || y >= raw.height) return '';
-      const c = linhas[y]?.[x] ?? '.';
-      return raw.tiles[y]?.[x] === null && c !== 'a' ? 'a' : c;
-    };
-    const COR: Record<string, string> = { '.': '#a6aa74', g: '#a6aa74', t: '#d8c49a', l: '#a98563', p: '#cdc5b3', d: '#b99b70', m: '#9a7350', a: '#86a8b2' };
-    // o chão: uma casa = um ponto, ampliado com suavidade (vira mancha de aquarela)
-    const mini = document.createElement('canvas');
-    mini.width = raw.width;
-    mini.height = raw.height;
-    const mg = mini.getContext('2d')!;
-    for (let y = 0; y < raw.height; y++)
-      for (let x = 0; x < raw.width; x++) {
-        mg.fillStyle = COR[ch(x, y)] ?? COR['.'];
-        mg.fillRect(x, y, 1, 1);
-      }
-    g.save();
-    g.beginPath();
-    g.rect(O.x, O.y, raw.width * S, raw.height * S);
-    g.clip();
-    g.imageSmoothingEnabled = true;
-    g.imageSmoothingQuality = 'high';
-    g.drawImage(mini, O.x, O.y, raw.width * S, raw.height * S);
-    // textura: pontinhos na grama, sulcos na terra arada, marolas na água
-    for (let y = 0; y < raw.height; y++)
-      for (let x = 0; x < raw.width; x++) {
-        const c = ch(x, y);
-        const X = O.x + x * S;
-        const Y = O.y + y * S;
-        if (c === '.' || c === 'g') {
-          if (ruido(x, y) < 0.5) {
-            g.fillStyle = ruido(x, y, 1) < 0.5 ? 'rgba(60,74,34,0.28)' : 'rgba(236,232,196,0.3)';
-            g.fillRect(X + ruido(x, y, 2) * S, Y + ruido(x, y, 3) * S, 1, 1);
-          }
-        } else if (c === 'l') {
-          g.strokeStyle = 'rgba(74,48,28,0.35)';
-          g.lineWidth = 0.6;
-          g.beginPath();
-          g.moveTo(X, Y + S * 0.3);
-          g.lineTo(X + S, Y + S * 0.3);
-          g.moveTo(X, Y + S * 0.75);
-          g.lineTo(X + S, Y + S * 0.75);
-          g.stroke();
-        } else if (c === 'a' && ruido(x, y, 4) < 0.22) {
-          g.strokeStyle = 'rgba(236,244,244,0.55)';
-          g.lineWidth = 0.7;
-          g.beginPath();
-          g.moveTo(X, Y + S * 0.5);
-          g.quadraticCurveTo(X + S * 0.5, Y + S * 0.2, X + S, Y + S * 0.5);
-          g.stroke();
-        }
-      }
-    // a margem da água e da estrada a nanquim
-    const borda = (alvo: (c: string) => boolean, cor: string, lw: number) => {
-      g.strokeStyle = cor;
-      g.lineWidth = lw;
-      g.lineCap = 'round';
-      g.beginPath();
-      for (let y = 0; y < raw.height; y++)
-        for (let x = 0; x < raw.width; x++) {
-          if (!alvo(ch(x, y))) continue;
-          const X = O.x + x * S;
-          const Y = O.y + y * S;
-          const t = (a: number, b: number) => (ruido(a, b, 9) - 0.5) * S * 0.25;
-          if (!alvo(ch(x, y - 1)) && ch(x, y - 1)) (g.moveTo(X + t(x, y), Y + t(y, x)), g.lineTo(X + S + t(x + 1, y), Y + t(y, x + 1)));
-          if (!alvo(ch(x, y + 1)) && ch(x, y + 1)) (g.moveTo(X + t(x, y + 1), Y + S + t(y + 1, x)), g.lineTo(X + S + t(x + 1, y + 1), Y + S + t(y + 1, x + 1)));
-          if (!alvo(ch(x - 1, y)) && ch(x - 1, y)) (g.moveTo(X + t(x, y), Y + t(y, x)), g.lineTo(X + t(x, y + 1), Y + S + t(y + 1, x)));
-          if (!alvo(ch(x + 1, y)) && ch(x + 1, y)) (g.moveTo(X + S + t(x + 1, y), Y + t(y, x + 1)), g.lineTo(X + S + t(x + 1, y + 1), Y + S + t(y + 1, x + 1)));
-        }
-      g.stroke();
-    };
-    borda((c) => c === 'a', 'rgba(38,70,82,0.75)', 0.9);
-    borda((c) => c === 't' || c === 'p', 'rgba(92,70,44,0.35)', 0.6);
-    // o que está no chão
-    const simb = s.simbolos ?? [];
-    const de = (k: string) => simb.filter((q) => q[0] === k);
-    // as plantações: fileiras verdes
-    for (const [, x, y, w, hh] of de('plantacao')) {
-      const X = O.x + x * S;
-      const Y = O.y + y * S;
-      g.strokeStyle = 'rgba(62,92,34,0.8)';
-      g.lineWidth = Math.max(0.8, S * 0.32);
-      g.beginPath();
-      g.moveTo(X, Y + (hh * S) / 2);
-      g.lineTo(X + w * S, Y + (hh * S) / 2);
-      g.stroke();
-      g.fillStyle = 'rgba(196,176,74,0.7)';
-      g.fillRect(X + S * 0.3, Y + (hh * S) / 2 - 0.6, 1, 1.2);
-    }
-    // os rótulos soltos (plantação, lago), pelos grupos que o chão forma
-    const grupos = (sim: (x: number, y: number) => boolean, min: number, raio = 2) => {
-      const visto = new Set<string>();
-      const out: { cx: number; cy: number; n: number; w: number; h: number }[] = [];
-      for (let y = 0; y < raw.height; y++)
-        for (let x = 0; x < raw.width; x++) {
-          if (!sim(x, y) || visto.has(`${x},${y}`)) continue;
-          const fila = [[x, y]];
-          visto.add(`${x},${y}`);
-          let sx = 0;
-          let sy = 0;
-          let n = 0;
-          let x0 = x;
-          let x1 = x;
-          let y0 = y;
-          let y1 = y;
-          while (fila.length) {
-            const [a, b] = fila.pop()!;
-            sx += a;
-            sy += b;
-            n++;
-            x0 = Math.min(x0, a);
-            x1 = Math.max(x1, a);
-            y0 = Math.min(y0, b);
-            y1 = Math.max(y1, b);
-            for (let dy = -raio; dy <= raio; dy++)
-              for (let dx = -raio; dx <= raio; dx++) {
-                const k = `${a + dx},${b + dy}`;
-                if (!visto.has(k) && sim(a + dx, b + dy)) (visto.add(k), fila.push([a + dx, b + dy]));
-              }
-          }
-          if (n >= min) out.push({ cx: sx / n + 0.5, cy: sy / n + 0.5, n, w: x1 - x0 + 1, h: y1 - y0 + 1 });
-        }
-      return out;
-    };
-    const cultivo = new Set(de('plantacao').map(([, x, y]) => `${x},${y}`));
-    for (let y = 0; y < raw.height; y++) for (let x = 0; x < raw.width; x++) if (ch(x, y) === 'l') cultivo.add(`${x},${y}`);
-    const rotulos: { txt: string; x: number; y: number }[] = [];
-    for (const q of grupos((x, y) => cultivo.has(`${x},${y}`), 24, 4)) rotulos.push({ txt: q.n > 120 ? 'Plantações' : 'Plantação', x: q.cx, y: q.cy });
-    for (const q of grupos((x, y) => ch(x, y) === 'a' || ch(x, y) === 'm', 8)) rotulos.push({ txt: Math.max(q.w, q.h) >= Math.min(q.w, q.h) * 3 ? 'Rio' : 'Lago', x: q.cx, y: q.cy });
-    // a cerca: tracinho de casa em casa, com os mourões
-    const cerca = new Set(de('cerca').map(([, x, y]) => `${x},${y}`));
-    g.strokeStyle = 'rgba(64,44,28,0.85)';
-    g.lineWidth = Math.max(0.7, S * 0.16);
-    g.beginPath();
-    for (const k of cerca) {
-      const [x, y] = k.split(',').map(Number);
-      const X = O.x + (x + 0.5) * S;
-      const Y = O.y + (y + 0.5) * S;
-      if (cerca.has(`${x + 1},${y}`)) (g.moveTo(X, Y), g.lineTo(X + S, Y));
-      if (cerca.has(`${x},${y + 1}`)) (g.moveTo(X, Y), g.lineTo(X, Y + S));
-    }
-    g.stroke();
-    g.fillStyle = 'rgba(52,36,22,0.9)';
-    for (const k of cerca) {
-      const [x, y] = k.split(',').map(Number);
-      if ((x + y) % 3) continue;
-      g.fillRect(O.x + (x + 0.5) * S - 0.8, O.y + (y + 0.5) * S - 0.8, 1.6, 1.6);
-    }
-    // o resto, pequeno: a fonte, o feno, a carroça, a porteira, as entradas
-    for (const [k, x, y, w, hh] of simb) {
-      const X = O.x + x * S;
-      const Y = O.y + y * S;
-      const cx = X + (w * S) / 2;
-      const cy = Y + (hh * S) / 2;
-      if (k === 'fonte') {
-        const r = (Math.min(w, hh) * S) / 2;
-        g.beginPath();
-        g.arc(cx, cy, r, 0, Math.PI * 2);
-        g.fillStyle = '#c8c0ae';
-        g.fill();
-        g.strokeStyle = TINTA;
-        g.lineWidth = 0.9;
-        g.stroke();
-        g.beginPath();
-        g.arc(cx, cy, r * 0.62, 0, Math.PI * 2);
-        g.fillStyle = '#7fa6b2';
-        g.fill();
-        g.beginPath();
-        g.arc(cx, cy, r * 0.18, 0, Math.PI * 2);
-        g.fillStyle = '#9a9282';
-        g.fill();
-      } else if (k === 'feno' || k === 'sacas') {
-        g.fillStyle = k === 'feno' ? '#d2b45e' : '#d8ccaa';
-        g.strokeStyle = 'rgba(80,60,30,0.8)';
-        g.lineWidth = 0.6;
-        g.fillRect(X + S * 0.15, Y + S * 0.2, S * 0.7, S * 0.6);
-        g.strokeRect(X + S * 0.15, Y + S * 0.2, S * 0.7, S * 0.6);
-      } else if (k === 'carroca') {
-        g.fillStyle = '#7a5a3a';
-        g.strokeStyle = TINTA;
-        g.lineWidth = 0.8;
-        g.fillRect(X + S * 0.2, Y + S * 0.2, w * S - S * 0.4, hh * S - S * 0.4);
-        g.strokeRect(X + S * 0.2, Y + S * 0.2, w * S - S * 0.4, hh * S - S * 0.4);
-      } else if (k === 'porteira') {
-        g.strokeStyle = '#5a3c22';
-        g.lineWidth = 1.2;
-        g.setLineDash([1.5, 1.2]);
-        g.strokeRect(X + 0.5, Y + 0.5, w * S - 1, hh * S - 1);
-        g.setLineDash([]);
-      } else if (k === 'entrada') {
-        g.fillStyle = 'rgba(236,224,196,0.9)';
-        g.fillRect(X + S * 0.1, Y, S * 0.8, S * 0.7);
-      } else if (k === 'placa') {
-        g.fillStyle = '#6a4a2c';
-        g.fillRect(cx - 1.5, cy - 1, 3, 2);
-      }
-    }
-    // as árvores e os arbustos: copa redonda recortada, com a sombra, de trás para a frente
-    const copas = [...de('arvore').map((q) => [q, 1] as const), ...de('arbusto').map((q) => [q, 0] as const)].sort((a, b) => a[0][2] - b[0][2]);
-    for (const [[, x, y], grande] of copas) {
-      const r = S * (grande ? 0.95 + ruido(x, y, 5) * 0.35 : 0.55);
-      const cx = O.x + (x + 0.5 + (ruido(x, y, 6) - 0.5) * 0.4) * S;
-      const cy = O.y + (y + 0.5 + (ruido(x, y, 7) - 0.5) * 0.4) * S;
-      g.beginPath();
-      g.ellipse(cx + r * 0.3, cy + r * 0.4, r, r * 0.8, 0, 0, Math.PI * 2);
-      g.fillStyle = 'rgba(28,36,18,0.28)';
-      g.fill();
-      const copa = new Path2D();
-      const n = 8;
-      for (let i = 0; i <= n; i++) {
-        const a = (i / n) * Math.PI * 2;
-        const rr = r * (0.86 + ruido(x + i, y, 8) * 0.14);
-        const px = cx + Math.cos(a) * rr;
-        const py = cy + Math.sin(a) * rr;
-        if (!i) copa.moveTo(px, py);
-        else {
-          const am = ((i - 0.5) / n) * Math.PI * 2;
-          copa.quadraticCurveTo(cx + Math.cos(am) * rr * 1.18, cy + Math.sin(am) * rr * 1.18, px, py);
-        }
-      }
-      const gr = g.createRadialGradient(cx - r * 0.35, cy - r * 0.4, r * 0.1, cx, cy, r * 1.1);
-      gr.addColorStop(0, grande ? '#7d9a52' : '#8aa45a');
-      gr.addColorStop(1, grande ? '#3f5c2c' : '#557a36');
-      g.fillStyle = gr;
-      g.fill(copa);
-      g.strokeStyle = 'rgba(26,34,18,0.85)';
-      g.lineWidth = 0.7;
-      g.stroke(copa);
-    }
-    // os prédios: sombra, telhado de quatro águas, a cumeeira e as telhas
-    for (const m of s.marcos ?? []) this.telhado(g, m, S, O);
-    g.restore();
-    // a borda do terreno, a nanquim
-    g.strokeStyle = TINTA;
-    g.lineWidth = 1.4;
-    g.strokeRect(O.x, O.y, raw.width * S, raw.height * S);
-    // os nomes soltos, à mão
-    g.save();
-    g.font = '600 12px Caveat, cursive';
-    g.textAlign = 'center';
-    g.textBaseline = 'middle';
-    for (const r of rotulos) {
-      g.lineWidth = 3;
-      g.strokeStyle = 'rgba(239,232,212,0.75)';
-      g.strokeText(r.txt, O.x + r.x * S, O.y + r.y * S);
-      g.fillStyle = 'rgba(42,34,26,0.9)';
-      g.fillText(r.txt, O.x + r.x * S, O.y + r.y * S);
-    }
-    g.restore();
-  }
-
-  private telhado(g: CanvasRenderingContext2D, m: NonNullable<SceneInfo['marcos']>[number], S: number, O: { x: number; y: number }) {
-    const x = O.x + m.x * S;
-    const y = O.y + m.y * S;
-    const w = m.w * S;
-    const hh = m.h * S;
-    const COR: Record<string, [string, string]> = { casarao: ['#a2452d', '#7a2e1c'], celeiro: ['#8a3424', '#5e2016'], galpao: ['#7a5a3e', '#56402a'] };
-    const [claro, escuro] = COR[m.kind ?? ''] ?? ['#7a746a', '#55504a'];
-    g.fillStyle = 'rgba(30,22,14,0.35)';
-    g.fillRect(x + S * 0.6, y + S * 0.8, w, hh);
-    // a cumeeira corre no lado comprido
-    const deitado = w >= hh;
-    const meio = (deitado ? hh : w) / 2;
-    const [a, b] = deitado ? [[x + meio, y + hh / 2], [x + w - meio, y + hh / 2]] : [[x + w / 2, y + meio], [x + w / 2, y + hh - meio]];
-    const face = (pts: number[][], cor: string) => {
-      g.beginPath();
-      g.moveTo(pts[0][0], pts[0][1]);
-      for (const p of pts.slice(1)) g.lineTo(p[0], p[1]);
-      g.closePath();
-      g.fillStyle = cor;
-      g.fill();
-    };
-    const c00 = [x, y];
-    const c10 = [x + w, y];
-    const c11 = [x + w, y + hh];
-    const c01 = [x, y + hh];
-    if (deitado) {
-      face([c00, c10, b, a], claro);
-      face([c01, c11, b, a], escuro);
-      face([c00, a, c01], mistura(claro, escuro));
-      face([c10, b, c11], escuro);
-    } else {
-      face([c00, c01, b, a], claro);
-      face([c10, c11, b, a], escuro);
-      face([c00, a, c10], mistura(claro, escuro));
-      face([c01, b, c11], escuro);
-    }
-    // as telhas: riscos paralelos à beira, bem leves
-    g.save();
-    g.beginPath();
-    g.rect(x, y, w, hh);
-    g.clip();
-    g.strokeStyle = 'rgba(30,14,8,0.22)';
-    g.lineWidth = 0.6;
-    g.beginPath();
-    const passo = Math.max(2, S * 0.55);
-    if (deitado) for (let yy = y + passo; yy < y + hh; yy += passo) (g.moveTo(x, yy), g.lineTo(x + w, yy));
-    else for (let xx = x + passo; xx < x + w; xx += passo) (g.moveTo(xx, y), g.lineTo(xx, y + hh));
-    g.stroke();
-    g.restore();
-    g.strokeStyle = TINTA;
-    g.lineWidth = 0.8;
-    g.beginPath();
-    g.moveTo(c00[0], c00[1]);
-    g.lineTo(a[0], a[1]);
-    g.lineTo(c01[0], c01[1]);
-    g.moveTo(a[0], a[1]);
-    g.lineTo(b[0], b[1]);
-    g.moveTo(c10[0], c10[1]);
-    g.lineTo(b[0], b[1]);
-    g.lineTo(c11[0], c11[1]);
-    g.stroke();
-    g.lineWidth = 1.5;
-    g.strokeRect(x, y, w, hh);
-  }
-
-  /** O tamanho da plaquinha (o nome comprido quebra em duas linhas). */
-  private medirPlaca(ctx: CanvasRenderingContext2D, nome: string) {
-    ctx.save();
-    ctx.font = FONTE_PLACA;
-    const corte = nome.length > 12 && nome.includes(' ') ? (nome.lastIndexOf(' ', 12) > 0 ? nome.lastIndexOf(' ', 12) : nome.indexOf(' ')) : -1;
-    const linhas = corte > 0 ? [nome.slice(0, corte), nome.slice(corte + 1)] : [nome];
-    const tw = Math.max(...linhas.map((l) => ctx.measureText(l).width));
-    ctx.restore();
-    return { linhas, w: tw + 10, h: 11 * linhas.length + 5 };
-  }
-
-  /** A plaquinha de papel com o nome do prédio. */
-  private desenharPlaca(ctx: CanvasRenderingContext2D, m: { linhas: string[]; w: number; h: number }, cx: number, cy: number, atual: boolean) {
-    const lh = 11;
-    const { w, h: hh, linhas } = m;
-    ctx.save();
-    ctx.font = FONTE_PLACA;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.translate(cx, cy);
-    ctx.rotate(-0.015);
-    ctx.fillStyle = 'rgba(28,20,12,0.35)';
-    ctx.fillRect(-w / 2 + 1.5, -hh / 2 + 2, w, hh);
-    ctx.fillStyle = atual ? '#f6e6d6' : '#efe4cc';
-    ctx.fillRect(-w / 2, -hh / 2, w, hh);
-    ctx.strokeStyle = atual ? '#b3261e' : '#3a2c20';
-    ctx.lineWidth = atual ? 1.2 : 0.8;
-    ctx.strokeRect(-w / 2, -hh / 2, w, hh);
-    ctx.fillStyle = atual ? '#9c1f17' : '#231c16';
-    linhas.forEach((l, i) => ctx.fillText(l, 0, -((linhas.length - 1) * lh) / 2 + i * lh + 0.5));
-    ctx.restore();
-  }
-
-  /** O selo com as bolinhas de quem está lá dentro. */
-  private selo(ctx: CanvasRenderingContext2D, cores: string[], dx: number, y: number) {
-    const n = Math.min(4, cores.length);
-    const r = 3.2;
-    const w = n * (r * 2 + 1.5) + 4 + (cores.length > 4 ? 9 : 0);
-    const x = dx - w;
-    ctx.save();
-    ctx.fillStyle = 'rgba(24,20,16,0.82)';
-    ctx.beginPath();
-    ctx.roundRect(x, y, w, r * 2 + 4, r + 2);
-    ctx.fill();
-    for (let i = 0; i < n; i++) {
-      ctx.beginPath();
-      ctx.arc(x + 2 + r + i * (r * 2 + 1.5), y + 2 + r, r, 0, Math.PI * 2);
-      ctx.fillStyle = cores[i];
-      ctx.fill();
-      ctx.lineWidth = 0.8;
-      ctx.strokeStyle = '#f6efe2';
-      ctx.stroke();
-    }
-    if (cores.length > 4) {
-      ctx.fillStyle = '#f6efe2';
-      ctx.font = '700 8px "Courier Prime", monospace';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(`+${cores.length - 4}`, x + w - 10, y + 2 + r);
-    }
-    ctx.restore();
-  }
-
-  private peca(ctx: CanvasRenderingContext2D, uid: number, x: number, y: number, r: number) {
-    const pm = this.host.campanha()?.party.find((q) => q.id === uid);
-    ctx.beginPath();
-    ctx.arc(x + 0.6, y + 0.9, r, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fillStyle = pm?.color ?? '#fff';
-    ctx.fill();
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = '#f6efe2';
-    ctx.stroke();
-  }
-
-  /** A rosa dos ventos a nanquim. */
-  private rosa(ctx: CanvasRenderingContext2D, cx: number, cy: number) {
-    const r = 9;
-    ctx.save();
-    ctx.fillStyle = 'rgba(239,230,209,0.82)';
-    ctx.beginPath();
-    ctx.arc(cx, cy - 1, r + 5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalAlpha = 0.85;
-    ctx.strokeStyle = TINTA;
-    ctx.lineWidth = 0.7;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r * 0.75, 0, Math.PI * 2);
-    ctx.stroke();
-    const ponta = (ang: number, cheia: boolean) => {
-      const c = Math.cos(ang);
-      const s = Math.sin(ang);
-      ctx.beginPath();
-      ctx.moveTo(cx + c * r, cy + s * r);
-      ctx.lineTo(cx - s * 2.2, cy + c * 2.2);
-      ctx.lineTo(cx, cy);
-      ctx.closePath();
-      ctx.fillStyle = cheia ? TINTA : '#efe6d1';
-      ctx.fill();
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(cx + c * r, cy + s * r);
-      ctx.lineTo(cx + s * 2.2, cy - c * 2.2);
-      ctx.lineTo(cx, cy);
-      ctx.closePath();
-      ctx.fillStyle = cheia ? '#efe6d1' : TINTA;
-      ctx.fill();
-      ctx.stroke();
-    };
-    for (let i = 0; i < 4; i++) ponta(-Math.PI / 2 + (i * Math.PI) / 2, i % 2 === 0);
-    ctx.font = '700 8px "Courier Prime", monospace';
-    ctx.textAlign = 'center';
-    ctx.fillStyle = TINTA;
-    ctx.fillText('N', cx, cy - r - 2);
-    ctx.restore();
-  }
-
-  /** A régua em metros, embaixo à esquerda. */
-  private escala(ctx: CanvasRenderingContext2D, S: number, x: number, y: number) {
-    const m = (60 / S) * M_CASA;
-    const total = [5, 10, 20, 25, 50, 100, 200].find((v) => v >= m * 0.8) ?? 200;
-    const w = (total / M_CASA) * S;
-    ctx.save();
-    ctx.fillStyle = 'rgba(239,230,209,0.82)';
-    ctx.fillRect(x - 4, y - 13, w + 24, 18);
-    ctx.strokeStyle = TINTA;
-    ctx.fillStyle = TINTA;
-    ctx.lineWidth = 1;
-    ctx.fillRect(x, y - 2, w / 2, 2.5);
-    ctx.strokeRect(x, y - 2, w, 2.5);
-    ctx.font = '8px "Courier Prime", monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('0', x, y - 5);
-    ctx.fillText(`${total} m`, x + w, y - 5);
-    ctx.restore();
-  }
-
-  /** O alfinete do lugar do grupo: a arte (alfinete.png) ou o marcador desenhado. */
-  private alfinete(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
-    if (this.alfineteImg) {
-      const w = r * 2.4;
-      const hh = w * 1.4;
-      ctx.drawImage(this.alfineteImg, cx - w / 2, cy - hh * 0.8, w, hh);
-      return;
-    }
-    ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(cx, cy + r * 1.7);
-    ctx.bezierCurveTo(cx - r * 0.45, cy + r * 0.9, cx - r, cy + r * 0.3, cx - r, cy - r * 0.15);
-    ctx.arc(cx, cy - r * 0.15, r, Math.PI, 0);
-    ctx.bezierCurveTo(cx + r, cy + r * 0.3, cx + r * 0.45, cy + r * 0.9, cx, cy + r * 1.7);
-    ctx.closePath();
-    ctx.fillStyle = '#c4281c';
-    ctx.fill();
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = '#4a120d';
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(cx, cy - r * 0.15, r * 0.4, 0, Math.PI * 2);
-    ctx.fillStyle = '#f6efe3';
-    ctx.fill();
-    ctx.restore();
+  /** A peça: o quadradinho na cor do agente, com a borda escura. */
+  private peca(ctx: CanvasRenderingContext2D, uid: number, x: number, y: number) {
+    const cor = this.host.campanha()?.party.find((q) => q.id === uid)?.color ?? '#ffffff';
+    const t = 6;
+    const X = Math.round(x - t / 2);
+    const Y = Math.round(y - t / 2);
+    ctx.fillStyle = '#05070a';
+    ctx.fillRect(X - 1, Y - 1, t + 2, t + 2);
+    ctx.fillStyle = cor;
+    ctx.fillRect(X, Y, t, t);
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.fillRect(X, Y, t - 1, 1);
+    ctx.fillRect(X, Y, 1, t - 1);
   }
 
   // ---------------------------------------------------------------- o andar de um prédio
 
   /**
-   * Uma planta de arquitetura: os cômodos de pedra cinza com o contorno grosso por fora e o
-   * fino entre eles, as portas na parede, as escadas (▲ ▼), o nome de cada um, o atual em
-   * vermelho (o lápis pinta quando o grupo entra) e as peças.
+   * A planta do andar como o mapa de masmorra de um jogo antigo: o piso em ladrilhos escuros,
+   * as paredes acesas (a de fora clara, a de dentro mais apagada), as portas em dourado, as
+   * escadas (▲ ▼) que trocam o andar, o nome de cada cômodo, o do grupo em vermelho (acende
+   * com a varredura quando o grupo entra) e as peças.
    */
   private desenharAndar(ctx: CanvasRenderingContext2D, p: LocalPredio, andar: string, W: number, H: number, alvos: Alvo[]) {
     const camp = this.host.campanha();
@@ -1307,258 +829,559 @@ export class Minimapa {
     if (!this.drag) {
       const sozinho = parsed.length === 1;
       const teto = sozinho ? Math.min((W * 0.6) / bw, (H * 0.7) / bh) : Infinity;
-      this.S = Math.max(1.5, Math.min(teto, (W - PAD * 2) / bw, (H - PAD * 2 - 6) / bh));
-      this.O = { x: PAD + (W - PAD * 2 - bw * this.S) / 2 - x0 * this.S, y: PAD + 3 + (H - PAD * 2 - 6 - bh * this.S) / 2 - y0 * this.S };
+      this.S = Math.max(1.5, Math.min(teto, (W - PAD * 2) / bw, (H - PAD * 2) / bh));
+      this.O = { x: Math.round(PAD + (W - PAD * 2 - bw * this.S) / 2 - x0 * this.S), y: Math.round(PAD + (H - PAD * 2 - bh * this.S) / 2 - y0 * this.S) };
     }
     const S = this.S;
     const O = this.O;
-    const granito = this.padraoGranito(ctx);
+    // de quem é cada casa do andar
     const dono = new Map<string, number>();
-    const formas = new Map<number, Path2D>();
-    for (const { s, hm, p: q, porta } of parsed) {
-      const forma = new Path2D();
+    for (const { s, hm, p: q, porta } of parsed)
       for (let y = 0; y < hm.height; y++)
         for (let x = 0; x < hm.width; x++) {
           if (hm.tiles[y]?.[x] === null || hm.tiles[y]?.[x] === undefined || (porta && x === porta[0] && y === porta[1])) continue;
           dono.set(`${q.x + x},${q.y + y}`, s.id);
-          forma.rect(O.x + (q.x + x) * S, O.y + (q.y + y) * S, S + 0.35, S + 0.35);
         }
-      formas.set(s.id, forma);
-    }
-    ctx.save();
-    ctx.translate(1.4, 1.8);
-    ctx.fillStyle = 'rgba(46,34,24,0.26)';
-    for (const f of formas.values()) ctx.fill(f);
-    ctx.restore();
-    ctx.fillStyle = granito;
-    for (const f of formas.values()) ctx.fill(f);
+    // o estado de cada cômodo pinta o piso e a parede dele
+    const estado = (id: number) => (id === cur ? 'aqui' : this.sel?.id === id ? 'sel' : this.hover === `cena:${id}` ? 'foco' : '');
+    const PISO: Record<string, [number, number, number]> = {
+      '': [cor('#26303b'), cor('#2a3540'), cor('#323e4b')],
+      foco: [cor('#2f3b49'), cor('#33404f'), cor('#3c4a5a')],
+      sel: [cor('#22405c'), cor('#264663'), cor('#2e5272')],
+      aqui: [cor('#4a2226'), cor('#52262b'), cor('#5e2e33')],
+    };
+    const PAREDE: Record<string, [number, number]> = {
+      '': [cor('#a9c6e4'), cor('#5d7186')],
+      foco: [cor('#d6e8f8'), cor('#7d93a8')],
+      sel: [cor('#8fd0ff'), cor('#6aa6d0')],
+      aqui: [cor('#ff6a52'), cor('#d0503e')],
+    };
+    const PORTA = cor('#e0b45a');
+    const px = new Pix(bw * P, bh * P);
+    const escadas: { x: number; y: number; sobe: boolean; andar: string; rotulo: string }[] = [];
     const nomes: { txt: string; x: number; y: number; w: number; h: number; atual: boolean }[] = [];
-    const escadas: Alvo[] = [];
     for (const { s, hm, p: q, rot } of parsed) {
-      const ox = O.x + q.x * S;
-      const oy = O.y + q.y * S;
-      const atual = s.id === cur;
-      const rect = { x: ox, y: oy, w: hm.width * S, h: hm.height * S };
-      const forma = formas.get(s.id)!;
-      const tile = (x: number, y: number) => dono.get(`${q.x + x},${q.y + y}`) === s.id;
-      ctx.fillStyle = 'rgba(42,38,34,0.55)';
-      for (let y = 0; y < hm.height; y++)
-        for (let x = 0; x < hm.width; x++) {
-          if (!tile(x, y) || !tile(x - 1, y) || !tile(x + 1, y) || !tile(x, y - 1) || !tile(x, y + 1)) continue;
-          if (ruido(q.x + x, q.y + y) < 0.045) ctx.fillRect(ox + (x + 0.2) * S, oy + (y + 0.3) * S, S * 0.6, S * 0.4);
-        }
-      if (atual) {
-        const anima = this.hatch.room === s.id ? this.hatch.t : 1;
-        ctx.save();
-        ctx.clip(forma);
-        ctx.fillStyle = `rgba(196,40,28,${(0.4 * Math.min(1, anima / 0.7)).toFixed(3)})`;
-        ctx.fill(forma);
-        if (anima < 1) {
-          const lines = hatchLines(rect);
-          const drawn = anima * lines.length;
-          ctx.strokeStyle = `rgba(150,28,20,${(0.8 * (1 - anima)).toFixed(3)})`;
-          ctx.lineWidth = 1.2;
-          ctx.lineCap = 'round';
-          ctx.beginPath();
-          lines.forEach(([ax, ay, bx, by], i) => {
-            if (i >= drawn) return;
-            const f = Math.min(1, drawn - i);
-            ctx.moveTo(ax, ay);
-            ctx.lineTo(ax + (bx - ax) * f, ay + (by - ay) * f);
-          });
-          ctx.stroke();
-        }
-        ctx.restore();
-      } else if (s.id === this.fade.room && this.fade.t < 1) {
-        ctx.fillStyle = `rgba(190,36,26,${0.45 * (1 - this.fade.t)})`;
-        ctx.fill(forma);
-      }
-      const escolhido = this.sel?.id === s.id;
-      if (this.hover === `cena:${s.id}` || escolhido) {
-        ctx.fillStyle = escolhido ? 'rgba(255,240,200,0.32)' : 'rgba(255,246,228,0.22)';
-        ctx.fill(forma);
-      }
-      // as paredes: fina entre dois cômodos, grossa por fora
-      const fina: [number, number, number, number][] = [];
-      const grossa: [number, number, number, number][] = [];
-      for (let y = 0; y < hm.height; y++)
-        for (let x = 0; x < hm.width; x++) {
-          if (!tile(x, y)) continue;
-          const X = ox + x * S;
-          const Y = oy + y * S;
-          for (const [nx, ny, seg] of [
-            [x, y - 1, [X, Y, X + S, Y]],
-            [x, y + 1, [X, Y + S, X + S, Y + S]],
-            [x - 1, y, [X, Y, X, Y + S]],
-            [x + 1, y, [X + S, Y, X + S, Y + S]],
-          ] as [number, number, [number, number, number, number]][]) {
-            const v = dono.get(`${q.x + nx},${q.y + ny}`);
-            if (v === s.id) continue;
-            (v === undefined ? grossa : fina).push(seg);
-          }
-        }
-      const traco = (segs: [number, number, number, number][], cor: string, lw: number) => {
-        if (!segs.length) return;
-        ctx.strokeStyle = cor;
-        ctx.lineWidth = lw;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.beginPath();
-        for (const [a1, b1, c1, d1] of segs) (ctx.moveTo(a1 + tremor(a1, b1), b1 + tremor(b1, a1)), ctx.lineTo(c1 + tremor(c1, d1), d1 + tremor(d1, c1)));
-        ctx.stroke();
-      };
-      traco(fina, 'rgba(30,26,22,0.7)', 1);
-      traco(grossa, TINTA, Math.max(1.6, Math.min(2.4, S * 0.42)));
-      if (atual) traco([...fina, ...grossa], 'rgba(122,18,12,0.85)', 1.2);
-      else if (escolhido) traco(grossa.length ? grossa : fina, 'rgba(20,16,12,0.95)', 2.2);
-      // as portas e as escadas
+      const est = estado(s.id);
+      const [p1, p2, p3] = PISO[est];
+      const [fora, dentro] = PAREDE[est];
+      const meu = (x: number, y: number) => dono.get(`${q.x + x},${q.y + y}`) === s.id;
+      // as portas da cena (na planta girada), e quais são escadas para outro andar
+      const portas = new Map<string, number>();
       for (const pt of s.portals) {
-        const [px, py] = rot(pt.x, pt.y);
-        if (!tile(px, py)) continue;
-        const X = ox + px * S;
-        const Y = oy + py * S;
-        const outroAndar = p.andares.find((x) => x.cenas.includes(pt.link));
-        if (outroAndar && outroAndar.nome !== andar) {
-          // escada: ▲ sobe, ▼ desce
-          const sobe = outroAndar.nivel > a.nivel;
-          const r = Math.max(2.4, Math.min(4.5, S * 0.7));
-          const cx = X + S / 2;
-          const cy = Y + S / 2;
-          ctx.beginPath();
-          if (sobe) (ctx.moveTo(cx, cy - r), ctx.lineTo(cx + r, cy + r * 0.8), ctx.lineTo(cx - r, cy + r * 0.8));
-          else (ctx.moveTo(cx, cy + r), ctx.lineTo(cx + r, cy - r * 0.8), ctx.lineTo(cx - r, cy - r * 0.8));
-          ctx.closePath();
-          ctx.fillStyle = '#efe6d1';
-          ctx.fill();
-          ctx.lineWidth = 1;
-          ctx.strokeStyle = TINTA;
-          ctx.stroke();
-          const m = Math.max(r + 3, 6);
-          escadas.push({ tipo: 'andar', id: outroAndar.nome, nome: `${sobe ? 'Subir' : 'Descer'} para ${outroAndar.rotulo}`, x: cx - m, y: cy - m, w: m * 2, h: m * 2 });
-          if (this.hover === `andar:${outroAndar.nome}`) {
-            ctx.beginPath();
-            ctx.arc(cx, cy, m, 0, Math.PI * 2);
-            ctx.strokeStyle = '#a3221a';
-            ctx.lineWidth = 1.4;
-            ctx.stroke();
-          }
+        const [ppx, ppy] = rot(pt.x, pt.y);
+        if (!meu(ppx, ppy)) continue;
+        const outro = p.andares.find((x) => x.cenas.includes(pt.link));
+        if (outro && outro.nome !== andar) {
+          escadas.push({ x: q.x + ppx, y: q.y + ppy, sobe: outro.nivel > a.nivel, andar: outro.nome, rotulo: outro.rotulo });
           continue;
         }
-        ctx.fillStyle = '#26201b';
-        const e = Math.max(1.6, S * 0.32);
-        if (!tile(px, py - 1)) ctx.fillRect(X + S * 0.2, Y - e / 2, S * 0.6, e);
-        else if (!tile(px, py + 1)) ctx.fillRect(X + S * 0.2, Y + S - e / 2, S * 0.6, e);
-        else if (!tile(px - 1, py)) ctx.fillRect(X - e / 2, Y + S * 0.2, e, S * 0.6);
-        else if (!tile(px + 1, py)) ctx.fillRect(X + S - e / 2, Y + S * 0.2, e, S * 0.6);
+        portas.set(`${ppx},${ppy}`, pt.link);
       }
-      nomes.push({ txt: nomeCurto(s.name), ...rect, atual });
-      alvos.push({ tipo: 'cena', id: s.id, nome: nomeCurto(s.name), ...rect, forma });
+      for (let y = 0; y < hm.height; y++)
+        for (let x = 0; x < hm.width; x++) {
+          if (!meu(x, y)) continue;
+          const bx = (q.x + x - x0) * P;
+          const by = (q.y + y - y0) * P;
+          const base = (x + y) % 2 ? p1 : p2;
+          for (let yy = 0; yy < P; yy++) for (let xx = 0; xx < P; xx++) px.put(bx + xx, by + yy, ruido(bx + xx, by + yy, 3) < 0.06 ? p3 : base);
+          // a parede: clara por fora, apagada entre dois cômodos; a porta abre um vão dourado
+          const lados: [number, number, (i: number) => [number, number]][] = [
+            [x, y - 1, (i) => [bx + i, by]],
+            [x, y + 1, (i) => [bx + i, by + P - 1]],
+            [x - 1, y, (i) => [bx, by + i]],
+            [x + 1, y, (i) => [bx + P - 1, by + i]],
+          ];
+          const ehPorta = portas.has(`${x},${y}`);
+          for (const [nx, ny, ponto] of lados) {
+            if (meu(nx, ny)) continue;
+            const vizinho = dono.get(`${q.x + nx},${q.y + ny}`);
+            const c = vizinho === undefined ? fora : dentro;
+            for (let i = 0; i < P; i++) {
+              const [X, Y] = ponto(i);
+              px.put(X, Y, ehPorta && i > 0 && i < P - 1 ? PORTA : c);
+            }
+          }
+        }
+      nomes.push({ txt: nomeCurto(s.name), x: O.x + q.x * S, y: O.y + q.y * S, w: hm.width * S, h: hm.height * S, atual: s.id === cur });
     }
-    // as escadas ganham dos cômodos no clique
-    alvos.push(...escadas);
+    const camada = px.canvas();
+    ctx.save();
+    ctx.shadowColor = 'rgba(143,176,210,0.35)';
+    ctx.shadowBlur = 10;
+    ctx.drawImage(camada, Math.round(O.x + x0 * S), Math.round(O.y + y0 * S), Math.round(bw * S), Math.round(bh * S));
+    ctx.restore();
+    // a varredura do cômodo onde o grupo acabou de entrar
+    const atual = nomes.find((n) => n.atual);
+    if (atual && this.hatch.room === cur && this.hatch.t < 1) {
+      const t = this.hatch.t;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(atual.x, atual.y, atual.w, atual.h);
+      ctx.clip();
+      ctx.fillStyle = `rgba(255,106,82,${(0.35 * (1 - t)).toFixed(3)})`;
+      ctx.fillRect(atual.x, atual.y, atual.w, atual.h);
+      const yy = Math.round(atual.y + atual.h * t);
+      ctx.fillStyle = 'rgba(255,190,170,0.9)';
+      ctx.fillRect(atual.x, yy - 1, atual.w, 2);
+      ctx.restore();
+    }
+    // os alvos (a forma de cada cômodo, casa por casa)
+    for (const { s, hm, p: q } of parsed) {
+      const forma = new Path2D();
+      for (let y = 0; y < hm.height; y++)
+        for (let x = 0; x < hm.width; x++) if (dono.get(`${q.x + x},${q.y + y}`) === s.id) forma.rect(O.x + (q.x + x) * S, O.y + (q.y + y) * S, S + 0.35, S + 0.35);
+      alvos.push({ tipo: 'cena', id: s.id, nome: nomeCurto(s.name), x: O.x + q.x * S, y: O.y + q.y * S, w: hm.width * S, h: hm.height * S, forma });
+    }
     // o nome de cada cômodo, quando cabe
     ctx.save();
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     for (const n of nomes) {
-      let f = 10;
-      ctx.font = `${f}px "Special Elite", "Courier Prime", monospace`;
+      let f = 11;
+      ctx.font = `500 ${f}px ${FONTE}`;
       let tw = ctx.measureText(n.txt).width;
       if (tw > n.w - 6) {
-        f = Math.max(7, (f * (n.w - 6)) / tw);
-        ctx.font = `${f.toFixed(1)}px "Special Elite", "Courier Prime", monospace`;
+        f = Math.max(8, (f * (n.w - 6)) / tw);
+        ctx.font = `500 ${f.toFixed(1)}px ${FONTE}`;
         tw = ctx.measureText(n.txt).width;
       }
       if (tw > n.w - 3 || f + 2 > n.h) continue;
-      ctx.lineWidth = 2.6;
-      ctx.strokeStyle = 'rgba(240,234,220,0.8)';
-      ctx.strokeText(n.txt, n.x + n.w / 2, n.y + n.h / 2);
-      ctx.fillStyle = n.atual ? '#7a120c' : '#1d1a17';
-      ctx.fillText(n.txt, n.x + n.w / 2, n.y + n.h / 2);
+      ctx.lineWidth = 3;
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = 'rgba(5,7,10,0.85)';
+      ctx.strokeText(n.txt, Math.round(n.x + n.w / 2), Math.round(n.y + n.h / 2));
+      ctx.fillStyle = n.atual ? '#ffb4a6' : HUD.texto;
+      ctx.fillText(n.txt, Math.round(n.x + n.w / 2), Math.round(n.y + n.h / 2));
     }
     ctx.restore();
+    // as escadas: ▲ sobe, ▼ desce (clicar troca o andar); ganham dos cômodos no clique
+    for (const e of escadas) {
+      const cx = Math.round(O.x + (e.x + 0.5) * S);
+      const cy = Math.round(O.y + (e.y + 0.5) * S);
+      const r = Math.max(4, Math.min(6, S * 0.8));
+      const foco = this.hover === `andar:${e.andar}`;
+      ctx.beginPath();
+      if (e.sobe) (ctx.moveTo(cx, cy - r), ctx.lineTo(cx + r, cy + r * 0.75), ctx.lineTo(cx - r, cy + r * 0.75));
+      else (ctx.moveTo(cx, cy + r), ctx.lineTo(cx + r, cy - r * 0.75), ctx.lineTo(cx - r, cy - r * 0.75));
+      ctx.closePath();
+      ctx.fillStyle = foco ? '#fff1c4' : HUD.ouro;
+      ctx.fill();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = '#05070a';
+      ctx.stroke();
+      const m = r + 3;
+      alvos.push({ tipo: 'andar', id: e.andar, nome: `${e.sobe ? 'Subir' : 'Descer'} para ${e.rotulo}`, x: cx - m, y: cy - m, w: m * 2, h: m * 2 });
+    }
     // as peças
     for (const { s, p: q, rot } of parsed)
       for (const u of s.users) {
         const [ux, uy] = rot(u.x, u.y);
-        this.peca(ctx, u.id, O.x + (q.x + ux + 0.5) * S, O.y + (q.y + uy + 0.5) * S, Math.max(2, Math.min(3.4, S * 0.4)));
+        this.peca(ctx, u.id, O.x + (q.x + ux + 0.5) * S, O.y + (q.y + uy + 0.5) * S);
       }
-  }
-
-  /** O granito dos cômodos: pedra cinza salpicada, com uns veios (como a referência). */
-  private padraoGranito(ctx: CanvasRenderingContext2D): CanvasPattern | string {
-    if (this.granito) return this.granito;
-    const T = 72;
-    const p = document.createElement('canvas');
-    p.width = T;
-    p.height = T;
-    const g = p.getContext('2d');
-    if (!g) return '#9d9993';
-    let semente = 9;
-    const r = () => (semente = (semente * 16807) % 2147483647) / 2147483647;
-    g.fillStyle = '#928e87';
-    g.fillRect(0, 0, T, T);
-    const mancha = (x: number, y: number, rx: number, ry: number, cor: string) => {
-      for (const dx of [-T, 0, T])
-        for (const dy of [-T, 0, T]) {
-          g.beginPath();
-          g.ellipse(x + dx, y + dy, rx, ry, r() * 3, 0, Math.PI * 2);
-          g.fillStyle = cor;
-          g.fill();
-        }
-    };
-    for (let i = 0; i < 26; i++) mancha(r() * T, r() * T, 3 + r() * 7, 2 + r() * 5, r() < 0.55 ? 'rgba(70,66,60,0.16)' : 'rgba(225,221,212,0.18)');
-    for (let i = 0; i < 160; i++) {
-      g.fillStyle = r() < 0.6 ? 'rgba(52,48,44,0.38)' : 'rgba(232,228,220,0.35)';
-      g.fillRect(Math.floor(r() * T), Math.floor(r() * T), r() < 0.3 ? 2 : 1, r() < 0.3 ? 2 : 1);
-    }
-    g.strokeStyle = 'rgba(46,42,38,0.38)';
-    g.lineWidth = 0.7;
-    for (let i = 0; i < 4; i++) {
-      let x = r() * T;
-      let y = r() * T;
-      g.beginPath();
-      g.moveTo(x, y);
-      for (let k = 0; k < 3; k++) {
-        x += (r() - 0.5) * 18;
-        y += (r() - 0.5) * 18;
-        g.lineTo(x, y);
-      }
-      g.stroke();
-    }
-    this.granito = ctx.createPattern(p, 'repeat');
-    return this.granito ?? '#9d9993';
   }
 }
 
-/** A caixa R ampliada até encher o papel, sem deformar. */
+// ------------------------------------------------------------------ pixel art
+
+/** Cor para o buffer de pixels (ABGR, como o ImageData guarda). */
+function cor(hex: string): number {
+  const n = parseInt(hex.slice(1), 16);
+  return (0xff000000 | ((n & 0xff) << 16) | (n & 0xff00) | ((n >> 16) & 0xff)) >>> 0;
+}
+
+/** Um quadro de pixels pequeno (a arte), ampliado depois sem suavizar. */
+class Pix {
+  readonly img: ImageData;
+  readonly d: Uint32Array;
+  constructor(
+    readonly w: number,
+    readonly h: number,
+  ) {
+    this.img = new ImageData(Math.max(1, w), Math.max(1, h));
+    this.d = new Uint32Array(this.img.data.buffer);
+  }
+  put(x: number, y: number, c: number) {
+    x |= 0;
+    y |= 0;
+    if (x >= 0 && y >= 0 && x < this.w && y < this.h) this.d[y * this.w + x] = c;
+  }
+  get(x: number, y: number) {
+    return x >= 0 && y >= 0 && x < this.w && y < this.h ? this.d[y * this.w + x] : 0;
+  }
+  /** disco cheio: `pinta(dx, dy, d2)` diz a cor de cada pixel (0 = não pinta) */
+  disco(cx: number, cy: number, r: number, pinta: (dx: number, dy: number, d2: number) => number) {
+    for (let dy = -r; dy <= r; dy++)
+      for (let dx = -r; dx <= r; dx++) {
+        const d2 = dx * dx + dy * dy;
+        if (d2 > r * r + r * 0.6) continue;
+        const c = pinta(dx, dy, d2);
+        if (c) this.put(cx + dx, cy + dy, c);
+      }
+  }
+  canvas() {
+    const c = document.createElement('canvas');
+    c.width = this.img.width;
+    c.height = this.img.height;
+    c.getContext('2d')!.putImageData(this.img, 0, 0);
+    return c;
+  }
+}
+
+const PAL = {
+  grama: [cor('#40703a'), cor('#4f8244'), cor('#36602f')],
+  sombra: cor('#2c4c28'),
+  terra: [cor('#b08a55'), cor('#8a6a3e'), cor('#c8a066')],
+  pedra: [cor('#9c988e'), cor('#88847a'), cor('#6a665e')],
+  arada: [cor('#6e4a2c'), cor('#563a20')],
+  agua: [cor('#2f5f8f'), cor('#5f94c4'), cor('#1d4166')],
+  pier: [cor('#8a6440'), cor('#6a4a2c')],
+  copa: [cor('#2f5c28'), cor('#3c6e30'), cor('#6aa04a'), cor('#16290f')],
+  moita: [cor('#3f7a32'), cor('#4e8c3c'), cor('#7cb456'), cor('#1c3414')],
+  cerca: [cor('#5a3a1c'), cor('#9a6a38')],
+  milho: [cor('#78a83c'), cor('#d6c050')],
+  pedraFonte: [cor('#a8a49a'), cor('#3e3a34'), cor('#5b8fc0'), cor('#cfe4f4')],
+  feno: [cor('#d8b860'), cor('#f0d47a'), cor('#8a6a30')],
+  madeira: [cor('#7a5232'), cor('#3a2414'), cor('#222018')],
+  capacho: cor('#d6c09a'),
+  borda: cor('#120c08'),
+};
+
+/** Telhado de quatro águas: [norte (claro), lados, sul (escuro), telhas, cumeeira]. */
+const TELHADO: Record<string, string[]> = {
+  casarao: ['#c0583a', '#a2452d', '#7a2e1c', '#8e3a24', '#e07a52'],
+  celeiro: ['#a83c2a', '#8a3424', '#5e2016', '#702a1c', '#c85a40'],
+  galpao: ['#9a7650', '#7a5a3e', '#56402a', '#664a32', '#b89064'],
+  '': ['#8a867c', '#6e6a62', '#4e4a44', '#5e5a52', '#a8a49a'],
+};
+
+/** O terreno inteiro em pixel art: o chão casa por casa e o que está nele (P pixels por casa). */
+function pixelTerreno(s: SceneInfo, raw: Heightmap): HTMLCanvasElement {
+  const linhas = (s.terreno ?? '').replace(/\r/g, '').split('\n');
+  const ch = (x: number, y: number) => {
+    if (x < 0 || y < 0 || x >= raw.width || y >= raw.height) return '';
+    const c = linhas[y]?.[x] ?? '.';
+    return raw.tiles[y]?.[x] === null && c !== 'a' ? 'a' : c;
+  };
+  const caminho = (c: string) => c === 't' || c === 'd' || c === 'p' || c === 'm';
+  const px = new Pix(raw.width * P, raw.height * P);
+  for (let ty = 0; ty < raw.height; ty++)
+    for (let tx = 0; tx < raw.width; tx++) {
+      const c = ch(tx, ty);
+      for (let yy = 0; yy < P; yy++)
+        for (let xx = 0; xx < P; xx++) {
+          const X = tx * P + xx;
+          const Y = ty * P + yy;
+          const n = ruido(X, Y);
+          // a beira: o pixel da casa que encosta numa casa de outro tipo
+          const beira = (ok: (v: string) => boolean) =>
+            (xx === 0 && !ok(ch(tx - 1, ty))) || (xx === P - 1 && !ok(ch(tx + 1, ty))) || (yy === 0 && !ok(ch(tx, ty - 1))) || (yy === P - 1 && !ok(ch(tx, ty + 1)));
+          let v: number;
+          if (c === 'a') v = beira((q) => q === 'a' || q === 'm' || q === '') ? PAL.agua[2] : (X + Y * 3 + Math.floor(n * 2)) % 9 === 0 && yy % 2 === 0 ? PAL.agua[1] : PAL.agua[0];
+          else if (c === 'm') v = yy % 2 ? PAL.pier[1] : PAL.pier[0];
+          else if (c === 'l') v = yy % 2 ? PAL.arada[1] : PAL.arada[0];
+          else if (c === 'p') v = beira(caminho) ? PAL.pedra[2] : ((X >> 1) + (Y >> 1)) % 2 ? PAL.pedra[0] : PAL.pedra[1];
+          else if (c === 't' || c === 'd') v = beira(caminho) ? PAL.terra[1] : n < 0.07 ? PAL.terra[2] : PAL.terra[0];
+          else v = n < 0.09 ? PAL.grama[1] : n > 0.9 ? PAL.grama[2] : PAL.grama[0];
+          px.put(X, Y, v);
+        }
+    }
+  const simb = s.simbolos ?? [];
+  const de = (k: string) => simb.filter((q) => q[0] === k);
+  // as plantações: fileiras de milho
+  for (const [, x, y, w] of de('plantacao'))
+    for (let i = 0; i < w * P; i++) {
+      px.put(x * P + i, y * P + 1, (x * P + i) % 3 ? PAL.milho[0] : PAL.milho[1]);
+      px.put(x * P + i, y * P + 2, PAL.milho[0]);
+    }
+  // a cerca: tracinho de casa em casa e os mourões
+  const cerca = new Set(de('cerca').map(([, x, y]) => `${x},${y}`));
+  for (const k of cerca) {
+    const [x, y] = k.split(',').map(Number);
+    const cx = x * P + (P >> 1);
+    const cy = y * P + (P >> 1);
+    if (cerca.has(`${x + 1},${y}`)) for (let i = 0; i <= P; i++) px.put(cx + i, cy, PAL.cerca[0]);
+    if (cerca.has(`${x},${y + 1}`)) for (let i = 0; i <= P; i++) px.put(cx, cy + i, PAL.cerca[0]);
+    if ((x + y) % 2 === 0) px.put(cx, cy, PAL.cerca[1]);
+  }
+  // o resto, pequeno: a fonte, o feno, a carroça, a porteira, as entradas
+  for (const [k, x, y, w, hh] of simb) {
+    const X = x * P;
+    const Y = y * P;
+    if (k === 'fonte') {
+      const r = Math.max(2, Math.round((Math.min(w, hh) * P) / 2) - 1);
+      const cx = X + Math.round((w * P) / 2);
+      const cy = Y + Math.round((hh * P) / 2);
+      const [pedra, borda, agua, brilho] = PAL.pedraFonte;
+      px.disco(cx, cy, r, (dx, dy, d2) => (d2 > (r - 1) * (r - 1) ? borda : d2 > (r - 2) * (r - 2) ? pedra : dx === -1 && dy === -1 ? brilho : agua));
+      px.put(cx, cy, pedra);
+    } else if (k === 'feno' || k === 'sacas') {
+      const [c1, c2, c3] = PAL.feno;
+      for (let i = 0; i < 3; i++) (px.put(X + i, Y + 1, c2), px.put(X + i, Y + 2, c1), px.put(X + i, Y + 3, c3));
+    } else if (k === 'carroca') {
+      const [c1, c2, roda] = PAL.madeira;
+      for (let yy = 1; yy < hh * P - 1; yy++) for (let xx = 1; xx < w * P - 1; xx++) px.put(X + xx, Y + yy, xx === 1 || yy === 1 || xx === w * P - 2 || yy === hh * P - 2 ? c2 : c1);
+      for (const [a, b] of [[0, 2], [w * P - 1, 2], [0, hh * P - 3], [w * P - 1, hh * P - 3]]) (px.put(X + a, Y + b, roda), px.put(X + a, Y + b + 1, roda));
+    } else if (k === 'porteira') {
+      for (let i = 0; i < Math.max(w, hh) * P; i += 2) px.put(w >= hh ? X + i : X + 1, w >= hh ? Y + 1 : Y + i, PAL.cerca[1]);
+    } else if (k === 'entrada') {
+      for (let xx = 1; xx < P - 1; xx++) (px.put(X + xx, Y, PAL.capacho), px.put(X + xx, Y + 1, PAL.capacho));
+    } else if (k === 'placa') {
+      px.put(X + 1, Y + 1, PAL.cerca[1]);
+      px.put(X + 2, Y + 1, PAL.cerca[1]);
+    }
+  }
+  // as árvores e as moitas: copa redonda com sombra, de trás para a frente
+  const copas = [...de('arvore').map((q) => [q, 1] as const), ...de('arbusto').map((q) => [q, 0] as const)].sort((a, b) => a[0][2] - b[0][2]);
+  for (const [[, x, y], grande] of copas) {
+    const r = grande ? (ruido(x, y, 5) < 0.4 ? 4 : 3) : 2;
+    const cx = x * P + (P >> 1) + Math.round((ruido(x, y, 6) - 0.5) * 2);
+    const cy = y * P + (P >> 1) + Math.round((ruido(x, y, 7) - 0.5) * 2);
+    px.disco(cx + 1, cy + 2, r, () => PAL.sombra);
+    const [base, meio, luz, borda] = grande ? PAL.copa : PAL.moita;
+    px.disco(cx, cy, r, (dx, dy, d2) => (d2 > (r - 0.8) * (r - 0.8) ? borda : dx + dy < -r * 0.6 ? luz : ruido(cx + dx, cy + dy, 2) < 0.3 ? meio : base));
+  }
+  // os prédios: sombra, telhado de quatro águas com as telhas e a cumeeira
+  for (const m of s.marcos ?? []) {
+    const [norte, lado, sul, telha, cume] = (TELHADO[m.kind ?? ''] ?? TELHADO['']).map(cor);
+    const x0 = m.x * P;
+    const y0 = m.y * P;
+    const W = m.w * P;
+    const H = m.h * P;
+    for (let yy = 2; yy < H + 2; yy++) for (let xx = 2; xx < W + 2; xx++) if (xx >= W || yy >= H) px.put(x0 + xx, y0 + yy, PAL.sombra);
+    for (let yy = 0; yy < H; yy++)
+      for (let xx = 0; xx < W; xx++) {
+        const dT = yy;
+        const dB = H - 1 - yy;
+        const dL = xx;
+        const dR = W - 1 - xx;
+        const min = Math.min(dT, dB, dL, dR);
+        let v: number;
+        if (xx === 0 || yy === 0 || xx === W - 1 || yy === H - 1) v = PAL.borda;
+        else if ((min === dT && (min === dL || min === dR)) || (min === dB && (min === dL || min === dR)) || (W >= H ? Math.abs(dT - dB) <= 0 && dL > dT && dR > dT : Math.abs(dL - dR) <= 0 && dT > dL && dB > dL)) v = cume;
+        else if (min === dT) v = dT % 3 === 2 ? telha : norte;
+        else if (min === dB) v = dB % 3 === 2 ? PAL.borda : sul;
+        else v = (min === dL ? dL : dR) % 3 === 2 ? telha : lado;
+        px.put(x0 + xx, y0 + yy, v);
+      }
+  }
+  return px.canvas();
+}
+
+/** Os nomes que o chão forma sozinho: plantações (as roças juntas), lago e rio. */
+function rotulosDoChao(s: SceneInfo, raw: Heightmap) {
+  const linhas = (s.terreno ?? '').replace(/\r/g, '').split('\n');
+  const ch = (x: number, y: number) => {
+    if (x < 0 || y < 0 || x >= raw.width || y >= raw.height) return '';
+    const c = linhas[y]?.[x] ?? '.';
+    return raw.tiles[y]?.[x] === null && c !== 'a' ? 'a' : c;
+  };
+  const grupos = (sim: (x: number, y: number) => boolean, min: number, raio: number) => {
+    const visto = new Set<string>();
+    const out: { cx: number; cy: number; n: number; w: number; h: number }[] = [];
+    for (let y = 0; y < raw.height; y++)
+      for (let x = 0; x < raw.width; x++) {
+        if (!sim(x, y) || visto.has(`${x},${y}`)) continue;
+        const fila = [[x, y]];
+        visto.add(`${x},${y}`);
+        let sx = 0;
+        let sy = 0;
+        let n = 0;
+        let ax = x;
+        let bx = x;
+        let ay = y;
+        let by = y;
+        while (fila.length) {
+          const [a, b] = fila.pop()!;
+          sx += a;
+          sy += b;
+          n++;
+          ax = Math.min(ax, a);
+          bx = Math.max(bx, a);
+          ay = Math.min(ay, b);
+          by = Math.max(by, b);
+          for (let dy = -raio; dy <= raio; dy++)
+            for (let dx = -raio; dx <= raio; dx++) {
+              const k = `${a + dx},${b + dy}`;
+              if (!visto.has(k) && sim(a + dx, b + dy)) (visto.add(k), fila.push([a + dx, b + dy]));
+            }
+        }
+        if (n >= min) out.push({ cx: sx / n + 0.5, cy: sy / n + 0.5, n, w: bx - ax + 1, h: by - ay + 1 });
+      }
+    return out;
+  };
+  const cultivo = new Set((s.simbolos ?? []).filter((q) => q[0] === 'plantacao').map(([, x, y]) => `${x},${y}`));
+  for (let y = 0; y < raw.height; y++) for (let x = 0; x < raw.width; x++) if (ch(x, y) === 'l') cultivo.add(`${x},${y}`);
+  const out: { txt: string; x: number; y: number }[] = [];
+  for (const q of grupos((x, y) => cultivo.has(`${x},${y}`), 24, 4)) out.push({ txt: q.n > 120 ? 'Plantações' : 'Plantação', x: q.cx, y: q.cy });
+  for (const q of grupos((x, y) => ch(x, y) === 'a' || ch(x, y) === 'm', 8, 2)) out.push({ txt: Math.max(q.w, q.h) >= Math.min(q.w, q.h) * 3 ? 'Rio' : 'Lago', x: q.cx, y: q.cy });
+  return out;
+}
+
+// ------------------------------------------------------------------ peças do HUD
+
+/** A moldura do mapa: a borda escura, o fio azul do HUD e o brilho. */
+function moldura(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
+  ctx.save();
+  ctx.shadowColor = 'rgba(143,176,210,0.45)';
+  ctx.shadowBlur = 10;
+  ctx.fillStyle = '#05070a';
+  ctx.fillRect(x - 3, y - 3, w + 6, h + 6);
+  ctx.restore();
+  ctx.fillStyle = HUD.borda;
+  ctx.fillRect(x - 2, y - 2, w + 4, 1);
+  ctx.fillRect(x - 2, y + h + 1, w + 4, 1);
+  ctx.fillRect(x - 2, y - 2, 1, h + 4);
+  ctx.fillRect(x + w + 1, y - 2, 1, h + 4);
+}
+
+function medirPlaca(ctx: CanvasRenderingContext2D, nome: string) {
+  ctx.save();
+  ctx.font = `600 11px ${FONTE}`;
+  const corte = nome.length > 13 && nome.includes(' ') ? (nome.lastIndexOf(' ', 13) > 0 ? nome.lastIndexOf(' ', 13) : nome.indexOf(' ')) : -1;
+  const linhas = corte > 0 ? [nome.slice(0, corte), nome.slice(corte + 1)] : [nome];
+  const tw = Math.max(...linhas.map((l) => ctx.measureText(l).width));
+  ctx.restore();
+  return { linhas, w: Math.ceil(tw) + 10, h: 12 * linhas.length + 5 };
+}
+
+/** A plaquinha do HUD: caixa escura, fio azul (vermelho no lugar do grupo, dourado na saída). */
+function desenharPlaca(ctx: CanvasRenderingContext2D, m: { linhas: string[]; w: number; h: number }, c: Caixa, tom: '' | 'foco' | 'aqui' | 'saida') {
+  const fio = tom === 'aqui' ? HUD.aqui : tom === 'foco' ? HUD.texto : tom === 'saida' ? HUD.ouro : HUD.borda;
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(c.x + 2, c.y + 2, c.w, c.h);
+  ctx.fillStyle = HUD.fundo;
+  ctx.fillRect(c.x, c.y, c.w, c.h);
+  ctx.fillStyle = fio;
+  ctx.fillRect(c.x, c.y, c.w, 1);
+  ctx.fillRect(c.x, c.y + c.h - 1, c.w, 1);
+  ctx.fillRect(c.x, c.y, 1, c.h);
+  ctx.fillRect(c.x + c.w - 1, c.y, 1, c.h);
+  ctx.font = `600 11px ${FONTE}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = tom === 'aqui' ? '#ffcfc4' : tom === 'saida' ? HUD.ouro : HUD.texto;
+  m.linhas.forEach((l, i) => ctx.fillText(l, c.x + c.w / 2, c.y + 3 + 6 + i * 12));
+  ctx.restore();
+}
+
+/** Nome solto no chão (plantação, lago): letra clara com contorno escuro. */
+function textoSolto(ctx: CanvasRenderingContext2D, txt: string, x: number, y: number) {
+  ctx.save();
+  ctx.font = `500 10px ${FONTE}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineWidth = 3;
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = 'rgba(5,7,10,0.8)';
+  ctx.strokeText(txt, Math.round(x), Math.round(y));
+  ctx.fillStyle = '#eef4f8';
+  ctx.fillText(txt, Math.round(x), Math.round(y));
+  ctx.restore();
+}
+
+/** O selo com os quadradinhos de quem está lá dentro. */
+function selo(ctx: CanvasRenderingContext2D, cores: string[], direita: number, y: number) {
+  const n = Math.min(4, cores.length);
+  const t = 5;
+  const w = n * (t + 2) + 4 + (cores.length > 4 ? 10 : 0);
+  const x = Math.round(direita - w);
+  ctx.save();
+  ctx.fillStyle = HUD.fundo;
+  ctx.fillRect(x, y, w, t + 6);
+  ctx.fillStyle = HUD.borda;
+  ctx.fillRect(x, y, w, 1);
+  ctx.fillRect(x, y + t + 5, w, 1);
+  for (let i = 0; i < n; i++) {
+    ctx.fillStyle = cores[i];
+    ctx.fillRect(x + 3 + i * (t + 2), y + 3, t, t);
+  }
+  if (cores.length > 4) {
+    ctx.fillStyle = HUD.texto;
+    ctx.font = `600 8px ${FONTE}`;
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`+${cores.length - 4}`, x + w - 11, y + 3 + t / 2);
+  }
+  ctx.restore();
+}
+
+/** A seta vermelha em cima da plaquinha do lugar do grupo. */
+function seta(ctx: CanvasRenderingContext2D, cx: number, base: number) {
+  const x = Math.round(cx);
+  ctx.save();
+  ctx.fillStyle = '#05070a';
+  ctx.beginPath();
+  ctx.moveTo(x - 6, base - 9);
+  ctx.lineTo(x + 6, base - 9);
+  ctx.lineTo(x, base + 1);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = HUD.aqui;
+  ctx.shadowColor = HUD.aqui;
+  ctx.shadowBlur = 6;
+  ctx.beginPath();
+  ctx.moveTo(x - 4, base - 8);
+  ctx.lineTo(x + 4, base - 8);
+  ctx.lineTo(x, base - 1);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+/** O norte, no canto do mapa. */
+function rosa(ctx: CanvasRenderingContext2D, cx: number, cy: number) {
+  const x = Math.round(cx - 9);
+  const y = Math.round(cy - 10);
+  ctx.save();
+  ctx.fillStyle = HUD.fundo;
+  ctx.fillRect(x, y, 18, 20);
+  ctx.fillStyle = HUD.borda;
+  ctx.fillRect(x, y, 18, 1);
+  ctx.fillRect(x, y + 19, 18, 1);
+  ctx.fillRect(x, y, 1, 20);
+  ctx.fillRect(x + 17, y, 1, 20);
+  ctx.fillStyle = HUD.aqui;
+  ctx.beginPath();
+  ctx.moveTo(x + 9, y + 3);
+  ctx.lineTo(x + 13, y + 9);
+  ctx.lineTo(x + 5, y + 9);
+  ctx.closePath();
+  ctx.fill();
+  ctx.font = `700 9px ${FONTE}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = HUD.texto;
+  ctx.fillText('N', x + 9, y + 14);
+  ctx.restore();
+}
+
+/** A régua em metros, no canto de baixo do mapa. */
+function escala(ctx: CanvasRenderingContext2D, S: number, x: number, y: number) {
+  const m = (60 / S) * M_CASA;
+  const total = [5, 10, 20, 25, 50, 100, 200].find((v) => v >= m * 0.8) ?? 200;
+  const w = Math.round((total / M_CASA) * S);
+  const X = Math.round(x);
+  const Y = Math.round(y);
+  ctx.save();
+  ctx.font = `500 9px ${FONTE}`;
+  const rot = `${total} m`;
+  const tw = Math.ceil(ctx.measureText(rot).width);
+  ctx.fillStyle = HUD.fundo;
+  ctx.fillRect(X - 3, Y - 8, w + tw + 12, 12);
+  for (let i = 0; i < 4; i++) {
+    ctx.fillStyle = i % 2 ? '#05070a' : HUD.fraco;
+    ctx.fillRect(X + (i * w) / 4, Y - 3, w / 4, 3);
+  }
+  ctx.fillStyle = HUD.texto;
+  ctx.textBaseline = 'middle';
+  ctx.fillText(rot, X + w + 5, Y - 2);
+  ctx.restore();
+}
+
+/** A caixa R ampliada até encher o painel, sem deformar. */
 function encaixar(R: Caixa, W: number, H: number): Caixa {
   const k = Math.min((W - PAD * 2) / R.w, (H - PAD * 2) / R.h);
   return { x: (W - R.w * k) / 2, y: (H - R.h * k) / 2, w: R.w * k, h: R.h * k };
-}
-
-function mistura(a: string, b: string) {
-  const n = (s: string) => [1, 3, 5].map((i) => parseInt(s.slice(i, i + 2), 16));
-  const [x, y] = [n(a), n(b)];
-  return `rgb(${x.map((v, i) => Math.round((v + y[i]) / 2)).join(',')})`;
-}
-
-/** Traço de nanquim: cada ponta desvia um pouco, sempre igual (as paredes que se encontram continuam emendadas). */
-function tremor(x: number, y: number) {
-  const v = Math.sin(Math.round(x * 10) * 12.9898 + Math.round(y * 10) * 78.233) * 43758.5453;
-  return (v - Math.floor(v) - 0.5) * 0.9;
-}
-
-/** Hachuras a 45° dentro do retângulo do cômodo. */
-function hatchLines(r: Caixa) {
-  const out: [number, number, number, number][] = [];
-  const step = 3.2;
-  for (let c = r.x + r.y + step; c < r.x + r.w + r.y + r.h; c += step) {
-    const x0 = Math.max(r.x, c - (r.y + r.h));
-    const x1 = Math.min(r.x + r.w, c - r.y);
-    out.push([x0, c - x0, x1, c - x1]);
-  }
-  return out;
 }
 
 /** Planta girada em quartos de volta (r) no sentido horário, para encaixar o cômodo na planta. */
